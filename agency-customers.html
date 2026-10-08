@@ -1,0 +1,3595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>EGC - Agency Customers</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{
+width:100%;
+min-height:100%;
+}
+
+body{
+font-family:Arial,Helvetica,sans-serif;
+min-height:100vh;
+color:#173f5f;
+background:
+radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+#eef7fc;
+overflow-x:hidden;
+}
+
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+
+/* ================= HEADER ================= */
+
+.header{
+position:fixed;
+top:0;
+left:0;
+right:0;
+height:72px;
+background:rgba(255,255,255,.97);
+border-bottom:1px solid #dce8f1;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 24px;
+z-index:1000;
+box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.header-left{
+display:flex;
+align-items:center;
+gap:13px;
+min-width:0;
+}
+
+.menu-btn{
+display:none;
+width:40px;
+height:40px;
+border:0;
+border-radius:10px;
+background:#eef7ff;
+color:#0871c3;
+font-size:22px;
+flex:none;
+}
+
+.logo{
+width:125px;
+max-height:48px;
+object-fit:contain;
+flex:none;
+}
+
+.agency-title{
+color:#06477f;
+font-size:17px;
+font-weight:800;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.agency-subtitle{
+color:#91a1ae;
+font-size:11px;
+margin-top:3px;
+white-space:nowrap;
+}
+
+.header-right{
+display:flex;
+align-items:center;
+gap:12px;
+flex:none;
+}
+
+.agency-badge{
+display:flex;
+align-items:center;
+gap:7px;
+padding:8px 13px;
+border-radius:20px;
+background:#eef9f2;
+color:#24804a;
+font-size:11px;
+font-weight:800;
+}
+
+.dot{
+width:8px;
+height:8px;
+background:#27ae60;
+border-radius:50%;
+}
+
+/* ================= NOTIFICATIONS ================= */
+
+.notification-wrap{
+position:relative;
+}
+
+.notification-btn{
+width:42px;
+height:42px;
+border:1px solid #dce8f1;
+border-radius:12px;
+background:#fff;
+color:#0871c3;
+font-size:19px;
+position:relative;
+}
+
+.notification-count{
+position:absolute;
+top:-5px;
+right:-5px;
+min-width:19px;
+height:19px;
+padding:0 5px;
+border-radius:20px;
+background:#e53935;
+color:#fff;
+display:none;
+align-items:center;
+justify-content:center;
+font-size:10px;
+font-weight:800;
+border:2px solid #fff;
+}
+
+.notification-count.show{
+display:flex;
+}
+
+.notification-panel{
+position:absolute;
+right:0;
+top:51px;
+width:360px;
+max-width:calc(100vw - 30px);
+background:#fff;
+border:1px solid #dce8f1;
+border-radius:17px;
+box-shadow:0 20px 60px rgba(20,70,100,.2);
+overflow:hidden;
+display:none;
+}
+
+.notification-panel.show{
+display:block;
+}
+
+.notification-head{
+padding:15px;
+border-bottom:1px solid #edf2f5;
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+
+.notification-head strong{
+color:#06477f;
+font-size:14px;
+}
+
+.mark-all{
+border:0;
+background:transparent;
+color:#0871c3;
+font-size:10px;
+font-weight:800;
+}
+
+.notification-list{
+max-height:390px;
+overflow:auto;
+}
+
+.notification-item{
+padding:13px 15px;
+border-bottom:1px solid #f0f3f5;
+display:flex;
+gap:10px;
+background:#fff;
+}
+
+.notification-item.unread{
+background:#f4faff;
+}
+
+.notification-icon{
+width:34px;
+height:34px;
+flex:none;
+border-radius:10px;
+background:#eaf5fd;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.notification-content{
+flex:1;
+min-width:0;
+}
+
+.notification-title{
+font-size:12px;
+font-weight:800;
+color:#31566f;
+}
+
+.notification-text{
+font-size:11px;
+color:#718796;
+margin-top:4px;
+line-height:1.45;
+}
+
+.notification-time{
+font-size:9px;
+color:#a0adb6;
+margin-top:5px;
+}
+
+.no-notifications{
+padding:30px 15px;
+text-align:center;
+color:#8b9ba7;
+font-size:11px;
+}
+
+/* ================= MASTER SIDEBAR ================= */
+
+.sidebar{
+position:fixed;
+top:72px;
+left:0;
+bottom:0;
+width:235px;
+background:#fff;
+border-right:1px solid #dce8f1;
+padding:22px 14px;
+z-index:900;
+display:flex;
+flex-direction:column;
+overflow-y:auto;
+}
+
+.sidebar-title{
+color:#9aaab5;
+font-size:10px;
+font-weight:900;
+letter-spacing:1.2px;
+padding:0 11px 12px;
+}
+
+.nav-btn{
+width:100%;
+height:43px;
+border:0;
+border-radius:11px;
+background:transparent;
+color:#5d788b;
+display:flex;
+align-items:center;
+gap:11px;
+padding:0 12px;
+margin-bottom:5px;
+font-size:12px;
+font-weight:700;
+text-align:left;
+transition:.2s ease;
+flex-shrink:0;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+background:#edf7ff;
+color:#0871c3;
+}
+
+.nav-icon{
+width:23px;
+min-width:23px;
+text-align:center;
+font-size:16px;
+}
+
+.sidebar-bottom{
+position:static;
+width:100%;
+height:1px;
+flex:0 0 1px;
+margin-top:auto;
+margin-bottom:8px;
+background:#edf2f5;
+}
+
+.logout-btn{
+width:100%;
+height:43px;
+border:0;
+border-radius:11px;
+background:#fff5f5;
+color:#c33232;
+display:flex;
+align-items:center;
+gap:11px;
+padding:0 12px;
+font-size:12px;
+font-weight:800;
+text-align:left;
+flex:0 0 43px;
+margin-bottom:0;
+}
+
+.logout-btn:hover{
+background:#fff0f0;
+color:#c33232;
+}
+
+.overlay{
+display:none;
+}
+
+/* ================= MAIN ================= */
+
+.main{
+margin-left:235px;
+padding:98px 25px 35px;
+}
+
+.container{
+max-width:1500px;
+margin:auto;
+}
+
+.welcome{
+margin-bottom:20px;
+}
+
+.welcome h1{
+color:#06477f;
+font-size:27px;
+font-weight:850;
+}
+
+.welcome p{
+margin-top:6px;
+color:#8295a3;
+font-size:12px;
+}
+
+/* ================= AGENCY INFO ================= */
+
+.agency-info{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:12px;
+margin-bottom:18px;
+}
+
+.info-item{
+background:rgba(255,255,255,.94);
+border:1px solid #dce8f1;
+border-radius:14px;
+padding:14px;
+min-width:0;
+}
+
+.info-label{
+color:#9aaab5;
+font-size:9px;
+font-weight:900;
+letter-spacing:.7px;
+text-transform:uppercase;
+}
+
+.info-value{
+color:#31566f;
+font-size:13px;
+font-weight:800;
+margin-top:6px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+/* ================= STATS ================= */
+
+.stats{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:14px;
+margin-bottom:18px;
+}
+
+.stat{
+background:#fff;
+border:1px solid #dce8f1;
+border-radius:17px;
+padding:17px;
+box-shadow:0 7px 25px rgba(30,75,110,.05);
+min-width:0;
+min-height:108px;
+}
+
+.stat-label{
+color:#8da0ae;
+font-size:9px;
+font-weight:900;
+letter-spacing:.8px;
+padding-right:48px;
+}
+
+.stat-number{
+color:#06477f;
+font-size:25px;
+font-weight:850;
+margin-top:7px;
+}
+
+.stat-icon{
+float:right;
+width:43px;
+height:43px;
+border-radius:13px;
+background:#eef7ff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+}
+
+/* ================= PANEL ================= */
+
+.panel{
+background:#fff;
+border:1px solid #dce8f1;
+border-radius:18px;
+margin-bottom:18px;
+overflow:hidden;
+box-shadow:0 7px 25px rgba(30,75,110,.04);
+}
+
+.panel-header{
+padding:17px 18px;
+border-bottom:1px solid #edf2f5;
+}
+
+.panel-title{
+color:#06477f;
+font-size:14px;
+font-weight:850;
+}
+
+.panel-subtitle{
+color:#91a1ae;
+font-size:10px;
+margin-top:5px;
+}
+
+/* ================= SEARCH ================= */
+
+.search{
+display:grid;
+grid-template-columns:minmax(0,1fr) 160px 160px;
+gap:9px;
+padding:14px 18px;
+background:#fbfdff;
+border-bottom:1px solid #edf2f5;
+}
+
+.search-input,
+.filter{
+width:100%;
+height:40px;
+border:1px solid #d7e3eb;
+border-radius:10px;
+outline:none;
+background:#fff;
+color:#31566f;
+padding:0 12px;
+font-size:11px;
+}
+
+.search-input::placeholder{
+color:#a0adb6;
+}
+
+.search-input:focus,
+.filter:focus{
+border-color:#72b4df;
+box-shadow:0 0 0 3px rgba(65,150,215,.07);
+}
+
+/* ================= TABLE ================= */
+
+.table-wrap{
+width:100%;
+overflow-x:auto;
+-webkit-overflow-scrolling:touch;
+}
+
+table{
+width:100%;
+min-width:1050px;
+border-collapse:collapse;
+}
+
+th{
+background:#f7fafc;
+color:#718796;
+font-size:9px;
+font-weight:900;
+text-transform:uppercase;
+letter-spacing:.5px;
+padding:12px 13px;
+text-align:left;
+white-space:nowrap;
+}
+
+td{
+border-top:1px solid #edf2f5;
+padding:12px 13px;
+color:#496a82;
+font-size:10px;
+vertical-align:middle;
+white-space:nowrap;
+}
+
+.user-box{
+display:flex;
+align-items:center;
+gap:9px;
+min-width:190px;
+cursor:pointer;
+}
+
+.user-box:hover .user-name{
+color:#0871c3;
+}
+
+.user-photo,
+.modal-photo{
+width:38px;
+height:38px;
+border-radius:50%;
+object-fit:cover;
+background:#edf6fb;
+}
+
+.user-photo-fallback{
+width:38px;
+height:38px;
+border-radius:50%;
+background:#edf6fb;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.user-name{
+color:#31566f;
+font-weight:800;
+font-size:11px;
+transition:.2s;
+}
+
+.user-email{
+color:#9aaab5;
+font-size:9px;
+margin-top:3px;
+}
+
+.badge{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:5px 8px;
+border-radius:20px;
+font-size:8px;
+font-weight:900;
+white-space:nowrap;
+}
+
+.badge-green{
+background:#eaf8ef;
+color:#24804a;
+}
+
+.badge-yellow{
+background:#fff7df;
+color:#9b7310;
+}
+
+.badge-red{
+background:#fff0f0;
+color:#c33232;
+}
+
+.badge-blue{
+background:#eaf4ff;
+color:#0871c3;
+}
+
+.badge-gray{
+background:#eef2f5;
+color:#6f818e;
+}
+
+.loading,
+.empty{
+text-align:center;
+padding:35px!important;
+color:#91a1ae;
+}
+
+/* ================= MODAL ================= */
+
+.modal{
+position:fixed;
+inset:0;
+background:rgba(4,30,50,.5);
+display:none;
+align-items:center;
+justify-content:center;
+padding:20px;
+z-index:9998;
+backdrop-filter:blur(4px);
+}
+
+.modal.show{
+display:flex;
+}
+
+.modal-card{
+width:100%;
+max-width:500px;
+max-height:90vh;
+overflow:auto;
+background:#fff;
+border-radius:20px;
+padding:23px;
+position:relative;
+box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.close-btn{
+position:absolute;
+top:12px;
+right:12px;
+width:34px;
+height:34px;
+border:0;
+border-radius:9px;
+background:#eef4f8;
+color:#527087;
+font-size:18px;
+}
+
+.close-btn:hover{
+background:#e5eef4;
+}
+
+.modal-title{
+color:#06477f;
+font-size:19px;
+font-weight:850;
+margin-bottom:5px;
+}
+
+.modal-subtitle{
+color:#91a1ae;
+font-size:10px;
+margin-bottom:18px;
+}
+
+.modal-top{
+display:flex;
+align-items:center;
+gap:13px;
+margin-bottom:18px;
+padding-right:35px;
+}
+
+.modal-photo{
+width:62px;
+height:62px;
+flex:none;
+}
+
+.detail-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.detail-item{
+background:#f7fafc;
+border:1px solid #edf2f5;
+border-radius:11px;
+padding:11px;
+min-width:0;
+}
+
+.detail-label{
+font-size:8px;
+color:#91a1ae;
+font-weight:900;
+text-transform:uppercase;
+}
+
+.detail-value{
+font-size:11px;
+color:#31566f;
+font-weight:800;
+margin-top:5px;
+word-break:break-word;
+}
+
+/* ================= LOGOUT ================= */
+
+.logout-card{
+max-width:390px;
+text-align:center;
+}
+
+.logout-icon{
+font-size:38px;
+margin-bottom:10px;
+}
+
+.logout-card h2{
+color:#06477f;
+font-size:19px;
+}
+
+.logout-card p{
+color:#7b8f9d;
+font-size:11px;
+line-height:1.5;
+margin:8px 0 18px;
+}
+
+.logout-actions{
+display:flex;
+gap:10px;
+}
+
+.logout-actions button{
+flex:1;
+height:42px;
+border-radius:10px;
+font-weight:800;
+}
+
+.cancel-btn{
+border:1px solid #d7e3eb;
+background:#fff;
+color:#527087;
+}
+
+.cancel-btn:hover{
+background:#f5f9fb;
+}
+
+.confirm-logout{
+border:0;
+background:#d93636;
+color:#fff;
+}
+
+.confirm-logout:hover{
+background:#c92e2e;
+}
+
+/* ================= TOAST ================= */
+
+.toast{
+position:fixed;
+right:20px;
+bottom:20px;
+width:310px;
+max-width:calc(100vw - 40px);
+background:#fff;
+border:1px solid #dce8f1;
+border-radius:15px;
+padding:14px 16px;
+box-shadow:0 15px 45px rgba(20,70,100,.2);
+transform:translateY(130px);
+opacity:0;
+transition:.3s;
+z-index:9999;
+}
+
+.toast.show{
+transform:translateY(0);
+opacity:1;
+}
+
+.toast-title{
+color:#06477f;
+font-size:12px;
+font-weight:850;
+}
+
+.toast-text{
+color:#718796;
+font-size:10px;
+margin-top:4px;
+line-height:1.45;
+}
+
+/* ================= TABLET ================= */
+
+@media(max-width:1100px){
+
+.agency-info{
+grid-template-columns:repeat(3,1fr);
+}
+
+.stats{
+grid-template-columns:repeat(2,1fr);
+}
+
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:800px){
+
+.header{
+padding:0 14px;
+}
+
+.menu-btn{
+display:block;
+}
+
+.logo{
+width:95px;
+}
+
+.agency-title{
+font-size:14px;
+}
+
+.agency-subtitle{
+font-size:9px;
+}
+
+.sidebar{
+transform:translateX(-100%);
+transition:.25s;
+box-shadow:10px 0 30px rgba(0,0,0,.12);
+}
+
+.sidebar.open{
+transform:translateX(0);
+}
+
+.overlay{
+position:fixed;
+inset:72px 0 0;
+background:rgba(0,0,0,.3);
+z-index:850;
+display:none;
+}
+
+.overlay.show{
+display:block;
+}
+
+.main{
+margin-left:0;
+padding:92px 13px 25px;
+}
+
+.header-right .agency-badge{
+display:none;
+}
+
+.notification-panel{
+right:-8px;
+}
+
+.welcome h1{
+font-size:22px;
+}
+
+.agency-info{
+grid-template-columns:1fr 1fr;
+gap:9px;
+}
+
+.stats{
+grid-template-columns:1fr 1fr;
+gap:9px;
+}
+
+.info-item{
+padding:12px 10px;
+min-width:0;
+}
+
+.info-label{
+font-size:8px;
+white-space:nowrap;
+}
+
+.info-value{
+font-size:11px;
+margin-top:5px;
+}
+
+.stat{
+padding:14px 12px;
+min-height:105px;
+}
+
+.stat-label{
+font-size:8px;
+line-height:1.3;
+padding-right:42px;
+display:block;
+}
+
+.stat-number{
+font-size:22px;
+margin-top:9px;
+}
+
+.stat-icon{
+width:36px;
+height:36px;
+border-radius:10px;
+font-size:17px;
+}
+
+.search{
+grid-template-columns:1fr;
+}
+
+.notification-panel{
+max-width:calc(100vw - 25px);
+}
+
+}
+
+/* ================= SMALL MOBILE ================= */
+
+@media(max-width:500px){
+
+.header{
+height:65px;
+}
+
+.sidebar{
+top:65px;
+}
+
+.overlay{
+inset:65px 0 0;
+}
+
+.main{
+padding-top:83px;
+}
+
+.header-left{
+gap:7px;
+min-width:0;
+}
+
+.logo{
+width:75px;
+}
+
+.agency-title{
+font-size:12px;
+}
+
+.agency-subtitle{
+font-size:8px;
+}
+
+.notification-btn{
+width:38px;
+height:38px;
+}
+
+.agency-info{
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin-bottom:12px;
+}
+
+.stats{
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin-bottom:14px;
+}
+
+.info-item{
+padding:11px 9px;
+border-radius:12px;
+}
+
+.info-label{
+font-size:7px;
+letter-spacing:.4px;
+}
+
+.info-value{
+font-size:10px;
+margin-top:5px;
+}
+
+.stat{
+padding:13px 10px;
+border-radius:14px;
+min-height:100px;
+}
+
+.stat-label{
+font-size:7px;
+letter-spacing:.4px;
+line-height:1.35;
+}
+
+.stat-number{
+font-size:21px;
+margin-top:8px;
+}
+
+.stat-icon{
+width:33px;
+height:33px;
+font-size:15px;
+border-radius:9px;
+}
+
+.welcome{
+margin-bottom:14px;
+}
+
+.welcome h1{
+font-size:21px;
+}
+
+.welcome p{
+font-size:10px;
+line-height:1.4;
+}
+
+.panel-header{
+padding:14px;
+}
+
+.panel-title{
+font-size:13px;
+}
+
+.panel-subtitle{
+font-size:9px;
+line-height:1.4;
+}
+
+.search{
+padding:11px 14px;
+}
+
+.modal{
+padding:10px;
+}
+
+.modal-card{
+padding:19px;
+}
+
+.detail-grid{
+grid-template-columns:1fr;
+}
+
+.logout-actions{
+flex-direction:column;
+}
+
+}
+
+/* ================= EXTRA SMALL ================= */
+
+@media(max-width:360px){
+
+.logo{
+width:68px;
+}
+
+.agency-title{
+font-size:11px;
+}
+
+.agency-subtitle{
+font-size:7px;
+}
+
+.agency-info{
+gap:6px;
+}
+
+.stats{
+gap:6px;
+}
+
+.info-item{
+padding:10px 7px;
+}
+
+.info-label{
+font-size:6.5px;
+}
+
+.info-value{
+font-size:9px;
+}
+
+.stat{
+padding:11px 8px;
+min-height:95px;
+}
+
+.stat-label{
+font-size:6.5px;
+}
+
+.stat-number{
+font-size:19px;
+}
+
+.stat-icon{
+width:30px;
+height:30px;
+font-size:14px;
+}
+
+.notification-btn{
+width:35px;
+height:35px;
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+
+<header class="header">
+
+<div class="header-left">
+
+<button class="menu-btn" id="menuBtn">☰</button>
+
+<img
+class="logo"
+src="assets/EGC - Emergency Gas Cylinder logo.png"
+alt="EGC"
+>
+
+<div>
+
+<div class="agency-title" id="headerAgencyName">
+LPG Agency
+</div>
+
+<div class="agency-subtitle">
+Emergency Gas Cylinder Agency Panel
+</div>
+
+</div>
+
+</div>
+
+<div class="header-right">
+
+<div class="notification-wrap">
+
+<button
+class="notification-btn"
+id="notificationBtn"
+>
+🔔
+<span
+class="notification-count"
+id="notificationCount"
+>0</span>
+</button>
+
+<div
+class="notification-panel"
+id="notificationPanel"
+>
+
+<div class="notification-head">
+
+<strong>
+Notifications
+</strong>
+
+<button
+class="mark-all"
+id="markAllRead"
+>
+Mark all read
+</button>
+
+</div>
+
+<div
+class="notification-list"
+id="notificationList"
+>
+
+<div class="no-notifications">
+No notifications.
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="agency-badge">
+
+<span class="dot"></span>
+
+Agency
+
+</div>
+
+</div>
+
+</header>
+
+<!-- ================= MASTER SIDEBAR ================= -->
+
+<aside
+class="sidebar"
+id="sidebar"
+>
+
+<div class="sidebar-title">
+AGENCY MANAGEMENT
+</div>
+
+<button
+class="nav-btn"
+data-page="agency-dashboard.html"
+>
+
+<span class="nav-icon">
+📊
+</span>
+
+Dashboard
+
+</button>
+
+<button
+class="nav-btn active"
+data-page="agency-customers.html"
+>
+
+<span class="nav-icon">
+👥
+</span>
+
+Customers
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-cylinder-requests.html"
+>
+
+<span class="nav-icon">
+🛢️
+</span>
+
+Cylinder Requests
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-request-details.html"
+>
+
+<span class="nav-icon">
+📋
+</span>
+
+Request Details
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-processing.html"
+>
+
+<span class="nav-icon">
+⚙️
+</span>
+
+Request Processing
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-payments.html"
+>
+
+<span class="nav-icon">
+💳
+</span>
+
+Payments
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-repayments.html"
+>
+
+<span class="nav-icon">
+💰
+</span>
+
+Repayments
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-deliveries.html"
+>
+
+<span class="nav-icon">
+🚚
+</span>
+
+Deliveries
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-pending.html"
+>
+
+<span class="nav-icon">
+⏳
+</span>
+
+Pending / On Hold
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-slips.html"
+>
+
+<span class="nav-icon">
+🧾
+</span>
+
+Request / Payment Slips
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-notifications.html"
+>
+
+<span class="nav-icon">
+🔔
+</span>
+
+Notifications
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-reports.html"
+>
+
+<span class="nav-icon">
+📈
+</span>
+
+Reports
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-settings.html"
+>
+
+<span class="nav-icon">
+⚙️
+</span>
+
+Settings
+
+</button>
+
+<button
+class="nav-btn"
+data-page="agency-about.html"
+>
+
+<span class="nav-icon">
+ℹ️
+</span>
+
+About
+
+</button>
+
+<div class="sidebar-bottom"></div>
+
+<button
+class="logout-btn"
+id="logoutBtn"
+>
+
+<span class="nav-icon">
+🚪
+</span>
+
+Logout
+
+</button>
+
+</aside>
+
+<div
+class="overlay"
+id="overlay"
+></div>
+
+<!-- ================= MAIN ================= -->
+
+<main class="main">
+
+<div class="container">
+
+<section class="welcome">
+
+<h1>
+Customers
+</h1>
+
+<p id="welcomeText">
+Manage customers linked to this LPG agency.
+</p>
+
+</section>
+
+<!-- ================= AGENCY INFO ================= -->
+
+<section class="agency-info">
+
+<div class="info-item">
+
+<div class="info-label">
+Agency
+</div>
+
+<div
+class="info-value"
+id="agencyName"
+>
+—
+</div>
+
+</div>
+
+<div class="info-item">
+
+<div class="info-label">
+Agency Code
+</div>
+
+<div
+class="info-value"
+id="agencyCode"
+>
+—
+</div>
+
+</div>
+
+<div class="info-item">
+
+<div class="info-label">
+LPG Company
+</div>
+
+<div
+class="info-value"
+id="agencyCompany"
+>
+—
+</div>
+
+</div>
+
+<div class="info-item">
+
+<div class="info-label">
+City
+</div>
+
+<div
+class="info-value"
+id="agencyCity"
+>
+—
+</div>
+
+</div>
+
+</section>
+
+<!-- ================= CUSTOMER STATS ================= -->
+
+<section class="stats">
+
+<div class="stat">
+
+<span class="stat-icon">
+👥
+</span>
+
+<div class="stat-label">
+TOTAL CUSTOMERS
+</div>
+
+<div
+class="stat-number"
+id="totalCustomers"
+>
+0
+</div>
+
+</div>
+
+<div class="stat">
+
+<span class="stat-icon">
+🛢️
+</span>
+
+<div class="stat-label">
+TOTAL REQUESTS
+</div>
+
+<div
+class="stat-number"
+id="totalRequests"
+>
+0
+</div>
+
+</div>
+
+<div class="stat">
+
+<span class="stat-icon">
+📦
+</span>
+
+<div class="stat-label">
+TOTAL CYLINDERS
+</div>
+
+<div
+class="stat-number"
+id="totalCylinders"
+>
+0
+</div>
+
+</div>
+
+<div class="stat">
+
+<span class="stat-icon">
+⏳
+</span>
+
+<div class="stat-label">
+CUSTOMERS ON HOLD
+</div>
+
+<div
+class="stat-number"
+id="customersOnHold"
+>
+0
+</div>
+
+</div>
+
+</section>
+
+<!-- ================= CUSTOMER TABLE ================= -->
+
+<section class="panel">
+
+<div class="panel-header">
+
+<div class="panel-title">
+👥 Agency Customers
+</div>
+
+<div class="panel-subtitle">
+Only customers assigned to the currently logged-in LPG agency are shown.
+</div>
+
+</div>
+
+<div class="search">
+
+<input
+id="searchInput"
+class="search-input"
+type="search"
+placeholder="Search name, mobile, email, customer ID or request number..."
+autocomplete="off"
+>
+
+<select
+id="paymentFilter"
+class="filter"
+>
+
+<option value="">
+All Payment Status
+</option>
+
+<option value="paid">
+Paid
+</option>
+
+<option value="pending">
+Pending
+</option>
+
+<option value="failed">
+Failed
+</option>
+
+<option value="processing">
+Processing
+</option>
+
+</select>
+
+<select
+id="holdFilter"
+class="filter"
+>
+
+<option value="">
+All Customers
+</option>
+
+<option value="eligible">
+Eligible
+</option>
+
+<option value="hold">
+On Hold
+</option>
+
+</select>
+
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Customer</th>
+<th>Mobile</th>
+<th>Email</th>
+<th>Customer ID</th>
+<th>Requests</th>
+<th>Cylinders</th>
+<th>Payment</th>
+<th>Previous Due</th>
+<th>Next Cylinder</th>
+<th>Latest Request</th>
+
+</tr>
+
+</thead>
+
+<tbody id="customerTableBody">
+
+<tr>
+
+<td
+colspan="10"
+class="loading"
+>
+Loading customers...
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
+
+<!-- ================= CUSTOMER MODAL ================= -->
+
+<div
+class="modal"
+id="customerModal"
+>
+
+<div class="modal-card">
+
+<button
+class="close-btn"
+id="customerClose"
+>
+×
+</button>
+
+<div class="modal-top">
+
+<img
+class="modal-photo"
+id="customerModalPhoto"
+src="assets/EGC - Emergency Gas Cylinder logo.png"
+alt="Customer"
+>
+
+<div>
+
+<div
+class="modal-title"
+id="customerModalName"
+>
+Customer
+</div>
+
+<div
+class="modal-subtitle"
+id="customerModalEmail"
+>
+—
+</div>
+
+</div>
+
+</div>
+
+<div class="detail-grid">
+
+<div class="detail-item">
+
+<div class="detail-label">
+Customer ID
+</div>
+
+<div
+class="detail-value"
+id="detailCustomerId"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Mobile
+</div>
+
+<div
+class="detail-value"
+id="detailMobile"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Address
+</div>
+
+<div
+class="detail-value"
+id="detailAddress"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+LPG Company
+</div>
+
+<div
+class="detail-value"
+id="detailCompany"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Total Requests
+</div>
+
+<div
+class="detail-value"
+id="detailRequests"
+>
+0
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Total Cylinders
+</div>
+
+<div
+class="detail-value"
+id="detailCylinders"
+>
+0
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Payment Status
+</div>
+
+<div
+class="detail-value"
+id="detailPayment"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Previous Due
+</div>
+
+<div
+class="detail-value"
+id="detailDue"
+>
+₹0.00
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Last Request
+</div>
+
+<div
+class="detail-value"
+id="detailLastRequest"
+>
+—
+</div>
+
+</div>
+
+<div class="detail-item">
+
+<div class="detail-label">
+Last Delivery
+</div>
+
+<div
+class="detail-value"
+id="detailLastDelivery"
+>
+—
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ================= LOGOUT MODAL ================= -->
+
+<div
+class="modal"
+id="logoutModal"
+>
+
+<div class="modal-card logout-card">
+
+<div class="logout-icon">
+🚪
+</div>
+
+<h2>
+Logout?
+</h2>
+
+<p>
+Are you sure you want to logout from the EGC Agency Panel?
+</p>
+
+<div class="logout-actions">
+
+<button
+class="cancel-btn"
+id="cancelLogout"
+>
+Cancel
+</button>
+
+<button
+class="confirm-logout"
+id="confirmLogout"
+>
+Yes, Logout
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ================= TOAST ================= -->
+
+<div
+class="toast"
+id="toast"
+>
+
+<div
+class="toast-title"
+id="toastTitle"
+>
+Notification
+</div>
+
+<div
+class="toast-text"
+id="toastText"
+>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+let currentProfile = null;
+let currentAgency = null;
+let agencyId = null;
+
+let customers = [];
+let requests = [];
+
+const $ = id => document.getElementById(id);
+
+
+/* =========================
+   BASIC HELPERS
+========================= */
+
+function escapeHtml(value){
+
+return String(value ?? "")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+
+function money(value){
+
+const n = Number(value);
+
+if(
+value === null ||
+value === undefined ||
+value === "" ||
+Number.isNaN(n)
+){
+return 0;
+}
+
+return n;
+
+}
+
+
+function formatMoney(value){
+
+return "₹" +
+money(value).toLocaleString(
+"en-IN",
+{
+minimumFractionDigits:2,
+maximumFractionDigits:2
+}
+);
+
+}
+
+
+function formatDate(value){
+
+if(!value){
+return "—";
+}
+
+const d = new Date(value);
+
+if(Number.isNaN(d.getTime())){
+return "—";
+}
+
+return d.toLocaleDateString(
+"en-IN",
+{
+day:"2-digit",
+month:"short",
+year:"numeric"
+}
+);
+
+}
+
+
+function formatDateTime(value){
+
+if(!value){
+return "—";
+}
+
+const d = new Date(value);
+
+if(Number.isNaN(d.getTime())){
+return "—";
+}
+
+return d.toLocaleString(
+"en-IN",
+{
+day:"2-digit",
+month:"short",
+year:"numeric",
+hour:"2-digit",
+minute:"2-digit"
+}
+);
+
+}
+
+
+function statusClass(value){
+
+const s =
+String(value || "")
+.trim()
+.toLowerCase();
+
+if([
+"paid",
+"verified",
+"completed",
+"delivered",
+"active",
+"eligible",
+"success",
+"successful"
+].includes(s)){
+return "badge-green";
+}
+
+if([
+"pending",
+"waiting",
+"on hold",
+"hold"
+].includes(s)){
+return "badge-yellow";
+}
+
+if([
+"processing",
+"approved",
+"assigned"
+].includes(s)){
+return "badge-blue";
+}
+
+if([
+"failed",
+"cancelled",
+"rejected",
+"inactive",
+"declined"
+].includes(s)){
+return "badge-red";
+}
+
+return "badge-gray";
+
+}
+
+
+function badge(value){
+
+const text =
+value === null ||
+value === undefined ||
+value === ""
+?
+"Not Set"
+:
+String(value);
+
+return `
+<span class="badge ${statusClass(text)}">
+${escapeHtml(text)}
+</span>
+`;
+
+}
+
+
+function showToast(title,text){
+
+$("toastTitle").textContent =
+title || "Notification";
+
+$("toastText").textContent =
+text || "";
+
+$("toast").classList.add("show");
+
+clearTimeout(window.egcToast);
+
+window.egcToast =
+setTimeout(
+() => $("toast").classList.remove("show"),
+4500
+);
+
+}
+
+
+/* =========================
+   AUTH / SESSION
+========================= */
+
+async function checkSession(){
+
+const {
+data,
+error
+} =
+await supabaseClient.auth.getUser();
+
+if(error || !data?.user){
+
+location.replace("agency-login.html");
+
+return false;
+
+}
+
+currentUser = data.user;
+
+return true;
+
+}
+
+
+/* =========================
+   PROFILE
+========================= */
+
+async function loadProfile(){
+
+const {
+data,
+error
+} =
+await supabaseClient
+.from("profiles")
+.select("*")
+.eq("id",currentUser.id)
+.maybeSingle();
+
+if(error || !data){
+
+showToast(
+"Profile Error",
+error?.message ||
+"Agency profile was not found."
+);
+
+await supabaseClient.auth.signOut();
+
+location.replace("agency-login.html");
+
+return false;
+
+}
+
+currentProfile = data;
+
+agencyId = data.agency_id;
+
+if(!agencyId){
+
+showToast(
+"Agency Not Assigned",
+"This account is not linked to an LPG agency."
+);
+
+await supabaseClient.auth.signOut();
+
+location.replace("agency-login.html");
+
+return false;
+
+}
+
+return true;
+
+}
+
+
+/* =========================
+   AGENCY
+========================= */
+
+async function loadAgency(){
+
+const {
+data,
+error
+} =
+await supabaseClient
+.from("agencies")
+.select("*")
+.eq("id",agencyId)
+.maybeSingle();
+
+if(error || !data){
+
+showToast(
+"Agency Error",
+error?.message ||
+"Agency information could not be found."
+);
+
+return false;
+
+}
+
+currentAgency = data;
+
+$("headerAgencyName").textContent =
+data.agency_name ||
+"LPG Agency";
+
+$("agencyName").textContent =
+data.agency_name ||
+"—";
+
+$("agencyCode").textContent =
+data.agency_code ||
+"—";
+
+$("agencyCompany").textContent =
+data.lpg_company ||
+"—";
+
+$("agencyCity").textContent =
+data.city ||
+"—";
+
+return true;
+
+}
+
+
+/* =========================
+   REQUEST HELPERS
+========================= */
+
+function customerRequests(customerId){
+
+return requests.filter(
+request =>
+String(request.user_id) ===
+String(customerId)
+);
+
+}
+
+
+function getRequestPaymentStatus(request){
+
+return String(
+request?.payment_status ||
+request?.payment?.status ||
+"pending"
+)
+.toLowerCase();
+
+}
+
+
+function paymentStatus(list){
+
+if(!list.length){
+return "pending";
+}
+
+const statuses =
+list.map(getRequestPaymentStatus);
+
+if(statuses.includes("failed")){
+return "failed";
+}
+
+if(statuses.includes("pending")){
+return "pending";
+}
+
+if(statuses.includes("processing")){
+return "processing";
+}
+
+if(
+statuses.includes("paid") ||
+statuses.includes("verified") ||
+statuses.includes("completed")
+){
+return "paid";
+}
+
+return statuses[0] || "pending";
+
+}
+
+
+function dueAmount(list){
+
+return list.reduce(
+(sum,request)=>{
+
+const status =
+getRequestPaymentStatus(request);
+
+const unpaid =
+[
+"paid",
+"verified",
+"completed",
+"success",
+"successful"
+].includes(status);
+
+if(unpaid){
+return sum;
+}
+
+return sum +
+money(request.total_amount) +
+money(request.extra_charge);
+
+},
+0
+);
+
+}
+
+
+function cylinders(list){
+
+return list.reduce(
+(sum,request)=>{
+
+const quantity =
+Number(
+request.quantity ??
+request.cylinder_quantity ??
+1
+);
+
+return sum +
+(
+Number.isFinite(quantity)
+?
+quantity
+:
+0
+);
+
+},
+0
+);
+
+}
+
+
+function latestRequest(list){
+
+if(!list.length){
+return null;
+}
+
+return [...list].sort(
+(a,b)=>
+new Date(
+b.created_at ||
+b.request_date ||
+0
+) -
+new Date(
+a.created_at ||
+a.request_date ||
+0
+)
+)[0];
+
+}
+
+
+function latestDelivery(list){
+
+const delivered =
+list.filter(request => {
+
+const deliveryStatus =
+String(
+request.delivery_status ||
+""
+)
+.toLowerCase();
+
+const status =
+String(
+request.status ||
+""
+)
+.toLowerCase();
+
+return (
+deliveryStatus === "delivered" ||
+status === "delivered" ||
+status === "completed"
+);
+
+});
+
+if(!delivered.length){
+return null;
+}
+
+return [...delivered].sort(
+(a,b)=>
+new Date(
+b.delivered_at ||
+b.delivery_date ||
+b.updated_at ||
+0
+) -
+new Date(
+a.delivered_at ||
+a.delivery_date ||
+a.updated_at ||
+0
+)
+)[0];
+
+}
+
+
+/* =========================
+   LOAD DATA
+========================= */
+
+async function loadData(){
+
+const requestResult =
+await supabaseClient
+.from("cylinder_requests")
+.select("*")
+.eq("agency_id",agencyId)
+.order(
+"created_at",
+{
+ascending:false
+}
+);
+
+if(requestResult.error){
+
+console.error(
+"cylinder_requests:",
+requestResult.error
+);
+
+showToast(
+"Request Error",
+requestResult.error.message
+);
+
+requests = [];
+
+}else{
+
+requests =
+requestResult.data || [];
+
+}
+
+
+const customerResult =
+await supabaseClient
+.from("profiles")
+.select("*")
+.eq("agency_id",agencyId)
+.eq("role","customer")
+.order(
+"created_at",
+{
+ascending:false
+}
+);
+
+if(customerResult.error){
+
+console.error(
+"profiles:",
+customerResult.error
+);
+
+showToast(
+"Customer Error",
+customerResult.error.message
+);
+
+customers = [];
+
+}else{
+
+customers =
+customerResult.data || [];
+
+}
+
+render();
+
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(){
+
+let totalCylinders = 0;
+let customersOnHold = 0;
+
+customers.forEach(customer => {
+
+const customerReqs =
+customerRequests(customer.id);
+
+totalCylinders +=
+cylinders(customerReqs);
+
+const due =
+dueAmount(customerReqs);
+
+if(due > 0){
+customersOnHold++;
+}
+
+});
+
+
+$("totalCustomers").textContent =
+customers.length;
+
+$("totalRequests").textContent =
+requests.length;
+
+$("totalCylinders").textContent =
+totalCylinders;
+
+$("customersOnHold").textContent =
+customersOnHold;
+
+
+/* FILTERS */
+
+const query =
+$("searchInput")
+.value
+.trim()
+.toLowerCase();
+
+const paymentFilter =
+$("paymentFilter").value;
+
+const holdFilter =
+$("holdFilter").value;
+
+
+const filtered =
+customers.filter(customer => {
+
+const customerReqs =
+customerRequests(customer.id);
+
+const payment =
+paymentStatus(customerReqs);
+
+const due =
+dueAmount(customerReqs);
+
+const searchText = [
+
+customer.full_name,
+customer.mobile,
+customer.email,
+customer.auth_email,
+customer.user_code,
+customer.id,
+customer.city,
+customer.district,
+customer.state,
+customer.lpg_company,
+
+...customerReqs.map(
+request =>
+request.request_number
+),
+
+...customerReqs.map(
+request =>
+request.id
+)
+
+]
+.join(" ")
+.toLowerCase();
+
+
+const searchMatch =
+!query ||
+searchText.includes(query);
+
+
+const paymentMatch =
+!paymentFilter ||
+payment === paymentFilter;
+
+
+const holdMatch =
+!holdFilter
+?
+true
+:
+holdFilter === "hold"
+?
+due > 0
+:
+due <= 0 &&
+payment !== "failed";
+
+
+return (
+searchMatch &&
+paymentMatch &&
+holdMatch
+);
+
+});
+
+
+if(!filtered.length){
+
+$("customerTableBody").innerHTML = `
+<tr>
+<td colspan="10" class="empty">
+No customers found.
+</td>
+</tr>
+`;
+
+return;
+
+}
+
+
+/* TABLE */
+
+$("customerTableBody").innerHTML =
+filtered.map(customer => {
+
+const customerReqs =
+customerRequests(customer.id);
+
+const latest =
+latestRequest(customerReqs);
+
+const payment =
+paymentStatus(customerReqs);
+
+const due =
+dueAmount(customerReqs);
+
+const eligible =
+due <= 0 &&
+payment !== "failed";
+
+const photo =
+customer.profile_photo ||
+"";
+
+
+return `
+<tr>
+
+<td>
+
+<div
+class="user-box"
+data-id="${escapeHtml(customer.id)}"
+title="View customer details"
+>
+
+${
+photo
+?
+`
+<img
+class="user-photo"
+src="${escapeHtml(photo)}"
+alt="Customer"
+onerror="
+this.style.display='none';
+this.nextElementSibling.style.display='flex';
+"
+>
+`
+:
+""
+}
+
+<div
+class="user-photo-fallback"
+${photo ? 'style="display:none"' : ""}
+>
+👤
+</div>
+
+<div>
+
+<div class="user-name">
+${escapeHtml(
+customer.full_name ||
+"Customer"
+)}
+</div>
+
+<div class="user-email">
+${escapeHtml(
+customer.email ||
+customer.auth_email ||
+"—"
+)}
+</div>
+
+</div>
+
+</div>
+
+</td>
+
+<td>
+${escapeHtml(
+customer.mobile ||
+"—"
+)}
+</td>
+
+<td>
+${escapeHtml(
+customer.email ||
+customer.auth_email ||
+"—"
+)}
+</td>
+
+<td>
+${escapeHtml(
+customer.user_code ||
+customer.id ||
+"—"
+)}
+</td>
+
+<td>
+${customerReqs.length}
+</td>
+
+<td>
+${cylinders(customerReqs)}
+</td>
+
+<td>
+${badge(payment)}
+</td>
+
+<td class="money">
+${formatMoney(due)}
+</td>
+
+<td>
+
+${
+eligible
+?
+`
+<span class="badge badge-green">
+🟢 Eligible
+</span>
+`
+:
+`
+<span class="badge badge-red">
+🔴 Hold
+</span>
+`
+}
+
+</td>
+
+<td>
+${formatDate(
+latest?.created_at ||
+latest?.request_date
+)}
+</td>
+
+</tr>
+`;
+
+}).join("");
+
+
+document
+.querySelectorAll(".user-box[data-id]")
+.forEach(element => {
+
+element.addEventListener(
+"click",
+() =>
+openCustomer(
+element.dataset.id
+)
+);
+
+});
+
+}
+
+
+/* =========================
+   CUSTOMER MODAL
+========================= */
+
+function openCustomer(id){
+
+const customer =
+customers.find(
+item =>
+String(item.id) ===
+String(id)
+);
+
+if(!customer){
+return;
+}
+
+const customerReqs =
+customerRequests(customer.id);
+
+const latest =
+latestRequest(customerReqs);
+
+const delivery =
+latestDelivery(customerReqs);
+
+const due =
+dueAmount(customerReqs);
+
+const payment =
+paymentStatus(customerReqs);
+
+
+$("customerModalName").textContent =
+customer.full_name ||
+"Customer";
+
+$("customerModalEmail").textContent =
+customer.email ||
+customer.auth_email ||
+"—";
+
+
+$("customerModalPhoto").src =
+customer.profile_photo ||
+"assets/EGC - Emergency Gas Cylinder logo.png";
+
+
+$("detailCustomerId").textContent =
+customer.user_code ||
+customer.id ||
+"—";
+
+
+$("detailMobile").textContent =
+customer.mobile ||
+"—";
+
+
+$("detailAddress").textContent =
+[
+customer.address,
+customer.village,
+customer.city,
+customer.district,
+customer.state,
+customer.pincode
+]
+.filter(Boolean)
+.join(", ") ||
+"—";
+
+
+$("detailCompany").textContent =
+customer.lpg_company ||
+currentAgency?.lpg_company ||
+"—";
+
+
+$("detailRequests").textContent =
+customerReqs.length;
+
+
+$("detailCylinders").textContent =
+cylinders(customerReqs);
+
+
+$("detailPayment").innerHTML =
+badge(payment);
+
+
+$("detailDue").textContent =
+formatMoney(due);
+
+
+$("detailLastRequest").textContent =
+formatDateTime(
+latest?.created_at ||
+latest?.request_date
+);
+
+
+$("detailLastDelivery").textContent =
+formatDateTime(
+delivery?.delivered_at ||
+delivery?.delivery_date ||
+delivery?.updated_at
+);
+
+
+$("customerModal")
+.classList
+.add("show");
+
+}
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function nav(){
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+button.addEventListener(
+"click",
+() => {
+
+const page =
+button.dataset.page;
+
+if(page){
+location.href = page;
+}
+
+});
+
+});
+
+
+$("menuBtn").onclick = () => {
+
+$("sidebar")
+.classList
+.toggle("open");
+
+$("overlay")
+.classList
+.toggle("show");
+
+};
+
+
+$("overlay").onclick = () => {
+
+$("sidebar")
+.classList
+.remove("open");
+
+$("overlay")
+.classList
+.remove("show");
+
+};
+
+}
+
+
+/* =========================
+   LOCAL NOTIFICATIONS
+========================= */
+
+function notifications(){
+
+const key =
+"egc_agency_notifications_" +
+currentUser.id;
+
+let items = [];
+
+try{
+
+items =
+JSON.parse(
+localStorage.getItem(key) ||
+"[]"
+);
+
+if(!Array.isArray(items)){
+items = [];
+}
+
+}catch(error){
+
+items = [];
+
+}
+
+
+function draw(){
+
+const unread =
+items.filter(
+item => !item.read
+).length;
+
+
+$("notificationCount").textContent =
+unread;
+
+
+$("notificationCount")
+.classList
+.toggle(
+"show",
+unread > 0
+);
+
+
+$("notificationList").innerHTML =
+items.length
+?
+items
+.slice(0,30)
+.map(item => {
+
+return `
+<div class="notification-item ${!item.read ? "unread" : ""}">
+
+<div class="notification-icon">
+${escapeHtml(
+item.icon ||
+"🔔"
+)}
+</div>
+
+<div class="notification-content">
+
+<div class="notification-title">
+${escapeHtml(
+item.title ||
+"Notification"
+)}
+</div>
+
+<div class="notification-text">
+${escapeHtml(
+item.text ||
+""
+)}
+</div>
+
+<div class="notification-time">
+${formatDateTime(
+item.createdAt
+)}
+</div>
+
+</div>
+
+</div>
+`;
+
+})
+.join("")
+:
+`
+<div class="no-notifications">
+No notifications.
+</div>
+`;
+
+}
+
+
+draw();
+
+
+$("notificationBtn").onclick = event => {
+
+event.stopPropagation();
+
+$("notificationPanel")
+.classList
+.toggle("show");
+
+};
+
+
+$("notificationPanel").onclick =
+event =>
+event.stopPropagation();
+
+
+document.addEventListener(
+"click",
+() => {
+
+$("notificationPanel")
+.classList
+.remove("show");
+
+}
+);
+
+
+$("markAllRead").onclick = () => {
+
+items =
+items.map(
+item => ({
+...item,
+read:true
+})
+);
+
+
+localStorage.setItem(
+key,
+JSON.stringify(items)
+);
+
+draw();
+
+};
+
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+function logout(){
+
+$("logoutBtn").onclick = () => {
+
+$("logoutModal")
+.classList
+.add("show");
+
+};
+
+
+$("cancelLogout").onclick = () => {
+
+$("logoutModal")
+.classList
+.remove("show");
+
+};
+
+
+$("logoutModal").onclick = event => {
+
+if(
+event.target ===
+$("logoutModal")
+){
+
+$("logoutModal")
+.classList
+.remove("show");
+
+}
+
+};
+
+
+$("confirmLogout").onclick =
+async() => {
+
+const button =
+$("confirmLogout");
+
+button.disabled = true;
+
+button.textContent =
+"Logging out...";
+
+
+try{
+
+const {
+error
+} =
+await supabaseClient
+.auth
+.signOut();
+
+if(error){
+throw error;
+}
+
+location.replace(
+"agency-login.html"
+);
+
+}catch(error){
+
+button.disabled = false;
+
+button.textContent =
+"Yes, Logout";
+
+showToast(
+"Logout Failed",
+error.message ||
+"Please try again."
+);
+
+}
+
+};
+
+}
+
+
+/* =========================
+   FILTER EVENTS
+========================= */
+
+$("searchInput")
+.addEventListener(
+"input",
+render
+);
+
+$("paymentFilter")
+.addEventListener(
+"change",
+render
+);
+
+$("holdFilter")
+.addEventListener(
+"change",
+render
+);
+
+
+/* =========================
+   MODAL EVENTS
+========================= */
+
+$("customerClose").onclick = () => {
+
+$("customerModal")
+.classList
+.remove("show");
+
+};
+
+
+$("customerModal").onclick = event => {
+
+if(
+event.target ===
+$("customerModal")
+){
+
+$("customerModal")
+.classList
+.remove("show");
+
+}
+
+};
+
+
+/* =========================
+   ESC KEY
+========================= */
+
+document.addEventListener(
+"keydown",
+event => {
+
+if(event.key !== "Escape"){
+return;
+}
+
+$("customerModal")
+.classList
+.remove("show");
+
+$("logoutModal")
+.classList
+.remove("show");
+
+$("notificationPanel")
+.classList
+.remove("show");
+
+$("sidebar")
+.classList
+.remove("open");
+
+$("overlay")
+.classList
+.remove("show");
+
+}
+);
+
+
+/* =========================
+   AUTH STATE
+========================= */
+
+supabaseClient
+.auth
+.onAuthStateChange(
+(event) => {
+
+if(event === "SIGNED_OUT"){
+
+location.replace(
+"agency-login.html"
+);
+
+}
+
+}
+);
+
+
+/* =========================
+   REALTIME CUSTOMER/REQUEST
+   REFRESH
+========================= */
+
+function startRealtime(){
+
+try{
+
+supabaseClient
+.channel(
+"agency-customers-" +
+String(agencyId)
+)
+.on(
+"postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"cylinder_requests",
+filter:
+"agency_id=eq." +
+String(agencyId)
+},
+() => {
+
+loadData();
+
+}
+)
+.subscribe();
+
+}catch(error){
+
+console.warn(
+"Realtime subscription could not start:",
+error
+);
+
+}
+
+}
+
+
+/* =========================
+   INITIALIZE
+========================= */
+
+async function init(){
+
+if(!await checkSession()){
+return;
+}
+
+if(!await loadProfile()){
+return;
+}
+
+if(!await loadAgency()){
+return;
+}
+
+notifications();
+
+nav();
+
+logout();
+
+await loadData();
+
+startRealtime();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

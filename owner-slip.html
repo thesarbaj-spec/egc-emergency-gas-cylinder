@@ -1,0 +1,2705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Payment Slip</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #fff;
+}
+
+button{
+    font-family:inherit;
+}
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+    display:none;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+.sidebar{
+    width:245px;
+    background:linear-gradient(
+        180deg,
+        rgba(255,245,245,.98) 0%,
+        rgba(242,248,255,.98) 52%,
+        rgba(255,255,255,.98) 100%
+    );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:13px;
+    font-weight:800;
+    padding:0 13px 12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:13px 14px;
+    border-radius:11px;
+    margin-bottom:5px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.nav-btn:hover{
+    background:#e5f2fc;
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-block;
+    width:25px;
+    font-size:17px;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+}
+
+.page-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:22px;
+}
+
+.page-heading h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.page-heading p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+.top-actions{
+    display:flex;
+    gap:9px;
+}
+
+.top-btn{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    padding:0 16px;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.back-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.print-btn{
+    background:#0871c3;
+    color:#fff;
+}
+
+.slip-area{
+    max-width:950px;
+    margin:0 auto;
+}
+
+.slip-card{
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:20px;
+    box-shadow:0 12px 38px rgba(50,80,110,.09);
+    overflow:hidden;
+}
+
+.slip-header{
+    padding:24px 28px;
+    border-bottom:1px solid #e7eef4;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+}
+
+.slip-brand{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.slip-logo{
+    height:62px;
+    width:auto;
+    object-fit:contain;
+}
+
+.slip-brand-title{
+    color:#06477f;
+    font-size:21px;
+    font-weight:900;
+}
+
+.slip-brand-subtitle{
+    color:#8496a5;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.receipt-box{
+    text-align:right;
+}
+
+.receipt-label{
+    color:#91a0ac;
+    font-size:10px;
+    text-transform:uppercase;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.receipt-number{
+    color:#0871c3;
+    font-size:15px;
+    font-weight:900;
+    word-break:break-all;
+}
+
+.status-row{
+    padding:18px 28px;
+    background:linear-gradient(135deg,#f7fbff,#fff8f8);
+    border-bottom:1px solid #e7eef4;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+}
+
+.status-left-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:800;
+}
+
+.status-left-sub{
+    color:#8a9aa8;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:90px;
+    padding:8px 13px;
+    border-radius:22px;
+    font-size:11px;
+    font-weight:900;
+}
+
+.badge-green{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.badge-yellow{
+    background:#fff7df;
+    color:#a36b00;
+}
+
+.badge-blue{
+    background:#edf6ff;
+    color:#086db7;
+}
+
+.badge-red{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.badge-gray{
+    background:#f0f3f5;
+    color:#617687;
+}
+
+.slip-body{
+    padding:28px;
+}
+
+.section{
+    margin-bottom:25px;
+}
+
+.section:last-child{
+    margin-bottom:0;
+}
+
+.section-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:900;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.section-title::before{
+    content:"";
+    width:4px;
+    height:17px;
+    border-radius:5px;
+    background:#0871c3;
+}
+
+.info-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
+
+.info-box{
+    background:#f8fafc;
+    border:1px solid #e5edf3;
+    border-radius:11px;
+    padding:12px 13px;
+    min-width:0;
+}
+
+.info-label{
+    color:#8a9aa7;
+    font-size:9px;
+    text-transform:uppercase;
+    font-weight:900;
+    margin-bottom:5px;
+}
+
+.info-value{
+    color:#31566f;
+    font-size:12px;
+    font-weight:700;
+    word-break:break-word;
+}
+
+.user-card{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:14px;
+    background:#f8fafc;
+    border:1px solid #e5edf3;
+    border-radius:13px;
+}
+
+.user-photo{
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid #dceaf4;
+    background:#eef7ff;
+    flex-shrink:0;
+}
+
+.user-fallback{
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:25px;
+    flex-shrink:0;
+}
+
+.user-name{
+    color:#315671;
+    font-size:15px;
+    font-weight:900;
+}
+
+.user-contact{
+    color:#8b9ba8;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.amount-section{
+    border:1px solid #d9e9f4;
+    border-radius:15px;
+    overflow:hidden;
+}
+
+.amount-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:13px 15px;
+    border-bottom:1px solid #e8eff4;
+}
+
+.amount-row:last-child{
+    border-bottom:0;
+}
+
+.amount-label{
+    color:#71889a;
+    font-size:12px;
+    font-weight:700;
+}
+
+.amount-value{
+    color:#315671;
+    font-size:13px;
+    font-weight:800;
+}
+
+.amount-row.total{
+    background:linear-gradient(135deg,#eef8ff,#fff6f6);
+}
+
+.amount-row.total .amount-label{
+    color:#06477f;
+    font-weight:900;
+}
+
+.amount-row.total .amount-value{
+    color:#0871c3;
+    font-size:18px;
+    font-weight:900;
+}
+
+.amount-row.paid{
+    background:#f5fcf7;
+}
+
+.amount-row.paid .amount-label,
+.amount-row.paid .amount-value{
+    color:#18803d;
+    font-weight:900;
+}
+
+.reference-box{
+    background:#fbfdff;
+    border:1px dashed #cbdde9;
+    border-radius:12px;
+    padding:14px;
+}
+
+.reference-row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:7px 0;
+}
+
+.reference-row:not(:last-child){
+    border-bottom:1px solid #edf2f6;
+}
+
+.reference-label{
+    color:#8799a8;
+    font-size:10px;
+    font-weight:800;
+}
+
+.reference-value{
+    color:#315671;
+    font-size:11px;
+    font-weight:800;
+    text-align:right;
+    word-break:break-all;
+}
+
+.verification{
+    padding:14px;
+    border-radius:12px;
+    border:1px solid #dcebe2;
+    background:#f5fcf7;
+}
+
+.verification-title{
+    color:#18803d;
+    font-size:12px;
+    font-weight:900;
+}
+
+.verification-text{
+    color:#789083;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+.footer{
+    padding:18px 28px;
+    border-top:1px solid #e7eef4;
+    background:#fbfdff;
+    text-align:center;
+}
+
+.footer-title{
+    color:#06477f;
+    font-size:12px;
+    font-weight:900;
+}
+
+.footer-text{
+    color:#8b9aa7;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+.loading-card{
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:18px;
+    padding:60px 20px;
+    text-align:center;
+    color:#7890a3;
+    box-shadow:0 10px 35px rgba(50,80,110,.07);
+}
+
+.loading-icon{
+    font-size:35px;
+    margin-bottom:12px;
+}
+
+.error-card{
+    background:#fff;
+    border:1px solid #f0dede;
+    border-radius:18px;
+    padding:40px 20px;
+    text-align:center;
+    box-shadow:0 10px 35px rgba(50,80,110,.07);
+}
+
+.error-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 13px;
+    border-radius:50%;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+}
+
+.error-title{
+    color:#c72e2e;
+    font-size:17px;
+    font-weight:900;
+}
+
+.error-text{
+    color:#8a9aa8;
+    font-size:12px;
+    margin-top:7px;
+    line-height:1.6;
+}
+
+.error-actions{
+    margin-top:17px;
+    display:flex;
+    justify-content:center;
+    gap:8px;
+}
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:99999;
+    min-width:290px;
+    max-width:390px;
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:14px;
+    box-shadow:0 15px 45px rgba(20,60,90,.18);
+    padding:15px;
+    display:none;
+}
+
+.toast.show{
+    display:block;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:13px;
+    font-weight:800;
+}
+
+.toast-text{
+    color:#7890a3;
+    font-size:11px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+.overlay{
+    display:none;
+}
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .layout{
+        display:block;
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:200;
+        transition:.25s;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:150;
+    }
+
+    .main{
+        padding:20px 14px 40px;
+    }
+
+    .page-top{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .page-heading h1{
+        font-size:23px;
+    }
+
+    .page-heading p{
+        font-size:12px;
+    }
+
+    .top-actions{
+        width:100%;
+    }
+
+    .top-btn{
+        flex:1;
+    }
+
+    .slip-card{
+        border-radius:16px;
+    }
+
+    .slip-header{
+        padding:18px;
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .slip-logo{
+        height:52px;
+    }
+
+    .slip-brand-title{
+        font-size:18px;
+    }
+
+    .receipt-box{
+        text-align:left;
+    }
+
+    .status-row{
+        padding:15px 18px;
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .slip-body{
+        padding:18px;
+    }
+
+    .info-grid{
+        grid-template-columns:1fr;
+    }
+
+    .amount-row{
+        padding:12px;
+    }
+
+    .footer{
+        padding:16px 18px;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        bottom:14px;
+        min-width:0;
+    }
+}
+
+@media print{
+
+    @page{
+        size:A4;
+        margin:12mm;
+    }
+
+    body{
+        background:#fff !important;
+    }
+
+    .header,
+    .sidebar,
+    .overlay,
+    .page-top,
+    .toast,
+    .no-print{
+        display:none !important;
+    }
+
+    .layout{
+        display:block !important;
+        min-height:0 !important;
+    }
+
+    .main{
+        padding:0 !important;
+    }
+
+    .slip-area{
+        max-width:none !important;
+    }
+
+    .slip-card{
+        border:1px solid #ccd6de !important;
+        box-shadow:none !important;
+        border-radius:0 !important;
+    }
+
+    .slip-header{
+        padding:18px !important;
+    }
+
+    .status-row{
+        padding:13px 18px !important;
+    }
+
+    .slip-body{
+        padding:18px !important;
+    }
+
+    .footer{
+        padding:14px 18px !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+        </div>
+
+    </div>
+
+    <div class="owner-badge">
+
+        <span class="owner-dot"></span>
+
+        Owner
+
+    </div>
+
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+    <button
+        class="nav-btn active"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+    <div
+        class="sidebar-title"
+        style="margin-top:25px;"
+    >
+        System
+    </div>
+
+    <button
+        class="nav-btn"
+        data-page="settings"
+        type="button"
+    >
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<main class="main">
+
+    <div class="page-top">
+
+        <div class="page-heading">
+
+            <h1>
+                Payment Slip
+            </h1>
+
+            <p>
+                EGC payment receipt and transaction details.
+            </p>
+
+        </div>
+
+        <div class="top-actions">
+
+            <button
+                type="button"
+                class="top-btn back-btn"
+                id="backBtn"
+            >
+                ← Back to Payments
+            </button>
+
+            <button
+                type="button"
+                class="top-btn print-btn"
+                id="printBtn"
+            >
+                🖨 Print Slip
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div
+        class="slip-area"
+        id="slipArea"
+    >
+
+        <div class="loading-card">
+
+            <div class="loading-icon">
+                ⏳
+            </div>
+
+            Loading payment slip...
+
+        </div>
+
+    </div>
+
+</main>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    >
+        Notification
+    </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* ================= ELEMENTS ================= */
+
+const slipArea =
+document.getElementById("slipArea");
+
+const backBtn =
+document.getElementById("backBtn");
+
+const printBtn =
+document.getElementById("printBtn");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const toast =
+document.getElementById("toast");
+
+const toastTitle =
+document.getElementById("toastTitle");
+
+const toastText =
+document.getElementById("toastText");
+
+
+/* ================= NAVIGATION ================= */
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+
+        users:"owner-users.html",
+
+        agencies:"owner-agencies.html",
+
+        companies:"owner-companies.html",
+
+        requests:"owner-requests.html",
+
+        payments:"owner-payments.html",
+
+        reports:"owner-reports.html",
+
+        settings:"owner-settings.html"
+
+    };
+
+    if(pages[page]){
+
+        window.location.href =
+        pages[page];
+
+    }
+
+}
+
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            openPage(
+                this.dataset.page
+            );
+
+        }
+    );
+
+});
+
+
+backBtn.addEventListener(
+    "click",
+    function(){
+
+        window.location.href =
+        "owner-payments.html";
+
+    }
+);
+
+
+printBtn.addEventListener(
+    "click",
+    function(){
+
+        window.print();
+
+    }
+);
+
+
+/* ================= MOBILE ================= */
+
+menuBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.toggle("open");
+
+        overlay.classList.toggle("show");
+
+    }
+);
+
+
+overlay.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove("open");
+
+        overlay.classList.remove("show");
+
+    }
+);
+
+
+/* ================= SAFE HTML ================= */
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* ================= TOAST ================= */
+
+function showToast(title,text){
+
+    toastTitle.textContent =
+    title || "Notification";
+
+    toastText.textContent =
+    text || "";
+
+    toast.classList.add("show");
+
+    clearTimeout(
+        window.egcSlipToastTimer
+    );
+
+    window.egcSlipToastTimer =
+    setTimeout(
+        function(){
+
+            toast.classList.remove("show");
+
+        },
+        4500
+    );
+
+}
+
+
+/* ================= MONEY ================= */
+
+function moneyNumber(value){
+
+    const number =
+    Number(value);
+
+    if(
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        Number.isNaN(number)
+    ){
+
+        return 0;
+
+    }
+
+    return number;
+
+}
+
+
+function formatMoney(value){
+
+    return "₹" +
+    moneyNumber(value)
+    .toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+        }
+    );
+
+}
+
+
+/* ================= DATE ================= */
+
+function formatDateTime(value){
+
+    if(!value){
+
+        return "—";
+
+    }
+
+    const date =
+    new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+
+        return "—";
+
+    }
+
+    return date.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+function formatDate(value){
+
+    if(!value){
+
+        return "—";
+
+    }
+
+    const date =
+    new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+
+        return "—";
+
+    }
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+/* ================= STATUS ================= */
+
+function getBadgeClass(value){
+
+    const v =
+    String(value || "")
+    .toLowerCase();
+
+    if(
+        v === "paid" ||
+        v === "verified" ||
+        v === "completed" ||
+        v === "approved" ||
+        v === "delivered"
+    ){
+
+        return "badge-green";
+
+    }
+
+    if(
+        v === "pending" ||
+        v === "waiting"
+    ){
+
+        return "badge-yellow";
+
+    }
+
+    if(
+        v === "processing"
+    ){
+
+        return "badge-blue";
+
+    }
+
+    if(
+        v === "failed" ||
+        v === "refunded" ||
+        v === "rejected" ||
+        v === "cancelled"
+    ){
+
+        return "badge-red";
+
+    }
+
+    return "badge-gray";
+
+}
+
+
+function badgeHtml(value){
+
+    const safeValue =
+    value ||
+    "Not Set";
+
+    return `
+        <span class="badge ${getBadgeClass(safeValue)}">
+            ${escapeHtml(safeValue)}
+        </span>
+    `;
+
+}
+
+
+/* ================= URL PARAMETERS ================= */
+
+function getQueryParams(){
+
+    const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+    return {
+
+        paymentId:
+        params.get("payment_id"),
+
+        requestId:
+        params.get("request_id")
+
+    };
+
+}
+
+
+/* ================= DATA HELPERS ================= */
+
+function getUserName(profile){
+
+    return (
+        profile?.full_name ||
+        profile?.username ||
+        profile?.name ||
+        profile?.display_name ||
+        "User"
+    );
+
+}
+
+
+function getUserMobile(profile){
+
+    return (
+        profile?.mobile ||
+        profile?.phone ||
+        profile?.mobile_number ||
+        profile?.phone_number ||
+        "—"
+    );
+
+}
+
+
+function getUserEmail(profile){
+
+    return (
+        profile?.email ||
+        profile?.auth_email ||
+        "—"
+    );
+
+}
+
+
+function getUserPhoto(profile){
+
+    return (
+        profile?.profile_photo ||
+        profile?.photo_url ||
+        profile?.avatar_url ||
+        profile?.profile_image ||
+        profile?.photo ||
+        profile?.image_url ||
+        ""
+    );
+
+}
+
+
+function getAgencyName(agency){
+
+    return (
+        agency?.agency_name ||
+        agency?.name ||
+        agency?.agency ||
+        agency?.title ||
+        "—"
+    );
+
+}
+
+
+function getCompanyName(request,agency,profile){
+
+    return (
+        request?.lpg_company ||
+        request?.company ||
+        request?.company_name ||
+        agency?.lpg_company ||
+        agency?.company_name ||
+        agency?.company ||
+        profile?.lpg_company ||
+        "—"
+    );
+
+}
+
+
+function getQuantity(request){
+
+    return (
+        request?.quantity ??
+        request?.cylinder_quantity ??
+        request?.cylinders ??
+        "0"
+    );
+
+}
+
+
+function getRequestTotal(request,payment){
+
+    if(
+        request?.total_amount !== null &&
+        request?.total_amount !== undefined
+    ){
+
+        return moneyNumber(
+            request.total_amount
+        );
+
+    }
+
+    if(
+        payment?.request_total !== null &&
+        payment?.request_total !== undefined
+    ){
+
+        return moneyNumber(
+            payment.request_total
+        );
+
+    }
+
+    return 0;
+
+}
+
+
+function getExtraCharge(request,payment){
+
+    if(
+        request?.extra_charge !== null &&
+        request?.extra_charge !== undefined
+    ){
+
+        return moneyNumber(
+            request.extra_charge
+        );
+
+    }
+
+    if(
+        payment?.extra_charge !== null &&
+        payment?.extra_charge !== undefined
+    ){
+
+        return moneyNumber(
+            payment.extra_charge
+        );
+
+    }
+
+    return 0;
+
+}
+
+
+/* ================= ERROR UI ================= */
+
+function showError(title,text){
+
+    slipArea.innerHTML = `
+
+        <div class="error-card">
+
+            <div class="error-icon">
+                ⚠️
+            </div>
+
+            <div class="error-title">
+                ${escapeHtml(title)}
+            </div>
+
+            <div class="error-text">
+                ${escapeHtml(text)}
+            </div>
+
+            <div class="error-actions">
+
+                <button
+                    type="button"
+                    class="top-btn back-btn"
+                    onclick="window.location.href='owner-payments.html'"
+                >
+                    ← Back to Payments
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ================= LOAD PAYMENT ================= */
+
+async function loadPayment(){
+
+    const {
+        paymentId,
+        requestId
+    } =
+    getQueryParams();
+
+
+    if(
+        !paymentId &&
+        !requestId
+    ){
+
+        showError(
+            "Payment Not Selected",
+            "Payment slip open karne ke liye payment_id ya request_id required hai."
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        let payment = null;
+
+
+        /* ================= BY PAYMENT ID ================= */
+
+        if(paymentId){
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq(
+                "id",
+                paymentId
+            )
+            .maybeSingle();
+
+
+            if(error){
+
+                console.error(
+                    "Payment loading error:",
+                    error
+                );
+
+                showError(
+                    "Payment Loading Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            payment =
+            data;
+
+        }
+
+
+        /* ================= BY REQUEST ID ================= */
+
+        if(
+            !payment &&
+            requestId
+        ){
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq(
+                "request_id",
+                requestId
+            )
+            .order(
+                "payment_date",
+                {
+                    ascending:false
+                }
+            )
+            .limit(1)
+            .maybeSingle();
+
+
+            if(error){
+
+                console.error(
+                    "Request payment loading error:",
+                    error
+                );
+
+                showError(
+                    "Payment Loading Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            payment =
+            data;
+
+        }
+
+
+        if(!payment){
+
+            showError(
+                "Payment Not Found",
+                "Is payment ke liye koi payment record nahi mila."
+            );
+
+            return;
+
+        }
+
+
+        /* ================= REQUEST ================= */
+
+        let request = null;
+
+
+        if(payment.request_id){
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "id",
+                payment.request_id
+            )
+            .maybeSingle();
+
+
+            if(!error){
+
+                request =
+                data;
+
+            }
+            else{
+
+                console.warn(
+                    "Request loading:",
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        /* ================= PROFILE ================= */
+
+        let profile = null;
+
+
+        if(payment.user_id){
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq(
+                "id",
+                payment.user_id
+            )
+            .maybeSingle();
+
+
+            if(!error){
+
+                profile =
+                data;
+
+            }
+            else{
+
+                console.warn(
+                    "Profile loading:",
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        /* ================= AGENCY ================= */
+
+        let agency = null;
+
+
+        if(request?.agency_id){
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+            .from("agencies")
+            .select("*")
+            .eq(
+                "id",
+                request.agency_id
+            )
+            .maybeSingle();
+
+
+            if(!error){
+
+                agency =
+                data;
+
+            }
+            else{
+
+                console.warn(
+                    "Agency loading:",
+                    error.message
+                );
+
+            }
+
+        }
+
+
+        renderSlip(
+            payment,
+            request,
+            profile,
+            agency
+        );
+
+    }
+    catch(error){
+
+        console.error(
+            "Payment slip exception:",
+            error
+        );
+
+        showError(
+            "Unable to Load Slip",
+            "Payment slip load nahi ho paayi. Please try again."
+        );
+
+    }
+
+}
+
+
+/* ================= RENDER SLIP ================= */
+
+function renderSlip(
+    payment,
+    request,
+    profile,
+    agency
+){
+
+    const name =
+    getUserName(profile);
+
+    const mobile =
+    getUserMobile(profile);
+
+    const email =
+    getUserEmail(profile);
+
+    const photo =
+    getUserPhoto(profile);
+
+    const agencyName =
+    getAgencyName(agency);
+
+    const companyName =
+    getCompanyName(
+        request,
+        agency,
+        profile
+    );
+
+    const quantity =
+    getQuantity(request);
+
+    const paymentAmount =
+    moneyNumber(
+        payment.payment_amount
+    );
+
+    const requestTotal =
+    getRequestTotal(
+        request,
+        payment
+    );
+
+    const extraCharge =
+    getExtraCharge(
+        request,
+        payment
+    );
+
+    const paymentStatus =
+    payment.payment_status ||
+    "pending";
+
+    const verificationStatus =
+    payment.verification_status ||
+    (
+        payment.verified_at
+        ? "verified"
+        : "pending"
+    );
+
+    const requestNumber =
+    request?.request_number ||
+    payment.request_number ||
+    payment.request_id ||
+    "—";
+
+    const paymentDate =
+    payment.payment_date ||
+    payment.created_at;
+
+    const transactionId =
+    payment.transaction_id ||
+    "—";
+
+    const paymentReference =
+    payment.payment_reference ||
+    payment.reference ||
+    "—";
+
+    const paymentMethod =
+    payment.payment_method ||
+    "—";
+
+
+    let photoHtml;
+
+
+    if(photo){
+
+        photoHtml = `
+
+            <img
+                src="${escapeHtml(photo)}"
+                class="user-photo"
+                alt="User"
+                onerror="
+                    this.style.display='none';
+                    this.nextElementSibling.style.display='flex';
+                "
+            >
+
+            <div
+                class="user-fallback"
+                style="display:none;"
+            >
+                👤
+            </div>
+
+        `;
+
+    }
+    else{
+
+        photoHtml = `
+
+            <div class="user-fallback">
+                👤
+            </div>
+
+        `;
+
+    }
+
+
+    slipArea.innerHTML = `
+
+        <div class="slip-card">
+
+            <div class="slip-header">
+
+                <div class="slip-brand">
+
+                    <img
+                        src="assets/EGC - Emergency Gas Cylinder logo.png"
+                        class="slip-logo"
+                        alt="EGC"
+                        onerror="this.style.display='none';"
+                    >
+
+                    <div>
+
+                        <div class="slip-brand-title">
+                            Emergency Gas Cylinder
+                        </div>
+
+                        <div class="slip-brand-subtitle">
+                            Short-Term Emergency LPG Finance
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="receipt-box">
+
+                    <div class="receipt-label">
+                        Payment Slip
+                    </div>
+
+                    <div class="receipt-number">
+                        ${escapeHtml(
+                            payment.id || "—"
+                        )}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="status-row">
+
+                <div>
+
+                    <div class="status-left-title">
+                        Payment Status
+                    </div>
+
+                    <div class="status-left-sub">
+                        Payment transaction status
+                    </div>
+
+                </div>
+
+                ${badgeHtml(
+                    paymentStatus
+                )}
+
+            </div>
+
+
+            <div class="slip-body">
+
+
+                <section class="section">
+
+                    <div class="section-title">
+                        User Information
+                    </div>
+
+
+                    <div class="user-card">
+
+                        ${photoHtml}
+
+                        <div>
+
+                            <div class="user-name">
+                                ${escapeHtml(name)}
+                            </div>
+
+                            <div class="user-contact">
+                                ${escapeHtml(mobile)}
+                                &nbsp; • &nbsp;
+                                ${escapeHtml(email)}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="section">
+
+                    <div class="section-title">
+                        Cylinder Request
+                    </div>
+
+
+                    <div class="info-grid">
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                Request Number
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    requestNumber
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                User ID
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    payment.user_id || "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                LPG Company
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    companyName
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                LPG Agency
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    agencyName
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                Quantity
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    quantity
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                Request Status
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    request?.status ||
+                                    request?.request_status ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                State
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    request?.state ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                District
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    request?.district ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                City
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    request?.city ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="info-box">
+
+                            <div class="info-label">
+                                Payment Date
+                            </div>
+
+                            <div class="info-value">
+                                ${escapeHtml(
+                                    formatDateTime(
+                                        paymentDate
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="section">
+
+                    <div class="section-title">
+                        Payment Summary
+                    </div>
+
+
+                    <div class="amount-section">
+
+
+                        <div class="amount-row">
+
+                            <div class="amount-label">
+                                Request Total
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(
+                                    requestTotal
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="amount-row">
+
+                            <div class="amount-label">
+                                Extra Charge
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(
+                                    extraCharge
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="amount-row total">
+
+                            <div class="amount-label">
+                                Payment Amount
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(
+                                    paymentAmount
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="amount-row paid">
+
+                            <div class="amount-label">
+                                Amount Paid
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(
+                                    paymentAmount
+                                )}
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+                </section>
+
+
+                <section class="section">
+
+                    <div class="section-title">
+                        Transaction Information
+                    </div>
+
+
+                    <div class="reference-box">
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Payment ID
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    payment.id || "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Request ID
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    payment.request_id || "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Payment Method
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    paymentMethod
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Transaction ID
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    transactionId
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Payment Reference
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    paymentReference
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="reference-row">
+
+                            <div class="reference-label">
+                                Payment Date
+                            </div>
+
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    formatDateTime(
+                                        paymentDate
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+                </section>
+
+
+                <section class="section">
+
+                    <div class="section-title">
+                        Verification
+                    </div>
+
+
+                    <div class="verification">
+
+                        <div class="verification-title">
+                            ${escapeHtml(
+                                verificationStatus
+                            )}
+                        </div>
+
+                        <div class="verification-text">
+
+                            ${
+                                payment.verified_at
+                                ?
+                                "Payment verified on " +
+                                escapeHtml(
+                                    formatDateTime(
+                                        payment.verified_at
+                                    )
+                                )
+                                :
+                                "Payment verification information is not available."
+                            }
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+            </div>
+
+
+            <div class="footer">
+
+                <div class="footer-title">
+                    Powered by EGC
+                </div>
+
+                <div class="footer-text">
+                    This payment slip is generated from the EGC Emergency Gas Cylinder management system.
+                    Please keep this receipt for your records.
+                </div>
+
+            </div>
+
+
+        </div>
+
+    `;
+
+}
+
+
+/* ================= LOGOUT ================= */
+
+logoutBtn.addEventListener(
+    "click",
+    async function(){
+
+        const confirmed =
+        confirm(
+            "Kya aap EGC Owner Panel se logout karna chahte hain?"
+        );
+
+
+        if(!confirmed){
+
+            return;
+
+        }
+
+
+        try{
+
+            await supabaseClient.auth.signOut();
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Logout Failed",
+                "Please try again."
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= ESC ================= */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Escape"
+        ){
+
+            sidebar.classList.remove(
+                "open"
+            );
+
+            overlay.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= INITIALIZE ================= */
+
+async function init(){
+
+    try{
+
+        const {
+            data:{
+                session
+            }
+        } =
+        await supabaseClient.auth.getSession();
+
+
+        if(!session){
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+            return;
+
+        }
+
+
+        await loadPayment();
+
+    }
+    catch(error){
+
+        console.error(
+            "Initialization error:",
+            error
+        );
+
+        showError(
+            "Initialization Failed",
+            "Owner payment slip initialize nahi ho paayi."
+        );
+
+    }
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

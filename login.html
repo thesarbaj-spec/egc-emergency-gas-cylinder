@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Login & Register</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 20%,rgba(255,255,255,.95),transparent 30%),
+    radial-gradient(circle at 85% 80%,rgba(255,255,255,.9),transparent 30%),
+    #eef7fc;
+  color:#003e81;
+  overflow-x:hidden;
+}
+
+button,input{
+  font-family:Arial,sans-serif;
+}
+
+.page{
+  width:100%;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 30px;
+}
+
+.login-card{
+  width:100%;
+  max-width:520px;
+  background:#fff;
+  border-radius:28px;
+  padding:42px 42px 38px;
+  box-shadow:
+    0 20px 60px rgba(0,62,129,.15),
+    0 3px 10px rgba(0,0,0,.04);
+  border:1px solid rgba(0,99,199,.10);
+}
+
+.logo{
+  width:280px;
+  height:150px;
+  object-fit:contain;
+  display:block;
+  margin:0 auto 1px;
+}
+
+.title{
+  text-align:center;
+  color:#003e81;
+  font-size:31px;
+  font-weight:800;
+  margin-bottom:8px;
+}
+
+.subtitle{
+  text-align:center;
+  color:#6b8195;
+  font-size:15px;
+  margin-bottom:30px;
+}
+
+.tabs{
+  display:flex;
+  width:100%;
+  padding:5px;
+  background:#eef7fc;
+  border-radius:14px;
+  margin-bottom:27px;
+}
+
+.tab{
+  width:50%;
+  padding:13px;
+  border:0;
+  background:transparent;
+  color:#607990;
+  border-radius:10px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.tab.active{
+  background:#0754a9;
+  color:#fff;
+  box-shadow:0 5px 14px rgba(7,84,169,.20);
+}
+
+.form-group{
+  margin-bottom:18px;
+}
+
+.form-group label{
+  display:block;
+  margin-bottom:8px;
+  color:#164f82;
+  font-size:14px;
+  font-weight:700;
+}
+
+.form-group input{
+  width:100%;
+  height:52px;
+  padding:0 16px;
+  border:1px solid #cbdce9;
+  border-radius:13px;
+  outline:none;
+  background:#fbfdff;
+  color:#003e81;
+  font-size:15px;
+}
+
+.form-group input:focus{
+  border-color:#0872d5;
+  box-shadow:0 0 0 4px rgba(8,114,213,.09);
+  background:#fff;
+}
+
+.password-row{
+  position:relative;
+}
+
+.password-row input{
+  padding-right:75px;
+}
+
+.show-password{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  border:0;
+  background:none;
+  color:#0754a9;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.forgot{
+  display:block;
+  text-align:right;
+  margin-top:-5px;
+  margin-bottom:20px;
+  color:#0754a9;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.main-button{
+  width:100%;
+  height:53px;
+  border:0;
+  border-radius:15px;
+  background:linear-gradient(90deg,#ffb900,#ffc515);
+  color:#00418b;
+  font-size:17px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.main-button:disabled{
+  opacity:.7;
+  cursor:not-allowed;
+}
+
+.message{
+  display:none;
+  margin-top:17px;
+  padding:13px;
+  border-radius:11px;
+  text-align:center;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.4;
+}
+
+.forgot-box{
+  display:none;
+}
+
+.forgot-text{
+  text-align:center;
+  color:#607d98;
+  font-size:14px;
+  line-height:1.55;
+  margin-bottom:23px;
+}
+
+.small-back{
+  display:block;
+  text-align:center;
+  margin-top:19px;
+  color:#0754a9;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+@media(max-width:500px){
+
+  .page{
+    padding:18px 12px;
+  }
+
+  .login-card{
+    padding:27px 20px 25px;
+    border-radius:21px;
+  }
+
+  .logo{
+    width:190px;
+    height:150px;
+  }
+
+  .title{
+    font-size:24px;
+  }
+
+  .subtitle{
+    font-size:13px;
+    margin-bottom:22px;
+  }
+
+  .tab{
+    padding:11px;
+    font-size:14px;
+  }
+
+  .form-group input{
+    height:48px;
+    font-size:14px;
+  }
+
+  .main-button{
+    height:49px;
+    font-size:15px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+<div class="login-card">
+
+<img
+  class="logo"
+  src="assets/EGC - Emergency Gas Cylinder logo.png"
+  alt="EGC - Emergency Gas Cylinder"
+>
+
+<div class="title" id="pageTitle">
+Welcome to EGC
+</div>
+
+<div class="subtitle" id="pageSubtitle">
+Login to continue
+</div>
+
+<div class="tabs" id="tabs">
+
+<button
+  type="button"
+  class="tab active"
+  id="loginTab"
+  onclick="showLogin()">
+Login
+</button>
+
+<button
+  type="button"
+  class="tab"
+  id="registerTab"
+  onclick="showRegister()">
+Register
+</button>
+
+</div>
+
+
+<!-- LOGIN -->
+
+<form id="loginForm" onsubmit="loginUser(event)">
+
+<div class="form-group">
+
+<label>Mobile Number or Email</label>
+
+<input
+  type="text"
+  id="loginIdentifier"
+  placeholder="Enter mobile number or email"
+  autocomplete="username"
+  required
+>
+
+</div>
+
+
+<div class="form-group password-row">
+
+<label>4-Digit MPIN</label>
+
+<input
+  type="password"
+  id="loginMpin"
+  placeholder="Enter 4-digit MPIN"
+  maxlength="4"
+  inputmode="numeric"
+  pattern="[0-9]{4}"
+  autocomplete="current-password"
+  required
+>
+
+<button
+  type="button"
+  class="show-password"
+  onclick="togglePassword('loginMpin',this)">
+SHOW
+</button>
+
+</div>
+
+
+<span class="forgot" onclick="showForgot()">
+Forgot MPIN?
+</span>
+
+
+<button
+  class="main-button"
+  type="submit"
+  id="loginButton">
+LOGIN
+</button>
+
+</form>
+
+
+<!-- REGISTER -->
+
+<form
+  id="registerForm"
+  style="display:none;"
+  onsubmit="registerUser(event)">
+
+<div class="form-group">
+
+<label>Full Name</label>
+
+<input
+  type="text"
+  id="registerName"
+  placeholder="Enter your full name"
+  required
+>
+
+</div>
+
+
+<div class="form-group">
+
+<label>Mobile Number</label>
+
+<input
+  type="tel"
+  id="registerMobile"
+  placeholder="Enter 10-digit mobile number"
+  maxlength="10"
+  inputmode="numeric"
+  required
+>
+
+</div>
+
+
+<div class="form-group">
+
+<label>Email</label>
+
+<input
+  type="email"
+  id="registerEmail"
+  placeholder="Enter your email address"
+  required
+>
+
+</div>
+
+
+<div class="form-group password-row">
+
+<label>4-Digit MPIN</label>
+
+<input
+  type="password"
+  id="registerMpin"
+  placeholder="Create 4-digit MPIN"
+  maxlength="4"
+  inputmode="numeric"
+  pattern="[0-9]{4}"
+  required
+>
+
+<button
+  type="button"
+  class="show-password"
+  onclick="togglePassword('registerMpin',this)">
+SHOW
+</button>
+
+</div>
+
+
+<div class="form-group password-row">
+
+<label>Confirm MPIN</label>
+
+<input
+  type="password"
+  id="confirmMpin"
+  placeholder="Re-enter 4-digit MPIN"
+  maxlength="4"
+  inputmode="numeric"
+  pattern="[0-9]{4}"
+  required
+>
+
+<button
+  type="button"
+  class="show-password"
+  onclick="togglePassword('confirmMpin',this)">
+SHOW
+</button>
+
+</div>
+
+
+<button
+  class="main-button"
+  type="submit"
+  id="registerButton">
+CREATE ACCOUNT
+</button>
+
+</form>
+
+
+<!-- FORGOT MPIN -->
+
+<div class="forgot-box" id="forgotBox">
+
+<div class="forgot-text">
+Enter your registered email address.
+We will use your email to recover your EGC account.
+</div>
+
+<div class="form-group">
+
+<label>Recovery Email</label>
+
+<input
+  type="email"
+  id="forgotEmail"
+  placeholder="Enter registered email"
+>
+
+</div>
+
+<button
+  class="main-button"
+  type="button"
+  onclick="resetMpin()">
+RECOVER MPIN
+</button>
+
+<span
+  class="small-back"
+  onclick="showLogin()">
+← Back to Login
+</span>
+
+</div>
+
+
+<div class="message" id="message"></div>
+
+</div>
+</div>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true,
+      storage:window.localStorage
+    }
+  }
+);
+
+
+/* =========================================================
+   EDGE FUNCTION
+========================================================= */
+
+const FUNCTION_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co/functions/v1/mpin-auth";
+
+
+/* =========================================================
+   LOGIN TAB
+========================================================= */
+
+function showLogin(){
+
+  document.getElementById("loginForm").style.display="block";
+  document.getElementById("registerForm").style.display="none";
+  document.getElementById("forgotBox").style.display="none";
+  document.getElementById("tabs").style.display="flex";
+
+  document.getElementById("loginTab").classList.add("active");
+  document.getElementById("registerTab").classList.remove("active");
+
+  document.getElementById("pageTitle").textContent="Welcome to EGC";
+  document.getElementById("pageSubtitle").textContent="Login to continue";
+
+  clearMessage();
+}
+
+
+/* =========================================================
+   REGISTER TAB
+========================================================= */
+
+function showRegister(){
+
+  document.getElementById("loginForm").style.display="none";
+  document.getElementById("registerForm").style.display="block";
+  document.getElementById("forgotBox").style.display="none";
+  document.getElementById("tabs").style.display="flex";
+
+  document.getElementById("loginTab").classList.remove("active");
+  document.getElementById("registerTab").classList.add("active");
+
+  document.getElementById("pageTitle").textContent="Create Account";
+  document.getElementById("pageSubtitle").textContent="Register to use EGC services";
+
+  clearMessage();
+}
+
+
+/* =========================================================
+   FORGOT
+========================================================= */
+
+function showForgot(){
+
+  document.getElementById("loginForm").style.display="none";
+  document.getElementById("registerForm").style.display="none";
+  document.getElementById("forgotBox").style.display="block";
+  document.getElementById("tabs").style.display="none";
+
+  document.getElementById("pageTitle").textContent="Forgot MPIN";
+  document.getElementById("pageSubtitle").textContent="Recover your EGC account";
+
+  clearMessage();
+}
+
+
+/* =========================================================
+   PASSWORD SHOW/HIDE
+========================================================= */
+
+function togglePassword(id,button){
+
+  const input=document.getElementById(id);
+
+  if(input.type==="password"){
+    input.type="text";
+    button.textContent="HIDE";
+  }else{
+    input.type="password";
+    button.textContent="SHOW";
+  }
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(text,type){
+
+  const message=document.getElementById("message");
+
+  message.style.display="block";
+  message.textContent=text;
+
+  if(type==="success"){
+
+    message.style.background="#e9fff1";
+    message.style.color="#08763a";
+
+  }else{
+
+    message.style.background="#fff0f0";
+    message.style.color="#c62828";
+
+  }
+}
+
+
+function clearMessage(){
+
+  const message=document.getElementById("message");
+
+  message.style.display="none";
+  message.textContent="";
+}
+
+
+/* =========================================================
+   REGISTER
+========================================================= */
+
+async function registerUser(event){
+
+  event.preventDefault();
+
+  clearMessage();
+
+  const button=
+    document.getElementById("registerButton");
+
+  const name=
+    document.getElementById("registerName")
+    .value
+    .trim();
+
+  const mobile=
+    document.getElementById("registerMobile")
+    .value
+    .trim();
+
+  const email=
+    document.getElementById("registerEmail")
+    .value
+    .trim()
+    .toLowerCase();
+
+  const mpin=
+    document.getElementById("registerMpin")
+    .value
+    .trim();
+
+  const confirmMpin=
+    document.getElementById("confirmMpin")
+    .value
+    .trim();
+
+
+  if(name.length<2){
+
+    showMessage(
+      "Please enter your full name.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!/^[6-9][0-9]{9}$/.test(mobile)){
+
+    showMessage(
+      "Please enter a valid 10-digit mobile number.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
+    showMessage(
+      "Please enter a valid email address.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!/^[0-9]{4}$/.test(mpin)){
+
+    showMessage(
+      "MPIN must contain exactly 4 digits.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!/^[0-9]{4}$/.test(confirmMpin)){
+
+    showMessage(
+      "Confirm MPIN must contain exactly 4 digits.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(mpin!==confirmMpin){
+
+    showMessage(
+      "MPIN and Confirm MPIN do not match.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  button.disabled=true;
+  button.textContent="CREATING ACCOUNT...";
+
+
+  try{
+
+    const response=
+      await fetch(FUNCTION_URL,{
+
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+          action:"register",
+
+          full_name:name,
+
+          mobile:mobile,
+
+          email:email,
+
+          mpin:mpin,
+
+          confirm_mpin:confirmMpin
+
+        })
+
+      });
+
+
+    const data=
+      await response.json();
+
+
+    if(!response.ok || !data.success){
+
+      throw new Error(
+        data.message ||
+        "Registration failed. Please try again."
+      );
+    }
+
+
+    showMessage(
+      "Account created successfully. Opening Login...",
+      "success"
+    );
+
+
+    document
+      .getElementById("registerForm")
+      .reset();
+
+
+    setTimeout(function(){
+
+      showLogin();
+
+    },1000);
+
+
+  }catch(error){
+
+    showMessage(
+      error.message ||
+      "Something went wrong. Please try again.",
+      "error"
+    );
+
+  }finally{
+
+    button.disabled=false;
+    button.textContent="CREATE ACCOUNT";
+
+  }
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+async function loginUser(event){
+
+  event.preventDefault();
+
+  clearMessage();
+
+  const button=
+    document.getElementById("loginButton");
+
+  const identifier=
+    document.getElementById("loginIdentifier")
+    .value
+    .trim();
+
+  const mpin=
+    document.getElementById("loginMpin")
+    .value
+    .trim();
+
+
+  if(!identifier){
+
+    showMessage(
+      "Please enter your mobile number or email.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!/^[0-9]{4}$/.test(mpin)){
+
+    showMessage(
+      "Please enter your 4-digit MPIN.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  button.disabled=true;
+  button.textContent="LOGGING IN...";
+
+
+  try{
+
+    const response=
+      await fetch(FUNCTION_URL,{
+
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+          action:"login",
+
+          identifier:identifier,
+
+          mpin:mpin
+
+        })
+
+      });
+
+
+    const data=
+      await response.json();
+
+
+    if(!response.ok || !data.success){
+
+      throw new Error(
+        data.message ||
+        "Login failed. Please try again."
+      );
+    }
+
+
+    /* =====================================================
+       REAL SUPABASE SESSION
+    ===================================================== */
+
+    if(
+      !data.session ||
+      !data.session.access_token ||
+      !data.session.refresh_token
+    ){
+
+      throw new Error(
+        "Login successful, but secure session was not received."
+      );
+    }
+
+
+    const sessionResult=
+      await supabaseClient.auth.setSession({
+
+        access_token:
+          data.session.access_token,
+
+        refresh_token:
+          data.session.refresh_token
+
+      });
+
+
+    if(sessionResult.error){
+
+      console.error(
+        "SUPABASE SET SESSION ERROR:",
+        sessionResult.error
+      );
+
+      throw new Error(
+        "Login successful, but browser session could not be saved."
+      );
+    }
+
+
+    /* =====================================================
+       SAVE CUSTOMER LOGIN DATA
+    ===================================================== */
+
+    const loginData={
+
+      loggedIn:true,
+
+      identifier:identifier,
+
+      user:data.user || null,
+
+      profile:data.profile || null,
+
+      customer:data.customer || null,
+
+      user_id:
+        data.user_id ||
+        data.user?.id ||
+        data.profile?.id ||
+        data.customer?.id ||
+        null,
+
+      full_name:
+        data.full_name ||
+        data.user?.full_name ||
+        data.profile?.full_name ||
+        data.customer?.full_name ||
+        "",
+
+      email:
+        data.email ||
+        data.user?.email ||
+        data.profile?.email ||
+        data.customer?.email ||
+        "",
+
+      mobile:
+        data.mobile ||
+        data.user?.mobile ||
+        data.profile?.mobile ||
+        data.customer?.mobile ||
+        "",
+
+      loginTime:Date.now()
+
+    };
+
+
+    localStorage.setItem(
+      "egc_customer_login",
+      JSON.stringify(loginData)
+    );
+
+
+    localStorage.setItem(
+      "egc_logged_in",
+      "true"
+    );
+
+
+    showMessage(
+      "Login successful. Opening dashboard...",
+      "success"
+    );
+
+
+    button.textContent=
+      "OPENING DASHBOARD...";
+
+
+    /* =====================================================
+       OPEN DASHBOARD
+    ===================================================== */
+
+    setTimeout(function(){
+
+      window.location.replace(
+        "dashboard.html"
+      );
+
+    },500);
+
+
+  }catch(error){
+
+    console.error(
+      "EGC LOGIN ERROR:",
+      error
+    );
+
+    showMessage(
+      error.message ||
+      "Something went wrong. Please try again.",
+      "error"
+    );
+
+    button.disabled=false;
+    button.textContent="LOGIN";
+
+  }
+
+}
+
+
+/* =========================================================
+   FORGOT MPIN
+========================================================= */
+
+async function resetMpin(){
+
+  const email=
+    document.getElementById("forgotEmail")
+    .value
+    .trim()
+    .toLowerCase();
+
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
+    showMessage(
+      "Please enter a valid registered email address.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  try{
+
+    const response=
+      await fetch(FUNCTION_URL,{
+
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+          action:"forgot_mpin",
+
+          email:email
+
+        })
+
+      });
+
+
+    const data=
+      await response.json();
+
+
+    if(!response.ok || !data.success){
+
+      throw new Error(
+        data.message ||
+        "Could not start MPIN recovery."
+      );
+
+    }
+
+
+    showMessage(
+      data.message ||
+      "Recovery instructions have been sent to your email.",
+      "success"
+    );
+
+
+  }catch(error){
+
+    showMessage(
+      error.message ||
+      "Something went wrong. Please try again.",
+      "error"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CHECK EXISTING SESSION
+========================================================= */
+
+async function checkExistingSession(){
+
+  try{
+
+    const result=
+      await supabaseClient.auth.getSession();
+
+
+    if(result.error){
+
+      console.error(
+        "Existing session error:",
+        result.error
+      );
+
+      return;
+    }
+
+
+    if(
+      result.data &&
+      result.data.session &&
+      result.data.session.user
+    ){
+
+      const savedLogin=
+        localStorage.getItem(
+          "egc_customer_login"
+        );
+
+
+      if(savedLogin){
+
+        window.location.replace(
+          "dashboard.html"
+        );
+
+      }
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Session check error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+checkExistingSession();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,5939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - LPG Companies</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #ffffff;
+}
+
+button,
+input,
+select,
+textarea{
+    font-family:inherit;
+}
+
+button{
+    -webkit-tap-highlight-color:transparent;
+}
+
+.app{
+    min-height:100vh;
+}
+
+/* =========================================================
+   MASTER OWNER HEADER
+========================================================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid rgba(215,225,235,.9);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    min-width:0;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+    flex-shrink:0;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #e2ebf2;
+    border-radius:12px;
+    background:#fff;
+    color:#075ca5;
+    font-size:20px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    transition:.2s;
+}
+
+.notification-btn:hover{
+    background:#eef7ff;
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:9px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    position:absolute;
+    top:54px;
+    right:0;
+    width:340px;
+    max-width:calc(100vw - 28px);
+    background:#fff;
+    border:1px solid #e0e9f0;
+    border-radius:16px;
+    box-shadow:0 18px 50px rgba(30,70,100,.18);
+    overflow:hidden;
+    display:none;
+    z-index:5000;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-panel-head{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notification-panel-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:800;
+}
+
+.notification-panel-link{
+    border:0;
+    background:none;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.notification-list{
+    max-height:340px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    display:flex;
+    gap:11px;
+    padding:13px 15px;
+    border-bottom:1px solid #f0f4f7;
+}
+
+.notification-item:last-child{
+    border-bottom:0;
+}
+
+.notification-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.notification-text{
+    min-width:0;
+}
+
+.notification-text strong{
+    display:block;
+    color:#31566f;
+    font-size:11px;
+    line-height:1.4;
+}
+
+.notification-text span{
+    display:block;
+    color:#8b9ba8;
+    font-size:10px;
+    margin-top:3px;
+    line-height:1.4;
+}
+
+.notification-empty{
+    padding:28px 15px;
+    text-align:center;
+    color:#91a1af;
+    font-size:11px;
+}
+
+/* =========================================================
+   OWNER BADGE
+========================================================= */
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* =========================================================
+   MASTER OWNER SIDEBAR
+========================================================= */
+
+.sidebar{
+    width:245px;
+    height:calc(100vh - 78px);
+    position:sticky;
+    top:78px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,245,245,.98) 0%,
+            rgba(242,248,255,.98) 52%,
+            rgba(255,255,255,.98) 100%
+        );
+
+    border-right:1px solid #e1e9f0;
+    padding:22px 15px 15px;
+    flex-shrink:0;
+
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+
+    display:flex;
+    flex-direction:column;
+
+    overflow-y:auto;
+    overflow-x:hidden;
+}
+
+.sidebar::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-track{
+    background:transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#d4e1ea;
+    border-radius:10px;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:12px;
+    font-weight:800;
+    opacity:.9;
+    padding:0 13px 9px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.sidebar-section{
+    margin-bottom:10px;
+}
+
+.sidebar-section.owner-pages{
+    margin-top:15px;
+}
+
+.sidebar-section.system-section{
+    margin-top:15px;
+}
+
+.nav-btn{
+    width:100%;
+    min-height:43px;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:10px 12px;
+    border-radius:11px;
+    margin-bottom:4px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+    display:flex;
+    align-items:center;
+    gap:0;
+    white-space:nowrap;
+}
+
+.nav-btn:hover{
+    background:rgba(225,239,252,.8);
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-flex;
+    width:28px;
+    min-width:28px;
+    align-items:center;
+    justify-content:flex-start;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+    border-top:1px solid rgba(218,228,236,.75);
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+
+    background:
+        radial-gradient(circle at 85% 15%,rgba(190,225,255,.25),transparent 32%),
+        radial-gradient(circle at 10% 85%,rgba(255,205,205,.22),transparent 30%);
+}
+
+.page-heading{
+    margin-bottom:22px;
+}
+
+.page-heading h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.page-heading p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.top-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+.search-box{
+    flex:1;
+    min-width:240px;
+    position:relative;
+}
+
+.search-box input{
+    width:100%;
+    height:48px;
+    border:1px solid #dce7ef;
+    background:rgba(255,255,255,.95);
+    border-radius:13px;
+    padding:0 16px 0 45px;
+    outline:none;
+    color:#31566f;
+    font-size:14px;
+    box-shadow:0 5px 18px rgba(50,80,110,.05);
+}
+
+.search-box input:focus{
+    border-color:#8fc6ed;
+    box-shadow:0 0 0 3px rgba(70,160,220,.10);
+}
+
+.search-icon{
+    position:absolute;
+    left:16px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:18px;
+    color:#7f98aa;
+}
+
+.add-btn{
+    height:48px;
+    border:0;
+    border-radius:13px;
+    padding:0 20px;
+    background:linear-gradient(135deg,#0878d1,#075ca5);
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 7px 20px rgba(8,120,209,.20);
+}
+
+/* =========================================================
+   STATS
+========================================================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.stat-card{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:16px;
+    padding:17px;
+    box-shadow:0 8px 25px rgba(50,80,110,.06);
+}
+
+.stat-label{
+    color:#8093a4;
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.stat-value{
+    color:#06477f;
+    font-size:27px;
+    font-weight:800;
+    margin-top:7px;
+}
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel{
+    background:rgba(255,255,255,.95);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+}
+
+.panel-header{
+    padding:20px 21px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.panel-title{
+    font-size:18px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.panel-subtitle{
+    font-size:12px;
+    color:#8799a9;
+    margin-top:4px;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1150px;
+}
+
+th{
+    background:#f7fafc;
+    color:#71889a;
+    font-size:11px;
+    text-transform:uppercase;
+    padding:13px 15px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:13px 15px;
+    border-top:1px solid #edf2f6;
+    color:#35566f;
+    font-size:13px;
+    vertical-align:middle;
+}
+
+.company-cell{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-width:210px;
+}
+
+.company-logo,
+.company-logo-placeholder{
+    width:44px;
+    height:44px;
+    border-radius:11px;
+    flex-shrink:0;
+}
+
+.company-logo{
+    object-fit:contain;
+    background:#f2f7fb;
+    border:1px solid #e2ebf1;
+}
+
+.company-logo-placeholder{
+    background:linear-gradient(135deg,#eef7ff,#fff1f1);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+}
+
+.company-name{
+    font-weight:800;
+    color:#315671;
+}
+
+.company-code{
+    font-size:10px;
+    color:#91a0ac;
+    margin-top:3px;
+}
+
+.small-value{
+    font-size:12px;
+    color:#496b82;
+    line-height:1.5;
+}
+
+.status{
+    display:inline-flex;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.status.active{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.inactive{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.action-wrap{
+    display:flex;
+    gap:7px;
+}
+
+.action-btn{
+    width:35px;
+    height:35px;
+    border:0;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.view-btn{
+    background:#eaf7ff;
+    color:#0871c3;
+}
+
+.edit-btn{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.delete-btn{
+    background:#fff1f1;
+    color:#c72e2e;
+}
+
+.empty{
+    text-align:center;
+    padding:40px 20px;
+    color:#91a1af;
+    font-size:13px;
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    background:rgba(5,35,58,.48);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:760px;
+    max-height:94vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:21px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    animation:modalIn .18s ease;
+}
+
+@keyframes modalIn{
+    from{
+        opacity:0;
+        transform:scale(.96) translateY(8px);
+    }
+    to{
+        opacity:1;
+        transform:scale(1) translateY(0);
+    }
+}
+
+.modal-header{
+    padding:20px 22px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:sticky;
+    top:0;
+    background:#fff;
+    z-index:5;
+}
+
+.modal-title{
+    font-size:19px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.close-btn{
+    width:36px;
+    height:36px;
+    border:0;
+    border-radius:10px;
+    background:#f2f6f9;
+    color:#668093;
+    font-size:20px;
+    cursor:pointer;
+}
+
+.modal-body{
+    padding:22px;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.form-group{
+    min-width:0;
+}
+
+.form-group.full{
+    grid-column:1 / -1;
+}
+
+.form-label{
+    display:block;
+    color:#527087;
+    font-size:12px;
+    font-weight:800;
+    margin-bottom:7px;
+}
+
+.form-input,
+.form-select,
+.form-textarea{
+    width:100%;
+    border:1px solid #dce7ef;
+    border-radius:10px;
+    outline:none;
+    padding:11px 12px;
+    background:#fff;
+    color:#31566f;
+    font-size:13px;
+}
+
+.form-input,
+.form-select{
+    height:45px;
+}
+
+.form-textarea{
+    min-height:90px;
+    resize:vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus{
+    border-color:#8fc6ed;
+    box-shadow:0 0 0 3px rgba(70,160,220,.09);
+}
+
+/* =========================================================
+   LOGO UPLOAD
+========================================================= */
+
+.logo-upload{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px;
+    border:1px dashed #cbdce8;
+    border-radius:12px;
+    background:#f9fcfe;
+}
+
+.logo-preview{
+    width:64px;
+    height:64px;
+    border-radius:12px;
+    border:1px solid #dce7ef;
+    object-fit:contain;
+    background:#fff;
+    display:none;
+}
+
+.logo-preview.show{
+    display:block;
+}
+
+.logo-upload-info{
+    flex:1;
+    min-width:0;
+}
+
+.logo-upload-info p{
+    color:#91a0ac;
+    font-size:10px;
+    margin-top:5px;
+    line-height:1.4;
+}
+
+.file-input{
+    width:100%;
+    font-size:11px;
+    color:#607d91;
+}
+
+/* =========================================================
+   DOCUMENT SECTION
+========================================================= */
+
+.documents-heading{
+    margin-top:23px;
+    padding-top:20px;
+    border-top:1px solid #edf2f6;
+}
+
+.documents-heading h3{
+    color:#06477f;
+    font-size:16px;
+    font-weight:800;
+}
+
+.documents-heading p{
+    color:#8a9baa;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.document-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:13px;
+    margin-top:14px;
+}
+
+.document-box{
+    border:1px solid #dce7ef;
+    border-radius:13px;
+    padding:12px;
+    background:#fafdff;
+}
+
+.document-title{
+    font-size:11px;
+    color:#527087;
+    font-weight:800;
+    margin-bottom:9px;
+}
+
+.document-preview{
+    width:100%;
+    height:125px;
+    border-radius:9px;
+    border:1px solid #e1e9ef;
+    object-fit:cover;
+    background:#f3f7fa;
+    display:none;
+}
+
+.document-preview.show{
+    display:block;
+}
+
+.document-placeholder{
+    height:125px;
+    border-radius:9px;
+    border:1px dashed #cbdce8;
+    background:#f5f9fc;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#8da0ae;
+    text-align:center;
+    font-size:11px;
+    gap:6px;
+}
+
+.document-placeholder span{
+    font-size:25px;
+}
+
+.document-controls{
+    margin-top:9px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+}
+
+.document-btn{
+    height:34px;
+    border:0;
+    border-radius:8px;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.gallery-btn{
+    background:#eaf6ff;
+    color:#0871c3;
+}
+
+.camera-btn{
+    background:#eef9f1;
+    color:#18803d;
+}
+
+.remove-btn{
+    width:100%;
+    height:30px;
+    margin-top:6px;
+    border:0;
+    border-radius:8px;
+    background:#fff1f1;
+    color:#c72e2e;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+    display:none;
+}
+
+.remove-btn.show{
+    display:block;
+}
+
+.form-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:22px;
+    padding-top:18px;
+    border-top:1px solid #edf2f6;
+}
+
+.cancel-btn,
+.save-btn{
+    height:44px;
+    padding:0 20px;
+    border:0;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.save-btn{
+    background:#0878d1;
+    color:#fff;
+}
+
+.save-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* =========================================================
+   DETAILS MODAL
+========================================================= */
+
+.details-card{
+    max-width:850px;
+}
+
+.company-detail-head{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding-bottom:18px;
+    border-bottom:1px solid #edf2f6;
+}
+
+.detail-company-logo{
+    width:70px;
+    height:70px;
+    border-radius:15px;
+    object-fit:contain;
+    border:1px solid #dce7ef;
+    background:#f5f9fc;
+}
+
+.detail-company-name{
+    font-size:21px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.detail-company-code{
+    color:#8a9baa;
+    font-size:12px;
+    margin-top:4px;
+}
+
+.details-section-title{
+    color:#06477f;
+    font-size:15px;
+    font-weight:800;
+    margin:21px 0 12px;
+}
+
+.details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.detail-item{
+    background:#f8fbfd;
+    border:1px solid #e6eef3;
+    border-radius:11px;
+    padding:11px 13px;
+}
+
+.detail-label{
+    color:#8a9baa;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    margin-bottom:4px;
+}
+
+.detail-value{
+    color:#31566f;
+    font-size:13px;
+    font-weight:700;
+    word-break:break-word;
+}
+
+.detail-full{
+    grid-column:1 / -1;
+}
+
+.details-documents{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:13px;
+}
+
+.detail-document{
+    border:1px solid #dce7ef;
+    border-radius:13px;
+    overflow:hidden;
+    background:#fbfdff;
+}
+
+.detail-document-title{
+    padding:10px 11px;
+    color:#527087;
+    font-size:11px;
+    font-weight:800;
+}
+
+.detail-document-image{
+    width:100%;
+    height:170px;
+    object-fit:cover;
+    display:block;
+    background:#f2f7fa;
+}
+
+.detail-document-empty{
+    height:170px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    color:#96a5b1;
+    font-size:11px;
+    gap:5px;
+}
+
+.detail-document-empty span{
+    font-size:26px;
+}
+
+.view-document-btn{
+    width:100%;
+    height:38px;
+    border:0;
+    background:#0878d1;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+/* =========================================================
+   IMAGE VIEWER
+========================================================= */
+
+.image-viewer{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:30000;
+    background:rgba(0,0,0,.82);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.image-viewer.show{
+    display:flex;
+}
+
+.image-viewer img{
+    max-width:95vw;
+    max-height:88vh;
+    object-fit:contain;
+    border-radius:8px;
+    background:#fff;
+}
+
+.viewer-close{
+    position:absolute;
+    top:18px;
+    right:18px;
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:rgba(255,255,255,.15);
+    color:#fff;
+    font-size:24px;
+    cursor:pointer;
+}
+
+/* =========================================================
+   CAMERA MODAL
+========================================================= */
+
+.camera-card{
+    max-width:560px;
+}
+
+.camera-body{
+    padding:18px;
+}
+
+.camera-video{
+    width:100%;
+    max-height:55vh;
+    background:#07131c;
+    border-radius:15px;
+    object-fit:cover;
+}
+
+.camera-controls{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:9px;
+    margin-top:12px;
+}
+
+.camera-control-btn{
+    height:44px;
+    border:0;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.camera-switch{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.camera-cancel{
+    background:#fff1f1;
+    color:#c72e2e;
+}
+
+.camera-capture{
+    background:#0878d1;
+    color:#fff;
+}
+
+.camera-status{
+    text-align:center;
+    color:#8296a6;
+    font-size:11px;
+    margin-top:10px;
+}
+
+/* =========================================================
+   DELETE
+========================================================= */
+
+.delete-card{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:20px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.delete-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 15px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+}
+
+.delete-title{
+    color:#06477f;
+    font-size:20px;
+    font-weight:800;
+}
+
+.delete-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin:9px 0 20px;
+}
+
+.delete-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.delete-cancel,
+.delete-confirm{
+    height:45px;
+    border:0;
+    border-radius:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.delete-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.delete-confirm{
+    background:#d93636;
+    color:#fff;
+}
+
+/* =========================================================
+   LOGOUT MODAL - MASTER STYLE
+========================================================= */
+
+.logout-card{
+    width:100%;
+    max-width:420px;
+    background:#fff;
+    border-radius:21px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    animation:modalIn .18s ease;
+}
+
+.logout-icon{
+    width:62px;
+    height:62px;
+    margin:0 auto 15px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:20px;
+    font-weight:800;
+}
+
+.logout-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin:9px 0 20px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.logout-cancel,
+.logout-confirm{
+    height:45px;
+    border:0;
+    border-radius:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#d93636;
+    color:#fff;
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:40000;
+    background:#073f73;
+    color:#fff;
+    padding:13px 17px;
+    border-radius:11px;
+    font-size:12px;
+    font-weight:700;
+    box-shadow:0 12px 35px rgba(0,0,0,.18);
+    transform:translateY(20px);
+    opacity:0;
+    pointer-events:none;
+    transition:.25s;
+    max-width:340px;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+.toast.error{
+    background:#c72e2e;
+}
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media(max-width:1000px){
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .main{
+        padding:25px 20px;
+    }
+
+    .document-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .details-documents{
+        grid-template-columns:1fr 1fr;
+    }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle{
+        display:none;
+    }
+
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        margin-left:auto;
+    }
+
+    .notification-btn{
+        width:40px;
+        height:40px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:79px;
+        right:14px;
+        width:340px;
+        max-width:calc(100vw - 28px);
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:150;
+    }
+
+    .layout{
+        display:block;
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:200;
+        transition:.25s;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .main{
+        padding:20px 14px 40px;
+    }
+
+    .page-heading h1{
+        font-size:23px;
+    }
+
+    .page-heading p{
+        font-size:13px;
+    }
+
+    .top-bar{
+        align-items:stretch;
+    }
+
+    .search-box{
+        min-width:100%;
+    }
+
+    .add-btn{
+        width:100%;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .stat-card{
+        padding:14px;
+    }
+
+    .stat-value{
+        font-size:23px;
+    }
+
+    .panel{
+        border-radius:15px;
+    }
+
+    .modal{
+        padding:10px;
+    }
+
+    .modal-card{
+        max-height:96vh;
+        border-radius:17px;
+    }
+
+    .modal-header{
+        padding:16px;
+    }
+
+    .modal-body{
+        padding:16px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+        gap:13px;
+    }
+
+    .form-group.full{
+        grid-column:auto;
+    }
+
+    .document-grid{
+        grid-template-columns:1fr;
+    }
+
+    .details-grid{
+        grid-template-columns:1fr;
+    }
+
+    .detail-full{
+        grid-column:auto;
+    }
+
+    .details-documents{
+        grid-template-columns:1fr;
+    }
+
+    .form-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+    }
+
+    .cancel-btn,
+    .save-btn{
+        width:100%;
+    }
+
+    .company-detail-head{
+        align-items:flex-start;
+    }
+
+    .camera-controls{
+        grid-template-columns:1fr;
+    }
+
+    .logout-card{
+        padding:23px 18px;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        bottom:14px;
+        max-width:none;
+    }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:420px){
+
+    .stats{
+        grid-template-columns:1fr;
+    }
+
+    .notification-panel{
+        right:10px;
+        width:calc(100vw - 20px);
+    }
+
+    .logout-actions,
+    .delete-actions{
+        grid-template-columns:1fr;
+    }
+
+    .form-actions{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- =======================================================
+     HEADER
+======================================================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="Open menu"
+        >☰</button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+            <div class="owner-title">Owner Dashboard</div>
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <!-- Notification -->
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+                aria-label="Notifications"
+            >
+                🔔
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >0</span>
+            </button>
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-panel-head">
+
+                    <div class="notification-panel-title">
+                        Notifications
+                    </div>
+
+                    <button
+                        class="notification-panel-link"
+                        id="viewAllNotifications"
+                        type="button"
+                    >
+                        View All
+                    </button>
+
+                </div>
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        No new notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="owner-badge">
+            <span class="owner-dot"></span>
+            Owner
+        </div>
+
+    </div>
+
+</header>
+
+
+<div class="layout">
+
+<!-- =======================================================
+     MASTER OWNER SIDEBAR
+======================================================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            Management
+        </div>
+
+        <button
+            class="nav-btn"
+            data-page="dashboard"
+            type="button"
+        >
+            <span class="nav-icon">▦</span>
+            Dashboard
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="users"
+            type="button"
+        >
+            <span class="nav-icon">👥</span>
+            Users
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="agencies"
+            type="button"
+        >
+            <span class="nav-icon">🏪</span>
+            LPG Agencies
+        </button>
+
+        <button
+            class="nav-btn active"
+            data-page="companies"
+            type="button"
+        >
+            <span class="nav-icon">🏢</span>
+            LPG Companies
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="pending-approvals"
+            type="button"
+        >
+            <span class="nav-icon">⏳</span>
+            Pending Approvals
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="requests"
+            type="button"
+        >
+            <span class="nav-icon">🛢</span>
+            Cylinder Requests
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="payments"
+            type="button"
+        >
+            <span class="nav-icon">₹</span>
+            Payments
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="reports"
+            type="button"
+        >
+            <span class="nav-icon">▤</span>
+            Reports
+        </button>
+
+    </div>
+
+
+    <!-- OWNER PAGES -->
+
+    <div class="sidebar-section owner-pages">
+
+        <div class="sidebar-title">
+            Owner Pages
+        </div>
+
+        <button
+            class="nav-btn"
+            data-page="request-details"
+            type="button"
+        >
+            <span class="nav-icon">📄</span>
+            Request Details
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="payment-details"
+            type="button"
+        >
+            <span class="nav-icon">💳</span>
+            Payment Details
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="agency-details"
+            type="button"
+        >
+            <span class="nav-icon">🏪</span>
+            Agency Details
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="deliveries"
+            type="button"
+        >
+            <span class="nav-icon">🚚</span>
+            Deliveries
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="repayments"
+            type="button"
+        >
+            <span class="nav-icon">💰</span>
+            Repayments
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="notifications"
+            type="button"
+        >
+            <span class="nav-icon">🔔</span>
+            Notifications
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="slips"
+            type="button"
+        >
+            <span class="nav-icon">🧾</span>
+            Slips
+        </button>
+
+        <button
+            class="nav-btn"
+            data-page="profile"
+            type="button"
+        >
+            <span class="nav-icon">👤</span>
+            Profile
+        </button>
+
+    </div>
+
+
+    <!-- SYSTEM -->
+
+    <div class="sidebar-section system-section">
+
+        <div class="sidebar-title">
+            System
+        </div>
+
+        <button
+            class="nav-btn"
+            data-page="settings"
+            type="button"
+        >
+            <span class="nav-icon">⚙</span>
+            Settings
+        </button>
+
+    </div>
+
+
+    <!-- LOGOUT -->
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =======================================================
+     MAIN CONTENT
+======================================================= -->
+
+<main class="main">
+
+    <div class="page-heading">
+
+        <h1>LPG Companies</h1>
+
+        <p>
+            Add and manage LPG companies connected with EGC.
+        </p>
+
+    </div>
+
+
+    <!-- TOP BAR -->
+
+    <div class="top-bar">
+
+        <div class="search-box">
+
+            <span class="search-icon">
+                🔎
+            </span>
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search company, owner, city, district or code..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <button
+            class="add-btn"
+            id="addCompanyBtn"
+            type="button"
+        >
+            ➕ New LPG Company
+        </button>
+
+    </div>
+
+
+    <!-- STATS -->
+
+    <section class="stats">
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Total Companies
+            </div>
+
+            <div
+                class="stat-value"
+                id="totalCompanies"
+            >0</div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Active Companies
+            </div>
+
+            <div
+                class="stat-value"
+                id="activeCompanies"
+            >0</div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Inactive Companies
+            </div>
+
+            <div
+                class="stat-value"
+                id="inactiveCompanies"
+            >0</div>
+
+        </div>
+
+    </section>
+
+
+    <!-- COMPANY TABLE -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <div class="panel-title">
+                    LPG Company List
+                </div>
+
+                <div class="panel-subtitle">
+                    Complete LPG company records added by the owner
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Company</th>
+                        <th>Owner</th>
+                        <th>Mobile</th>
+                        <th>City</th>
+                        <th>District</th>
+                        <th>State</th>
+                        <th>Joining Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="companyTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="empty"
+                        >
+                            Loading companies...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+</div>
+</div>
+
+
+<!-- =======================================================
+     ADD / EDIT COMPANY MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="companyModal"
+>
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div
+                class="modal-title"
+                id="modalTitle"
+            >
+                Add LPG Company
+            </div>
+
+            <button
+                class="close-btn"
+                id="closeModalBtn"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <form id="companyForm">
+
+                <input
+                    type="hidden"
+                    id="companyId"
+                >
+
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Company Name *
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyName"
+                            type="text"
+                            placeholder="Enter company name"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Company Code
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyCode"
+                            type="text"
+                            placeholder="Example: IOCL"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label class="form-label">
+                            Company Logo
+                        </label>
+
+                        <div class="logo-upload">
+
+                            <img
+                                id="logoPreview"
+                                class="logo-preview"
+                                alt="Logo preview"
+                            >
+
+                            <div class="logo-upload-info">
+
+                                <input
+                                    class="file-input"
+                                    id="logoFile"
+                                    type="file"
+                                    accept="image/*"
+                                >
+
+                                <p>
+                                    JPG, PNG or WEBP. Maximum 2 MB.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Mobile Number
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="mobileNumber"
+                            type="tel"
+                            inputmode="numeric"
+                            placeholder="Enter mobile number"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyEmail"
+                            type="email"
+                            placeholder="company@example.com"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            City
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyCity"
+                            type="text"
+                            placeholder="Enter city"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            District
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyDistrict"
+                            type="text"
+                            placeholder="Enter district"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            State
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="companyState"
+                            type="text"
+                            placeholder="Enter state"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Owner Name
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="ownerName"
+                            type="text"
+                            placeholder="Enter owner name"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label class="form-label">
+                            Full Address
+                        </label>
+
+                        <textarea
+                            class="form-textarea"
+                            id="fullAddress"
+                            placeholder="Enter complete LPG agency/company address"
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Joining Date
+                        </label>
+
+                        <input
+                            class="form-input"
+                            id="joiningDate"
+                            type="date"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="form-label">
+                            Status
+                        </label>
+
+                        <select
+                            class="form-select"
+                            id="companyStatus"
+                        >
+
+                            <option value="Active">
+                                Active
+                            </option>
+
+                            <option value="Inactive">
+                                Inactive
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DOCUMENTS -->
+
+                <div class="documents-heading">
+
+                    <h3>
+                        Documents Upload
+                    </h3>
+
+                    <p>
+                        Upload clear document photos. Camera and gallery both supported.
+                    </p>
+
+                </div>
+
+
+                <div class="document-grid">
+
+                    <!-- AADHAAR FRONT -->
+
+                    <div class="document-box">
+
+                        <div class="document-title">
+                            Aadhaar Card - Front
+                        </div>
+
+                        <div
+                            id="aadharFrontPlaceholder"
+                            class="document-placeholder"
+                        >
+
+                            <span>🪪</span>
+
+                            No document selected
+
+                        </div>
+
+                        <img
+                            id="aadharFrontPreview"
+                            class="document-preview"
+                            alt="Aadhaar front"
+                        >
+
+                        <div class="document-controls">
+
+                            <button
+                                type="button"
+                                class="document-btn gallery-btn"
+                                data-doc="aadharFront"
+                            >
+                                📁 Gallery
+                            </button>
+
+                            <button
+                                type="button"
+                                class="document-btn camera-btn"
+                                data-camera="aadharFront"
+                            >
+                                📷 Camera
+                            </button>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="remove-btn"
+                            id="removeAadharFront"
+                        >
+                            Remove
+                        </button>
+
+                    </div>
+
+
+                    <!-- AADHAAR BACK -->
+
+                    <div class="document-box">
+
+                        <div class="document-title">
+                            Aadhaar Card - Back
+                        </div>
+
+                        <div
+                            id="aadharBackPlaceholder"
+                            class="document-placeholder"
+                        >
+
+                            <span>🪪</span>
+
+                            No document selected
+
+                        </div>
+
+                        <img
+                            id="aadharBackPreview"
+                            class="document-preview"
+                            alt="Aadhaar back"
+                        >
+
+                        <div class="document-controls">
+
+                            <button
+                                type="button"
+                                class="document-btn gallery-btn"
+                                data-doc="aadharBack"
+                            >
+                                📁 Gallery
+                            </button>
+
+                            <button
+                                type="button"
+                                class="document-btn camera-btn"
+                                data-camera="aadharBack"
+                            >
+                                📷 Camera
+                            </button>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="remove-btn"
+                            id="removeAadharBack"
+                        >
+                            Remove
+                        </button>
+
+                    </div>
+
+
+                    <!-- PAN -->
+
+                    <div class="document-box">
+
+                        <div class="document-title">
+                            PAN Card
+                        </div>
+
+                        <div
+                            id="panCardPlaceholder"
+                            class="document-placeholder"
+                        >
+
+                            <span>💳</span>
+
+                            No document selected
+
+                        </div>
+
+                        <img
+                            id="panCardPreview"
+                            class="document-preview"
+                            alt="PAN card"
+                        >
+
+                        <div class="document-controls">
+
+                            <button
+                                type="button"
+                                class="document-btn gallery-btn"
+                                data-doc="panCard"
+                            >
+                                📁 Gallery
+                            </button>
+
+                            <button
+                                type="button"
+                                class="document-btn camera-btn"
+                                data-camera="panCard"
+                            >
+                                📷 Camera
+                            </button>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="remove-btn"
+                            id="removePanCard"
+                        >
+                            Remove
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        class="cancel-btn"
+                        id="cancelModalBtn"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="save-btn"
+                        id="saveCompanyBtn"
+                    >
+                        Save Company
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     HIDDEN DOCUMENT INPUT
+======================================================= -->
+
+<input
+    type="file"
+    id="hiddenDocumentInput"
+    accept="image/*"
+    style="display:none;"
+>
+
+
+<!-- =======================================================
+     DETAILS MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="detailsModal"
+>
+
+    <div class="modal-card details-card">
+
+        <div class="modal-header">
+
+            <div class="modal-title">
+                LPG Company Details
+            </div>
+
+            <button
+                class="close-btn"
+                id="closeDetailsBtn"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div
+            class="modal-body"
+            id="detailsBody"
+        >
+            Loading...
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     IMAGE VIEWER
+======================================================= -->
+
+<div
+    class="image-viewer"
+    id="imageViewer"
+>
+
+    <button
+        class="viewer-close"
+        id="viewerClose"
+        type="button"
+    >
+        ×
+    </button>
+
+    <img
+        id="viewerImage"
+        alt="Document"
+    >
+
+</div>
+
+
+<!-- =======================================================
+     CAMERA
+======================================================= -->
+
+<div
+    class="modal"
+    id="cameraModal"
+>
+
+    <div class="modal-card camera-card">
+
+        <div class="modal-header">
+
+            <div class="modal-title">
+                Take Document Photo
+            </div>
+
+            <button
+                class="close-btn"
+                id="closeCameraBtn"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div class="camera-body">
+
+            <video
+                id="cameraVideo"
+                class="camera-video"
+                autoplay
+                playsinline
+            ></video>
+
+            <div class="camera-controls">
+
+                <button
+                    class="camera-control-btn camera-switch"
+                    id="switchCameraBtn"
+                    type="button"
+                >
+                    🔄 Switch Camera
+                </button>
+
+                <button
+                    class="camera-control-btn camera-cancel"
+                    id="cancelCameraBtn"
+                    type="button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="camera-control-btn camera-capture"
+                    id="captureCameraBtn"
+                    type="button"
+                >
+                    📷 Capture
+                </button>
+
+            </div>
+
+            <div
+                class="camera-status"
+                id="cameraStatus"
+            >
+                Camera starting...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     DELETE MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="deleteModal"
+>
+
+    <div class="delete-card">
+
+        <div class="delete-icon">
+            🗑️
+        </div>
+
+        <div class="delete-title">
+            Delete Company?
+        </div>
+
+        <div class="delete-text">
+
+            Are you sure you want to delete
+
+            <strong id="deleteCompanyName">
+                this company
+            </strong>?
+
+            This action cannot be undone.
+
+        </div>
+
+        <div class="delete-actions">
+
+            <button
+                type="button"
+                class="delete-cancel"
+                id="deleteCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="delete-confirm"
+                id="deleteConfirm"
+            >
+                Delete
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     LOGOUT CONFIRMATION
+======================================================= -->
+
+<div
+    class="modal"
+    id="logoutModal"
+>
+
+    <div class="logout-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout?
+        </div>
+
+        <div class="logout-text">
+            Are you sure you want to logout from the Owner Panel?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                type="button"
+                class="logout-cancel"
+                id="logoutCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="logout-confirm"
+                id="logoutConfirm"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     TOAST
+======================================================= -->
+
+<div
+    class="toast"
+    id="toast"
+>
+    Done
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* =====================================================
+   SUPABASE
+===================================================== */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const STORAGE_BUCKET =
+"lpg-company-documents";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const companyTableBody =
+document.getElementById("companyTableBody");
+
+const searchInput =
+document.getElementById("searchInput");
+
+const addCompanyBtn =
+document.getElementById("addCompanyBtn");
+
+const companyModal =
+document.getElementById("companyModal");
+
+const detailsModal =
+document.getElementById("detailsModal");
+
+const deleteModal =
+document.getElementById("deleteModal");
+
+const cameraModal =
+document.getElementById("cameraModal");
+
+const closeModalBtn =
+document.getElementById("closeModalBtn");
+
+const cancelModalBtn =
+document.getElementById("cancelModalBtn");
+
+const closeDetailsBtn =
+document.getElementById("closeDetailsBtn");
+
+const companyForm =
+document.getElementById("companyForm");
+
+const modalTitle =
+document.getElementById("modalTitle");
+
+const companyId =
+document.getElementById("companyId");
+
+const companyName =
+document.getElementById("companyName");
+
+const companyCode =
+document.getElementById("companyCode");
+
+const logoFile =
+document.getElementById("logoFile");
+
+const logoPreview =
+document.getElementById("logoPreview");
+
+const mobileNumber =
+document.getElementById("mobileNumber");
+
+const companyEmail =
+document.getElementById("companyEmail");
+
+const companyCity =
+document.getElementById("companyCity");
+
+const companyDistrict =
+document.getElementById("companyDistrict");
+
+const companyState =
+document.getElementById("companyState");
+
+const ownerName =
+document.getElementById("ownerName");
+
+const fullAddress =
+document.getElementById("fullAddress");
+
+const joiningDate =
+document.getElementById("joiningDate");
+
+const companyStatus =
+document.getElementById("companyStatus");
+
+const saveCompanyBtn =
+document.getElementById("saveCompanyBtn");
+
+const deleteCompanyName =
+document.getElementById("deleteCompanyName");
+
+const deleteCancel =
+document.getElementById("deleteCancel");
+
+const deleteConfirm =
+document.getElementById("deleteConfirm");
+
+const toast =
+document.getElementById("toast");
+
+const totalCompanies =
+document.getElementById("totalCompanies");
+
+const activeCompanies =
+document.getElementById("activeCompanies");
+
+const inactiveCompanies =
+document.getElementById("inactiveCompanies");
+
+const hiddenDocumentInput =
+document.getElementById("hiddenDocumentInput");
+
+const imageViewer =
+document.getElementById("imageViewer");
+
+const viewerImage =
+document.getElementById("viewerImage");
+
+const viewerClose =
+document.getElementById("viewerClose");
+
+const cameraVideo =
+document.getElementById("cameraVideo");
+
+const cameraStatus =
+document.getElementById("cameraStatus");
+
+const switchCameraBtn =
+document.getElementById("switchCameraBtn");
+
+const closeCameraBtn =
+document.getElementById("closeCameraBtn");
+
+const cancelCameraBtn =
+document.getElementById("cancelCameraBtn");
+
+const captureCameraBtn =
+document.getElementById("captureCameraBtn");
+
+
+/* =====================================================
+   DATA
+===================================================== */
+
+let companies = [];
+
+let editingCompanyId = null;
+
+let deletingCompanyId = null;
+
+let currentLogoData = "";
+
+let currentDocuments = {
+
+    aadharFront: null,
+    aadharBack: null,
+    panCard: null
+
+};
+
+let documentPaths = {
+
+    aadharFront: null,
+    aadharBack: null,
+    panCard: null
+
+};
+
+let currentDocumentTarget = null;
+
+let cameraStream = null;
+
+let currentCameraFacing = "environment";
+
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+        users:"owner-users.html",
+        agencies:"owner-agencies.html",
+        companies:"owner-companies.html",
+        requests:"owner-requests.html",
+        payments:"owner-payments.html",
+        reports:"owner-reports.html",
+        settings:"owner-settings.html"
+
+    };
+
+    if(pages[page]){
+
+        window.location.href =
+        pages[page];
+
+    }
+
+}
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            openPage(
+                this.dataset.page
+            );
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   MOBILE MENU
+===================================================== */
+
+menuBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.toggle("open");
+
+        overlay.classList.toggle("show");
+
+    }
+);
+
+overlay.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove("open");
+
+        overlay.classList.remove("show");
+
+    }
+);
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+let toastTimer = null;
+
+function showToast(
+    message,
+    isError = false
+){
+
+    toast.textContent =
+    message;
+
+    toast.classList.toggle(
+        "error",
+        isError
+    );
+
+    toast.classList.add(
+        "show"
+    );
+
+    clearTimeout(
+        toastTimer
+    );
+
+    toastTimer =
+    setTimeout(
+        function(){
+
+            toast.classList.remove(
+                "show"
+            );
+
+        },
+        3500
+    );
+
+}
+
+
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
+
+function escapeHtml(value){
+
+    return String(
+        value ?? ""
+    )
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* =====================================================
+   FORMAT DATE
+===================================================== */
+
+function formatDate(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const date =
+    new Date(
+        value + "T00:00:00"
+    );
+
+    if(
+        Number.isNaN(
+            date.getTime()
+        )
+    ){
+
+        return escapeHtml(value);
+
+    }
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+/* =====================================================
+   SIGNED URL
+===================================================== */
+
+async function getDocumentUrl(path){
+
+    if(!path){
+        return null;
+    }
+
+    /*
+       Old records may already contain
+       a complete URL.
+    */
+
+    if(
+        String(path)
+        .startsWith("http://") ||
+        String(path)
+        .startsWith("https://")
+    ){
+
+        return path;
+
+    }
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+    .storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(
+        path,
+        60 * 10
+    );
+
+    if(error){
+
+        console.error(
+            "Signed URL error:",
+            error
+        );
+
+        return null;
+
+    }
+
+    return data?.signedUrl || null;
+
+}
+
+
+/* =====================================================
+   LOAD COMPANIES
+===================================================== */
+
+async function loadCompanies(){
+
+    companyTableBody.innerHTML = `
+        <tr>
+            <td colspan="9" class="empty">
+                Loading companies...
+            </td>
+        </tr>
+    `;
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("lpg_companies")
+        .select("*")
+        .order(
+            "company_name",
+            {
+                ascending:true
+            }
+        );
+
+        if(error){
+
+            console.error(
+                "Company loading error:",
+                error
+            );
+
+            companyTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="empty">
+                        Unable to load companies.
+                        <br><br>
+                        ${escapeHtml(error.message)}
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+        companies =
+        data || [];
+
+        renderCompanies();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        companyTableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty">
+                    Unable to load companies.
+                </td>
+            </tr>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   RENDER COMPANIES
+===================================================== */
+
+function renderCompanies(){
+
+    const search =
+    searchInput.value
+    .trim()
+    .toLowerCase();
+
+    const filtered =
+    companies.filter(
+        company => {
+
+            const values = [
+
+                company.company_name,
+                company.company_code,
+                company.owner_name,
+                company.city,
+                company.district,
+                company.state,
+                company.mobile_number
+
+            ];
+
+            return values.some(
+                value =>
+                String(
+                    value || ""
+                )
+                .toLowerCase()
+                .includes(search)
+            );
+
+        }
+    );
+
+    updateStats();
+
+    if(
+        filtered.length === 0
+    ){
+
+        companyTableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty">
+                    ${
+                        companies.length === 0
+                        ? "No LPG companies added yet."
+                        : "No companies found."
+                    }
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+    companyTableBody.innerHTML =
+    "";
+
+    filtered.forEach(
+        company => {
+
+            const tr =
+            document.createElement("tr");
+
+            const status =
+            company.status === "Inactive"
+            ? "Inactive"
+            : "Active";
+
+            const statusClass =
+            status === "Active"
+            ? "active"
+            : "inactive";
+
+            let logoHtml = `
+                <div class="company-logo-placeholder">
+                    🏢
+                </div>
+            `;
+
+            if(
+                company.logo_url
+            ){
+
+                logoHtml = `
+                    <img
+                        src="${escapeHtml(company.logo_url)}"
+                        class="company-logo"
+                        alt="Company logo"
+                    >
+                `;
+
+            }
+
+            tr.innerHTML = `
+
+                <td>
+
+                    <div class="company-cell">
+
+                        ${logoHtml}
+
+                        <div>
+
+                            <div class="company-name">
+                                ${escapeHtml(
+                                    company.company_name ||
+                                    "Unnamed Company"
+                                )}
+                            </div>
+
+                            <div class="company-code">
+                                Code:
+                                ${escapeHtml(
+                                    company.company_code ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+
+                <td>
+                    <div class="small-value">
+                        ${escapeHtml(
+                            company.owner_name ||
+                            "—"
+                        )}
+                    </div>
+                </td>
+
+
+                <td>
+                    ${escapeHtml(
+                        company.mobile_number ||
+                        "—"
+                    )}
+                </td>
+
+
+                <td>
+                    ${escapeHtml(
+                        company.city ||
+                        "—"
+                    )}
+                </td>
+
+
+                <td>
+                    ${escapeHtml(
+                        company.district ||
+                        "—"
+                    )}
+                </td>
+
+
+                <td>
+                    ${escapeHtml(
+                        company.state ||
+                        "—"
+                    )}
+                </td>
+
+
+                <td>
+                    ${formatDate(
+                        company.joining_date
+                    )}
+                </td>
+
+
+                <td>
+
+                    <span
+                        class="status ${statusClass}"
+                    >
+                        ${status}
+                    </span>
+
+                </td>
+
+
+                <td>
+
+                    <div class="action-wrap">
+
+                        <button
+                            type="button"
+                            class="action-btn view-btn"
+                            title="View Complete Details"
+                            data-action="view"
+                            data-id="${company.id}"
+                        >
+                            👁️
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-btn edit-btn"
+                            title="Edit"
+                            data-action="edit"
+                            data-id="${company.id}"
+                        >
+                            ✏️
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-btn delete-btn"
+                            title="Delete"
+                            data-action="delete"
+                            data-id="${company.id}"
+                        >
+                            🗑️
+                        </button>
+
+                    </div>
+
+                </td>
+
+            `;
+
+            companyTableBody.appendChild(
+                tr
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   STATS
+===================================================== */
+
+function updateStats(){
+
+    const total =
+    companies.length;
+
+    const active =
+    companies.filter(
+        company =>
+        company.status !== "Inactive"
+    ).length;
+
+    const inactive =
+    companies.filter(
+        company =>
+        company.status === "Inactive"
+    ).length;
+
+    totalCompanies.textContent =
+    total;
+
+    activeCompanies.textContent =
+    active;
+
+    inactiveCompanies.textContent =
+    inactive;
+
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+searchInput.addEventListener(
+    "input",
+    renderCompanies
+);
+
+
+/* =====================================================
+   DOCUMENT UI
+===================================================== */
+
+const documentConfig = {
+
+    aadharFront:{
+
+        preview:
+        document.getElementById(
+            "aadharFrontPreview"
+        ),
+
+        placeholder:
+        document.getElementById(
+            "aadharFrontPlaceholder"
+        ),
+
+        remove:
+        document.getElementById(
+            "removeAadharFront"
+        )
+
+    },
+
+    aadharBack:{
+
+        preview:
+        document.getElementById(
+            "aadharBackPreview"
+        ),
+
+        placeholder:
+        document.getElementById(
+            "aadharBackPlaceholder"
+        ),
+
+        remove:
+        document.getElementById(
+            "removeAadharBack"
+        )
+
+    },
+
+    panCard:{
+
+        preview:
+        document.getElementById(
+            "panCardPreview"
+        ),
+
+        placeholder:
+        document.getElementById(
+            "panCardPlaceholder"
+        ),
+
+        remove:
+        document.getElementById(
+            "removePanCard"
+        )
+
+    }
+
+};
+
+
+function setDocumentPreview(
+    type,
+    source
+){
+
+    const config =
+    documentConfig[type];
+
+    if(!config){
+        return;
+    }
+
+    if(source){
+
+        config.preview.src =
+        source;
+
+        config.preview.classList.add(
+            "show"
+        );
+
+        config.placeholder.style.display =
+        "none";
+
+        config.remove.classList.add(
+            "show"
+        );
+
+    }
+    else{
+
+        config.preview.src =
+        "";
+
+        config.preview.classList.remove(
+            "show"
+        );
+
+        config.placeholder.style.display =
+        "flex";
+
+        config.remove.classList.remove(
+            "show"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   RESET DOCUMENTS
+===================================================== */
+
+function resetDocuments(){
+
+    currentDocuments = {
+
+        aadharFront:null,
+        aadharBack:null,
+        panCard:null
+
+    };
+
+    documentPaths = {
+
+        aadharFront:null,
+        aadharBack:null,
+        panCard:null
+
+    };
+
+    Object.keys(
+        documentConfig
+    ).forEach(
+        type =>
+        setDocumentPreview(
+            type,
+            null
+        )
+    );
+
+}
+
+
+/* =====================================================
+   GALLERY BUTTONS
+===================================================== */
+
+document
+.querySelectorAll("[data-doc]")
+.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            function(){
+
+                currentDocumentTarget =
+                this.dataset.doc;
+
+                hiddenDocumentInput.value =
+                "";
+
+                hiddenDocumentInput.click();
+
+            }
+        );
+
+    }
+);
+
+
+/* =====================================================
+   GALLERY FILE
+===================================================== */
+
+hiddenDocumentInput.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files &&
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(
+            !file.type.startsWith(
+                "image/"
+            )
+        ){
+
+            showToast(
+                "Please select an image.",
+                true
+            );
+
+            return;
+
+        }
+
+        if(
+            file.size >
+            8 * 1024 * 1024
+        ){
+
+            showToast(
+                "Document image must be smaller than 8 MB.",
+                true
+            );
+
+            return;
+
+        }
+
+        const target =
+        currentDocumentTarget;
+
+        if(!target){
+            return;
+        }
+
+        currentDocuments[target] =
+        file;
+
+        documentPaths[target] =
+        null;
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            setDocumentPreview(
+                target,
+                event.target.result
+            );
+
+        };
+
+        reader.readAsDataURL(
+            file
+        );
+
+    }
+);
+
+
+/* =====================================================
+   REMOVE DOCUMENT
+===================================================== */
+
+Object.keys(
+    documentConfig
+).forEach(
+    type => {
+
+        documentConfig[type]
+        .remove
+        .addEventListener(
+            "click",
+            function(){
+
+                currentDocuments[type] =
+                null;
+
+                documentPaths[type] =
+                null;
+
+                setDocumentPreview(
+                    type,
+                    null
+                );
+
+            }
+        );
+
+    }
+);
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+document
+.querySelectorAll("[data-camera]")
+.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            async function(){
+
+                currentDocumentTarget =
+                this.dataset.camera;
+
+                currentCameraFacing =
+                "environment";
+
+                await openCamera();
+
+            }
+        );
+
+    }
+);
+
+
+async function openCamera(){
+
+    cameraModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+    cameraStatus.textContent =
+    "Starting camera...";
+
+    try{
+
+        await startCamera();
+
+    }
+    catch(error){
+
+        console.error(
+            error
+        );
+
+        cameraStatus.textContent =
+        "Camera permission denied or camera unavailable.";
+
+        showToast(
+            "Camera could not be opened.",
+            true
+        );
+
+    }
+
+}
+
+
+async function startCamera(){
+
+    stopCamera();
+
+    const constraints = {
+
+        video:{
+            facingMode:{
+                ideal:
+                currentCameraFacing
+            },
+
+            width:{
+                ideal:1920
+            },
+
+            height:{
+                ideal:1080
+            }
+
+        },
+
+        audio:false
+
+    };
+
+    cameraStream =
+    await navigator
+    .mediaDevices
+    .getUserMedia(
+        constraints
+    );
+
+    cameraVideo.srcObject =
+    cameraStream;
+
+    cameraStatus.textContent =
+    currentCameraFacing === "environment"
+    ? "Back camera selected"
+    : "Front camera selected";
+
+}
+
+
+function stopCamera(){
+
+    if(cameraStream){
+
+        cameraStream
+        .getTracks()
+        .forEach(
+            track =>
+            track.stop()
+        );
+
+        cameraStream =
+        null;
+
+    }
+
+    cameraVideo.srcObject =
+    null;
+
+}
+
+
+switchCameraBtn.addEventListener(
+    "click",
+    async function(){
+
+        currentCameraFacing =
+        currentCameraFacing === "environment"
+        ? "user"
+        : "environment";
+
+        try{
+
+            await startCamera();
+
+        }
+        catch(error){
+
+            showToast(
+                "Unable to switch camera.",
+                true
+            );
+
+        }
+
+    }
+);
+
+
+captureCameraBtn.addEventListener(
+    "click",
+    function(){
+
+        if(!cameraStream){
+
+            showToast(
+                "Camera is not ready.",
+                true
+            );
+
+            return;
+
+        }
+
+        const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+        const videoWidth =
+        cameraVideo.videoWidth;
+
+        const videoHeight =
+        cameraVideo.videoHeight;
+
+        if(
+            !videoWidth ||
+            !videoHeight
+        ){
+
+            showToast(
+                "Camera image is not ready.",
+                true
+            );
+
+            return;
+
+        }
+
+        canvas.width =
+        videoWidth;
+
+        canvas.height =
+        videoHeight;
+
+        const context =
+        canvas.getContext(
+            "2d"
+        );
+
+        context.drawImage(
+            cameraVideo,
+            0,
+            0,
+            videoWidth,
+            videoHeight
+        );
+
+        canvas.toBlob(
+            function(blob){
+
+                if(!blob){
+
+                    showToast(
+                        "Unable to capture photo.",
+                        true
+                    );
+
+                    return;
+
+                }
+
+                const file =
+                new File(
+                    [blob],
+                    currentDocumentTarget +
+                    "-" +
+                    Date.now() +
+                    ".jpg",
+                    {
+                        type:"image/jpeg"
+                    }
+                );
+
+                currentDocuments[
+                    currentDocumentTarget
+                ] =
+                file;
+
+                documentPaths[
+                    currentDocumentTarget
+                ] =
+                null;
+
+                const previewUrl =
+                URL.createObjectURL(
+                    file
+                );
+
+                setDocumentPreview(
+                    currentDocumentTarget,
+                    previewUrl
+                );
+
+                closeCamera();
+
+                showToast(
+                    "Document photo captured."
+                );
+
+            },
+            "image/jpeg",
+            .88
+        );
+
+    }
+);
+
+
+function closeCamera(){
+
+    stopCamera();
+
+    cameraModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+}
+
+
+closeCameraBtn.addEventListener(
+    "click",
+    closeCamera
+);
+
+cancelCameraBtn.addEventListener(
+    "click",
+    closeCamera
+);
+
+
+/* =====================================================
+   LOGO PREVIEW
+===================================================== */
+
+logoFile.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files &&
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(
+            !file.type.startsWith(
+                "image/"
+            )
+        ){
+
+            showToast(
+                "Please select an image file.",
+                true
+            );
+
+            this.value =
+            "";
+
+            return;
+
+        }
+
+        if(
+            file.size >
+            2 * 1024 * 1024
+        ){
+
+            showToast(
+                "Logo must be smaller than 2 MB.",
+                true
+            );
+
+            this.value =
+            "";
+
+            return;
+
+        }
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            currentLogoData =
+            event.target.result;
+
+            logoPreview.src =
+            currentLogoData;
+
+            logoPreview.classList.add(
+                "show"
+            );
+
+        };
+
+        reader.readAsDataURL(
+            file
+        );
+
+    }
+);
+
+
+/* =====================================================
+   OPEN ADD
+===================================================== */
+
+function openAddModal(){
+
+    editingCompanyId =
+    null;
+
+    currentLogoData =
+    "";
+
+    companyId.value =
+    "";
+
+    companyName.value =
+    "";
+
+    companyCode.value =
+    "";
+
+    mobileNumber.value =
+    "";
+
+    companyEmail.value =
+    "";
+
+    companyCity.value =
+    "";
+
+    companyDistrict.value =
+    "";
+
+    companyState.value =
+    "";
+
+    ownerName.value =
+    "";
+
+    fullAddress.value =
+    "";
+
+    joiningDate.value =
+    "";
+
+    companyStatus.value =
+    "Active";
+
+    logoFile.value =
+    "";
+
+    logoPreview.src =
+    "";
+
+    logoPreview.classList.remove(
+        "show"
+    );
+
+    resetDocuments();
+
+    modalTitle.textContent =
+    "Add LPG Company";
+
+    saveCompanyBtn.textContent =
+    "Save Company";
+
+    companyModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+    setTimeout(
+        () =>
+        companyName.focus(),
+        100
+    );
+
+}
+
+
+/* =====================================================
+   OPEN EDIT
+===================================================== */
+
+function openEditModal(id){
+
+    const company =
+    companies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!company){
+
+        showToast(
+            "Company not found.",
+            true
+        );
+
+        return;
+
+    }
+
+    editingCompanyId =
+    company.id;
+
+    currentLogoData =
+    company.logo_url || "";
+
+    companyId.value =
+    company.id || "";
+
+    companyName.value =
+    company.company_name || "";
+
+    companyCode.value =
+    company.company_code || "";
+
+    mobileNumber.value =
+    company.mobile_number || "";
+
+    companyEmail.value =
+    company.email || "";
+
+    companyCity.value =
+    company.city || "";
+
+    companyDistrict.value =
+    company.district || "";
+
+    companyState.value =
+    company.state || "";
+
+    ownerName.value =
+    company.owner_name || "";
+
+    fullAddress.value =
+    company.full_address || "";
+
+    joiningDate.value =
+    company.joining_date || "";
+
+    companyStatus.value =
+    company.status === "Inactive"
+    ? "Inactive"
+    : "Active";
+
+    logoFile.value =
+    "";
+
+    if(company.logo_url){
+
+        logoPreview.src =
+        company.logo_url;
+
+        logoPreview.classList.add(
+            "show"
+        );
+
+    }
+    else{
+
+        logoPreview.src =
+        "";
+
+        logoPreview.classList.remove(
+            "show"
+        );
+
+    }
+
+    resetDocuments();
+
+    documentPaths.aadharFront =
+    company.aadhar_front_url || null;
+
+    documentPaths.aadharBack =
+    company.aadhar_back_url || null;
+
+    documentPaths.panCard =
+    company.pan_card_url || null;
+
+    /*
+       Load private document previews
+       using temporary signed URLs.
+    */
+
+    loadEditDocumentPreview(
+        "aadharFront",
+        documentPaths.aadharFront
+    );
+
+    loadEditDocumentPreview(
+        "aadharBack",
+        documentPaths.aadharBack
+    );
+
+    loadEditDocumentPreview(
+        "panCard",
+        documentPaths.panCard
+    );
+
+    modalTitle.textContent =
+    "Edit LPG Company";
+
+    saveCompanyBtn.textContent =
+    "Update Company";
+
+    companyModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+}
+
+
+async function loadEditDocumentPreview(
+    type,
+    path
+){
+
+    if(!path){
+        return;
+    }
+
+    const url =
+    await getDocumentUrl(
+        path
+    );
+
+    if(url){
+
+        setDocumentPreview(
+            type,
+            url
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   CLOSE COMPANY MODAL
+===================================================== */
+
+function closeCompanyModal(){
+
+    companyModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+    companyForm.reset();
+
+    editingCompanyId =
+    null;
+
+    currentLogoData =
+    "";
+
+    resetDocuments();
+
+    logoPreview.src =
+    "";
+
+    logoPreview.classList.remove(
+        "show"
+    );
+
+}
+
+
+addCompanyBtn.addEventListener(
+    "click",
+    openAddModal
+);
+
+closeModalBtn.addEventListener(
+    "click",
+    closeCompanyModal
+);
+
+cancelModalBtn.addEventListener(
+    "click",
+    closeCompanyModal
+);
+
+
+companyModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            companyModal
+        ){
+
+            closeCompanyModal();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   UPLOAD FILE
+===================================================== */
+
+async function uploadFile(
+    file,
+    companyIdValue,
+    documentType
+){
+
+    if(!file){
+        return null;
+    }
+
+    const extension =
+    file.name
+    .split(".")
+    .pop()
+    .toLowerCase();
+
+    const safeExtension =
+    extension === "png"
+    ? "png"
+    : "jpg";
+
+    const path =
+    companyIdValue +
+    "/" +
+    documentType +
+    "-" +
+    Date.now() +
+    "." +
+    safeExtension;
+
+    const {
+        error
+    } =
+    await supabaseClient
+    .storage
+    .from(STORAGE_BUCKET)
+    .upload(
+        path,
+        file,
+        {
+            upsert:false,
+            contentType:
+            file.type || "image/jpeg"
+        }
+    );
+
+    if(error){
+
+        console.error(
+            "Upload error:",
+            error
+        );
+
+        throw error;
+
+    }
+
+    return path;
+
+}
+
+
+/* =====================================================
+   SAVE / UPDATE
+===================================================== */
+
+companyForm.addEventListener(
+    "submit",
+    async function(event){
+
+        event.preventDefault();
+
+        const name =
+        companyName.value.trim();
+
+        if(!name){
+
+            showToast(
+                "Company name is required.",
+                true
+            );
+
+            companyName.focus();
+
+            return;
+
+        }
+
+        saveCompanyBtn.disabled =
+        true;
+
+        saveCompanyBtn.textContent =
+        editingCompanyId
+        ? "Updating..."
+        : "Saving...";
+
+        try{
+
+            let recordId =
+            editingCompanyId;
+
+            /*
+               ADD:
+               create row first so we get UUID.
+            */
+
+            if(!editingCompanyId){
+
+                const insertPayload = {
+
+                    company_name:name,
+
+                    company_code:
+                    companyCode.value.trim() ||
+                    null,
+
+                    mobile_number:
+                    mobileNumber.value.trim() ||
+                    null,
+
+                    email:
+                    companyEmail.value.trim() ||
+                    null,
+
+                    city:
+                    companyCity.value.trim() ||
+                    null,
+
+                    district:
+                    companyDistrict.value.trim() ||
+                    null,
+
+                    state:
+                    companyState.value.trim() ||
+                    null,
+
+                    owner_name:
+                    ownerName.value.trim() ||
+                    null,
+
+                    full_address:
+                    fullAddress.value.trim() ||
+                    null,
+
+                    joining_date:
+                    joiningDate.value ||
+                    null,
+
+                    status:
+                    companyStatus.value,
+
+                    logo_url:
+                    null,
+
+                    aadhar_front_url:
+                    null,
+
+                    aadhar_back_url:
+                    null,
+
+                    pan_card_url:
+                    null
+
+                };
+
+                const {
+                    data,
+                    error
+                } =
+                await supabaseClient
+                .from("lpg_companies")
+                .insert(
+                    insertPayload
+                )
+                .select()
+                .single();
+
+                if(error){
+                    throw error;
+                }
+
+                recordId =
+                data.id;
+
+            }
+
+
+            /*
+               Upload logo.
+               Existing implementation keeps
+               the logo as data URL if selected.
+            */
+
+            let logoValue =
+            editingCompanyId
+            ? currentLogoData || null
+            : null;
+
+            if(
+                logoFile.files &&
+                logoFile.files[0]
+            ){
+
+                const logoPath =
+                await uploadFile(
+                    logoFile.files[0],
+                    recordId,
+                    "logo"
+                );
+
+                logoValue =
+                logoPath;
+
+            }
+
+
+            /*
+               Documents.
+            */
+
+            let aadharFrontPath =
+            editingCompanyId
+            ? documentPaths.aadharFront
+            : null;
+
+            let aadharBackPath =
+            editingCompanyId
+            ? documentPaths.aadharBack
+            : null;
+
+            let panCardPath =
+            editingCompanyId
+            ? documentPaths.panCard
+            : null;
+
+
+            if(
+                currentDocuments.aadharFront
+            ){
+
+                aadharFrontPath =
+                await uploadFile(
+                    currentDocuments.aadharFront,
+                    recordId,
+                    "aadhar-front"
+                );
+
+            }
+
+
+            if(
+                currentDocuments.aadharBack
+            ){
+
+                aadharBackPath =
+                await uploadFile(
+                    currentDocuments.aadharBack,
+                    recordId,
+                    "aadhar-back"
+                );
+
+            }
+
+
+            if(
+                currentDocuments.panCard
+            ){
+
+                panCardPath =
+                await uploadFile(
+                    currentDocuments.panCard,
+                    recordId,
+                    "pan-card"
+                );
+
+            }
+
+
+            const finalPayload = {
+
+                company_name:name,
+
+                company_code:
+                companyCode.value.trim() ||
+                null,
+
+                mobile_number:
+                mobileNumber.value.trim() ||
+                null,
+
+                email:
+                companyEmail.value.trim() ||
+                null,
+
+                city:
+                companyCity.value.trim() ||
+                null,
+
+                district:
+                companyDistrict.value.trim() ||
+                null,
+
+                state:
+                companyState.value.trim() ||
+                null,
+
+                owner_name:
+                ownerName.value.trim() ||
+                null,
+
+                full_address:
+                fullAddress.value.trim() ||
+                null,
+
+                joining_date:
+                joiningDate.value ||
+                null,
+
+                status:
+                companyStatus.value,
+
+                logo_url:
+                logoValue,
+
+                aadhar_front_url:
+                aadharFrontPath,
+
+                aadhar_back_url:
+                aadharBackPath,
+
+                pan_card_url:
+                panCardPath
+
+            };
+
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .from("lpg_companies")
+            .update(
+                finalPayload
+            )
+            .eq(
+                "id",
+                recordId
+            );
+
+            if(error){
+
+                /*
+                   If this is an INSERT, row already exists.
+                */
+
+                throw error;
+
+            }
+
+
+            closeCompanyModal();
+
+            showToast(
+                editingCompanyId
+                ? "Company updated successfully."
+                : "Company added successfully."
+            );
+
+            await loadCompanies();
+
+        }
+        catch(error){
+
+            console.error(
+                "Company save error:",
+                error
+            );
+
+            if(
+                error.code === "23505"
+            ){
+
+                showToast(
+                    "This company code already exists.",
+                    true
+                );
+
+            }
+            else{
+
+                showToast(
+                    error.message ||
+                    "Unable to save company.",
+                    true
+                );
+
+            }
+
+        }
+        finally{
+
+            saveCompanyBtn.disabled =
+            false;
+
+            saveCompanyBtn.textContent =
+            editingCompanyId
+            ? "Update Company"
+            : "Save Company";
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   TABLE ACTIONS
+===================================================== */
+
+companyTableBody.addEventListener(
+    "click",
+    function(event){
+
+        const button =
+        event.target.closest(
+            "[data-action]"
+        );
+
+        if(!button){
+            return;
+        }
+
+        const action =
+        button.dataset.action;
+
+        const id =
+        button.dataset.id;
+
+        if(action === "view"){
+
+            openDetailsModal(
+                id
+            );
+
+        }
+
+        if(action === "edit"){
+
+            openEditModal(
+                id
+            );
+
+        }
+
+        if(action === "delete"){
+
+            openDeleteModal(
+                id
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   DETAILS MODAL
+===================================================== */
+
+async function openDetailsModal(id){
+
+    const company =
+    companies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!company){
+
+        showToast(
+            "Company not found.",
+            true
+        );
+
+        return;
+
+    }
+
+    detailsModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+    document.getElementById(
+        "detailsBody"
+    ).innerHTML = `
+
+        <div class="empty">
+            Loading complete company details...
+        </div>
+
+    `;
+
+    let logoUrl =
+    await getDocumentUrl(
+        company.logo_url
+    );
+
+    let aadhaarFrontUrl =
+    await getDocumentUrl(
+        company.aadhar_front_url
+    );
+
+    let aadhaarBackUrl =
+    await getDocumentUrl(
+        company.aadhar_back_url
+    );
+
+    let panUrl =
+    await getDocumentUrl(
+        company.pan_card_url
+    );
+
+
+    const body =
+    document.getElementById(
+        "detailsBody"
+    );
+
+
+    body.innerHTML = `
+
+        <div class="company-detail-head">
+
+            ${
+                logoUrl
+                ?
+                `
+                <img
+                    src="${escapeHtml(logoUrl)}"
+                    class="detail-company-logo"
+                    alt="Company logo"
+                >
+                `
+                :
+                `
+                <div
+                    class="detail-company-logo"
+                    style="
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:30px;
+                    "
+                >
+                    🏢
+                </div>
+                `
+            }
+
+            <div>
+
+                <div class="detail-company-name">
+                    ${escapeHtml(
+                        company.company_name ||
+                        "Unnamed Company"
+                    )}
+                </div>
+
+                <div class="detail-company-code">
+                    Company Code:
+                    ${escapeHtml(
+                        company.company_code ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="details-section-title">
+            Company / Owner Information
+        </div>
+
+
+        <div class="details-grid">
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    Owner Name
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.owner_name ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    Mobile Number
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.mobile_number ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    Email
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.email ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    Joining Date
+                </div>
+
+                <div class="detail-value">
+                    ${formatDate(
+                        company.joining_date
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    City
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.city ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    District
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.district ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    State
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.state ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    Status
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.status ||
+                        "Active"
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="detail-item detail-full">
+
+                <div class="detail-label">
+                    Full Address
+                </div>
+
+                <div class="detail-value">
+                    ${escapeHtml(
+                        company.full_address ||
+                        "—"
+                    )}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="details-section-title">
+            Documents
+        </div>
+
+
+        <div class="details-documents">
+
+
+            <!-- AADHAAR FRONT -->
+
+            <div class="detail-document">
+
+                <div class="detail-document-title">
+                    Aadhaar Card - Front
+                </div>
+
+                ${
+                    aadhaarFrontUrl
+                    ?
+                    `
+                    <img
+                        src="${escapeHtml(aadhaarFrontUrl)}"
+                        class="detail-document-image"
+                        alt="Aadhaar front"
+                    >
+
+                    <button
+                        type="button"
+                        class="view-document-btn"
+                        data-view-image="${escapeHtml(aadhaarFrontUrl)}"
+                    >
+                        👁 View Full Document
+                    </button>
+                    `
+                    :
+                    `
+                    <div class="detail-document-empty">
+                        <span>🪪</span>
+                        Not uploaded
+                    </div>
+                    `
+                }
+
+            </div>
+
+
+            <!-- AADHAAR BACK -->
+
+            <div class="detail-document">
+
+                <div class="detail-document-title">
+                    Aadhaar Card - Back
+                </div>
+
+                ${
+                    aadhaarBackUrl
+                    ?
+                    `
+                    <img
+                        src="${escapeHtml(aadhaarBackUrl)}"
+                        class="detail-document-image"
+                        alt="Aadhaar back"
+                    >
+
+                    <button
+                        type="button"
+                        class="view-document-btn"
+                        data-view-image="${escapeHtml(aadhaarBackUrl)}"
+                    >
+                        👁 View Full Document
+                    </button>
+                    `
+                    :
+                    `
+                    <div class="detail-document-empty">
+                        <span>🪪</span>
+                        Not uploaded
+                    </div>
+                    `
+                }
+
+            </div>
+
+
+            <!-- PAN -->
+
+            <div class="detail-document">
+
+                <div class="detail-document-title">
+                    PAN Card
+                </div>
+
+                ${
+                    panUrl
+                    ?
+                    `
+                    <img
+                        src="${escapeHtml(panUrl)}"
+                        class="detail-document-image"
+                        alt="PAN card"
+                    >
+
+                    <button
+                        type="button"
+                        class="view-document-btn"
+                        data-view-image="${escapeHtml(panUrl)}"
+                    >
+                        👁 View Full Document
+                    </button>
+                    `
+                    :
+                    `
+                    <div class="detail-document-empty">
+                        <span>💳</span>
+                        Not uploaded
+                    </div>
+                    `
+                }
+
+            </div>
+
+
+        </div>
+
+    `;
+
+
+    body
+    .querySelectorAll(
+        "[data-view-image]"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                function(){
+
+                    openImageViewer(
+                        this.dataset.viewImage
+                    );
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+closeDetailsBtn.addEventListener(
+    "click",
+    function(){
+
+        detailsModal.classList.remove(
+            "show"
+        );
+
+        document.body.style.overflow =
+        "";
+
+    }
+);
+
+
+detailsModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            detailsModal
+        ){
+
+            detailsModal.classList.remove(
+                "show"
+            );
+
+            document.body.style.overflow =
+            "";
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   IMAGE VIEWER
+===================================================== */
+
+function openImageViewer(url){
+
+    if(!url){
+        return;
+    }
+
+    viewerImage.src =
+    url;
+
+    imageViewer.classList.add(
+        "show"
+    );
+
+}
+
+function closeImageViewer(){
+
+    imageViewer.classList.remove(
+        "show"
+    );
+
+    viewerImage.src =
+    "";
+
+}
+
+viewerClose.addEventListener(
+    "click",
+    closeImageViewer
+);
+
+imageViewer.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            imageViewer
+        ){
+
+            closeImageViewer();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+function openDeleteModal(id){
+
+    const company =
+    companies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!company){
+
+        showToast(
+            "Company not found.",
+            true
+        );
+
+        return;
+
+    }
+
+    deletingCompanyId =
+    company.id;
+
+    deleteCompanyName.textContent =
+    company.company_name ||
+    "this company";
+
+    deleteModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+}
+
+
+function closeDeleteModal(){
+
+    deleteModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+    deletingCompanyId =
+    null;
+
+}
+
+
+deleteCancel.addEventListener(
+    "click",
+    closeDeleteModal
+);
+
+
+deleteModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            deleteModal
+        ){
+
+            closeDeleteModal();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   CONFIRM DELETE
+===================================================== */
+
+deleteConfirm.addEventListener(
+    "click",
+    async function(){
+
+        if(!deletingCompanyId){
+            return;
+        }
+
+        deleteConfirm.disabled =
+        true;
+
+        deleteConfirm.textContent =
+        "Deleting...";
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .from("lpg_companies")
+            .delete()
+            .eq(
+                "id",
+                deletingCompanyId
+            );
+
+            if(error){
+                throw error;
+            }
+
+            closeDeleteModal();
+
+            showToast(
+                "Company deleted successfully."
+            );
+
+            await loadCompanies();
+
+        }
+        catch(error){
+
+            console.error(
+                "Delete error:",
+                error
+            );
+
+            showToast(
+                error.message ||
+                "Unable to delete company.",
+                true
+            );
+
+        }
+        finally{
+
+            deleteConfirm.disabled =
+            false;
+
+            deleteConfirm.textContent =
+            "Delete";
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+const logoutBtn =
+document.getElementById(
+    "logoutBtn"
+);
+
+logoutBtn.addEventListener(
+    "click",
+    async function(){
+
+        const confirmLogout =
+        confirm(
+            "Kya aap EGC Owner Panel se logout karna chahte hain?"
+        );
+
+        if(!confirmLogout){
+            return;
+        }
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .auth
+            .signOut();
+
+            if(error){
+
+                showToast(
+                    "Logout failed.",
+                    true
+                );
+
+                return;
+
+            }
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            showToast(
+                "Logout failed.",
+                true
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   ESC KEY
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key !==
+            "Escape"
+        ){
+            return;
+        }
+
+        if(
+            companyModal.classList.contains(
+                "show"
+            )
+        ){
+            closeCompanyModal();
+        }
+
+        if(
+            detailsModal.classList.contains(
+                "show"
+            )
+        ){
+
+            detailsModal.classList.remove(
+                "show"
+            );
+
+            document.body.style.overflow =
+            "";
+
+        }
+
+        if(
+            deleteModal.classList.contains(
+                "show"
+            )
+        ){
+            closeDeleteModal();
+        }
+
+        if(
+            cameraModal.classList.contains(
+                "show"
+            )
+        ){
+            closeCamera();
+        }
+
+        if(
+            imageViewer.classList.contains(
+                "show"
+            )
+        ){
+            closeImageViewer();
+        }
+
+    }
+);
+
+
+/* =====================================================
+   INITIALIZE
+===================================================== */
+
+loadCompanies();
+
+</script>
+
+</body>
+</html>

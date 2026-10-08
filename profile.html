@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Profile</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:#eef7fc;
+  color:#003e81;
+  min-height:100vh;
+}
+
+button,
+input{
+  font-family:Arial,sans-serif;
+}
+
+button{
+  cursor:pointer;
+}
+
+.topbar{
+  height:72px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 35px;
+  box-shadow:0 3px 15px rgba(0,62,129,.08);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:115px;
+  height:48px;
+  object-fit:contain;
+}
+
+.brand-text{
+  font-size:13px;
+  color:#70859a;
+}
+
+.profile-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.profile-photo-mini{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#dfeef8;
+  border:2px solid #e1edf5;
+}
+
+.profile-name-mini{
+  font-weight:800;
+  color:#003e81;
+  font-size:14px;
+}
+
+.profile-email-mini{
+  color:#8295a6;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 72px);
+}
+
+.sidebar{
+  width:235px;
+  background:#fff;
+  border-right:1px solid #e1edf5;
+  padding:25px 14px;
+  position:fixed;
+  left:0;
+  top:72px;
+  bottom:0;
+  z-index:40;
+}
+
+.nav-title{
+  font-size:11px;
+  color:#94a5b5;
+  font-weight:800;
+  padding:8px 13px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+.nav-btn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#58738d;
+  padding:13px 14px;
+  border-radius:11px;
+  text-align:left;
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+  background:#eaf5fc;
+  color:#0754a9;
+}
+
+.logout{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:20px;
+  color:#d33b3b;
+}
+
+.main{
+  margin-left:235px;
+  width:calc(100% - 235px);
+  padding:30px;
+}
+
+.page-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.page-head h1{
+  font-size:28px;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.page-head p{
+  color:#71869a;
+  font-size:14px;
+}
+
+.back-btn{
+  border:0;
+  background:#fff;
+  color:#0754a9;
+  padding:12px 17px;
+  border-radius:12px;
+  font-weight:800;
+  box-shadow:0 5px 18px rgba(0,62,129,.08);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1.25fr;
+  gap:20px;
+  max-width:1100px;
+}
+
+.box{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:20px;
+  padding:25px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+  margin-bottom:20px;
+}
+
+.box-title{
+  font-size:18px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:20px;
+}
+
+.profile-center{
+  text-align:center;
+}
+
+.avatar-wrap{
+  position:relative;
+  width:125px;
+  height:125px;
+  margin:5px auto 15px;
+}
+
+.avatar{
+  width:125px;
+  height:125px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#eaf5fc;
+  border:5px solid #fff;
+  box-shadow:0 8px 25px rgba(0,62,129,.13);
+}
+
+.camera-btn{
+  position:absolute;
+  right:2px;
+  bottom:2px;
+  width:39px;
+  height:39px;
+  border-radius:50%;
+  border:3px solid #fff;
+  background:#0754a9;
+  color:#fff;
+  font-size:17px;
+  cursor:pointer;
+  box-shadow:0 5px 12px rgba(0,62,129,.2);
+}
+
+.profile-name-large{
+  font-size:22px;
+  font-weight:900;
+  color:#003e81;
+}
+
+.profile-email-large{
+  color:#7c8e9d;
+  font-size:13px;
+  margin-top:5px;
+}
+
+.photo-buttons{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:18px;
+}
+
+.photo-btn{
+  border:1px solid #d8e6ef;
+  background:#fff;
+  color:#0754a9;
+  padding:10px 14px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.photo-btn.primary{
+  background:#eaf5fc;
+  border-color:#cfe6f5;
+}
+
+.info-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:17px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+
+.field.full{
+  grid-column:1/-1;
+}
+
+.field label{
+  color:#71869a;
+  font-size:12px;
+  font-weight:800;
+}
+
+.field input{
+  width:100%;
+  height:47px;
+  border:1px solid #d9e6ee;
+  border-radius:11px;
+  padding:0 13px;
+  outline:none;
+  color:#164f82;
+  background:#fafdff;
+  font-size:14px;
+}
+
+.field input:focus{
+  border-color:#63aee3;
+  box-shadow:0 0 0 3px rgba(7,84,169,.08);
+}
+
+.field input:disabled{
+  background:#f2f6f9;
+  color:#7a8d9d;
+  cursor:not-allowed;
+}
+
+.save-btn{
+  width:100%;
+  height:50px;
+  border:0;
+  border-radius:12px;
+  background:#0754a9;
+  color:#fff;
+  font-size:14px;
+  font-weight:900;
+  margin-top:20px;
+}
+
+.save-btn:hover{
+  background:#00418b;
+}
+
+.save-btn:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+}
+
+.info-row{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:14px 0;
+  border-bottom:1px solid #edf3f7;
+}
+
+.info-row:last-child{
+  border-bottom:0;
+}
+
+.info-label{
+  color:#7b8fa1;
+  font-size:13px;
+}
+
+.info-value{
+  color:#164f82;
+  font-size:13px;
+  font-weight:800;
+  text-align:right;
+  word-break:break-all;
+}
+
+.security-box{
+  background:#f5fbff;
+  border:1px solid #dceef9;
+  border-radius:14px;
+  padding:17px;
+  margin-top:20px;
+}
+
+.security-title{
+  color:#0754a9;
+  font-size:14px;
+  font-weight:900;
+  margin-bottom:6px;
+}
+
+.security-text{
+  color:#6f8394;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.change-mpin-btn{
+  width:100%;
+  height:46px;
+  margin-top:13px;
+  border:1px solid #cfe2ef;
+  background:#fff;
+  color:#0754a9;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.message{
+  display:none;
+  padding:13px 15px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.message.success{
+  display:block;
+  background:#e5f8ef;
+  border:1px solid #c8ebda;
+  color:#087848;
+}
+
+.message.error{
+  display:block;
+  background:#fff0f0;
+  border:1px solid #ffd0d0;
+  color:#c62828;
+}
+
+.mobile-nav{
+  display:none;
+}
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  z-index:10001;
+  background:#003e81;
+  color:#fff;
+  padding:13px 18px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(10px);
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* LOGOUT */
+
+.logout-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,20,40,.55);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.logout-overlay.show{
+  display:flex;
+}
+
+.logout-popup{
+  width:100%;
+  max-width:390px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 25px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  text-align:center;
+}
+
+.logout-icon{
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#fff0f0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 16px;
+  font-size:28px;
+}
+
+.logout-title{
+  font-size:21px;
+  font-weight:900;
+  color:#173f62;
+  margin-bottom:10px;
+}
+
+.logout-subtitle{
+  font-size:13px;
+  color:#7c8d9c;
+  line-height:1.5;
+  margin-bottom:23px;
+}
+
+.logout-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn{
+  height:48px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.logout-cancel-btn{
+  background:#fff;
+  color:#31526d;
+  border:1px solid #d7e2ea;
+}
+
+.logout-confirm-btn{
+  background:#e53935;
+  color:#fff;
+  border:1px solid #e53935;
+}
+
+/* CAMERA MODAL */
+
+.camera-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  background:rgba(0,20,40,.78);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.camera-card{
+  width:100%;
+  max-width:430px;
+  background:#fff;
+  border-radius:22px;
+  padding:20px;
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+
+.camera-title{
+  font-size:19px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:15px;
+}
+
+.camera-video{
+  width:100%;
+  max-height:55vh;
+  object-fit:cover;
+  border-radius:18px;
+  background:#000;
+  display:block;
+}
+
+.camera-controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:15px;
+}
+
+.camera-action{
+  height:46px;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.camera-cancel{
+  border:1px solid #d7e2ea;
+  background:#fff;
+  color:#31526d;
+}
+
+.camera-capture{
+  border:0;
+  background:#0754a9;
+  color:#fff;
+}
+
+.camera-switch{
+  width:100%;
+  height:43px;
+  margin-top:10px;
+  border:1px solid #cfe2ef;
+  background:#f5fbff;
+  color:#0754a9;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.camera-hint{
+  margin-top:9px;
+  color:#8497a6;
+  font-size:11px;
+}
+
+/* LOADING */
+
+.loading{
+  color:#8497a6;
+  font-size:13px;
+}
+
+@media(max-width:1000px){
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:800px){
+
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:20px 15px 90px;
+  }
+
+  .topbar{
+    height:65px;
+    padding:0 15px;
+  }
+
+  .brand img{
+    width:100px;
+  }
+
+  .brand-text{
+    display:none;
+  }
+
+  .profile-email-mini{
+    display:none;
+  }
+
+  .profile-photo-mini{
+    width:38px;
+    height:38px;
+  }
+
+  .page-head h1{
+    font-size:23px;
+  }
+
+  .page-head p{
+    font-size:12px;
+  }
+
+  .back-btn{
+    padding:10px 12px;
+    font-size:12px;
+  }
+
+  .box{
+    padding:19px;
+    border-radius:17px;
+  }
+
+  .info-grid{
+    grid-template-columns:1fr;
+  }
+
+  .field.full{
+    grid-column:auto;
+  }
+
+  .mobile-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:67px;
+    background:#fff;
+    border-top:1px solid #dce8ef;
+    z-index:100;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -5px 20px rgba(0,62,129,.08);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .mobile-nav button span{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+
+  .mobile-nav button.active{
+    color:#0754a9;
+  }
+
+  .toast{
+    left:15px;
+    right:15px;
+    bottom:80px;
+    text-align:center;
+  }
+}
+
+@media(max-width:450px){
+
+  .page-head{
+    align-items:flex-start;
+  }
+
+  .back-btn{
+    margin-top:2px;
+  }
+
+  .avatar-wrap{
+    width:110px;
+    height:110px;
+  }
+
+  .avatar{
+    width:110px;
+    height:110px;
+  }
+
+  .photo-buttons{
+    flex-wrap:wrap;
+  }
+
+  .info-row{
+    flex-direction:column;
+    gap:5px;
+  }
+
+  .info-value{
+    text-align:left;
+  }
+
+  .camera-card{
+    padding:15px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <img
+      src="assets/EGC - Emergency Gas Cylinder logo.png"
+      alt="EGC">
+
+    <div class="brand-text">
+      Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+  <div class="profile-mini">
+
+    <div>
+
+      <div
+        class="profile-name-mini"
+        id="topName">
+        Loading...
+      </div>
+
+      <div
+        class="profile-email-mini"
+        id="topEmail">
+        Loading...
+      </div>
+
+    </div>
+
+    <img
+      id="topPhoto"
+      class="profile-photo-mini"
+      src=""
+      alt="Profile">
+
+  </div>
+
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">
+    MENU
+  </div>
+
+  <button
+    class="nav-btn"
+    onclick="goDashboard()">
+    🏠 &nbsp; Dashboard
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="requestCylinder()">
+    🛢️ &nbsp; Request Cylinder
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goRequests()">
+    📋 &nbsp; My Requests
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPayments()">
+    💰 &nbsp; Payments
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goNotifications()">
+    🔔 &nbsp; Notifications
+  </button>
+
+  <button class="nav-btn active">
+    👤 &nbsp; Profile
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="showComingSoon('Settings')">
+    ⚙️ &nbsp; Settings
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="showComingSoon('Help & Support')">
+    ❓ &nbsp; Help & Support
+  </button>
+
+  <button
+    class="nav-btn logout"
+    onclick="openLogoutPopup()">
+    🚪 &nbsp; Logout
+  </button>
+
+</aside>
+
+
+<main class="main">
+
+  <div class="page-head">
+
+    <div>
+
+      <h1>
+        My Profile
+      </h1>
+
+      <p>
+        Manage your EGC customer account information.
+      </p>
+
+    </div>
+
+    <button
+      class="back-btn"
+      onclick="goDashboard()">
+      ← Dashboard
+    </button>
+
+  </div>
+
+
+  <div
+    id="message"
+    class="message">
+  </div>
+
+
+  <div class="grid">
+
+    <!-- LEFT -->
+
+    <div>
+
+      <div class="box">
+
+        <div class="profile-center">
+
+          <div class="avatar-wrap">
+
+            <img
+              id="profilePhoto"
+              class="avatar"
+              src=""
+              alt="Profile Photo">
+
+            <button
+              class="camera-btn"
+              onclick="openCamera()"
+              title="Take profile photo">
+              📷
+            </button>
+
+          </div>
+
+
+          <div
+            id="profileNameLarge"
+            class="profile-name-large">
+            Loading...
+          </div>
+
+
+          <div
+            id="profileEmailLarge"
+            class="profile-email-large">
+            Loading...
+          </div>
+
+
+          <div class="photo-buttons">
+
+            <button
+              class="photo-btn primary"
+              onclick="choosePhoto()">
+              📁 Upload Photo
+            </button>
+
+            <button
+              class="photo-btn"
+              onclick="openCamera()">
+              📷 Camera
+            </button>
+
+          </div>
+
+
+          <input
+            type="file"
+            id="photoInput"
+            accept="image/*"
+            style="display:none">
+
+        </div>
+
+      </div>
+
+
+      <div class="box">
+
+        <div class="box-title">
+          🔐 Account Information
+        </div>
+
+
+        <div class="info-row">
+
+          <span class="info-label">
+            Account ID
+          </span>
+
+          <span
+            class="info-value"
+            id="accountId">
+            Loading...
+          </span>
+
+        </div>
+
+
+        <div class="info-row">
+
+          <span class="info-label">
+            Account Created
+          </span>
+
+          <span
+            class="info-value"
+            id="accountCreated">
+            Loading...
+          </span>
+
+        </div>
+
+
+        <div class="info-row">
+
+          <span class="info-label">
+            Login Email
+          </span>
+
+          <span
+            class="info-value"
+            id="accountEmail">
+            Loading...
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- RIGHT -->
+
+    <div>
+
+      <div class="box">
+
+        <div class="box-title">
+          👤 Personal Information
+        </div>
+
+
+        <div class="info-grid">
+
+          <div class="field full">
+
+            <label>
+              Full Name
+            </label>
+
+            <input
+              id="fullName"
+              type="text"
+              placeholder="Enter your full name"
+              maxlength="100">
+
+          </div>
+
+
+          <div class="field">
+
+            <label>
+              Mobile Number
+            </label>
+
+            <input
+              id="mobile"
+              type="tel"
+              inputmode="numeric"
+              placeholder="Enter mobile number"
+              maxlength="15">
+
+          </div>
+
+
+          <div class="field">
+
+            <label>
+              Email
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              placeholder="Email address"
+              disabled>
+
+          </div>
+
+        </div>
+
+
+        <button
+          id="saveBtn"
+          class="save-btn"
+          onclick="saveProfile()">
+          SAVE PROFILE
+        </button>
+
+      </div>
+
+
+      <div class="box">
+
+        <div class="box-title">
+          🛡️ Security
+        </div>
+
+
+        <div class="security-box">
+
+          <div class="security-title">
+            🔑 MPIN Security
+          </div>
+
+          <div class="security-text">
+            Your MPIN is used to securely access your EGC customer account.
+            For security, your current MPIN is never displayed here.
+          </div>
+
+          <button
+            class="change-mpin-btn"
+            onclick="changeMPIN()">
+            Change MPIN
+          </button>
+
+        </div>
+
+
+        <div class="security-box">
+
+          <div class="security-title">
+            📧 Account Recovery
+          </div>
+
+          <div class="security-text">
+            Keep your recovery email updated so you can recover access to
+            your EGC account if you forget your MPIN.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+
+<!-- MOBILE NAV -->
+
+<nav class="mobile-nav">
+
+  <button onclick="goDashboard()">
+
+    <span>🏠</span>
+
+    Home
+
+  </button>
+
+
+  <button onclick="goRequests()">
+
+    <span>📋</span>
+
+    Requests
+
+  </button>
+
+
+  <button onclick="requestCylinder()">
+
+    <span>➕</span>
+
+    Request
+
+  </button>
+
+
+  <button onclick="goPayments()">
+
+    <span>💰</span>
+
+    Payments
+
+  </button>
+
+
+  <button class="active">
+
+    <span>👤</span>
+
+    Profile
+
+  </button>
+
+</nav>
+
+
+<!-- LOGOUT POPUP -->
+
+<div
+  class="logout-overlay"
+  id="logoutOverlay"
+  onclick="closeLogoutPopup(event)">
+
+  <div
+    class="logout-popup"
+    onclick="event.stopPropagation()">
+
+    <div class="logout-icon">
+      🚪
+    </div>
+
+    <div class="logout-title">
+      Are you sure Logout?
+    </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+let currentUser = null;
+let currentProfile = null;
+
+let toastTimer = null;
+let cameraStream = null;
+
+let currentCameraFacing = "user";
+
+
+/* =========================================================
+   HELPER
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function formatDate(value){
+
+  if(!value){
+    return "—";
+  }
+
+  const d = new Date(value);
+
+  if(Number.isNaN(d.getTime())){
+    return "—";
+  }
+
+  return d.toLocaleDateString(
+    "en-IN",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric"
+    }
+  );
+}
+
+
+function showMessage(message,type){
+
+  const el = $("message");
+
+  el.textContent = message || "";
+
+  el.className =
+    "message " +
+    (type || "success");
+}
+
+
+function clearMessage(){
+
+  $("message").className =
+    "message";
+
+  $("message").textContent =
+    "";
+}
+
+
+function toast(message){
+
+  const el = $("toast");
+
+  el.textContent =
+    message || "";
+
+  el.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer =
+    setTimeout(
+      function(){
+
+        el.classList.remove("show");
+
+      },
+      3000
+    );
+}
+
+
+function avatarUrl(name){
+
+  return "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name || "EGC Customer") +
+    "&background=eaf5fc&color=0754a9&size=256";
+}
+
+
+/* =========================================================
+   LOAD PROFILE
+========================================================= */
+
+async function loadProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id",currentUser.id)
+      .maybeSingle();
+
+
+  if(result.error){
+
+    console.error(
+      "Profile load error:",
+      result.error
+    );
+
+    showMessage(
+      result.error.message ||
+      "Unable to load profile.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  currentProfile =
+    result.data || null;
+
+
+  /*
+    If profile row doesn't exist,
+    create a basic profile row.
+  */
+
+  if(!currentProfile){
+
+    const newProfile = {
+
+      id:currentUser.id,
+
+      full_name:
+        currentUser.user_metadata?.full_name ||
+        "",
+
+      mobile:
+        currentUser.user_metadata?.mobile ||
+        null,
+
+      email:
+        currentUser.email ||
+        null
+
+    };
+
+
+    const insertResult =
+      await supabaseClient
+        .from("profiles")
+        .insert(newProfile)
+        .select("*")
+        .maybeSingle();
+
+
+    if(!insertResult.error){
+
+      currentProfile =
+        insertResult.data;
+
+    }else{
+
+      console.error(
+        "Profile create error:",
+        insertResult.error
+      );
+
+      currentProfile =
+        newProfile;
+
+    }
+
+  }
+
+
+  const name =
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    "EGC Customer";
+
+
+  const email =
+    currentProfile?.email ||
+    currentUser.email ||
+    "";
+
+
+  const mobile =
+    currentProfile?.mobile ||
+    currentUser.user_metadata?.mobile ||
+    "";
+
+
+  $("fullName").value =
+    name === "EGC Customer"
+      ? ""
+      : name;
+
+
+  $("mobile").value =
+    mobile;
+
+
+  $("email").value =
+    email;
+
+
+  $("profileNameLarge").textContent =
+    name;
+
+
+  $("profileEmailLarge").textContent =
+    email ||
+    "No email available";
+
+
+  $("topName").textContent =
+    name;
+
+
+  $("topEmail").textContent =
+    email;
+
+
+  $("accountId").textContent =
+    currentUser.id
+      ? currentUser.id.substring(0,8) + "..."
+      : "—";
+
+
+  $("accountCreated").textContent =
+    formatDate(
+      currentUser.created_at ||
+      currentProfile?.created_at
+    );
+
+
+  $("accountEmail").textContent =
+    email || "—";
+
+
+  const photo =
+    currentProfile?.profile_photo;
+
+
+  const image =
+    photo ||
+    avatarUrl(name);
+
+
+  $("profilePhoto").src =
+    image;
+
+
+  $("topPhoto").src =
+    image;
+}
+
+
+/* =========================================================
+   SAVE PROFILE
+========================================================= */
+
+async function saveProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+
+  clearMessage();
+
+
+  const button =
+    $("saveBtn");
+
+
+  const fullName =
+    $("fullName").value.trim();
+
+
+  const mobile =
+    $("mobile").value.trim();
+
+
+  if(!fullName){
+
+    showMessage(
+      "Please enter your full name.",
+      "error"
+    );
+
+    $("fullName").focus();
+
+    return;
+  }
+
+
+  if(mobile){
+
+    const cleanMobile =
+      mobile.replace(/\D/g,"");
+
+
+    if(
+      cleanMobile.length < 10 ||
+      cleanMobile.length > 15
+    ){
+
+      showMessage(
+        "Please enter a valid mobile number.",
+        "error"
+      );
+
+      $("mobile").focus();
+
+      return;
+    }
+  }
+
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "SAVING...";
+
+
+  const updateData = {
+
+    full_name:
+      fullName,
+
+    mobile:
+      mobile || null,
+
+    updated_at:
+      new Date().toISOString()
+
+  };
+
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .update(updateData)
+      .eq(
+        "id",
+        currentUser.id
+      );
+
+
+  if(result.error){
+
+    console.error(
+      "Profile update error:",
+      result.error
+    );
+
+    showMessage(
+      result.error.message ||
+      "Unable to update profile.",
+      "error"
+    );
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "SAVE PROFILE";
+
+    return;
+  }
+
+
+  if(!currentProfile){
+    currentProfile = {};
+  }
+
+
+  currentProfile.full_name =
+    fullName;
+
+
+  currentProfile.mobile =
+    mobile || null;
+
+
+  $("profileNameLarge").textContent =
+    fullName;
+
+
+  $("topName").textContent =
+    fullName;
+
+
+  if(!currentProfile.profile_photo){
+
+    const image =
+      avatarUrl(fullName);
+
+    $("profilePhoto").src =
+      image;
+
+    $("topPhoto").src =
+      image;
+  }
+
+
+  showMessage(
+    "✓ Profile updated successfully.",
+    "success"
+  );
+
+
+  toast(
+    "Profile updated successfully."
+  );
+
+
+  button.disabled =
+    false;
+
+  button.textContent =
+    "SAVE PROFILE";
+}
+
+
+/* =========================================================
+   PHOTO SELECT
+========================================================= */
+
+function choosePhoto(){
+
+  $("photoInput").click();
+}
+
+
+$("photoInput").addEventListener(
+  "change",
+  async function(event){
+
+    const file =
+      event.target.files?.[0];
+
+
+    if(!file){
+      return;
+    }
+
+
+    if(!file.type.startsWith("image/")){
+
+      showMessage(
+        "Please select an image file.",
+        "error"
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+
+    if(file.size > 5 * 1024 * 1024){
+
+      showMessage(
+        "Profile photo must be smaller than 5 MB.",
+        "error"
+      );
+
+      event.target.value = "";
+
+      return;
+    }
+
+
+    await uploadProfilePhoto(file);
+
+
+    event.target.value = "";
+
+  }
+);
+
+
+/* =========================================================
+   UPLOAD PROFILE PHOTO
+========================================================= */
+
+async function uploadProfilePhoto(file){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+
+  clearMessage();
+
+
+  toast(
+    "Uploading profile photo..."
+  );
+
+
+  try{
+
+    const extension =
+      (
+        file.name.split(".").pop() ||
+        "jpg"
+      ).toLowerCase();
+
+
+    const filePath =
+      currentUser.id +
+      "/profile-" +
+      Date.now() +
+      "." +
+      extension;
+
+
+    const uploadResult =
+      await supabaseClient
+        .storage
+        .from("profiles")
+        .upload(
+          filePath,
+          file,
+          {
+            upsert:true,
+            contentType:file.type,
+            cacheControl:"3600"
+          }
+        );
+
+
+    if(uploadResult.error){
+
+      console.error(
+        "Photo upload error:",
+        uploadResult.error
+      );
+
+      showMessage(
+        uploadResult.error.message ||
+        "Unable to upload profile photo.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    const publicResult =
+      supabaseClient
+        .storage
+        .from("profiles")
+        .getPublicUrl(filePath);
+
+
+    const publicUrl =
+      publicResult.data?.publicUrl;
+
+
+    if(!publicUrl){
+
+      showMessage(
+        "Photo uploaded but public URL was not created.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    const finalUrl =
+      publicUrl +
+      "?v=" +
+      Date.now();
+
+
+    const updateResult =
+      await supabaseClient
+        .from("profiles")
+        .update({
+          profile_photo:finalUrl,
+          updated_at:new Date().toISOString()
+        })
+        .eq(
+          "id",
+          currentUser.id
+        );
+
+
+    if(updateResult.error){
+
+      console.error(
+        "Photo profile update error:",
+        updateResult.error
+      );
+
+      showMessage(
+        updateResult.error.message ||
+        "Photo uploaded but profile could not be updated.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if(!currentProfile){
+      currentProfile = {};
+    }
+
+
+    currentProfile.profile_photo =
+      finalUrl;
+
+
+    $("profilePhoto").src =
+      finalUrl;
+
+
+    $("topPhoto").src =
+      finalUrl;
+
+
+    showMessage(
+      "✓ Profile photo updated successfully.",
+      "success"
+    );
+
+
+    toast(
+      "Profile photo updated."
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "Photo upload exception:",
+      error
+    );
+
+    showMessage(
+      error.message ||
+      "Unable to upload profile photo.",
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+async function openCamera(){
+
+  if(!navigator.mediaDevices?.getUserMedia){
+
+    showMessage(
+      "Camera is not supported on this device/browser.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  currentCameraFacing =
+    "user";
+
+
+  await startCamera();
+}
+
+
+async function startCamera(){
+
+  closeCamera(false);
+
+
+  try{
+
+    cameraStream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video:{
+          facingMode:{
+            ideal:currentCameraFacing
+          },
+          width:{
+            ideal:1280
+          },
+          height:{
+            ideal:1280
+          }
+        },
+
+        audio:false
+
+      });
+
+
+    createCameraModal();
+
+
+  }catch(error){
+
+    console.error(
+      "Camera error:",
+      error
+    );
+
+
+    showMessage(
+      "Camera permission was denied or camera could not be opened.",
+      "error"
+    );
+  }
+}
+
+
+function createCameraModal(){
+
+  const modal =
+    document.createElement("div");
+
+
+  modal.id =
+    "cameraModal";
+
+
+  modal.className =
+    "camera-overlay";
+
+
+  const card =
+    document.createElement("div");
+
+
+  card.className =
+    "camera-card";
+
+
+  const title =
+    document.createElement("div");
+
+
+  title.className =
+    "camera-title";
+
+
+  title.textContent =
+    "Take Profile Photo";
+
+
+  const video =
+    document.createElement("video");
+
+
+  video.className =
+    "camera-video";
+
+
+  video.autoplay =
+    true;
+
+
+  video.playsInline =
+    true;
+
+
+  video.muted =
+    true;
+
+
+  video.srcObject =
+    cameraStream;
+
+
+  const controls =
+    document.createElement("div");
+
+
+  controls.className =
+    "camera-controls";
+
+
+  const cancel =
+    document.createElement("button");
+
+
+  cancel.className =
+    "camera-action camera-cancel";
+
+
+  cancel.textContent =
+    "Cancel";
+
+
+  const capture =
+    document.createElement("button");
+
+
+  capture.className =
+    "camera-action camera-capture";
+
+
+  capture.textContent =
+    "📷 Capture";
+
+
+  controls.appendChild(cancel);
+  controls.appendChild(capture);
+
+
+  const switchCamera =
+    document.createElement("button");
+
+
+  switchCamera.className =
+    "camera-switch";
+
+
+  switchCamera.textContent =
+    "🔄 Switch Camera";
+
+
+  const hint =
+    document.createElement("div");
+
+
+  hint.className =
+    "camera-hint";
+
+
+  hint.textContent =
+    currentCameraFacing === "user"
+      ? "Front camera"
+      : "Back camera";
+
+
+  card.appendChild(title);
+  card.appendChild(video);
+  card.appendChild(controls);
+  card.appendChild(switchCamera);
+  card.appendChild(hint);
+
+
+  modal.appendChild(card);
+
+
+  document.body.appendChild(modal);
+
+
+  cancel.onclick =
+    function(){
+
+      closeCamera();
+
+    };
+
+
+  switchCamera.onclick =
+    async function(){
+
+      currentCameraFacing =
+        currentCameraFacing === "user"
+          ? "environment"
+          : "user";
+
+
+      hint.textContent =
+        currentCameraFacing === "user"
+          ? "Front camera"
+          : "Back camera";
+
+
+      await startCamera();
+
+    };
+
+
+  capture.onclick =
+    async function(){
+
+      if(
+        !video.videoWidth ||
+        !video.videoHeight
+      ){
+
+        toast(
+          "Camera is still starting..."
+        );
+
+        return;
+      }
+
+
+      const canvas =
+        document.createElement("canvas");
+
+
+      const maxSize =
+        1200;
+
+
+      let width =
+        video.videoWidth;
+
+
+      let height =
+        video.videoHeight;
+
+
+      if(width > maxSize){
+
+        height =
+          Math.round(
+            height *
+            maxSize /
+            width
+          );
+
+        width =
+          maxSize;
+      }
+
+
+      canvas.width =
+        width;
+
+
+      canvas.height =
+        height;
+
+
+      const context =
+        canvas.getContext("2d");
+
+
+      /*
+        Mirror only front camera
+        for natural selfie result.
+      */
+
+      if(currentCameraFacing === "user"){
+
+        context.translate(
+          width,
+          0
+        );
+
+        context.scale(
+          -1,
+          1
+        );
+      }
+
+
+      context.drawImage(
+        video,
+        0,
+        0,
+        width,
+        height
+      );
+
+
+      canvas.toBlob(
+        async function(blob){
+
+          if(!blob){
+
+            toast(
+              "Unable to capture photo."
+            );
+
+            return;
+          }
+
+
+          closeCamera();
+
+
+          const file =
+            new File(
+              [blob],
+              "profile-camera.jpg",
+              {
+                type:"image/jpeg"
+              }
+            );
+
+
+          await uploadProfilePhoto(file);
+
+        },
+        "image/jpeg",
+        .90
+      );
+
+    };
+}
+
+
+function closeCamera(removeModal = true){
+
+  if(cameraStream){
+
+    cameraStream
+      .getTracks()
+      .forEach(
+        function(track){
+
+          track.stop();
+
+        }
+      );
+
+
+    cameraStream =
+      null;
+  }
+
+
+  if(removeModal){
+
+    const modal =
+      $("cameraModal");
+
+
+    if(modal){
+      modal.remove();
+    }
+
+  }else{
+
+    const modal =
+      $("cameraModal");
+
+
+    if(modal){
+      modal.remove();
+    }
+  }
+}
+
+
+/* =========================================================
+   CHANGE MPIN
+========================================================= */
+
+function changeMPIN(){
+
+  window.location.href =
+    "forgot-mpin.html";
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function goDashboard(){
+
+  window.location.href =
+    "dashboard.html";
+}
+
+
+function goRequests(){
+
+  window.location.href =
+    "my-requests.html";
+}
+
+
+function goPayments(){
+
+  window.location.href =
+    "payments.html";
+}
+
+
+function goNotifications(){
+
+  window.location.href =
+    "notifications.html";
+}
+
+
+function requestCylinder(){
+
+  window.location.href =
+    "request-cylinder.html";
+}
+
+
+function showComingSoon(page){
+
+  window.location.href =
+    "setting.html";
+}
+
+
+/* =========================================================
+   LOGOUT POPUP
+========================================================= */
+
+function openLogoutPopup(){
+
+  $("logoutOverlay")
+    .classList
+    .add("show");
+
+
+  document.body.style.overflow =
+    "hidden";
+}
+
+
+function closeLogoutPopup(event){
+
+  if(
+    event &&
+    event.target &&
+    event.target.id !==
+    "logoutOverlay"
+  ){
+
+    return;
+  }
+
+
+  $("logoutOverlay")
+    .classList
+    .remove("show");
+
+
+  document.body.style.overflow =
+    "";
+}
+
+
+async function confirmLogout(){
+
+  const button =
+    $("confirmLogoutBtn");
+
+
+  button.disabled =
+    true;
+
+
+  button.textContent =
+    "Logging out...";
+
+
+  const result =
+    await supabaseClient
+      .auth
+      .signOut();
+
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+
+    button.textContent =
+      "Logout";
+
+
+    toast(
+      result.error.message ||
+      "Logout failed."
+    );
+
+
+    return;
+  }
+
+
+  window.location.replace(
+    "login.html"
+  );
+}
+
+
+/* =========================================================
+   AUTH STATE
+========================================================= */
+
+supabaseClient
+  .auth
+  .onAuthStateChange(
+    function(event){
+
+      if(
+        event ===
+        "SIGNED_OUT"
+      ){
+
+        window.location.replace(
+          "login.html"
+        );
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   ESC KEY
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(event.key === "Escape"){
+
+      closeLogoutPopup();
+
+      closeCamera();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+async function initializeProfile(){
+
+  try{
+
+    const authResult =
+      await supabaseClient
+        .auth
+        .getUser();
+
+
+    if(
+      authResult.error ||
+      !authResult.data?.user
+    ){
+
+      window.location.replace(
+        "login.html"
+      );
+
+      return;
+    }
+
+
+    currentUser =
+      authResult.data.user;
+
+
+    await loadProfile();
+
+
+  }catch(error){
+
+    console.error(
+      "Profile initialization error:",
+      error
+    );
+
+
+    showMessage(
+      error.message ||
+      "Unable to load profile.",
+      "error"
+    );
+  }
+}
+
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initializeProfile
+);
+
+</script>
+
+</body>
+</html>

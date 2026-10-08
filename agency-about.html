@@ -1,0 +1,3590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - About Agency Panel</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html{
+    font-size:16px;
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#173f5f;
+    background:
+        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+        #eef7fc;
+}
+
+button,input,textarea,select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+/* HEADER */
+
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:72px;
+    background:rgba(255,255,255,.97);
+    border-bottom:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    z-index:1000;
+    box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.menu-btn{
+    display:none;
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:22px;
+    flex-shrink:0;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    min-width:0;
+}
+
+.brand img{
+    width:125px;
+    max-height:48px;
+    object-fit:contain;
+    flex-shrink:0;
+}
+
+.brand-text{
+    min-width:0;
+}
+
+.brand h2{
+    color:#06477f;
+    font-size:17px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.brand p{
+    color:#91a1ae;
+    font-size:11px;
+    margin-top:3px;
+    white-space:nowrap;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin-left:auto;
+}
+
+.header-action{
+    height:40px;
+    padding:0 13px;
+    border:1px solid #dce8f1;
+    border-radius:11px;
+    background:#fff;
+    color:#31566f;
+    font-size:10px;
+    font-weight:800;
+    transition:.2s;
+}
+
+.header-action:hover{
+    background:#edf7ff;
+    color:#0871c3;
+    border-color:#c8dfea;
+    transform:translateY(-1px);
+}
+
+.bell-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:12px;
+    background:#fff;
+    color:#0871c3;
+    font-size:19px;
+}
+
+.agency-badge{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 13px;
+    border-radius:20px;
+    background:#eef9f2;
+    color:#24804a;
+    font-size:11px;
+    font-weight:800;
+}
+
+.dot{
+    width:8px;
+    height:8px;
+    background:#27ae60;
+    border-radius:50%;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    position:fixed;
+    top:72px;
+    left:0;
+    bottom:0;
+    width:235px;
+    background:#fff;
+    border-right:1px solid #dce8f1;
+    padding:22px 14px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#9aaab5;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    padding:0 11px 12px;
+}
+
+.nav-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:#5d788b;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px;
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:700;
+    text-align:left;
+    transition:.2s ease;
+    flex-shrink:0;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    background:#edf7ff;
+    color:#0871c3;
+}
+
+.nav-icon{
+    width:23px;
+    min-width:23px;
+    text-align:center;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    height:1px;
+    width:100%;
+    margin-top:auto;
+    margin-bottom:8px;
+    background:#edf2f5;
+    flex-shrink:0;
+}
+
+.logout-nav-btn{
+    height:43px;
+    flex:0 0 43px;
+    margin-bottom:0;
+}
+
+.logout-nav-btn:hover{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+/* OVERLAY */
+
+.overlay{
+    display:none;
+}
+
+/* MAIN */
+
+.main{
+    margin-left:235px;
+    padding:98px 25px 35px;
+}
+
+.container{
+    max-width:1250px;
+    margin:auto;
+}
+
+/* PAGE HEADER */
+
+.page-head{
+    background:rgba(255,255,255,.95);
+    border:1px solid #d9e8f4;
+    border-radius:18px;
+    padding:22px;
+    margin-bottom:18px;
+    box-shadow:0 7px 25px rgba(28,91,128,.05);
+}
+
+.page-head h1{
+    font-size:25px;
+    color:#06477f;
+    margin-bottom:6px;
+}
+
+.page-head p{
+    color:#8095a7;
+    font-size:12px;
+    line-height:1.5;
+}
+
+/* ABOUT HERO */
+
+.about-hero{
+    background:linear-gradient(135deg,#ffffff,#f5fbff);
+    border:1px solid #d9e8f4;
+    border-radius:20px;
+    padding:25px;
+    margin-bottom:16px;
+    box-shadow:0 7px 25px rgba(28,91,128,.05);
+    display:flex;
+    align-items:center;
+    gap:25px;
+}
+
+.about-logo{
+    width:125px;
+    height:125px;
+    border-radius:25px;
+    background:#fff;
+    border:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    box-shadow:0 8px 25px rgba(20,80,120,.08);
+}
+
+.about-logo img{
+    width:105px;
+    max-height:105px;
+    object-fit:contain;
+}
+
+.about-hero-content{
+    min-width:0;
+}
+
+.about-hero-content h2{
+    color:#06477f;
+    font-size:22px;
+    margin-bottom:7px;
+}
+
+.about-hero-content .tagline{
+    color:#0871c3;
+    font-size:12px;
+    font-weight:800;
+    margin-bottom:10px;
+}
+
+.about-hero-content p{
+    color:#718796;
+    font-size:11px;
+    line-height:1.7;
+    max-width:800px;
+}
+
+/* GRID */
+
+.about-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+/* CARD */
+
+.card{
+    background:rgba(255,255,255,.97);
+    border:1px solid #d9e8f4;
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 7px 25px rgba(28,91,128,.05);
+}
+
+.card.full{
+    grid-column:1 / -1;
+}
+
+.card-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:17px;
+}
+
+.card-icon{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    background:#edf7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    flex-shrink:0;
+}
+
+.card-title h3{
+    color:#06477f;
+    font-size:14px;
+}
+
+.card-title p{
+    color:#91a1ae;
+    font-size:9px;
+    margin-top:3px;
+}
+
+/* INFO ROW */
+
+.info-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    min-height:43px;
+    border-bottom:1px solid #edf2f5;
+}
+
+.info-row:last-child{
+    border-bottom:0;
+}
+
+.info-label{
+    color:#718796;
+    font-size:10px;
+    font-weight:700;
+}
+
+.info-value{
+    color:#31566f;
+    font-size:10px;
+    font-weight:800;
+    text-align:right;
+    word-break:break-word;
+}
+
+/* FEATURES */
+
+.feature-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.feature{
+    background:#f8fcfe;
+    border:1px solid #e1edf4;
+    border-radius:12px;
+    padding:13px;
+}
+
+.feature-icon{
+    font-size:19px;
+    margin-bottom:7px;
+}
+
+.feature strong{
+    display:block;
+    color:#31566f;
+    font-size:10px;
+    margin-bottom:4px;
+}
+
+.feature span{
+    color:#91a1ae;
+    font-size:9px;
+    line-height:1.45;
+}
+
+/* PROCESS */
+
+.process{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+}
+
+.process-item{
+    position:relative;
+    text-align:center;
+    padding:13px 8px;
+    background:#f8fcfe;
+    border:1px solid #e1edf4;
+    border-radius:12px;
+}
+
+.process-number{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    background:#0871c3;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 8px;
+    font-size:10px;
+    font-weight:900;
+}
+
+.process-item strong{
+    display:block;
+    color:#31566f;
+    font-size:9px;
+    margin-bottom:4px;
+}
+
+.process-item span{
+    color:#91a1ae;
+    font-size:8px;
+    line-height:1.4;
+}
+
+/* SECURITY */
+
+.security-note{
+    background:#f0f8ff;
+    border:1px solid #d7eaf8;
+    border-radius:13px;
+    padding:14px;
+    display:flex;
+    gap:11px;
+    align-items:flex-start;
+}
+
+.security-note-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.security-note strong{
+    display:block;
+    color:#31566f;
+    font-size:10px;
+    margin-bottom:4px;
+}
+
+.security-note p{
+    color:#718796;
+    font-size:9px;
+    line-height:1.5;
+}
+
+/* HELP */
+
+.support-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:11px;
+}
+
+.support-box{
+    background:#f8fcfe;
+    border:1px solid #e1edf4;
+    border-radius:13px;
+    padding:15px;
+    transition:.2s ease;
+}
+
+.support-box:hover{
+    transform:translateY(-2px);
+    box-shadow:0 7px 20px rgba(20,80,120,.08);
+}
+
+.support-box-icon{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    background:#edf7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+    margin-bottom:9px;
+}
+
+.support-box strong{
+    display:block;
+    color:#31566f;
+    font-size:10px;
+    margin-bottom:5px;
+}
+
+.support-box span{
+    display:block;
+    color:#91a1ae;
+    font-size:9px;
+    line-height:1.5;
+}
+
+.support-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-top:10px;
+    padding:8px 12px;
+    border:0;
+    border-radius:9px;
+    background:#0871c3;
+    color:#fff;
+    text-decoration:none;
+    font-size:9px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.support-btn.whatsapp{
+    background:#20a95b;
+}
+
+/* DEVELOPER */
+
+.developer-card{
+    position:relative;
+}
+
+.developer-layout{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    align-items:center;
+}
+
+.developer-profile{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.developer-avatar{
+    width:85px;
+    height:85px;
+    border-radius:22px;
+    background:#f8fcfe;
+    border:1px solid #d9e8f4;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.developer-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.developer-info h4{
+    color:#06477f;
+    font-size:17px;
+    margin-bottom:4px;
+}
+
+.developer-info .developer-role{
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.developer-info p{
+    color:#91a1ae;
+    font-size:9px;
+    line-height:1.5;
+}
+
+.dev-contact{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+}
+
+.dev-contact a{
+    text-decoration:none;
+    padding:7px 10px;
+    border-radius:9px;
+    background:#edf7ff;
+    color:#0871c3;
+    font-size:8px;
+    font-weight:800;
+}
+
+.social-title{
+    color:#31566f;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:10px;
+}
+
+.social-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
+
+.social-link{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 10px;
+    border:1px solid #e1edf4;
+    background:#f8fcfe;
+    border-radius:10px;
+    text-decoration:none;
+    color:#31566f;
+    font-size:8px;
+    font-weight:800;
+    transition:.2s ease;
+}
+
+.social-link:hover{
+    border-color:#c8dfea;
+    background:#edf7ff;
+    transform:translateY(-1px);
+}
+
+.social-link img{
+    width:19px;
+    height:19px;
+    object-fit:contain;
+}
+
+/* FOOTER */
+
+.footer{
+    text-align:center;
+    color:#91a1ae;
+    font-size:9px;
+    padding:22px 5px 5px;
+}
+
+.footer strong{
+    color:#0871c3;
+}
+
+/* MODAL */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(11,43,64,.52);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:3000;
+    backdrop-filter:blur(3px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:min(520px,100%);
+    max-height:calc(100vh - 36px);
+    overflow:auto;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 25px 80px rgba(0,0,0,.2);
+}
+
+.modal-header{
+    padding:18px 20px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.modal-header-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.modal-header-icon{
+    width:40px;
+    height:40px;
+    border-radius:11px;
+    background:#edf7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
+
+.modal-header h3{
+    color:#06477f;
+    font-size:15px;
+}
+
+.modal-header p{
+    color:#91a1ae;
+    font-size:8px;
+    margin-top:3px;
+}
+
+.close-modal{
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    background:#f1f5f8;
+    color:#527087;
+    font-size:18px;
+}
+
+.modal-body{
+    padding:20px;
+}
+
+.form-group{
+    margin-bottom:13px;
+}
+
+.form-group label{
+    display:block;
+    color:#31566f;
+    font-size:9px;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea{
+    width:100%;
+    border:1px solid #dce8f1;
+    border-radius:10px;
+    background:#fbfdfe;
+    color:#31566f;
+    outline:none;
+    padding:11px 12px;
+    font-size:10px;
+    transition:.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{
+    border-color:#75b6df;
+    background:#fff;
+    box-shadow:0 0 0 3px rgba(8,113,195,.07);
+}
+
+.form-group textarea{
+    min-height:125px;
+    resize:vertical;
+}
+
+.form-note{
+    padding:10px 12px;
+    background:#f0f8ff;
+    border:1px solid #d7eaf8;
+    border-radius:10px;
+    color:#718796;
+    font-size:8px;
+    line-height:1.5;
+    margin-bottom:14px;
+}
+
+.modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:16px;
+}
+
+.modal-actions button{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.confirm-btn{
+    background:#0871c3;
+    color:#fff;
+}
+
+.whatsapp-confirm{
+    background:#20a95b;
+    color:#fff;
+}
+
+/* FAQ */
+
+.faq-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.faq-item{
+    border:1px solid #e1edf4;
+    border-radius:11px;
+    overflow:hidden;
+    background:#f8fcfe;
+}
+
+.faq-question{
+    width:100%;
+    border:0;
+    background:transparent;
+    padding:12px 13px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    color:#31566f;
+    text-align:left;
+    font-size:10px;
+    font-weight:800;
+}
+
+.faq-answer{
+    display:none;
+    padding:0 13px 13px;
+    color:#718796;
+    font-size:9px;
+    line-height:1.55;
+}
+
+.faq-item.open .faq-answer{
+    display:block;
+}
+
+.faq-plus{
+    color:#0871c3;
+    font-size:16px;
+    flex-shrink:0;
+}
+
+/* DEVELOPER MODAL */
+
+.developer-modal-profile{
+    text-align:center;
+}
+
+.developer-modal-photo{
+    width:105px;
+    height:105px;
+    border-radius:25px;
+    object-fit:cover;
+    border:3px solid #edf7ff;
+    box-shadow:0 10px 30px rgba(20,80,120,.12);
+}
+
+.developer-modal-profile h3{
+    color:#06477f;
+    margin-top:10px;
+    font-size:20px;
+}
+
+.developer-modal-profile .role{
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+    margin-top:4px;
+}
+
+.developer-description{
+    color:#718796;
+    font-size:9px;
+    line-height:1.6;
+    text-align:center;
+    margin:12px auto 16px;
+    max-width:400px;
+}
+
+.developer-details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:16px;
+}
+
+.dev-detail{
+    background:#f8fcfe;
+    border:1px solid #e1edf4;
+    border-radius:11px;
+    padding:11px;
+}
+
+.dev-detail span{
+    display:block;
+    color:#91a1ae;
+    font-size:7px;
+    margin-bottom:4px;
+}
+
+.dev-detail strong{
+    color:#31566f;
+    font-size:9px;
+    word-break:break-word;
+}
+
+.modal-socials{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+}
+
+/* TOAST */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:310px;
+    max-width:calc(100vw - 40px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:15px;
+    padding:14px 16px;
+    box-shadow:0 15px 45px rgba(20,70,100,.20);
+    transform:translateY(130px);
+    opacity:0;
+    transition:.3s;
+    z-index:4000;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:12px;
+    font-weight:850;
+}
+
+.toast-text{
+    color:#718796;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+/* TABLET */
+
+@media(max-width:1050px){
+
+    .process{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .support-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .header-action{
+        padding:0 9px;
+    }
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+    .header{
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:block;
+        margin-right:10px;
+    }
+
+    .brand{
+        gap:9px;
+        flex:1;
+    }
+
+    .brand img{
+        width:100px;
+        max-height:45px;
+    }
+
+    .brand h2{
+        font-size:14px;
+    }
+
+    .brand p{
+        display:none;
+    }
+
+    .header-right{
+        gap:5px;
+    }
+
+    .header-action{
+        display:none;
+    }
+
+    .agency-badge{
+        display:none;
+    }
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .overlay{
+        position:fixed;
+        inset:72px 0 0 0;
+        background:rgba(0,0,0,.35);
+        z-index:850;
+        display:none;
+    }
+
+    .overlay.show{
+        display:block;
+    }
+
+    .main{
+        margin-left:0;
+        padding:91px 14px 30px;
+    }
+
+    .about-hero{
+        padding:18px;
+    }
+
+    .about-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .developer-layout{
+        grid-template-columns:1fr;
+    }
+}
+
+/* SMALL MOBILE */
+
+@media(max-width:520px){
+
+    .header{
+        height:65px;
+        padding:0 10px;
+    }
+
+    .menu-btn{
+        width:40px;
+        height:40px;
+        font-size:21px;
+        margin-right:7px;
+    }
+
+    .brand{
+        gap:7px;
+    }
+
+    .brand img{
+        width:90px;
+        max-height:43px;
+    }
+
+    .brand h2{
+        font-size:13px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+
+    .bell-btn{
+        width:38px;
+        height:38px;
+        border-radius:11px;
+        font-size:17px;
+    }
+
+    .sidebar{
+        top:65px;
+        width:235px;
+        padding:20px 12px;
+    }
+
+    .overlay{
+        inset:65px 0 0 0;
+    }
+
+    .main{
+        padding:82px 10px 25px;
+    }
+
+    .page-head{
+        padding:15px;
+        border-radius:17px;
+    }
+
+    .page-head h1{
+        font-size:20px;
+    }
+
+    .page-head p{
+        font-size:10px;
+    }
+
+    .about-hero{
+        padding:15px;
+        flex-direction:column;
+        text-align:center;
+        gap:14px;
+    }
+
+    .about-logo{
+        width:100px;
+        height:100px;
+    }
+
+    .about-logo img{
+        width:82px;
+        max-height:82px;
+    }
+
+    .about-hero-content h2{
+        font-size:19px;
+    }
+
+    .about-hero-content p{
+        font-size:10px;
+    }
+
+    .about-grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .card{
+        padding:13px;
+        border-radius:15px;
+    }
+
+    .card.full{
+        grid-column:1 / -1;
+    }
+
+    .card-title{
+        gap:7px;
+        margin-bottom:13px;
+    }
+
+    .card-icon{
+        width:32px;
+        height:32px;
+        border-radius:9px;
+        font-size:15px;
+    }
+
+    .card-title h3{
+        font-size:11px;
+    }
+
+    .card-title p{
+        font-size:7px;
+    }
+
+    .info-row{
+        display:block;
+        padding:9px 0;
+    }
+
+    .info-label,
+    .info-value{
+        display:block;
+        text-align:left;
+        font-size:8px;
+    }
+
+    .info-value{
+        margin-top:3px;
+    }
+
+    .feature-grid{
+        grid-template-columns:1fr;
+        gap:7px;
+    }
+
+    .feature{
+        padding:10px;
+    }
+
+    .feature-icon{
+        font-size:16px;
+    }
+
+    .feature strong{
+        font-size:8px;
+    }
+
+    .feature span{
+        font-size:7px;
+    }
+
+    .process{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+    }
+
+    .process-item{
+        padding:10px 5px;
+    }
+
+    .process-number{
+        width:25px;
+        height:25px;
+        font-size:9px;
+    }
+
+    .process-item strong{
+        font-size:8px;
+    }
+
+    .process-item span{
+        font-size:7px;
+    }
+
+    .security-note{
+        padding:11px;
+    }
+
+    .security-note-icon{
+        width:30px;
+        height:30px;
+    }
+
+    .security-note strong{
+        font-size:9px;
+    }
+
+    .security-note p{
+        font-size:8px;
+    }
+
+    .support-grid{
+        grid-template-columns:1fr;
+        gap:8px;
+    }
+
+    .support-box{
+        padding:11px;
+    }
+
+    .support-box-icon{
+        width:32px;
+        height:32px;
+        font-size:16px;
+    }
+
+    .support-box strong{
+        font-size:8px;
+    }
+
+    .support-box span{
+        font-size:7px;
+    }
+
+    .support-btn{
+        font-size:8px;
+        padding:7px 10px;
+    }
+
+    .developer-profile{
+        gap:10px;
+    }
+
+    .developer-avatar{
+        width:58px;
+        height:58px;
+        border-radius:15px;
+    }
+
+    .developer-info h4{
+        font-size:14px;
+    }
+
+    .developer-info .developer-role{
+        font-size:8px;
+    }
+
+    .developer-info p{
+        font-size:7px;
+    }
+
+    .social-title{
+        font-size:8px;
+        margin-top:5px;
+    }
+
+    .social-list{
+        gap:6px;
+    }
+
+    .social-link{
+        padding:6px 8px;
+        gap:5px;
+        font-size:7px;
+    }
+
+    .social-link img{
+        width:17px;
+        height:17px;
+    }
+
+    .modal{
+        padding:10px;
+    }
+
+    .modal-card{
+        max-height:calc(100vh - 20px);
+        border-radius:17px;
+    }
+
+    .modal-body{
+        padding:15px;
+    }
+
+    .toast{
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+    }
+}
+
+/* EXTRA SMALL */
+
+@media(max-width:360px){
+
+    .header{
+        padding:0 7px;
+    }
+
+    .menu-btn{
+        width:37px;
+        height:37px;
+        font-size:19px;
+    }
+
+    .brand img{
+        width:82px;
+        max-height:40px;
+    }
+
+    .brand h2{
+        font-size:12px;
+    }
+
+    .bell-btn{
+        width:35px;
+        height:35px;
+        font-size:16px;
+    }
+
+    .main{
+        padding-left:8px;
+        padding-right:8px;
+    }
+
+    .about-grid{
+        gap:8px;
+    }
+
+    .card{
+        padding:11px;
+    }
+
+    .developer-details-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+/* SCROLLBAR */
+
+.sidebar::-webkit-scrollbar,
+.modal-card::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.modal-card::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+
+    <button class="menu-btn" id="menuBtn">☰</button>
+
+    <div class="brand">
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            alt="EGC"
+        >
+
+        <div class="brand-text">
+
+            <h2 id="headerAgencyName">LPG Agency</h2>
+
+            <p>Emergency Gas Cylinder Agency Panel</p>
+
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <button class="header-action" id="egcAboutTop">
+            ℹ️ EGC About
+        </button>
+
+        <button class="header-action" id="developerTop">
+            👨‍💻 Developer Details
+        </button>
+
+        <button
+            class="bell-btn"
+            id="notificationBtn"
+            title="Notifications"
+        >🔔</button>
+
+    </div>
+
+</header>
+
+
+<!-- MASTER AGENCY SIDEBAR -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-title">
+        AGENCY MANAGEMENT
+    </div>
+
+    <button class="nav-btn" id="dashboardBtn">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </button>
+
+    <button class="nav-btn" id="customersBtn">
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+    </button>
+
+    <button class="nav-btn" id="requestsBtn">
+        <span class="nav-icon">🛢️</span>
+        <span>Cylinder Requests</span>
+    </button>
+
+    <button class="nav-btn" id="requestDetailsBtn">
+        <span class="nav-icon">📋</span>
+        <span>Request Details</span>
+    </button>
+
+    <button class="nav-btn" id="processingBtn">
+        <span class="nav-icon">⚙️</span>
+        <span>Request Processing</span>
+    </button>
+
+    <button class="nav-btn" id="paymentsBtn">
+        <span class="nav-icon">💳</span>
+        <span>Payments</span>
+    </button>
+
+    <button class="nav-btn" id="repaymentsBtn">
+        <span class="nav-icon">💰</span>
+        <span>Repayments</span>
+    </button>
+
+    <button class="nav-btn" id="deliveriesBtn">
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries</span>
+    </button>
+
+    <button class="nav-btn" id="pendingBtn">
+        <span class="nav-icon">⏳</span>
+        <span>Pending / On Hold</span>
+    </button>
+
+    <button class="nav-btn" id="slipsBtn">
+        <span class="nav-icon">🧾</span>
+        <span>Request / Payment Slips</span>
+    </button>
+
+    <button class="nav-btn" id="notificationsBtn">
+        <span class="nav-icon">🔔</span>
+        <span>Notifications</span>
+    </button>
+
+    <button class="nav-btn" id="reportsBtn">
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+    </button>
+
+    <button class="nav-btn" id="settingsBtn">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+    </button>
+
+    <button class="nav-btn active" id="aboutBtn">
+        <span class="nav-icon">ℹ️</span>
+        <span>About</span>
+    </button>
+
+    <div class="sidebar-bottom"></div>
+
+    <button class="nav-btn logout-nav-btn" id="logoutBtn">
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+    </button>
+
+</aside>
+
+<div class="overlay" id="overlay"></div>
+
+
+<main class="main">
+
+<div class="container">
+
+    <section class="page-head">
+
+        <h1>ℹ️ About EGC Agency Panel</h1>
+
+        <p>
+            Learn more about the Emergency Gas Cylinder agency management
+            system and the tools available to your agency.
+        </p>
+
+    </section>
+
+
+    <section class="about-hero">
+
+        <div class="about-logo">
+
+            <img
+                src="assets/EGC - Emergency Gas Cylinder logo.png"
+                alt="EGC Emergency Gas Cylinder"
+            >
+
+        </div>
+
+        <div class="about-hero-content">
+
+            <h2>Emergency Gas Cylinder</h2>
+
+            <div class="tagline">
+                Short-Term Emergency LPG Finance
+            </div>
+
+            <p>
+                EGC is designed to help LPG agencies manage emergency
+                cylinder finance requests, customer information, payments,
+                deliveries and pending cases through one organized agency
+                panel.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <div class="about-grid">
+
+        <section class="card">
+
+            <div class="card-title">
+
+                <div class="card-icon">🏢</div>
+
+                <div>
+                    <h3>About EGC</h3>
+                    <p>Emergency Gas Cylinder platform</p>
+                </div>
+
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Platform</span>
+                <span class="info-value">EGC</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Service</span>
+                <span class="info-value">Emergency LPG Finance</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Panel</span>
+                <span class="info-value">Agency Management</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Version</span>
+                <span class="info-value">EGC Agency Panel</span>
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-title">
+
+                <div class="card-icon">🎯</div>
+
+                <div>
+                    <h3>Our Purpose</h3>
+                    <p>Why the EGC system exists</p>
+                </div>
+
+            </div>
+
+            <div class="security-note">
+
+                <div class="security-note-icon">
+                    💡
+                </div>
+
+                <div>
+
+                    <strong>
+                        Simple Emergency Support
+                    </strong>
+
+                    <p>
+                        EGC helps agencies organize short-term emergency
+                        LPG finance requests so customer requests,
+                        payments and cylinder deliveries can be managed
+                        more efficiently.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card full">
+
+            <div class="card-title">
+
+                <div class="card-icon">✨</div>
+
+                <div>
+                    <h3>Agency Panel Features</h3>
+                    <p>Tools available for agency management</p>
+                </div>
+
+            </div>
+
+            <div class="feature-grid">
+
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <strong>Customer Management</strong>
+                    <span>
+                        Manage customer information and agency-linked
+                        accounts.
+                    </span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🛢️</div>
+                    <strong>Cylinder Requests</strong>
+                    <span>
+                        View and manage emergency cylinder finance
+                        requests.
+                    </span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">💳</div>
+                    <strong>Payments</strong>
+                    <span>
+                        Track customer payments and payment status.
+                    </span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🚚</div>
+                    <strong>Deliveries</strong>
+                    <span>
+                        Manage cylinder dispatch and delivery information.
+                    </span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">⏳</div>
+                    <strong>Pending / On Hold</strong>
+                    <span>
+                        Keep track of requests that need further action.
+                    </span>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <strong>Reports</strong>
+                    <span>
+                        Review agency activity and important operational
+                        information.
+                    </span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card full">
+
+            <div class="card-title">
+
+                <div class="card-icon">🔄</div>
+
+                <div>
+                    <h3>Basic EGC Process</h3>
+                    <p>How an emergency request can move through the panel</p>
+                </div>
+
+            </div>
+
+            <div class="process">
+
+                <div class="process-item">
+                    <div class="process-number">1</div>
+                    <strong>Request</strong>
+                    <span>
+                        Customer submits an emergency cylinder request.
+                    </span>
+                </div>
+
+                <div class="process-item">
+                    <div class="process-number">2</div>
+                    <strong>Review</strong>
+                    <span>
+                        Agency reviews the request and customer details.
+                    </span>
+                </div>
+
+                <div class="process-item">
+                    <div class="process-number">3</div>
+                    <strong>Payment</strong>
+                    <span>
+                        Applicable finance/payment information is recorded.
+                    </span>
+                </div>
+
+                <div class="process-item">
+                    <div class="process-number">4</div>
+                    <strong>Delivery</strong>
+                    <span>
+                        Approved cylinder request moves to delivery.
+                    </span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-title">
+
+                <div class="card-icon">🔐</div>
+
+                <div>
+                    <h3>Account Security</h3>
+                    <p>Secure agency access</p>
+                </div>
+
+            </div>
+
+            <div class="security-note">
+
+                <div class="security-note-icon">
+                    🛡️
+                </div>
+
+                <div>
+
+                    <strong>
+                        Protected Agency Account
+                    </strong>
+
+                    <p>
+                        Agency access is handled through the EGC
+                        authentication system. Keep your login credentials
+                        private and always logout when using a shared device.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-title">
+
+                <div class="card-icon">💬</div>
+
+                <div>
+                    <h3>Agency Support</h3>
+                    <p>Need assistance?</p>
+                </div>
+
+            </div>
+
+            <div class="security-note">
+
+                <div class="security-note-icon">
+                    📞
+                </div>
+
+                <div>
+
+                    <strong>
+                        EGC Agency Support
+                    </strong>
+
+                    <p>
+                        For account, request, payment or agency-panel
+                        related issues, contact the authorized EGC support
+                        team.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- HELP & SUPPORT -->
+
+        <section class="card full">
+
+            <div class="card-title">
+
+                <div class="card-icon">🆘</div>
+
+                <div>
+                    <h3>Help &amp; Support</h3>
+                    <p>Get assistance with your EGC Agency Panel</p>
+                </div>
+
+            </div>
+
+            <div class="support-grid">
+
+                <div class="support-box">
+
+                    <div class="support-box-icon">
+                        📚
+                    </div>
+
+                    <strong>Help Center</strong>
+
+                    <span>
+                        Facing any problem? Submit your complaint or
+                        describe your issue to the EGC support team.
+                    </span>
+
+                    <button
+                        class="support-btn"
+                        id="viewHelpBtn"
+                    >
+                        View Help
+                    </button>
+
+                </div>
+
+
+                <div class="support-box">
+
+                    <div class="support-box-icon">
+                        ❓
+                    </div>
+
+                    <strong>Frequently Asked Questions</strong>
+
+                    <span>
+                        Find answers to common questions related to your
+                        EGC agency account and panel.
+                    </span>
+
+                    <button
+                        class="support-btn"
+                        id="viewFaqBtn"
+                    >
+                        View FAQ
+                    </button>
+
+                </div>
+
+
+                <div class="support-box">
+
+                    <div class="support-box-icon">
+                        🎧
+                    </div>
+
+                    <strong>Contact Support</strong>
+
+                    <span>
+                        Contact the authorized EGC support team directly
+                        through WhatsApp.
+                    </span>
+
+                    <button
+                        class="support-btn whatsapp"
+                        id="contactSupportBtn"
+                    >
+                        WhatsApp Support
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- DEVELOPER -->
+
+        <section class="card full developer-card">
+
+            <div class="card-title">
+
+                <div class="card-icon">👨‍💻</div>
+
+                <div>
+                    <h3>Developer Details</h3>
+                    <p>EGC platform development and technology</p>
+                </div>
+
+            </div>
+
+            <div class="developer-layout">
+
+                <div class="developer-profile">
+
+                    <div class="developer-avatar">
+
+                        <img
+                            src="assets/developer.png"
+                            alt="Sarbaj Developer"
+                            onerror="this.style.display='none';this.parentElement.textContent='👨‍💻';"
+                        >
+
+                    </div>
+
+                    <div class="developer-info">
+
+                        <h4>Sarbaj</h4>
+
+                        <div class="developer-role">
+                            Developer &amp; Creator
+                        </div>
+
+                        <p>
+                            Designed and developed the EGC Emergency Gas
+                            Cylinder platform and agency management system.
+                        </p>
+
+                        <div class="dev-contact">
+
+                            <a href="tel:+91XXXXXXXXXX">
+                                📞 Phone
+                            </a>
+
+                            <a href="mailto:egchelp@gmail.com">
+                                ✉️ Email
+                            </a>
+
+                            <a
+                                href="https://instagram.com/thesarbaj"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                📷 Instagram
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="social-title">
+                        Connect on Social Media
+                    </div>
+
+                    <div class="social-list">
+
+                        <a
+                            href="https://instagram.com/thesarbaj"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="social-link"
+                        >
+                            <img src="https://cdn.simpleicons.org/instagram/E4405F" alt="">
+                            <span>Instagram</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'Facebook')"
+                        >
+                            <img src="https://cdn.simpleicons.org/facebook/1877F2" alt="">
+                            <span>Facebook</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'YouTube')"
+                        >
+                            <img src="https://cdn.simpleicons.org/youtube/FF0000" alt="">
+                            <span>YouTube</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'LinkedIn')"
+                        >
+                            <img src="https://cdn.simpleicons.org/linkedin/0A66C2" alt="">
+                            <span>LinkedIn</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'GitHub')"
+                        >
+                            <img src="https://cdn.simpleicons.org/github/181717" alt="">
+                            <span>GitHub</span>
+                        </a>
+
+                        <a
+                            href="mailto:egchelp@gmail.com"
+                            class="social-link"
+                        >
+                            <img src="https://cdn.simpleicons.org/gmail/EA4335" alt="">
+                            <span>Gmail</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'X / Twitter')"
+                        >
+                            <img src="https://cdn.simpleicons.org/x/000000" alt="">
+                            <span>X</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'Telegram')"
+                        >
+                            <img src="https://cdn.simpleicons.org/telegram/26A5E4" alt="">
+                            <span>Telegram</span>
+                        </a>
+
+                        <a
+                            href="#"
+                            class="social-link"
+                            onclick="showToastForLink(event,'WhatsApp')"
+                        >
+                            <img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="">
+                            <span>WhatsApp</span>
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <div class="footer">
+
+        <strong>EGC</strong> — Emergency Gas Cylinder
+
+        <br>
+
+        Agency Management Panel
+
+        <br>
+
+        <span>
+            Developed by Sarbaj
+        </span>
+
+    </div>
+
+</div>
+
+</main>
+
+
+<!-- HELP / COMPLAINT MODAL -->
+
+<div class="modal" id="helpModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div class="modal-header-left">
+
+                <div class="modal-header-icon">
+                    🆘
+                </div>
+
+                <div>
+
+                    <h3>EGC Help Center</h3>
+
+                    <p>Submit your problem or complaint</p>
+
+                </div>
+
+            </div>
+
+            <button class="close-modal" data-close="helpModal">
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body">
+
+            <div class="form-note">
+                Apni problem clearly likhiye. Submit karne ke baad
+                complaint EGC support email ke liye prepare ho jayegi.
+            </div>
+
+            <div class="form-group">
+
+                <label>Your Name</label>
+
+                <input
+                    type="text"
+                    id="complaintName"
+                    placeholder="Enter your name"
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Problem Type</label>
+
+                <select id="complaintType">
+
+                    <option value="Account / Login">
+                        Account / Login
+                    </option>
+
+                    <option value="Customer">
+                        Customer
+                    </option>
+
+                    <option value="Cylinder Request">
+                        Cylinder Request
+                    </option>
+
+                    <option value="Payment">
+                        Payment
+                    </option>
+
+                    <option value="Delivery">
+                        Delivery
+                    </option>
+
+                    <option value="Notification">
+                        Notification
+                    </option>
+
+                    <option value="Other">
+                        Other
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Describe Your Problem</label>
+
+                <textarea
+                    id="complaintText"
+                    placeholder="Yahan apni dikkat detail me likhiye..."
+                ></textarea>
+
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="cancel-btn"
+                    data-close="helpModal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="confirm-btn"
+                    id="sendComplaintBtn"
+                >
+                    Send Complaint
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- FAQ MODAL -->
+
+<div class="modal" id="faqModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div class="modal-header-left">
+
+                <div class="modal-header-icon">
+                    ❓
+                </div>
+
+                <div>
+
+                    <h3>EGC Frequently Asked Questions</h3>
+
+                    <p>Common questions and answers</p>
+
+                </div>
+
+            </div>
+
+            <button class="close-modal" data-close="faqModal">
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body">
+
+            <div class="faq-list">
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How do I manage a customer?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Customers section me jaakar customer details
+                        view aur manage ki ja sakti hain.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How can I check cylinder requests?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Cylinder Requests section me agency ke
+                        emergency cylinder finance requests दिखाई देंगी.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How can I check payments?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Payments section me customer payment records
+                        aur payment status check kiya ja sakta hai.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What is Pending / On Hold?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Is section me wo requests hoti hain jinke liye
+                        agency ko further action ya verification karni hai.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What should I do if I cannot login?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Sabse pehle apne login credentials check karein.
+                        Agar problem continue ho to Help Center me
+                        complaint submit karein.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What if a payment is showing incorrectly?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Payment details verify karein aur agar issue
+                        resolve na ho to Payment problem ke naam se
+                        Help Center complaint submit karein.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What if delivery information is wrong?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Delivery section me details check karein.
+                        Incorrect information ke liye support complaint
+                        submit ki ja sakti hai.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How can I contact EGC support?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Help Center se complaint submit karein ya
+                        Contact Support button se official EGC WhatsApp
+                        support open karein.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Is my agency account protected?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        EGC agency access authentication system ke through
+                        protected hai. Apne login credentials kisi ke saath
+                        share na karein.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How can I logout?
+                        <span class="faq-plus">+</span>
+                    </button>
+
+                    <div class="faq-answer">
+                        Sidebar ke bottom me Logout button par click karke
+                        safely account se logout kiya ja sakta hai.
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- DEVELOPER MODAL -->
+
+<div class="modal" id="developerModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div class="modal-header-left">
+
+                <div class="modal-header-icon">
+                    👨‍💻
+                </div>
+
+                <div>
+
+                    <h3>Developer Details</h3>
+
+                    <p>EGC Developer &amp; Creator</p>
+
+                </div>
+
+            </div>
+
+            <button class="close-modal" data-close="developerModal">
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body">
+
+            <div class="developer-modal-profile">
+
+                <img
+                    class="developer-modal-photo"
+                    src="assets/developer.png"
+                    alt="Sarbaj"
+                    onerror="this.style.display='none';"
+                >
+
+                <h3>Sarbaj</h3>
+
+                <div class="role">
+                    Developer &amp; Creator
+                </div>
+
+                <div class="developer-description">
+
+                    Designed and developed the EGC Emergency Gas Cylinder
+                    platform, including the agency management system,
+                    customer management, emergency cylinder requests,
+                    payments and delivery management.
+
+                </div>
+
+            </div>
+
+            <div class="developer-details-grid">
+
+                <div class="dev-detail">
+                    <span>NAME</span>
+                    <strong>Sarbaj</strong>
+                </div>
+
+                <div class="dev-detail">
+                    <span>ROLE</span>
+                    <strong>Developer &amp; Creator</strong>
+                </div>
+
+                <div class="dev-detail">
+                    <span>OFFICIAL EMAIL</span>
+                    <strong>egchelp@gmail.com</strong>
+                </div>
+
+                <div class="dev-detail">
+                    <span>PHONE</span>
+                    <strong>+91 XXXXXXXXXX</strong>
+                </div>
+
+            </div>
+
+            <div class="social-title">
+                Official Social Media
+            </div>
+
+            <div class="modal-socials">
+
+                <a
+                    href="https://instagram.com/thesarbaj"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/instagram/E4405F" alt="">
+                    Instagram
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'Facebook')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/facebook/1877F2" alt="">
+                    Facebook
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'YouTube')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/youtube/FF0000" alt="">
+                    YouTube
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'LinkedIn')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/linkedin/0A66C2" alt="">
+                    LinkedIn
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'GitHub')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/github/181717" alt="">
+                    GitHub
+                </a>
+
+                <a
+                    href="mailto:egchelp@gmail.com"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/gmail/EA4335" alt="">
+                    Gmail
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'X / Twitter')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/x/000000" alt="">
+                    X
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'Telegram')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/telegram/26A5E4" alt="">
+                    Telegram
+                </a>
+
+                <a
+                    href="#"
+                    onclick="showToastForLink(event,'WhatsApp')"
+                    class="social-link"
+                >
+                    <img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="">
+                    WhatsApp
+                </a>
+
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="cancel-btn"
+                    data-close="developerModal"
+                >
+                    Close
+                </button>
+
+                <button
+                    class="confirm-btn"
+                    id="developerInstagramBtn"
+                >
+                    Open Instagram
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- LOGOUT MODAL -->
+
+<div class="modal" id="logoutModal">
+
+    <div class="modal-card">
+
+        <div class="modal-body">
+
+            <div
+                class="modal-header-icon"
+                style="margin:0 auto 13px;"
+            >
+                🚪
+            </div>
+
+            <h3
+                style="text-align:center;color:#06477f;font-size:18px;margin-bottom:7px;"
+            >
+                Logout?
+            </h3>
+
+            <p
+                style="text-align:center;color:#718796;font-size:10px;line-height:1.5;"
+            >
+                Are you sure you want to logout from the EGC Agency Panel?
+            </p>
+
+            <div class="modal-actions">
+
+                <button
+                    class="cancel-btn"
+                    id="logoutCancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="confirm-btn"
+                    id="logoutConfirm"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div class="toast" id="toast">
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    ></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* =========================================
+   EGC SETTINGS
+   ========================================= */
+
+/*
+   IMPORTANT:
+   In actual project yahan owner ka real email
+   aur WhatsApp number daalna.
+*/
+
+const OWNER_EMAIL = "egchelp@gmail.com";
+
+/*
+   WhatsApp number:
+   Country code ke saath, + sign ke bina.
+   Example:
+   919876543210
+*/
+const OWNER_WHATSAPP = "91XXXXXXXXXX";
+
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+let currentProfile = null;
+
+
+/* HELPER */
+
+const $ = id =>
+document.getElementById(id);
+
+
+/* TOAST */
+
+function toast(title,text){
+
+    $("toastTitle").textContent =
+        title || "Notification";
+
+    $("toastText").textContent =
+        text || "";
+
+    $("toast").classList.add("show");
+
+    clearTimeout(window.egcToast);
+
+    window.egcToast =
+        setTimeout(
+            () => {
+                $("toast").classList.remove("show");
+            },
+            4500
+        );
+}
+
+
+/* OPEN MODAL */
+
+function openModal(id){
+
+    const modal = $(id);
+
+    if(modal){
+        modal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+}
+
+
+/* CLOSE MODAL */
+
+function closeModal(id){
+
+    const modal = $(id);
+
+    if(modal){
+        modal.classList.remove("show");
+    }
+
+    const anyOpen =
+        document.querySelector(".modal.show");
+
+    if(!anyOpen){
+        document.body.style.overflow = "";
+    }
+}
+
+
+/* ALL CLOSE BUTTONS */
+
+document.querySelectorAll("[data-close]").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        closeModal(
+            button.getAttribute("data-close")
+        );
+
+    });
+
+});
+
+
+/* CLICK OUTSIDE MODAL */
+
+document.querySelectorAll(".modal").forEach(modal => {
+
+    modal.addEventListener("click", event => {
+
+        if(event.target === modal){
+
+            closeModal(modal.id);
+
+        }
+
+    });
+
+});
+
+
+/* HELP CENTER */
+
+$("viewHelpBtn").onclick = () => {
+
+    if(currentProfile?.full_name){
+
+        $("complaintName").value =
+            currentProfile.full_name;
+
+    }
+
+    openModal("helpModal");
+
+};
+
+
+/* SEND COMPLAINT */
+
+$("sendComplaintBtn").onclick = () => {
+
+    const name =
+        $("complaintName").value.trim();
+
+    const type =
+        $("complaintType").value;
+
+    const problem =
+        $("complaintText").value.trim();
+
+    if(!name){
+
+        toast(
+            "Name Required",
+            "Please enter your name."
+        );
+
+        $("complaintName").focus();
+
+        return;
+    }
+
+    if(!problem){
+
+        toast(
+            "Problem Required",
+            "Please describe your problem."
+        );
+
+        $("complaintText").focus();
+
+        return;
+    }
+
+
+    const userEmail =
+        currentUser?.email ||
+        "Not available";
+
+    const subject =
+        "EGC Agency Complaint - " +
+        type;
+
+    const body =
+`EGC AGENCY SUPPORT COMPLAINT
+
+Name:
+${name}
+
+Email:
+${userEmail}
+
+Problem Type:
+${type}
+
+Problem:
+${problem}
+
+--------------------------------
+Sent from EGC Agency Panel`;
+
+
+    const mailto =
+        "mailto:" +
+        OWNER_EMAIL +
+        "?subject=" +
+        encodeURIComponent(subject) +
+        "&body=" +
+        encodeURIComponent(body);
+
+
+    window.location.href =
+        mailto;
+
+
+    toast(
+        "Complaint Ready",
+        "Your email app is opening with the complaint details."
+    );
+
+};
+
+
+/* FAQ */
+
+$("viewFaqBtn").onclick = () => {
+
+    openModal("faqModal");
+
+};
+
+
+/* FAQ ACCORDION */
+
+document.querySelectorAll(".faq-question")
+.forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        const item =
+            button.closest(".faq-item");
+
+        item.classList.toggle("open");
+
+        const plus =
+            button.querySelector(".faq-plus");
+
+        if(item.classList.contains("open")){
+
+            plus.textContent = "−";
+
+        }else{
+
+            plus.textContent = "+";
+
+        }
+
+    });
+
+});
+
+
+/* WHATSAPP SUPPORT */
+
+$("contactSupportBtn").onclick = () => {
+
+    if(
+        !OWNER_WHATSAPP ||
+        OWNER_WHATSAPP.includes("X")
+    ){
+
+        toast(
+            "WhatsApp Number Missing",
+            "Please add the official EGC WhatsApp number in OWNER_WHATSAPP."
+        );
+
+        return;
+    }
+
+
+    const name =
+        currentProfile?.full_name ||
+        "EGC Agency";
+
+    const message =
+        "Hello EGC Support, I need help with my agency panel. My name is " +
+        name +
+        ".";
+
+
+    const url =
+        "https://wa.me/" +
+        OWNER_WHATSAPP +
+        "?text=" +
+        encodeURIComponent(message);
+
+
+    window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+    );
+
+};
+
+
+/* DEVELOPER TOP */
+
+$("developerTop").onclick = () => {
+
+    openModal("developerModal");
+
+};
+
+
+/* EGC ABOUT TOP */
+
+$("egcAboutTop").onclick = () => {
+
+    window.scrollTo({
+        top:0,
+        behavior:"smooth"
+    });
+
+};
+
+
+/* DEVELOPER INSTAGRAM */
+
+$("developerInstagramBtn").onclick = () => {
+
+    window.open(
+        "https://instagram.com/thesarbaj",
+        "_blank",
+        "noopener,noreferrer"
+    );
+
+};
+
+
+/* SOCIAL PLACEHOLDER */
+
+function showToastForLink(event,name){
+
+    event.preventDefault();
+
+    toast(
+        name,
+        "Official " + name + " link will be added here."
+    );
+
+}
+
+
+/* SESSION */
+
+async function loadSession(){
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .auth
+        .getUser();
+
+    if(
+        error ||
+        !data?.user
+    ){
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+    }
+
+    currentUser =
+        data.user;
+
+    return true;
+}
+
+
+/* PROFILE */
+
+async function loadProfile(){
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq(
+            "id",
+            currentUser.id
+        )
+        .maybeSingle();
+
+    if(error || !data){
+
+        console.error(error);
+
+        toast(
+            "Profile Error",
+            error?.message ||
+            "Agency profile not found."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+    }
+
+    currentProfile =
+        data;
+
+    if(
+        data.role &&
+        String(data.role).toLowerCase() !== "agency"
+    ){
+
+        toast(
+            "Access Denied",
+            "This account is not an agency account."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+/* HEADER AGENCY NAME */
+
+async function loadAgencyName(){
+
+    if(!currentProfile?.agency_id){
+        return;
+    }
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("agencies")
+        .select("*")
+        .eq(
+            "id",
+            currentProfile.agency_id
+        )
+        .maybeSingle();
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    if(!data){
+        return;
+    }
+
+    const name =
+        data.agency_name ||
+        data.name ||
+        data.agencyName ||
+        "LPG Agency";
+
+    $("headerAgencyName")
+        .textContent =
+            name;
+}
+
+
+/* LOGOUT */
+
+function openLogout(){
+
+    openModal("logoutModal");
+
+}
+
+$("logoutBtn").onclick =
+openLogout;
+
+
+$("logoutCancel").onclick =
+() => {
+
+    closeModal("logoutModal");
+
+};
+
+
+$("logoutConfirm").onclick =
+async () => {
+
+    const button =
+        $("logoutConfirm");
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Logging out...";
+
+    try{
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .auth
+            .signOut();
+
+        if(error){
+            throw error;
+        }
+
+        location.replace(
+            "agency-login.html"
+        );
+
+    }catch(error){
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Logout";
+
+        toast(
+            "Logout Failed",
+            error.message ||
+            "Please try again."
+        );
+    }
+};
+
+
+/* NAVIGATION */
+
+function nav(id,url){
+
+    const element =
+        $(id);
+
+    if(element){
+
+        element.onclick =
+        () => {
+
+            location.href =
+                url;
+
+        };
+    }
+}
+
+
+nav(
+    "dashboardBtn",
+    "agency-dashboard.html"
+);
+
+nav(
+    "customersBtn",
+    "agency-customers.html"
+);
+
+nav(
+    "requestsBtn",
+    "agency-cylinder-requests.html"
+);
+
+nav(
+    "requestDetailsBtn",
+    "agency-request-details.html"
+);
+
+nav(
+    "paymentsBtn",
+    "agency-payments.html"
+);
+
+nav(
+    "repaymentsBtn",
+    "agency-repayments.html"
+);
+
+nav(
+    "deliveriesBtn",
+    "agency-deliveries.html"
+);
+
+nav(
+    "pendingBtn",
+    "agency-pending.html"
+);
+
+nav(
+    "slipsBtn",
+    "agency-slips.html"
+);
+
+nav(
+    "notificationsBtn",
+    "agency-notifications.html"
+);
+
+nav(
+    "reportsBtn",
+    "agency-reports.html"
+);
+
+nav(
+    "settingsBtn",
+    "agency-settings.html"
+);
+
+nav(
+    "processingBtn",
+    "agency-processing.html"
+);
+
+/* NOTIFICATION */
+
+$("notificationBtn").onclick =
+() => {
+
+    location.href =
+        "agency-notifications.html";
+
+};
+
+
+/* MOBILE MENU */
+
+$("menuBtn").onclick =
+() => {
+
+    $("sidebar")
+        .classList
+        .toggle("open");
+
+    $("overlay")
+        .classList
+        .toggle("show");
+
+};
+
+
+$("overlay").onclick =
+() => {
+
+    $("sidebar")
+        .classList
+        .remove("open");
+
+    $("overlay")
+        .classList
+        .remove("show");
+
+};
+
+
+/* SIDEBAR CLOSE */
+
+document
+.querySelectorAll(".nav-btn")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            if(
+                window.innerWidth <= 800
+            ){
+
+                $("sidebar")
+                    .classList
+                    .remove("open");
+
+                $("overlay")
+                    .classList
+                    .remove("show");
+
+            }
+
+        }
+    );
+
+});
+
+
+/* ESCAPE */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key === "Escape"
+        ){
+
+            document
+            .querySelectorAll(".modal.show")
+            .forEach(modal => {
+
+                modal.classList.remove("show");
+
+            });
+
+            $("sidebar")
+                .classList
+                .remove("open");
+
+            $("overlay")
+                .classList
+                .remove("show");
+
+            document.body.style.overflow = "";
+
+        }
+
+    }
+);
+
+
+/* AUTH STATE */
+
+supabaseClient
+.auth
+.onAuthStateChange(
+    event => {
+
+        if(
+            event === "SIGNED_OUT"
+        ){
+
+            location.replace(
+                "agency-login.html"
+            );
+
+        }
+
+    }
+);
+
+
+/* INIT */
+
+async function init(){
+
+    if(
+        !await loadSession()
+    ){
+        return;
+    }
+
+    if(
+        !await loadProfile()
+    ){
+        return;
+    }
+
+    await loadAgencyName();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,4664 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Owner Requests</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #ffffff;
+}
+
+button,
+input,
+select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+.app{
+    min-height:100vh;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.95);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:46px;
+    height:46px;
+    border:0;
+    border-radius:13px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:21px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.notification-btn:hover{
+    background:#e2f1ff;
+}
+
+.notification-badge{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    display:none;
+    position:absolute;
+    top:58px;
+    right:0;
+    width:330px;
+    max-width:calc(100vw - 28px);
+    background:#fff;
+    border:1px solid #e1eaf1;
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(30,70,100,.18);
+    overflow:hidden;
+    z-index:5000;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-header{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notification-title{
+    font-size:15px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.clear-notifications{
+    border:0;
+    background:transparent;
+    color:#0878d1;
+    font-size:11px;
+    font-weight:700;
+}
+
+.notification-list{
+    max-height:320px;
+    overflow-y:auto;
+}
+
+.notification-empty{
+    padding:28px 18px;
+    text-align:center;
+    color:#91a1af;
+    font-size:12px;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #edf2f6;
+}
+
+.notification-item-title{
+    font-size:12px;
+    font-weight:800;
+    color:#075080;
+}
+
+.notification-item-text{
+    font-size:11px;
+    color:#7e93a5;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+.notification-item-time{
+    font-size:9px;
+    color:#a0adb8;
+    margin-top:5px;
+}
+
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+
+/* =========================================================
+   MASTER OWNER SIDEBAR
+========================================================= */
+
+.sidebar{
+    width:245px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,245,245,.98) 0%,
+            rgba(242,248,255,.98) 52%,
+            rgba(255,255,255,.98) 100%
+        );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px 18px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:13px;
+    font-weight:800;
+    padding:0 13px 12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:13px 14px;
+    border-radius:11px;
+    margin-bottom:5px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    min-height:43px;
+    transition:
+        background .18s ease,
+        color .18s ease,
+        transform .18s ease;
+}
+
+.nav-btn:hover{
+    background:rgba(225,239,252,.8);
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:25px;
+    min-width:25px;
+    margin-right:8px;
+    font-size:17px;
+}
+
+.nav-badge{
+    margin-left:auto;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:9px;
+    font-weight:800;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.nav-badge.show{
+    display:inline-flex;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#fff0f0;
+    color:#c52e2e;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+    background:
+        radial-gradient(circle at 85% 15%,rgba(190,225,255,.25),transparent 32%),
+        radial-gradient(circle at 10% 85%,rgba(255,205,205,.22),transparent 30%);
+}
+
+.page-heading{
+    margin-bottom:23px;
+}
+
+.page-heading h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.page-heading p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+
+/* =========================================================
+   TOP STATS
+========================================================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.stat-card{
+    background:rgba(255,255,255,.94);
+    border:1px solid #dce6ee;
+    border-radius:17px;
+    padding:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+}
+
+.stat-label{
+    font-size:11px;
+    color:#8195a5;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.stat-number{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-top:9px;
+}
+
+.stat-description{
+    font-size:10px;
+    color:#9aa9b5;
+    margin-top:4px;
+}
+
+
+/* =========================================================
+   FILTER PANEL
+========================================================= */
+
+.filter-panel{
+    background:rgba(255,255,255,.95);
+    border:1px solid #dce6ee;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.06);
+    margin-bottom:20px;
+}
+
+.filters{
+    display:grid;
+    grid-template-columns:1.5fr 1fr 1fr auto;
+    gap:12px;
+    align-items:end;
+}
+
+.field{
+    min-width:0;
+}
+
+.field label{
+    display:block;
+    font-size:11px;
+    font-weight:800;
+    color:#71899c;
+    margin-bottom:7px;
+}
+
+.field input,
+.field select{
+    width:100%;
+    height:43px;
+    border:1px solid #dce7ef;
+    border-radius:11px;
+    background:#fbfdff;
+    color:#35566f;
+    padding:0 12px;
+    outline:none;
+    font-size:13px;
+}
+
+.field input:focus,
+.field select:focus{
+    border-color:#8fc3e8;
+    box-shadow:0 0 0 3px rgba(52,142,207,.08);
+}
+
+.reset-btn{
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:#eef5fa;
+    color:#527087;
+    padding:0 15px;
+    font-size:12px;
+    font-weight:800;
+}
+
+
+/* =========================================================
+   REQUEST PANEL
+========================================================= */
+
+.request-panel{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ee;
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+}
+
+.panel-header{
+    padding:20px 21px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.panel-title{
+    font-size:18px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.panel-subtitle{
+    font-size:12px;
+    color:#8799a9;
+    margin-top:4px;
+}
+
+.refresh-btn{
+    border:0;
+    background:#eef7ff;
+    color:#0871c3;
+    border-radius:10px;
+    padding:9px 13px;
+    font-size:12px;
+    font-weight:800;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:1050px;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f7fafc;
+    color:#71889a;
+    font-size:10px;
+    text-transform:uppercase;
+    padding:13px 14px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:14px;
+    border-top:1px solid #edf2f6;
+    color:#35566f;
+    font-size:12px;
+    vertical-align:middle;
+}
+
+.user-name{
+    font-size:12px;
+    font-weight:800;
+    color:#315671;
+}
+
+.user-id{
+    font-size:10px;
+    color:#0871c3;
+    margin-top:4px;
+    font-weight:700;
+}
+
+.location-main{
+    font-weight:700;
+    color:#45647a;
+}
+
+.location-sub{
+    font-size:10px;
+    color:#91a0ac;
+    margin-top:3px;
+}
+
+.agency-name{
+    font-size:11px;
+    font-weight:800;
+    color:#315671;
+}
+
+.request-date{
+    font-size:11px;
+    color:#6e8798;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:9px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.status.pending{
+    background:#fff7df;
+    color:#a36b00;
+}
+
+.status.approved{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.rejected{
+    background:#fff0f0;
+    color:#c52e2e;
+}
+
+.status.processing{
+    background:#edf6ff;
+    color:#086db7;
+}
+
+.status.delivered{
+    background:#eaf8ff;
+    color:#0871c3;
+}
+
+.status.completed{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.unknown{
+    background:#f0f3f5;
+    color:#71818d;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.actions{
+    display:flex;
+    align-items:center;
+    gap:7px;
+}
+
+.action-btn{
+    border:0;
+    min-width:34px;
+    height:34px;
+    padding:0 9px;
+    border-radius:9px;
+    font-size:11px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.view-action{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.approve-action{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.reject-action{
+    background:#fff0f0;
+    color:#c52e2e;
+}
+
+.action-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.empty{
+    text-align:center;
+    padding:42px 20px;
+    color:#91a1af;
+    font-size:13px;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.48);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:850px;
+    max-height:90vh;
+    overflow:hidden;
+    background:#fff;
+    border-radius:21px;
+    box-shadow:0 25px 90px rgba(0,0,0,.28);
+}
+
+.modal-header{
+    padding:19px 22px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.modal-title{
+    font-size:18px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.close-btn{
+    width:35px;
+    height:35px;
+    border:0;
+    border-radius:9px;
+    background:#eef4f8;
+    color:#547084;
+    font-size:18px;
+}
+
+.modal-body{
+    padding:22px;
+    overflow-y:auto;
+    max-height:calc(90vh - 135px);
+}
+
+.detail-section{
+    margin-bottom:22px;
+}
+
+.detail-section:last-child{
+    margin-bottom:0;
+}
+
+.detail-title{
+    font-size:13px;
+    font-weight:800;
+    color:#06477f;
+    padding-bottom:9px;
+    border-bottom:1px solid #edf2f6;
+    margin-bottom:13px;
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:11px;
+}
+
+.detail-item{
+    background:#f8fbfd;
+    border:1px solid #edf2f6;
+    border-radius:11px;
+    padding:11px;
+}
+
+.detail-label{
+    font-size:9px;
+    text-transform:uppercase;
+    color:#8a9daa;
+    font-weight:800;
+}
+
+.detail-value{
+    font-size:12px;
+    color:#35566f;
+    font-weight:700;
+    margin-top:5px;
+    word-break:break-word;
+}
+
+.modal-footer{
+    padding:15px 22px;
+    border-top:1px solid #edf2f6;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+}
+
+.modal-footer button{
+    height:43px;
+    border:0;
+    border-radius:11px;
+    padding:0 17px;
+    font-size:12px;
+    font-weight:800;
+}
+
+.modal-approve{
+    background:#18803d;
+    color:#fff;
+}
+
+.modal-reject{
+    background:#d93636;
+    color:#fff;
+}
+
+.modal-close{
+    background:#eef4f8;
+    color:#527087;
+}
+
+
+/* =========================================================
+   CONFIRM MODAL
+========================================================= */
+
+.confirm-card{
+    max-width:430px;
+}
+
+.confirm-body{
+    padding:25px;
+    text-align:center;
+}
+
+.confirm-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 15px;
+    border-radius:50%;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+}
+
+.confirm-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.confirm-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin-top:8px;
+}
+
+.confirm-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:20px;
+}
+
+.confirm-actions button{
+    height:46px;
+    border:0;
+    border-radius:11px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.confirm-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.confirm-ok{
+    background:#18803d;
+    color:#fff;
+}
+
+.confirm-ok.reject{
+    background:#d93636;
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+.logout-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.45);
+    z-index:99999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-card{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:21px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 15px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+}
+
+.logout-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.logout-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin:8px 0 20px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.logout-actions button{
+    height:46px;
+    border:0;
+    border-radius:11px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#d93636;
+    color:#fff;
+}
+
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1050px){
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .filters{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .reset-btn{
+        width:100%;
+    }
+}
+
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        gap:7px;
+    }
+
+    .notification-btn{
+        width:42px;
+        height:42px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:76px;
+        right:14px;
+    }
+
+    .layout{
+        display:block;
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:2000;
+        transition:left .25s ease;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:1500;
+    }
+
+    .main{
+        padding:20px 14px 40px;
+    }
+
+    .page-heading h1{
+        font-size:23px;
+    }
+
+    .page-heading p{
+        font-size:12px;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .stat-card{
+        padding:14px;
+        border-radius:14px;
+    }
+
+    .stat-number{
+        font-size:22px;
+    }
+
+    .stat-label{
+        font-size:9px;
+    }
+
+    .filters{
+        grid-template-columns:1fr;
+    }
+
+    .filter-panel{
+        padding:14px;
+    }
+
+    .panel-header{
+        padding:16px;
+    }
+
+    .panel-title{
+        font-size:16px;
+    }
+
+    .request-panel{
+        border-radius:15px;
+    }
+
+    .modal{
+        padding:10px;
+    }
+
+    .modal-card{
+        max-height:94vh;
+        border-radius:17px;
+    }
+
+    .modal-body{
+        padding:16px;
+        max-height:calc(94vh - 135px);
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .modal-footer{
+        padding:12px 16px;
+    }
+}
+
+
+@media(max-width:480px){
+
+    .detail-grid{
+        grid-template-columns:1fr;
+    }
+
+    .modal-footer{
+        display:grid;
+        grid-template-columns:1fr;
+    }
+
+    .confirm-actions,
+    .logout-actions{
+        grid-template-columns:1fr 1fr;
+    }
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="Open menu"
+        >
+            ☰
+        </button>
+
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+
+        <div>
+
+            <div class="owner-title">
+                Owner Requests
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <div class="owner-badge">
+
+            <span class="owner-dot"></span>
+
+            Owner
+
+        </div>
+
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+                aria-label="Notifications"
+            >
+                🔔
+
+                <span
+                    class="notification-badge"
+                    id="notificationBadge"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-header">
+
+                    <div class="notification-title">
+                        Notifications
+                    </div>
+
+                    <button
+                        class="clear-notifications"
+                        id="clearNotifications"
+                        type="button"
+                    >
+                        Clear
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        No new notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     LAYOUT
+===================================================== -->
+
+<div class="layout">
+
+
+<!-- =====================================================
+     COMPLETE MASTER OWNER SIDEBAR
+===================================================== -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="pending"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+
+        <span
+            class="nav-badge"
+            id="pendingBadge"
+        >
+            0
+        </span>
+    </button>
+
+
+    <button
+        class="nav-btn active"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+
+    <!-- OWNER PAGES -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:25px;"
+    >
+        Owner Pages
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="request-details"
+        type="button"
+    >
+        <span class="nav-icon">📄</span>
+        Request Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payment-details"
+        type="button"
+    >
+        <span class="nav-icon">💳</span>
+        Payment Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agency-details"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        Agency Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="deliveries"
+        type="button"
+    >
+        <span class="nav-icon">🚚</span>
+        Deliveries
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="repayments"
+        type="button"
+    >
+        <span class="nav-icon">💰</span>
+        Repayments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="notifications"
+        type="button"
+    >
+        <span class="nav-icon">🔔</span>
+        Notifications
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="slips"
+        type="button"
+    >
+        <span class="nav-icon">🧾</span>
+        Slips
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="profile"
+        type="button"
+    >
+        <span class="nav-icon">👤</span>
+        Profile
+    </button>
+
+
+
+    <!-- SYSTEM -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:25px;"
+    >
+        System
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="settings"
+        type="button"
+    >
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+
+    <!-- LOGOUT -->
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+
+<!-- MOBILE OVERLAY -->
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+
+<!-- =====================================================
+     MAIN CONTENT
+===================================================== -->
+
+<main class="main">
+
+
+    <div class="page-heading">
+
+        <h1>
+            Cylinder Requests
+        </h1>
+
+        <p>
+            Review user requests, verification details and approve or reject requests.
+        </p>
+
+    </div>
+
+
+
+    <!-- =================================================
+         STATS
+    ================================================== -->
+
+    <section class="stats">
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Total Requests
+            </div>
+
+            <div
+                class="stat-number"
+                id="totalRequests"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                All cylinder requests
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Pending Approval
+            </div>
+
+            <div
+                class="stat-number"
+                id="pendingRequests"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Waiting for Owner
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Approved
+            </div>
+
+            <div
+                class="stat-number"
+                id="approvedRequests"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Owner approved
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-label">
+                Processing
+            </div>
+
+            <div
+                class="stat-number"
+                id="processingRequests"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Agency processing
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         FILTERS
+    ================================================== -->
+
+    <section class="filter-panel">
+
+        <div class="filters">
+
+
+            <div class="field">
+
+                <label>
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search user, EGC ID, city..."
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label>
+                    Status
+                </label>
+
+                <select id="statusFilter">
+
+                    <option value="all">
+                        All Status
+                    </option>
+
+                    <option value="pending">
+                        Pending Approval
+                    </option>
+
+                    <option value="approved">
+                        Approved
+                    </option>
+
+                    <option value="rejected">
+                        Rejected
+                    </option>
+
+                    <option value="processing">
+                        Processing
+                    </option>
+
+                    <option value="delivered">
+                        Delivered
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="field">
+
+                <label>
+                    LPG Company
+                </label>
+
+                <select id="companyFilter">
+
+                    <option value="all">
+                        All Companies
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                class="reset-btn"
+                id="resetFilters"
+                type="button"
+            >
+                Reset
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         REQUEST TABLE
+    ================================================== -->
+
+    <section class="request-panel">
+
+
+        <div class="panel-header">
+
+            <div>
+
+                <div class="panel-title">
+                    User Cylinder Requests
+                </div>
+
+                <div class="panel-subtitle">
+                    Owner approval is required before payment and agency processing.
+                </div>
+
+            </div>
+
+
+            <button
+                class="refresh-btn"
+                id="refreshBtn"
+                type="button"
+            >
+                ↻ Refresh
+            </button>
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            User
+                        </th>
+
+                        <th>
+                            LPG Details
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Agency
+                        </th>
+
+                        <th>
+                            Request Date
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="requestTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="empty"
+                        >
+                            Loading requests...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+</div>
+
+</div>
+
+
+
+<!-- =====================================================
+     REQUEST DETAILS MODAL
+===================================================== -->
+
+<div
+    class="modal"
+    id="detailsModal"
+>
+
+    <div class="modal-card">
+
+
+        <div class="modal-header">
+
+            <div class="modal-title">
+                Request Details
+            </div>
+
+            <button
+                class="close-btn"
+                id="detailsClose"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div
+            class="modal-body"
+            id="detailsBody"
+        >
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                class="modal-close"
+                id="detailsCloseBottom"
+                type="button"
+            >
+                Close
+            </button>
+
+            <button
+                class="modal-reject"
+                id="modalReject"
+                type="button"
+            >
+                Reject Request
+            </button>
+
+            <button
+                class="modal-approve"
+                id="modalApprove"
+                type="button"
+            >
+                Approve Request
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     CONFIRM MODAL
+===================================================== -->
+
+<div
+    class="modal"
+    id="confirmModal"
+>
+
+    <div class="modal-card confirm-card">
+
+
+        <div class="confirm-body">
+
+            <div
+                class="confirm-icon"
+                id="confirmIcon"
+            >
+                ✓
+            </div>
+
+            <div
+                class="confirm-title"
+                id="confirmTitle"
+            >
+                Approve Request?
+            </div>
+
+            <div
+                class="confirm-text"
+                id="confirmText"
+            >
+                Are you sure you want to approve this request?
+            </div>
+
+
+            <div class="confirm-actions">
+
+                <button
+                    class="confirm-cancel"
+                    id="confirmCancel"
+                    type="button"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="confirm-ok"
+                    id="confirmOk"
+                    type="button"
+                >
+                    Confirm
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     LOGOUT MODAL
+===================================================== -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout Confirmation
+        </div>
+
+        <div class="logout-text">
+            Kya aap EGC Owner Panel se logout karna chahte hain?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                class="logout-cancel"
+                id="logoutCancel"
+                type="button"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="logout-confirm"
+                id="logoutConfirm"
+                type="button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* ================= ELEMENTS ================= */
+
+const requestTableBody =
+document.getElementById("requestTableBody");
+
+const totalRequests =
+document.getElementById("totalRequests");
+
+const pendingRequests =
+document.getElementById("pendingRequests");
+
+const approvedRequests =
+document.getElementById("approvedRequests");
+
+const processingRequests =
+document.getElementById("processingRequests");
+
+const searchInput =
+document.getElementById("searchInput");
+
+const statusFilter =
+document.getElementById("statusFilter");
+
+const companyFilter =
+document.getElementById("companyFilter");
+
+const resetFilters =
+document.getElementById("resetFilters");
+
+const refreshBtn =
+document.getElementById("refreshBtn");
+
+const detailsModal =
+document.getElementById("detailsModal");
+
+const detailsBody =
+document.getElementById("detailsBody");
+
+const detailsClose =
+document.getElementById("detailsClose");
+
+const detailsCloseBottom =
+document.getElementById("detailsCloseBottom");
+
+const modalApprove =
+document.getElementById("modalApprove");
+
+const modalReject =
+document.getElementById("modalReject");
+
+const confirmModal =
+document.getElementById("confirmModal");
+
+const confirmIcon =
+document.getElementById("confirmIcon");
+
+const confirmTitle =
+document.getElementById("confirmTitle");
+
+const confirmText =
+document.getElementById("confirmText");
+
+const confirmCancel =
+document.getElementById("confirmCancel");
+
+const confirmOk =
+document.getElementById("confirmOk");
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const notificationBtn =
+document.getElementById("notificationBtn");
+
+const notificationPanel =
+document.getElementById("notificationPanel");
+
+const notificationBadge =
+document.getElementById("notificationBadge");
+
+const notificationList =
+document.getElementById("notificationList");
+
+const clearNotifications =
+document.getElementById("clearNotifications");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const logoutModal =
+document.getElementById("logoutModal");
+
+const logoutCancel =
+document.getElementById("logoutCancel");
+
+const logoutConfirm =
+document.getElementById("logoutConfirm");
+
+
+/* ================= DATA ================= */
+
+let requests = [];
+
+let selectedRequest = null;
+
+let pendingAction = null;
+
+let notifications = [];
+
+
+/* ================= NAVIGATION ================= */
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+
+        users:"owner-users.html",
+
+        agencies:"owner-agencies.html",
+
+        companies:"owner-companies.html",
+
+        requests:"owner-requests.html",
+
+        payments:"owner-payments.html",
+
+        reports:"owner-reports.html",
+
+        settings:"owner-settings.html"
+
+    };
+
+    if(pages[page]){
+
+        window.location.href =
+        pages[page];
+
+    }
+
+}
+
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            openPage(
+                this.dataset.page
+            );
+
+        }
+    );
+
+});
+
+
+/* ================= MOBILE ================= */
+
+menuBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.toggle("open");
+
+        overlay.classList.toggle("show");
+
+    }
+);
+
+
+overlay.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove("open");
+
+        overlay.classList.remove("show");
+
+    }
+);
+
+
+/* ================= SAFE HTML ================= */
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* ================= DATE ================= */
+
+function formatDate(value){
+
+    if(!value){
+
+        return "—";
+
+    }
+
+    const date =
+    new Date(value);
+
+    if(
+        Number.isNaN(
+            date.getTime()
+        )
+    ){
+
+        return "—";
+
+    }
+
+    return date.toLocaleString(
+        "en-IN",
+        {
+            dateStyle:"medium",
+            timeStyle:"short"
+        }
+    );
+
+}
+
+
+/* ================= STATUS ================= */
+
+function normalizeStatus(value){
+
+    const status =
+    String(
+        value ||
+        "pending"
+    )
+    .trim()
+    .toLowerCase();
+
+    if(
+        status === "pending" ||
+        status === "pending approval" ||
+        status === "submitted"
+    ){
+
+        return "pending";
+
+    }
+
+    if(
+        status === "approved" ||
+        status === "owner approved" ||
+        status === "payment required"
+    ){
+
+        return "approved";
+
+    }
+
+    if(
+        status === "rejected" ||
+        status === "declined"
+    ){
+
+        return "rejected";
+
+    }
+
+    if(
+        status === "processing" ||
+        status === "agency processing"
+    ){
+
+        return "processing";
+
+    }
+
+    if(
+        status === "delivered" ||
+        status === "cylinder delivered"
+    ){
+
+        return "delivered";
+
+    }
+
+    if(
+        status === "completed"
+    ){
+
+        return "completed";
+
+    }
+
+    return status;
+
+}
+
+
+function statusLabel(value){
+
+    const status =
+    normalizeStatus(value);
+
+    const labels = {
+
+        pending:"Pending Approval",
+
+        approved:"Approved — Payment Required",
+
+        rejected:"Rejected",
+
+        processing:"Agency Processing",
+
+        delivered:"Cylinder Delivered",
+
+        completed:"Completed"
+
+    };
+
+    return labels[status] ||
+        String(
+            value ||
+            "Unknown"
+        );
+
+}
+
+
+function statusClass(value){
+
+    const status =
+    normalizeStatus(value);
+
+    const allowed = [
+        "pending",
+        "approved",
+        "rejected",
+        "processing",
+        "delivered",
+        "completed"
+    ];
+
+    return allowed.includes(status)
+        ? status
+        : "unknown";
+
+}
+
+
+/* ================= EGC USER ID ================= */
+
+function getEgcUserId(request){
+
+    return (
+        request.egc_user_id ||
+        request.user_code ||
+        request.customer_code ||
+        request.egc_id ||
+        request.profile_code ||
+        "—"
+    );
+
+}
+
+
+/* ================= USER NAME ================= */
+
+function getUserName(request){
+
+    return (
+        request.full_name ||
+        request.user_name ||
+        request.customer_name ||
+        request.name ||
+        "User"
+    );
+
+}
+
+
+/* ================= LPG COMPANY ================= */
+
+function getCompany(request){
+
+    return (
+        request.lpg_company ||
+        request.company_name ||
+        request.lpg_company_name ||
+        "—"
+    );
+
+}
+
+
+/* ================= AGENCY ================= */
+
+function getAgency(request){
+
+    return (
+        request.agency_name ||
+        request.agency ||
+        request.selected_agency ||
+        "—"
+    );
+
+}
+
+
+/* ================= LOCATION ================= */
+
+function getLocation(request){
+
+    const city =
+    request.city ||
+    "—";
+
+    const district =
+    request.district ||
+    "—";
+
+    const state =
+    request.state ||
+    "—";
+
+    return {
+        city,
+        district,
+        state
+    };
+
+}
+
+
+/* ================= REQUEST NUMBER ================= */
+
+function getRequestNumber(request){
+
+    return (
+        request.request_number ||
+        request.request_id ||
+        request.reference_number ||
+        (
+            request.id
+            ? "EGC-" +
+              String(request.id)
+              .slice(0,8)
+              .toUpperCase()
+            : "—"
+        )
+    );
+
+}
+
+
+/* ================= FETCH REQUESTS ================= */
+
+async function loadRequests(){
+
+    requestTableBody.innerHTML = `
+        <tr>
+            <td
+                colspan="7"
+                class="empty"
+            >
+                Loading requests...
+            </td>
+        </tr>
+    `;
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        );
+
+
+        if(error){
+
+            console.error(
+                "Request loading error:",
+                error
+            );
+
+            requests = [];
+
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="7"
+                        class="empty"
+                    >
+                        Unable to load cylinder requests.<br>
+                        <small>${escapeHtml(error.message)}</small>
+                    </td>
+                </tr>
+            `;
+
+            updateStats();
+
+            return;
+
+        }
+
+
+        requests =
+        data ||
+        [];
+
+
+        populateCompanyFilter();
+
+        updateStats();
+
+        renderRequests();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        requestTableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    Unable to load requests.
+                </td>
+            </tr>
+        `;
+
+    }
+
+}
+
+
+/* ================= COMPANY FILTER ================= */
+
+function populateCompanyFilter(){
+
+    const companies =
+    new Set();
+
+    requests.forEach(request => {
+
+        const company =
+        getCompany(request);
+
+        if(
+            company &&
+            company !== "—"
+        ){
+
+            companies.add(company);
+
+        }
+
+    });
+
+
+    const current =
+    companyFilter.value;
+
+
+    companyFilter.innerHTML = `
+        <option value="all">
+            All Companies
+        </option>
+    `;
+
+
+    Array
+    .from(companies)
+    .sort()
+    .forEach(company => {
+
+        const option =
+        document.createElement("option");
+
+        option.value =
+        company;
+
+        option.textContent =
+        company;
+
+        companyFilter.appendChild(
+            option
+        );
+
+    });
+
+
+    if(
+        Array.from(
+            companyFilter.options
+        ).some(
+            option =>
+            option.value === current
+        )
+    ){
+
+        companyFilter.value =
+        current;
+
+    }
+
+}
+
+
+/* ================= STATS ================= */
+
+function updateStats(){
+
+    totalRequests.textContent =
+    requests.length;
+
+
+    let pending =
+    0;
+
+    let approved =
+    0;
+
+    let processing =
+    0;
+
+
+    requests.forEach(request => {
+
+        const status =
+        normalizeStatus(
+            request.status
+        );
+
+
+        if(status === "pending"){
+
+            pending++;
+
+        }
+
+        if(status === "approved"){
+
+            approved++;
+
+        }
+
+        if(status === "processing"){
+
+            processing++;
+
+        }
+
+    });
+
+
+    pendingRequests.textContent =
+    pending;
+
+    approvedRequests.textContent =
+    approved;
+
+    processingRequests.textContent =
+    processing;
+
+}
+
+
+/* ================= FILTER ================= */
+
+function getFilteredRequests(){
+
+    const search =
+    searchInput.value
+    .trim()
+    .toLowerCase();
+
+
+    const selectedStatus =
+    statusFilter.value;
+
+
+    const selectedCompany =
+    companyFilter.value;
+
+
+    return requests.filter(
+        request => {
+
+            const userName =
+            getUserName(
+                request
+            )
+            .toLowerCase();
+
+
+            const egcId =
+            getEgcUserId(
+                request
+            )
+            .toLowerCase();
+
+
+            const city =
+            String(
+                request.city ||
+                ""
+            )
+            .toLowerCase();
+
+
+            const requestNumber =
+            getRequestNumber(
+                request
+            )
+            .toLowerCase();
+
+
+            const company =
+            getCompany(
+                request
+            );
+
+
+            const status =
+            normalizeStatus(
+                request.status
+            );
+
+
+            const searchMatch =
+            !search ||
+            userName.includes(search) ||
+            egcId.includes(search) ||
+            city.includes(search) ||
+            requestNumber.includes(search);
+
+
+            const statusMatch =
+            selectedStatus === "all" ||
+            status === selectedStatus;
+
+
+            const companyMatch =
+            selectedCompany === "all" ||
+            company === selectedCompany;
+
+
+            return (
+                searchMatch &&
+                statusMatch &&
+                companyMatch
+            );
+
+        }
+    );
+
+}
+
+
+/* ================= RENDER ================= */
+
+function renderRequests(){
+
+    const filtered =
+    getFilteredRequests();
+
+
+    if(
+        filtered.length === 0
+    ){
+
+        requestTableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    No requests found.
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    requestTableBody.innerHTML =
+    "";
+
+
+    filtered.forEach(request => {
+
+        const location =
+        getLocation(
+            request
+        );
+
+
+        const status =
+        normalizeStatus(
+            request.status
+        );
+
+
+        const tr =
+        document.createElement("tr");
+
+
+        let actionButtons = `
+
+            <button
+                class="action-btn view-action"
+                type="button"
+                data-action="view"
+                data-id="${escapeHtml(request.id)}"
+                title="View Request"
+            >
+                👁
+            </button>
+
+        `;
+
+
+        if(
+            status === "pending"
+        ){
+
+            actionButtons += `
+
+                <button
+                    class="action-btn approve-action"
+                    type="button"
+                    data-action="approve"
+                    data-id="${escapeHtml(request.id)}"
+                    title="Approve"
+                >
+                    ✓
+                </button>
+
+                <button
+                    class="action-btn reject-action"
+                    type="button"
+                    data-action="reject"
+                    data-id="${escapeHtml(request.id)}"
+                    title="Reject"
+                >
+                    ✕
+                </button>
+
+            `;
+
+        }
+
+
+        tr.innerHTML = `
+
+            <td>
+
+                <div class="user-name">
+                    ${escapeHtml(
+                        getUserName(request)
+                    )}
+                </div>
+
+                <div class="user-id">
+                    ${escapeHtml(
+                        getEgcUserId(request)
+                    )}
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="agency-name">
+                    ${escapeHtml(
+                        getCompany(request)
+                    )}
+                </div>
+
+                <div class="location-sub">
+                    ${escapeHtml(
+                        request.lpg_type ||
+                        request.cylinder_type ||
+                        "LPG Cylinder"
+                    )}
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="location-main">
+                    ${escapeHtml(
+                        location.city
+                    )}
+                </div>
+
+                <div class="location-sub">
+                    ${escapeHtml(
+                        location.district
+                    )},
+                    ${escapeHtml(
+                        location.state
+                    )}
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="agency-name">
+                    ${escapeHtml(
+                        getAgency(request)
+                    )}
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <div class="request-date">
+                    ${escapeHtml(
+                        formatDate(
+                            request.created_at
+                        )
+                    )}
+                </div>
+
+            </td>
+
+
+            <td>
+
+                <span
+                    class="status ${statusClass(
+                        request.status
+                    )}"
+                >
+                    ${escapeHtml(
+                        statusLabel(
+                            request.status
+                        )
+                    )}
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <div class="actions">
+                    ${actionButtons}
+                </div>
+
+            </td>
+
+        `;
+
+
+        requestTableBody.appendChild(
+            tr
+        );
+
+    });
+
+}
+
+
+/* ================= TABLE ACTION ================= */
+
+requestTableBody.addEventListener(
+    "click",
+    function(event){
+
+        const button =
+        event.target.closest(
+            "[data-action]"
+        );
+
+
+        if(!button){
+
+            return;
+
+        }
+
+
+        const id =
+        button.dataset.id;
+
+
+        const action =
+        button.dataset.action;
+
+
+        const request =
+        requests.find(
+            item =>
+            String(item.id) ===
+            String(id)
+        );
+
+
+        if(!request){
+
+            return;
+
+        }
+
+
+        if(
+            action === "view"
+        ){
+
+            openDetails(
+                request
+            );
+
+        }
+
+
+        if(
+            action === "approve"
+        ){
+
+            askApproval(
+                request,
+                "approve"
+            );
+
+        }
+
+
+        if(
+            action === "reject"
+        ){
+
+            askApproval(
+                request,
+                "reject"
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= DETAILS ================= */
+
+function openDetails(request){
+
+    selectedRequest =
+    request;
+
+
+    const location =
+    getLocation(
+        request
+    );
+
+
+    const status =
+    normalizeStatus(
+        request.status
+    );
+
+
+    detailsBody.innerHTML = `
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                Request Information
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Request Number
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            getRequestNumber(
+                                request
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        EGC User ID
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            getEgcUserId(
+                                request
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Request Date
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            formatDate(
+                                request.created_at
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Current Status
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            statusLabel(
+                                request.status
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        User ID
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.user_id ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Request ID
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.id ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                Customer Details
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Full Name
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            getUserName(
+                                request
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Mobile
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.mobile ||
+                            request.phone ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Email
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.email ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                LPG Details
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        LPG Company
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            getCompany(
+                                request
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        LPG Agency
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            getAgency(
+                                request
+                            )
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Cylinder Quantity
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.quantity ||
+                            request.cylinder_quantity ||
+                            "1"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Cylinder Type
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.cylinder_type ||
+                            request.lpg_type ||
+                            "LPG Cylinder"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                Address
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        State
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            location.state
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        District
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            location.district
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        City
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            location.city
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Address
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.address ||
+                            request.full_address ||
+                            request.area ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                Scheme / Finance
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Scheme
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.scheme ||
+                            request.scheme_name ||
+                            request.finance_scheme ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Finance Amount
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.amount ||
+                            request.finance_amount ||
+                            request.total_amount ||
+                            "—"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Initial Payment
+                    </div>
+                    <div class="detail-value">
+                        ₹200
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="detail-section">
+
+            <div class="detail-title">
+                Verification / Documents
+            </div>
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Verification Status
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.verification_status ||
+                            request.verification ||
+                            "Submitted"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Document
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.document_url ||
+                            request.verification_document ||
+                            request.document ||
+                            "Not linked"
+                        )}
+                    </div>
+                </div>
+
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Verification Photo
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(
+                            request.verification_photo ||
+                            request.verification_image ||
+                            "Not linked"
+                        )}
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+
+    if(
+        status === "pending"
+    ){
+
+        modalApprove.style.display =
+        "block";
+
+        modalReject.style.display =
+        "block";
+
+    }
+    else{
+
+        modalApprove.style.display =
+        "none";
+
+        modalReject.style.display =
+        "none";
+
+    }
+
+
+    detailsModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+}
+
+
+/* ================= CLOSE DETAILS ================= */
+
+function closeDetails(){
+
+    detailsModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+    selectedRequest =
+    null;
+
+}
+
+
+detailsClose.addEventListener(
+    "click",
+    closeDetails
+);
+
+detailsCloseBottom.addEventListener(
+    "click",
+    closeDetails
+);
+
+
+detailsModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            detailsModal
+        ){
+
+            closeDetails();
+
+        }
+
+    }
+);
+
+
+/* ================= ASK APPROVAL ================= */
+
+function askApproval(
+    request,
+    action
+){
+
+    pendingAction = {
+        request,
+        action
+    };
+
+
+    if(
+        action === "approve"
+    ){
+
+        confirmIcon.textContent =
+        "✓";
+
+        confirmTitle.textContent =
+        "Approve Request?";
+
+        confirmText.textContent =
+        "Owner approval will move this request to the payment-required stage.";
+
+        confirmOk.textContent =
+        "Approve";
+
+        confirmOk.classList.remove(
+            "reject"
+        );
+
+    }
+    else{
+
+        confirmIcon.textContent =
+        "✕";
+
+        confirmTitle.textContent =
+        "Reject Request?";
+
+        confirmText.textContent =
+        "This request will be marked as rejected and the user will be notified.";
+
+        confirmOk.textContent =
+        "Reject";
+
+        confirmOk.classList.add(
+            "reject"
+        );
+
+    }
+
+
+    confirmModal.classList.add(
+        "show"
+    );
+
+}
+
+
+/* ================= CONFIRM ACTION ================= */
+
+confirmCancel.addEventListener(
+    "click",
+    function(){
+
+        confirmModal.classList.remove(
+            "show"
+        );
+
+        pendingAction =
+        null;
+
+    }
+);
+
+
+confirmModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            confirmModal
+        ){
+
+            confirmModal.classList.remove(
+                "show"
+            );
+
+            pendingAction =
+            null;
+
+        }
+
+    }
+);
+
+
+confirmOk.addEventListener(
+    "click",
+    async function(){
+
+        if(
+            !pendingAction ||
+            !pendingAction.request
+        ){
+
+            return;
+
+        }
+
+
+        const request =
+        pendingAction.request;
+
+        const action =
+        pendingAction.action;
+
+
+        confirmOk.disabled =
+        true;
+
+        confirmOk.textContent =
+        action === "approve"
+        ? "Approving..."
+        : "Rejecting...";
+
+
+        try{
+
+            await updateRequestStatus(
+                request,
+                action
+            );
+
+        }
+        finally{
+
+            confirmOk.disabled =
+            false;
+
+            confirmOk.textContent =
+            action === "approve"
+            ? "Approve"
+            : "Reject";
+
+        }
+
+    }
+);
+
+
+/* ================= UPDATE REQUEST ================= */
+
+async function updateRequestStatus(
+    request,
+    action
+){
+
+    const newStatus =
+    action === "approve"
+    ? "approved"
+    : "rejected";
+
+
+    try{
+
+        const {
+            error
+        } =
+        await supabaseClient
+        .from("cylinder_requests")
+        .update({
+
+            status:
+            newStatus
+
+        })
+        .eq(
+            "id",
+            request.id
+        );
+
+
+        if(error){
+
+            console.error(
+                "Request update error:",
+                error
+            );
+
+            alert(
+                "Request update failed.\n\n" +
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        confirmModal.classList.remove(
+            "show"
+        );
+
+
+        closeDetails();
+
+
+        addLocalNotification({
+
+            title:
+            action === "approve"
+            ? "Request Approved"
+            : "Request Rejected",
+
+            text:
+            getRequestNumber(
+                request
+            ) +
+            " has been " +
+            (
+                action === "approve"
+                ? "approved."
+                : "rejected."
+            )
+
+        });
+
+
+        await createDatabaseNotification(
+            request,
+            action
+        );
+
+
+        await loadRequests();
+
+
+        alert(
+            action === "approve"
+            ? "Request approved successfully."
+            : "Request rejected successfully."
+        );
+
+    }
+    catch(error){
+
+        console.error(
+            error
+        );
+
+        alert(
+            "Something went wrong while updating the request."
+        );
+
+    }
+
+}
+
+
+/* ================= DATABASE NOTIFICATION ================= */
+
+async function createDatabaseNotification(
+    request,
+    action
+){
+
+    try{
+
+        const title =
+        action === "approve"
+        ? "Cylinder Request Approved"
+        : "Cylinder Request Rejected";
+
+
+        const message =
+        action === "approve"
+        ? "Your cylinder request has been approved by the Owner. You can now continue to the ₹200 payment stage."
+        : "Your cylinder request has been rejected by the Owner.";
+
+
+        /*
+         * We attempt to create the notification
+         * for the requesting user.
+         *
+         * If the notifications table uses a
+         * different structure/RLS, the request
+         * status is still updated successfully.
+         */
+
+        const payload = {
+
+            user_id:
+            request.user_id ||
+            null,
+
+            title:
+            title,
+
+            message:
+            message,
+
+            type:
+            "request_status",
+
+            created_at:
+            new Date().toISOString()
+
+        };
+
+
+        const {
+            error
+        } =
+        await supabaseClient
+        .from("notifications")
+        .insert(
+            payload
+        );
+
+
+        if(error){
+
+            console.warn(
+                "Database notification was not created:",
+                error.message
+            );
+
+        }
+
+    }
+    catch(error){
+
+        console.warn(
+            "Notification exception:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ================= LOCAL NOTIFICATION ================= */
+
+function addLocalNotification(
+    notification
+){
+
+    notifications.unshift({
+
+        title:
+        notification.title,
+
+        text:
+        notification.text,
+
+        time:
+        new Date()
+        .toLocaleString(
+            "en-IN",
+            {
+                dateStyle:"short",
+                timeStyle:"short"
+            }
+        )
+
+    });
+
+
+    if(
+        notifications.length > 30
+    ){
+
+        notifications =
+        notifications.slice(
+            0,
+            30
+        );
+
+    }
+
+
+    renderNotifications();
+
+}
+
+
+function renderNotifications(){
+
+    if(
+        notifications.length === 0
+    ){
+
+        notificationList.innerHTML = `
+            <div class="notification-empty">
+                No new notifications
+            </div>
+        `;
+
+        notificationBadge.style.display =
+        "none";
+
+        return;
+
+    }
+
+
+    notificationList.innerHTML =
+    "";
+
+
+    notifications.forEach(
+        notification => {
+
+            const item =
+            document.createElement(
+                "div"
+            );
+
+            item.className =
+            "notification-item";
+
+
+            item.innerHTML = `
+
+                <div class="notification-item-title">
+                    ${escapeHtml(
+                        notification.title
+                    )}
+                </div>
+
+                <div class="notification-item-text">
+                    ${escapeHtml(
+                        notification.text
+                    )}
+                </div>
+
+                <div class="notification-item-time">
+                    ${escapeHtml(
+                        notification.time
+                    )}
+                </div>
+
+            `;
+
+
+            notificationList.appendChild(
+                item
+            );
+
+        }
+    );
+
+
+    notificationBadge.style.display =
+    "flex";
+
+    notificationBadge.textContent =
+    notifications.length > 99
+    ? "99+"
+    : notifications.length;
+
+}
+
+
+/* ================= EXISTING NOTIFICATIONS ================= */
+
+async function loadExistingNotifications(){
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("notifications")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        )
+        .limit(30);
+
+
+        if(error){
+
+            console.warn(
+                "Notification loading:",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        notifications =
+        (data || [])
+        .map(
+            notification => {
+
+                return {
+
+                    title:
+                    notification.title ||
+                    notification.notification_title ||
+                    "Notification",
+
+                    text:
+                    notification.message ||
+                    notification.text ||
+                    notification.body ||
+                    "You have a new notification.",
+
+                    time:
+                    formatDate(
+                        notification.created_at
+                    )
+
+                };
+
+            }
+        );
+
+
+        renderNotifications();
+
+    }
+    catch(error){
+
+        console.warn(
+            error
+        );
+
+    }
+
+}
+
+
+/* ================= REALTIME ================= */
+
+function startRealtime(){
+
+    try{
+
+        const channel =
+        supabaseClient
+        .channel(
+            "owner-requests-realtime"
+        );
+
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"cylinder_requests"
+            },
+            payload => {
+
+                console.log(
+                    "New request:",
+                    payload
+                );
+
+
+                addLocalNotification({
+
+                    title:
+                    "New Cylinder Request",
+
+                    text:
+                    "A new user cylinder request has been received."
+
+                });
+
+
+                loadRequests();
+
+            }
+        );
+
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"UPDATE",
+                schema:"public",
+                table:"cylinder_requests"
+            },
+            payload => {
+
+                console.log(
+                    "Request updated:",
+                    payload
+                );
+
+
+                loadRequests();
+
+            }
+        );
+
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"notifications"
+            },
+            payload => {
+
+                const notification =
+                payload.new || {};
+
+
+                addLocalNotification({
+
+                    title:
+                    notification.title ||
+                    notification.notification_title ||
+                    "New Notification",
+
+                    text:
+                    notification.message ||
+                    notification.text ||
+                    notification.body ||
+                    "A new notification has been received."
+
+                });
+
+            }
+        );
+
+
+        channel.subscribe(
+            status => {
+
+                console.log(
+                    "Owner Requests realtime:",
+                    status
+                );
+
+            }
+        );
+
+
+        window.egcRequestsRealtime =
+        channel;
+
+    }
+    catch(error){
+
+        console.error(
+            "Realtime error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ================= FILTER EVENTS ================= */
+
+searchInput.addEventListener(
+    "input",
+    renderRequests
+);
+
+statusFilter.addEventListener(
+    "change",
+    renderRequests
+);
+
+companyFilter.addEventListener(
+    "change",
+    renderRequests
+);
+
+
+resetFilters.addEventListener(
+    "click",
+    function(){
+
+        searchInput.value =
+        "";
+
+        statusFilter.value =
+        "all";
+
+        companyFilter.value =
+        "all";
+
+        renderRequests();
+
+    }
+);
+
+
+refreshBtn.addEventListener(
+    "click",
+    async function(){
+
+        refreshBtn.disabled =
+        true;
+
+        refreshBtn.textContent =
+        "Refreshing...";
+
+        await loadRequests();
+
+        refreshBtn.disabled =
+        false;
+
+        refreshBtn.textContent =
+        "↻ Refresh";
+
+    }
+);
+
+
+/* ================= MODAL BUTTONS ================= */
+
+modalApprove.addEventListener(
+    "click",
+    function(){
+
+        if(
+            selectedRequest
+        ){
+
+            askApproval(
+                selectedRequest,
+                "approve"
+            );
+
+        }
+
+    }
+);
+
+
+modalReject.addEventListener(
+    "click",
+    function(){
+
+        if(
+            selectedRequest
+        ){
+
+            askApproval(
+                selectedRequest,
+                "reject"
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= NOTIFICATIONS ================= */
+
+notificationBtn.addEventListener(
+    "click",
+    function(event){
+
+        event.stopPropagation();
+
+        notificationPanel.classList.toggle(
+            "show"
+        );
+
+    }
+);
+
+
+clearNotifications.addEventListener(
+    "click",
+    function(){
+
+        notifications =
+        [];
+
+        renderNotifications();
+
+    }
+);
+
+
+document.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            !notificationPanel.contains(
+                event.target
+            ) &&
+            !notificationBtn.contains(
+                event.target
+            )
+        ){
+
+            notificationPanel.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= LOGOUT ================= */
+
+logoutBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove(
+            "open"
+        );
+
+        overlay.classList.remove(
+            "show"
+        );
+
+        logoutModal.classList.add(
+            "show"
+        );
+
+        document.body.style.overflow =
+        "hidden";
+
+    }
+);
+
+
+logoutCancel.addEventListener(
+    "click",
+    function(){
+
+        logoutModal.classList.remove(
+            "show"
+        );
+
+        document.body.style.overflow =
+        "";
+
+    }
+);
+
+
+logoutModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            logoutModal
+        ){
+
+            logoutModal.classList.remove(
+                "show"
+            );
+
+            document.body.style.overflow =
+            "";
+
+        }
+
+    }
+);
+
+
+logoutConfirm.addEventListener(
+    "click",
+    async function(){
+
+        logoutConfirm.disabled =
+        true;
+
+        logoutConfirm.textContent =
+        "Logging out...";
+
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .auth
+            .signOut();
+
+
+            if(error){
+
+                console.error(
+                    error
+                );
+
+                alert(
+                    "Logout failed. Please try again."
+                );
+
+                logoutConfirm.disabled =
+                false;
+
+                logoutConfirm.textContent =
+                "Logout";
+
+                return;
+
+            }
+
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            alert(
+                "Logout failed. Please try again."
+            );
+
+            logoutConfirm.disabled =
+            false;
+
+            logoutConfirm.textContent =
+            "Logout";
+
+        }
+
+    }
+);
+
+
+/* ================= ESC ================= */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key === "Escape"
+        ){
+
+            closeDetails();
+
+            confirmModal.classList.remove(
+                "show"
+            );
+
+            logoutModal.classList.remove(
+                "show"
+            );
+
+            notificationPanel.classList.remove(
+                "show"
+            );
+
+            document.body.style.overflow =
+            "";
+
+        }
+
+    }
+);
+
+
+/* ================= BROWSER NOTIFICATION ================= */
+
+function requestNotificationPermission(){
+
+    if(
+        "Notification" in window &&
+        Notification.permission === "default"
+    ){
+
+        Notification.requestPermission()
+        .catch(
+            error =>
+            console.warn(
+                error
+            )
+        );
+
+    }
+
+}
+
+
+/* ================= INIT ================= */
+
+async function init(){
+
+    await Promise.all([
+
+        loadRequests(),
+
+        loadExistingNotifications()
+
+    ]);
+
+
+    startRealtime();
+
+    requestNotificationPermission();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

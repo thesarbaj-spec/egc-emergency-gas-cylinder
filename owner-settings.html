@@ -1,0 +1,3586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Owner Settings</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #fff;
+}
+
+button,
+input,
+select,
+textarea{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:43px;
+    height:43px;
+    border:1px solid #dfe9f1;
+    border-radius:12px;
+    background:#fff;
+    color:#075ca5;
+    font-size:19px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53e3e;
+    color:#fff;
+    font-size:9px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    position:absolute;
+    right:0;
+    top:53px;
+    width:310px;
+    background:#fff;
+    border:1px solid #dfe8ef;
+    border-radius:15px;
+    box-shadow:0 15px 45px rgba(30,70,100,.16);
+    display:none;
+    overflow:hidden;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-panel-header{
+    padding:15px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.notification-panel-title{
+    font-size:14px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.notification-panel-link{
+    font-size:10px;
+    color:#0871c3;
+    font-weight:700;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #f0f3f6;
+}
+
+.notification-item:last-child{
+    border-bottom:0;
+}
+
+.notification-item-title{
+    color:#315671;
+    font-size:12px;
+    font-weight:800;
+}
+
+.notification-item-text{
+    color:#8799a9;
+    font-size:10px;
+    line-height:1.5;
+    margin-top:4px;
+}
+
+.notification-empty{
+    padding:25px 15px;
+    text-align:center;
+    color:#8799a9;
+    font-size:11px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* =========================
+   LAYOUT
+========================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* =========================
+   MASTER SIDEBAR
+========================= */
+
+.sidebar{
+    width:245px;
+    background:linear-gradient(
+        180deg,
+        rgba(255,245,245,.98) 0%,
+        rgba(242,248,255,.98) 52%,
+        rgba(255,255,255,.98) 100%
+    );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:13px;
+    font-weight:800;
+    padding:0 13px 12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:13px 14px;
+    border-radius:11px;
+    margin-bottom:5px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    transition:.2s;
+    white-space:nowrap;
+}
+
+.nav-btn:hover{
+    background:#e5f2fc;
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-flex;
+    width:25px;
+    min-width:25px;
+    font-size:17px;
+    align-items:center;
+}
+
+.sidebar-section{
+    margin-top:25px;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+    max-width:1400px;
+}
+
+.welcome{
+    margin-bottom:22px;
+}
+
+.welcome h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.welcome p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+/* =========================
+   SETTINGS GRID
+========================= */
+
+.settings-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.card{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ef;
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+}
+
+.card.full{
+    grid-column:1 / -1;
+}
+
+.card-header{
+    padding:20px;
+    border-bottom:1px solid #edf2f6;
+}
+
+.card-title{
+    color:#06477f;
+    font-size:18px;
+    font-weight:800;
+}
+
+.card-subtitle{
+    color:#8799a9;
+    font-size:12px;
+    margin-top:5px;
+    line-height:1.5;
+}
+
+.card-body{
+    padding:20px;
+}
+
+/* =========================
+   PROFILE
+========================= */
+
+.profile-top{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:20px;
+}
+
+.profile-photo-wrap{
+    position:relative;
+    width:85px;
+    height:85px;
+    flex-shrink:0;
+}
+
+.profile-photo{
+    width:85px;
+    height:85px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #e4eef5;
+    background:#eef7ff;
+}
+
+.photo-fallback{
+    width:85px;
+    height:85px;
+    border-radius:50%;
+    background:#eef7ff;
+    border:3px solid #e4eef5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:34px;
+}
+
+.photo-upload{
+    position:absolute;
+    right:-2px;
+    bottom:-2px;
+    width:30px;
+    height:30px;
+    border:3px solid #fff;
+    border-radius:50%;
+    background:#0871c3;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+}
+
+.photo-input{
+    display:none;
+}
+
+.profile-name{
+    font-size:18px;
+    font-weight:800;
+    color:#315671;
+}
+
+.profile-role{
+    margin-top:5px;
+    color:#8799a9;
+    font-size:12px;
+}
+
+/* =========================
+   FORM
+========================= */
+
+.field{
+    margin-bottom:15px;
+}
+
+.field:last-child{
+    margin-bottom:0;
+}
+
+.field label{
+    display:block;
+    color:#627f94;
+    font-size:11px;
+    font-weight:800;
+    margin-bottom:7px;
+}
+
+.field input,
+.field select{
+    width:100%;
+    height:44px;
+    border:1px solid #dce6ef;
+    border-radius:11px;
+    padding:0 13px;
+    outline:none;
+    color:#31566f;
+    background:#fbfdff;
+}
+
+.field textarea{
+    width:100%;
+    min-height:90px;
+    resize:vertical;
+    border:1px solid #dce6ef;
+    border-radius:11px;
+    padding:12px 13px;
+    outline:none;
+    color:#31566f;
+    background:#fbfdff;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+    border-color:#8fc3ea;
+    box-shadow:0 0 0 3px rgba(65,150,215,.08);
+}
+
+.field input:disabled{
+    background:#f1f5f8;
+    color:#7890a3;
+    cursor:not-allowed;
+}
+
+.two-col{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.btn-row{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:18px;
+}
+
+.btn{
+    min-height:43px;
+    border:0;
+    border-radius:10px;
+    padding:0 18px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.btn-primary{
+    background:#0871c3;
+    color:#fff;
+}
+
+.btn-primary:hover{
+    background:#075f9f;
+}
+
+.btn-secondary{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.btn-danger{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.btn-danger:hover{
+    background:#ffe2e2;
+}
+
+/* =========================
+   INFO
+========================= */
+
+.info-box{
+    background:#f7fafc;
+    border:1px solid #e4edf3;
+    border-radius:12px;
+    padding:13px;
+    color:#70879a;
+    font-size:11px;
+    line-height:1.6;
+    margin-bottom:16px;
+}
+
+/* =========================
+   SWITCH
+========================= */
+
+.setting-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    padding:14px 0;
+    border-bottom:1px solid #edf2f6;
+}
+
+.setting-row:first-child{
+    padding-top:0;
+}
+
+.setting-row:last-child{
+    border-bottom:0;
+    padding-bottom:0;
+}
+
+.setting-name{
+    color:#315671;
+    font-size:13px;
+    font-weight:800;
+}
+
+.setting-description{
+    color:#8a9baa;
+    font-size:11px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+.switch{
+    position:relative;
+    width:48px;
+    height:27px;
+    flex-shrink:0;
+}
+
+.switch input{
+    opacity:0;
+    width:0;
+    height:0;
+}
+
+.slider{
+    position:absolute;
+    inset:0;
+    background:#cbd7df;
+    border-radius:30px;
+    transition:.2s;
+}
+
+.slider:before{
+    content:"";
+    position:absolute;
+    width:21px;
+    height:21px;
+    left:3px;
+    top:3px;
+    background:#fff;
+    border-radius:50%;
+    transition:.2s;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
+}
+
+.switch input:checked + .slider{
+    background:#0871c3;
+}
+
+.switch input:checked + .slider:before{
+    transform:translateX(21px);
+}
+
+/* =========================
+   SECURITY
+========================= */
+
+.security-item{
+    border:1px solid #e4edf3;
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.security-item:last-child{
+    margin-bottom:0;
+}
+
+.security-icon{
+    width:40px;
+    height:40px;
+    border-radius:10px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    flex-shrink:0;
+}
+
+.security-left{
+    display:flex;
+    align-items:center;
+    gap:11px;
+}
+
+.security-title{
+    color:#315671;
+    font-size:13px;
+    font-weight:800;
+}
+
+.security-text{
+    color:#8a9baa;
+    font-size:10px;
+    margin-top:3px;
+}
+
+.status-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:800;
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+/* =========================
+   TOAST
+========================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:99999;
+    min-width:290px;
+    max-width:390px;
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:14px;
+    box-shadow:0 15px 45px rgba(20,60,90,.18);
+    padding:15px;
+    display:none;
+}
+
+.toast.show{
+    display:block;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:13px;
+    font-weight:800;
+}
+
+.toast-text{
+    color:#7890a3;
+    font-size:11px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+/* =========================
+   LOGOUT MODAL
+========================= */
+
+.logout-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,55,.42);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-box{
+    width:100%;
+    max-width:390px;
+    background:#fff;
+    border-radius:20px;
+    border:1px solid #dce6ef;
+    box-shadow:0 25px 70px rgba(15,50,75,.25);
+    padding:25px;
+    text-align:center;
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 14px;
+    border-radius:16px;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:800;
+}
+
+.logout-text{
+    color:#8094a6;
+    font-size:12px;
+    line-height:1.6;
+    margin-top:7px;
+}
+
+.logout-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.logout-actions button{
+    flex:1;
+    height:43px;
+    border:0;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#c72e2e;
+    color:#fff;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+.overlay{
+    display:none;
+}
+
+@media(max-width:1050px){
+
+    .main{
+        padding:25px;
+    }
+
+    .settings-grid{
+        grid-template-columns:1fr;
+    }
+
+    .card.full{
+        grid-column:auto;
+    }
+}
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        margin-left:auto;
+    }
+
+    .notification-btn{
+        width:40px;
+        height:40px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:62px;
+        right:12px;
+        left:12px;
+        width:auto;
+    }
+
+    .layout{
+        display:block;
+        min-height:calc(100vh - 70px);
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:200;
+        transition:left .25s ease;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:150;
+    }
+
+    .main{
+        width:100%;
+        padding:20px 14px 40px;
+    }
+
+    .welcome{
+        margin-bottom:18px;
+    }
+
+    .welcome h1{
+        font-size:23px;
+    }
+
+    .welcome p{
+        font-size:12px;
+    }
+
+    .card-header{
+        padding:17px;
+    }
+
+    .card-body{
+        padding:17px;
+    }
+
+    .two-col{
+        grid-template-columns:1fr;
+        gap:0;
+    }
+
+    .profile-top{
+        align-items:flex-start;
+    }
+
+    .btn-row{
+        flex-direction:column;
+    }
+
+    .btn{
+        width:100%;
+    }
+
+    .security-item{
+        align-items:flex-start;
+    }
+
+    .logout-actions{
+        flex-direction:column;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        bottom:14px;
+        min-width:0;
+    }
+}
+
+@media(max-width:520px){
+
+    .profile-photo-wrap,
+    .profile-photo,
+    .photo-fallback{
+        width:72px;
+        height:72px;
+    }
+
+    .photo-fallback{
+        font-size:28px;
+    }
+
+    .profile-name{
+        font-size:16px;
+    }
+
+    .security-item{
+        flex-direction:column;
+    }
+
+    .security-item .btn,
+    .security-item .status-pill{
+        align-self:flex-end;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     MASTER HEADER
+========================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <!-- NOTIFICATION -->
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+            >
+                🔔
+
+                <span class="notification-count">
+                    0
+                </span>
+            </button>
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-panel-header">
+
+                    <div class="notification-panel-title">
+                        Notifications
+                    </div>
+
+                    <div class="notification-panel-link">
+                        View All
+                    </div>
+
+                </div>
+
+                <div class="notification-empty">
+                    No new notifications
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- OWNER BADGE -->
+
+        <div class="owner-badge">
+
+            <span class="owner-dot"></span>
+
+            Owner
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     MAIN LAYOUT
+========================= -->
+
+<div class="layout">
+
+
+<!-- =========================
+     MASTER SIDEBAR
+========================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="pending-approvals"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+    <!-- OWNER PAGES -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            Owner Pages
+        </div>
+
+
+        <button
+            class="nav-btn"
+            data-page="request-details"
+            type="button"
+        >
+            <span class="nav-icon">📄</span>
+            Request Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="payment-details"
+            type="button"
+        >
+            <span class="nav-icon">💳</span>
+            Payment Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="agency-details"
+            type="button"
+        >
+            <span class="nav-icon">🏪</span>
+            Agency Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="deliveries"
+            type="button"
+        >
+            <span class="nav-icon">🚚</span>
+            Deliveries
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="repayments"
+            type="button"
+        >
+            <span class="nav-icon">💰</span>
+            Repayments
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="notifications"
+            type="button"
+        >
+            <span class="nav-icon">🔔</span>
+            Notifications
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="slips"
+            type="button"
+        >
+            <span class="nav-icon">🧾</span>
+            Slips
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="profile"
+            type="button"
+        >
+            <span class="nav-icon">👤</span>
+            Profile
+        </button>
+
+    </div>
+
+
+    <!-- SYSTEM -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            System
+        </div>
+
+
+        <button
+            class="nav-btn active"
+            data-page="settings"
+            type="button"
+        >
+            <span class="nav-icon">⚙</span>
+            Settings
+        </button>
+
+    </div>
+
+
+    <!-- LOGOUT -->
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- MOBILE OVERLAY -->
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =========================
+     MAIN CONTENT
+========================= -->
+
+<main class="main">
+
+    <div class="welcome">
+
+        <h1>
+            Settings
+        </h1>
+
+        <p>
+            Manage your EGC owner profile, business and system settings.
+        </p>
+
+    </div>
+
+
+    <div class="settings-grid">
+
+
+        <!-- =========================
+             OWNER PROFILE
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    👤 Owner Profile
+                </div>
+
+                <div class="card-subtitle">
+                    Update the owner account information.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="profile-top">
+
+                    <div class="profile-photo-wrap">
+
+                        <div
+                            id="photoFallback"
+                            class="photo-fallback"
+                        >
+                            👤
+                        </div>
+
+                        <img
+                            id="profilePhoto"
+                            class="profile-photo"
+                            style="display:none;"
+                            alt="Owner"
+                        >
+
+                        <label
+                            class="photo-upload"
+                            for="photoInput"
+                        >
+                            📷
+                        </label>
+
+                        <input
+                            type="file"
+                            id="photoInput"
+                            class="photo-input"
+                            accept="image/*"
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <div
+                            class="profile-name"
+                            id="profileDisplayName"
+                        >
+                            Loading...
+                        </div>
+
+                        <div class="profile-role">
+                            EGC Owner
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Full Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="ownerName"
+                        placeholder="Enter owner name"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="ownerEmail"
+                        placeholder="Owner email"
+                        disabled
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Mobile Number
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="ownerMobile"
+                        placeholder="Enter mobile number"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Username
+                    </label>
+
+                    <input
+                        type="text"
+                        id="ownerUsername"
+                        placeholder="Username"
+                    >
+
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-primary"
+                        id="saveProfileBtn"
+                        type="button"
+                    >
+                        Save Profile
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             BUSINESS SETTINGS
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    🏢 EGC Business Settings
+                </div>
+
+                <div class="card-subtitle">
+                    Basic information used throughout the owner panel.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="field">
+
+                    <label>
+                        Business Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="businessName"
+                        value="Emergency Gas Cylinder"
+                    >
+
+                </div>
+
+
+                <div class="two-col">
+
+                    <div class="field">
+
+                        <label>
+                            State
+                        </label>
+
+                        <input
+                            type="text"
+                            id="businessState"
+                            placeholder="Uttarakhand"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            District
+                        </label>
+
+                        <input
+                            type="text"
+                            id="businessDistrict"
+                            placeholder="District"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        City
+                    </label>
+
+                    <input
+                        type="text"
+                        id="businessCity"
+                        placeholder="City"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Business Address
+                    </label>
+
+                    <textarea
+                        id="businessAddress"
+                        placeholder="Enter business address"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-primary"
+                        id="saveBusinessBtn"
+                        type="button"
+                    >
+                        Save Business Settings
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             PAYMENT SETTINGS
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    💳 Payment Settings
+                </div>
+
+                <div class="card-subtitle">
+                    Configure payment-related defaults.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="info-box">
+                    Ye settings future payment calculations ke liye rakhi gayi hain.
+                    Actual payment records Supabase ke payments table se maintain honge.
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Default Payment Method
+                    </label>
+
+                    <select id="defaultPaymentMethod">
+
+                        <option value="UPI">
+                            UPI
+                        </option>
+
+                        <option value="Bank Transfer">
+                            Bank Transfer
+                        </option>
+
+                        <option value="Cash">
+                            Cash
+                        </option>
+
+                        <option value="Other">
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Default Extra Charge
+                    </label>
+
+                    <input
+                        type="number"
+                        id="defaultExtraCharge"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                        placeholder="0.00"
+                    >
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <div class="setting-name">
+                            Payment Verification
+                        </div>
+
+                        <div class="setting-description">
+                            Owner verification ko enabled rakhein.
+                        </div>
+
+                    </div>
+
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="paymentVerification"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-primary"
+                        id="savePaymentBtn"
+                        type="button"
+                    >
+                        Save Payment Settings
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             CYLINDER SETTINGS
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    🛢️ Cylinder Settings
+                </div>
+
+                <div class="card-subtitle">
+                    Default cylinder-related settings.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="field">
+
+                    <label>
+                        Default LPG Company
+                    </label>
+
+                    <select id="defaultCompany">
+
+                        <option value="">
+                            Select Company
+                        </option>
+
+                        <option value="Indane">
+                            Indane
+                        </option>
+
+                        <option value="HP Gas">
+                            HP Gas
+                        </option>
+
+                        <option value="Bharatgas">
+                            Bharatgas
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        Default Cylinder Quantity
+                    </label>
+
+                    <input
+                        type="number"
+                        id="defaultQuantity"
+                        min="1"
+                        value="1"
+                    >
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <div class="setting-name">
+                            Allow New Requests
+                        </div>
+
+                        <div class="setting-description">
+                            Customers ko new cylinder requests submit karne den.
+                        </div>
+
+                    </div>
+
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="allowRequests"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-primary"
+                        id="saveCylinderBtn"
+                        type="button"
+                    >
+                        Save Cylinder Settings
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             NOTIFICATIONS
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    🔔 Notifications
+                </div>
+
+                <div class="card-subtitle">
+                    Owner panel notification preferences.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <div class="setting-name">
+                            New Request Notifications
+                        </div>
+
+                        <div class="setting-description">
+                            New cylinder request aane par notification.
+                        </div>
+
+                    </div>
+
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="notifyRequests"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <div class="setting-name">
+                            Payment Notifications
+                        </div>
+
+                        <div class="setting-description">
+                            New payment ya payment update par notification.
+                        </div>
+
+                    </div>
+
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="notifyPayments"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="setting-row">
+
+                    <div>
+
+                        <div class="setting-name">
+                            Delivery Notifications
+                        </div>
+
+                        <div class="setting-description">
+                            Delivery status change hone par notification.
+                        </div>
+
+                    </div>
+
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="notifyDelivery"
+                            checked
+                        >
+
+                        <span class="slider"></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-primary"
+                        id="saveNotificationBtn"
+                        type="button"
+                    >
+                        Save Notification Settings
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             SECURITY
+        ========================== -->
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    🔐 Security
+                </div>
+
+                <div class="card-subtitle">
+                    Owner account security information.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="security-item">
+
+                    <div class="security-left">
+
+                        <div class="security-icon">
+                            📧
+                        </div>
+
+                        <div>
+
+                            <div class="security-title">
+                                Email Authentication
+                            </div>
+
+                            <div class="security-text">
+                                Owner account email authentication.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="status-pill">
+                        Active
+                    </span>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <div class="security-left">
+
+                        <div class="security-icon">
+                            🔑
+                        </div>
+
+                        <div>
+
+                            <div class="security-title">
+                                Password
+                            </div>
+
+                            <div class="security-text">
+                                Supabase Auth password protection.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        class="btn btn-secondary"
+                        id="resetPasswordBtn"
+                        type="button"
+                    >
+                        Reset
+                    </button>
+
+                </div>
+
+
+                <div class="security-item">
+
+                    <div class="security-left">
+
+                        <div class="security-icon">
+                            🛡️
+                        </div>
+
+                        <div>
+
+                            <div class="security-title">
+                                Owner Role
+                            </div>
+
+                            <div class="security-text">
+                                Current authenticated account role.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <span
+                        class="status-pill"
+                        id="roleStatus"
+                    >
+                        Checking...
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             ACCOUNT ACTIONS
+        ========================== -->
+
+        <section class="card full">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    ⚠️ Account Actions
+                </div>
+
+                <div class="card-subtitle">
+                    Important account actions.
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="info-box">
+                    Logout karne ke baad owner session browser se sign out ho jayega.
+                    Account ya database records yahan se delete nahi honge.
+                </div>
+
+
+                <div class="btn-row">
+
+                    <button
+                        class="btn btn-danger"
+                        id="logoutBtnBottom"
+                        type="button"
+                    >
+                        🚪 Logout Owner Account
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+</div>
+
+
+<!-- =========================
+     TOAST
+========================= -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    >
+        Notification
+    </div>
+
+</div>
+
+
+<!-- =========================
+     LOGOUT CONFIRMATION
+========================= -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-box">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout Owner Panel?
+        </div>
+
+        <div class="logout-text">
+            Are you sure you want to logout from the EGC Owner Panel?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                class="logout-cancel"
+                id="logoutCancel"
+                type="button"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="logout-confirm"
+                id="logoutConfirm"
+                type="button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* ================= ELEMENTS ================= */
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const logoutBtnBottom =
+document.getElementById("logoutBtnBottom");
+
+const toast =
+document.getElementById("toast");
+
+const toastTitle =
+document.getElementById("toastTitle");
+
+const toastText =
+document.getElementById("toastText");
+
+const profilePhoto =
+document.getElementById("profilePhoto");
+
+const photoFallback =
+document.getElementById("photoFallback");
+
+const photoInput =
+document.getElementById("photoInput");
+
+const profileDisplayName =
+document.getElementById("profileDisplayName");
+
+const ownerName =
+document.getElementById("ownerName");
+
+const ownerEmail =
+document.getElementById("ownerEmail");
+
+const ownerMobile =
+document.getElementById("ownerMobile");
+
+const ownerUsername =
+document.getElementById("ownerUsername");
+
+const businessName =
+document.getElementById("businessName");
+
+const businessState =
+document.getElementById("businessState");
+
+const businessDistrict =
+document.getElementById("businessDistrict");
+
+const businessCity =
+document.getElementById("businessCity");
+
+const businessAddress =
+document.getElementById("businessAddress");
+
+const defaultPaymentMethod =
+document.getElementById("defaultPaymentMethod");
+
+const defaultExtraCharge =
+document.getElementById("defaultExtraCharge");
+
+const paymentVerification =
+document.getElementById("paymentVerification");
+
+const defaultCompany =
+document.getElementById("defaultCompany");
+
+const defaultQuantity =
+document.getElementById("defaultQuantity");
+
+const allowRequests =
+document.getElementById("allowRequests");
+
+const notifyRequests =
+document.getElementById("notifyRequests");
+
+const notifyPayments =
+document.getElementById("notifyPayments");
+
+const notifyDelivery =
+document.getElementById("notifyDelivery");
+
+const roleStatus =
+document.getElementById("roleStatus");
+
+
+/* ================= DATA ================= */
+
+let currentUser = null;
+
+let currentProfile = null;
+
+
+/* ================= TOAST ================= */
+
+function showToast(title,text){
+
+    toastTitle.textContent =
+    title || "Notification";
+
+    toastText.textContent =
+    text || "";
+
+    toast.classList.add("show");
+
+    clearTimeout(
+        window.egcSettingsToastTimer
+    );
+
+    window.egcSettingsToastTimer =
+    setTimeout(
+        function(){
+
+            toast.classList.remove("show");
+
+        },
+        4500
+    );
+
+}
+
+
+/* ================= NAVIGATION ================= */
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+
+        users:"owner-users.html",
+
+        agencies:"owner-agencies.html",
+
+        companies:"owner-companies.html",
+
+        requests:"owner-requests.html",
+
+        payments:"owner-payments.html",
+
+        reports:"owner-reports.html",
+
+        settings:"owner-settings.html"
+
+    };
+
+
+    if(pages[page]){
+
+        window.location.href =
+        pages[page];
+
+    }
+
+}
+
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            openPage(
+                this.dataset.page
+            );
+
+        }
+    );
+
+});
+
+
+/* ================= MOBILE ================= */
+
+menuBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.toggle("open");
+
+        overlay.classList.toggle("show");
+
+    }
+);
+
+
+overlay.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove("open");
+
+        overlay.classList.remove("show");
+
+    }
+);
+
+
+/* ================= LOAD USER ================= */
+
+async function loadOwner(){
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient.auth.getUser();
+
+
+        if(error){
+
+            console.error(error);
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+            return;
+
+        }
+
+
+        if(!data || !data.user){
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+            return;
+
+        }
+
+
+        currentUser =
+        data.user;
+
+
+        ownerEmail.value =
+        currentUser.email ||
+        "";
+
+
+        await loadProfile();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showToast(
+            "Error",
+            "Unable to load owner account."
+        );
+
+    }
+
+}
+
+
+/* ================= LOAD PROFILE ================= */
+
+async function loadProfile(){
+
+    if(!currentUser){
+        return;
+    }
+
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq(
+            "id",
+            currentUser.id
+        )
+        .maybeSingle();
+
+
+        if(error){
+
+            console.error(
+                "Profile error:",
+                error
+            );
+
+            showToast(
+                "Profile Error",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        currentProfile =
+        data || null;
+
+
+        if(!currentProfile){
+
+            profileDisplayName.textContent =
+            "Owner";
+
+            roleStatus.textContent =
+            "Not Found";
+
+            return;
+
+        }
+
+
+        const name =
+        currentProfile.full_name ||
+        currentProfile.username ||
+        "Owner";
+
+
+        profileDisplayName.textContent =
+        name;
+
+
+        ownerName.value =
+        currentProfile.full_name ||
+        "";
+
+
+        ownerMobile.value =
+        currentProfile.mobile ||
+        "";
+
+
+        ownerUsername.value =
+        currentProfile.username ||
+        "";
+
+
+        businessState.value =
+        currentProfile.state ||
+        "";
+
+
+        businessDistrict.value =
+        currentProfile.district ||
+        "";
+
+
+        businessCity.value =
+        currentProfile.city ||
+        "";
+
+
+        if(
+            currentProfile.profile_photo
+        ){
+
+            showProfilePhoto(
+                currentProfile.profile_photo
+            );
+
+        }
+
+
+        if(
+            String(
+                currentProfile.role ||
+                ""
+            ).toLowerCase() ===
+            "owner"
+        ){
+
+            roleStatus.textContent =
+            "Owner";
+
+        }
+        else{
+
+            roleStatus.textContent =
+            currentProfile.role ||
+            "Unknown";
+
+        }
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showToast(
+            "Error",
+            "Unable to load profile."
+        );
+
+    }
+
+}
+
+
+/* ================= PHOTO ================= */
+
+function showProfilePhoto(url){
+
+    if(!url){
+        return;
+    }
+
+
+    profilePhoto.src =
+    url;
+
+
+    profilePhoto.style.display =
+    "block";
+
+
+    photoFallback.style.display =
+    "none";
+
+}
+
+
+photoInput.addEventListener(
+    "change",
+    async function(){
+
+        const file =
+        this.files &&
+        this.files[0];
+
+
+        if(!file){
+            return;
+        }
+
+
+        if(!currentUser){
+            showToast(
+                "Login Required",
+                "Owner session not found."
+            );
+            return;
+        }
+
+
+        if(!file.type.startsWith("image/")){
+
+            showToast(
+                "Invalid File",
+                "Please select an image."
+            );
+
+            return;
+
+        }
+
+
+        if(file.size > 5 * 1024 * 1024){
+
+            showToast(
+                "File Too Large",
+                "Image should be less than 5 MB."
+            );
+
+            return;
+
+        }
+
+
+        try{
+
+            showToast(
+                "Uploading",
+                "Profile photo upload ho rahi hai..."
+            );
+
+
+            const extension =
+            file.name
+            .split(".")
+            .pop()
+            .toLowerCase();
+
+
+            const filePath =
+            "owner/" +
+            currentUser.id +
+            "/" +
+            Date.now() +
+            "." +
+            extension;
+
+
+            const {
+                error:uploadError
+            } =
+            await supabaseClient
+            .storage
+            .from("profile-photos")
+            .upload(
+                filePath,
+                file,
+                {
+                    upsert:true,
+                    contentType:file.type
+                }
+            );
+
+
+            if(uploadError){
+
+                console.error(
+                    uploadError
+                );
+
+                showToast(
+                    "Upload Failed",
+                    uploadError.message
+                );
+
+                return;
+
+            }
+
+
+            const {
+                data:urlData
+            } =
+            supabaseClient
+            .storage
+            .from("profile-photos")
+            .getPublicUrl(
+                filePath
+            );
+
+
+            const publicUrl =
+            urlData &&
+            urlData.publicUrl;
+
+
+            if(!publicUrl){
+
+                showToast(
+                    "Upload Failed",
+                    "Unable to create photo URL."
+                );
+
+                return;
+
+            }
+
+
+            const {
+                error:updateError
+            } =
+            await supabaseClient
+            .from("profiles")
+            .update({
+                profile_photo:publicUrl,
+                updated_at:new Date().toISOString()
+            })
+            .eq(
+                "id",
+                currentUser.id
+            );
+
+
+            if(updateError){
+
+                console.error(
+                    updateError
+                );
+
+                showToast(
+                    "Save Failed",
+                    updateError.message
+                );
+
+                return;
+
+            }
+
+
+            showProfilePhoto(
+                publicUrl
+            );
+
+
+            showToast(
+                "Success",
+                "Profile photo updated successfully."
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Upload Failed",
+                "Unable to upload profile photo."
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= SAVE PROFILE ================= */
+
+document
+.getElementById("saveProfileBtn")
+.addEventListener(
+    "click",
+    async function(){
+
+        if(!currentUser){
+            return;
+        }
+
+
+        const name =
+        ownerName.value.trim();
+
+
+        const mobile =
+        ownerMobile.value.trim();
+
+
+        const username =
+        ownerUsername.value.trim();
+
+
+        if(!name){
+
+            showToast(
+                "Missing Name",
+                "Please enter owner name."
+            );
+
+            return;
+
+        }
+
+
+        const button =
+        this;
+
+
+        button.disabled =
+        true;
+
+
+        button.textContent =
+        "Saving...";
+
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .from("profiles")
+            .update({
+
+                full_name:name,
+
+                mobile:
+                mobile || null,
+
+                username:
+                username || null,
+
+                updated_at:
+                new Date().toISOString()
+
+            })
+            .eq(
+                "id",
+                currentUser.id
+            );
+
+
+            if(error){
+
+                console.error(error);
+
+                showToast(
+                    "Save Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            profileDisplayName.textContent =
+            name;
+
+
+            showToast(
+                "Success",
+                "Owner profile updated successfully."
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Save Failed",
+                "Unable to update profile."
+            );
+
+        }
+        finally{
+
+            button.disabled =
+            false;
+
+            button.textContent =
+            "Save Profile";
+
+        }
+
+    }
+);
+
+
+/* ================= BUSINESS SETTINGS ================= */
+
+document
+.getElementById("saveBusinessBtn")
+.addEventListener(
+    "click",
+    async function(){
+
+        if(!currentUser){
+            return;
+        }
+
+
+        const button =
+        this;
+
+
+        button.disabled =
+        true;
+
+
+        button.textContent =
+        "Saving...";
+
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .from("profiles")
+            .update({
+
+                state:
+                businessState.value.trim() ||
+                null,
+
+                district:
+                businessDistrict.value.trim() ||
+                null,
+
+                city:
+                businessCity.value.trim() ||
+                null,
+
+                updated_at:
+                new Date().toISOString()
+
+            })
+            .eq(
+                "id",
+                currentUser.id
+            );
+
+
+            if(error){
+
+                console.error(error);
+
+                showToast(
+                    "Save Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            localStorage.setItem(
+                "egc_business_name",
+                businessName.value.trim()
+            );
+
+
+            localStorage.setItem(
+                "egc_business_address",
+                businessAddress.value.trim()
+            );
+
+
+            showToast(
+                "Success",
+                "Business settings saved."
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Save Failed",
+                "Unable to save business settings."
+            );
+
+        }
+        finally{
+
+            button.disabled =
+            false;
+
+            button.textContent =
+            "Save Business Settings";
+
+        }
+
+    }
+);
+
+
+/* ================= PAYMENT SETTINGS ================= */
+
+document
+.getElementById("savePaymentBtn")
+.addEventListener(
+    "click",
+    function(){
+
+        const settings = {
+
+            paymentMethod:
+            defaultPaymentMethod.value,
+
+            extraCharge:
+            Number(
+                defaultExtraCharge.value
+            ) || 0,
+
+            verification:
+            paymentVerification.checked
+
+        };
+
+
+        localStorage.setItem(
+            "egc_payment_settings",
+            JSON.stringify(settings)
+        );
+
+
+        showToast(
+            "Success",
+            "Payment settings saved."
+        );
+
+    }
+);
+
+
+/* ================= CYLINDER SETTINGS ================= */
+
+document
+.getElementById("saveCylinderBtn")
+.addEventListener(
+    "click",
+    function(){
+
+        const settings = {
+
+            company:
+            defaultCompany.value,
+
+            quantity:
+            Number(
+                defaultQuantity.value
+            ) || 1,
+
+            allowRequests:
+            allowRequests.checked
+
+        };
+
+
+        localStorage.setItem(
+            "egc_cylinder_settings",
+            JSON.stringify(settings)
+        );
+
+
+        showToast(
+            "Success",
+            "Cylinder settings saved."
+        );
+
+    }
+);
+
+
+/* ================= NOTIFICATION SETTINGS ================= */
+
+document
+.getElementById("saveNotificationBtn")
+.addEventListener(
+    "click",
+    function(){
+
+        const settings = {
+
+            requests:
+            notifyRequests.checked,
+
+            payments:
+            notifyPayments.checked,
+
+            delivery:
+            notifyDelivery.checked
+
+        };
+
+
+        localStorage.setItem(
+            "egc_notification_settings",
+            JSON.stringify(settings)
+        );
+
+
+        showToast(
+            "Success",
+            "Notification settings saved."
+        );
+
+    }
+);
+
+
+/* ================= LOAD LOCAL SETTINGS ================= */
+
+function loadLocalSettings(){
+
+    try{
+
+        const paymentSettings =
+        JSON.parse(
+            localStorage.getItem(
+                "egc_payment_settings"
+            ) || "null"
+        );
+
+
+        if(paymentSettings){
+
+            if(
+                paymentSettings.paymentMethod
+            ){
+
+                defaultPaymentMethod.value =
+                paymentSettings.paymentMethod;
+
+            }
+
+
+            if(
+                paymentSettings.extraCharge !==
+                undefined
+            ){
+
+                defaultExtraCharge.value =
+                paymentSettings.extraCharge;
+
+            }
+
+
+            if(
+                paymentSettings.verification !==
+                undefined
+            ){
+
+                paymentVerification.checked =
+                Boolean(
+                    paymentSettings.verification
+                );
+
+            }
+
+        }
+
+
+        const cylinderSettings =
+        JSON.parse(
+            localStorage.getItem(
+                "egc_cylinder_settings"
+            ) || "null"
+        );
+
+
+        if(cylinderSettings){
+
+            defaultCompany.value =
+            cylinderSettings.company ||
+            "";
+
+
+            defaultQuantity.value =
+            cylinderSettings.quantity ||
+            1;
+
+
+            if(
+                cylinderSettings.allowRequests !==
+                undefined
+            ){
+
+                allowRequests.checked =
+                Boolean(
+                    cylinderSettings.allowRequests
+                );
+
+            }
+
+        }
+
+
+        const notificationSettings =
+        JSON.parse(
+            localStorage.getItem(
+                "egc_notification_settings"
+            ) || "null"
+        );
+
+
+        if(notificationSettings){
+
+            if(
+                notificationSettings.requests !==
+                undefined
+            ){
+
+                notifyRequests.checked =
+                Boolean(
+                    notificationSettings.requests
+                );
+
+            }
+
+
+            if(
+                notificationSettings.payments !==
+                undefined
+            ){
+
+                notifyPayments.checked =
+                Boolean(
+                    notificationSettings.payments
+                );
+
+            }
+
+
+            if(
+                notificationSettings.delivery !==
+                undefined
+            ){
+
+                notifyDelivery.checked =
+                Boolean(
+                    notificationSettings.delivery
+                );
+
+            }
+
+        }
+
+
+        businessName.value =
+        localStorage.getItem(
+            "egc_business_name"
+        ) ||
+        "Emergency Gas Cylinder";
+
+
+        businessAddress.value =
+        localStorage.getItem(
+            "egc_business_address"
+        ) ||
+        "";
+
+    }
+    catch(error){
+
+        console.error(
+            "Local settings error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ================= PASSWORD RESET ================= */
+
+document
+.getElementById("resetPasswordBtn")
+.addEventListener(
+    "click",
+    async function(){
+
+        if(!currentUser || !currentUser.email){
+
+            showToast(
+                "Error",
+                "Owner email not available."
+            );
+
+            return;
+
+        }
+
+
+        const confirmed =
+        confirm(
+            "Password reset link owner email par bhejna hai?"
+        );
+
+
+        if(!confirmed){
+            return;
+        }
+
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient.auth
+            .resetPasswordForEmail(
+                currentUser.email,
+                {
+                    redirectTo:
+                    window.location.origin +
+                    window.location.pathname
+                }
+            );
+
+
+            if(error){
+
+                console.error(error);
+
+                showToast(
+                    "Reset Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            showToast(
+                "Reset Email Sent",
+                "Password reset link owner email par bhej diya gaya hai."
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Reset Failed",
+                "Unable to send reset email."
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= LOGOUT ================= */
+
+async function logoutOwner(){
+
+    const confirmed =
+    confirm(
+        "Kya aap EGC Owner Panel se logout karna chahte hain?"
+    );
+
+
+    if(!confirmed){
+        return;
+    }
+
+
+    try{
+
+        const {
+            error
+        } =
+        await supabaseClient.auth.signOut();
+
+
+        if(error){
+
+            showToast(
+                "Logout Failed",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        window.location.replace(
+            "owner-login.html"
+        );
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showToast(
+            "Logout Failed",
+            "Please try again."
+        );
+
+    }
+
+}
+
+
+logoutBtn.addEventListener(
+    "click",
+    logoutOwner
+);
+
+
+logoutBtnBottom.addEventListener(
+    "click",
+    logoutOwner
+);
+
+
+/* ================= AUTH STATE ================= */
+
+supabaseClient.auth.onAuthStateChange(
+    function(event,session){
+
+        if(
+            event === "SIGNED_OUT"
+        ){
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= INITIALIZE ================= */
+
+async function init(){
+
+    loadLocalSettings();
+
+    await loadOwner();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

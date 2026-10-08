@@ -1,0 +1,5578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - LPG Agencies</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,
+body{
+    width:100%;
+    min-height:100%;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #fff;
+}
+
+button,
+input,
+select,
+textarea{
+    font-family:inherit;
+}
+
+/* =========================================================
+   MASTER OWNER PANEL HEADER
+========================================================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:19px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.notification-count{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:18px;
+    height:18px;
+    padding:0 4px;
+    border-radius:20px;
+    background:#e73535;
+    color:#fff;
+    font-size:9px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-dropdown{
+    position:absolute;
+    top:52px;
+    right:0;
+    width:330px;
+    background:#fff;
+    border:1px solid #dce6ee;
+    border-radius:15px;
+    box-shadow:0 18px 50px rgba(30,70,100,.18);
+    overflow:hidden;
+    display:none;
+    z-index:3000;
+}
+
+.notification-dropdown.show{
+    display:block;
+}
+
+.notification-head{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notification-head strong{
+    font-size:14px;
+    color:#06477f;
+}
+
+.notification-head button{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.notification-list{
+    max-height:320px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #f0f4f7;
+    display:flex;
+    gap:10px;
+}
+
+.notification-item:last-child{
+    border-bottom:0;
+}
+
+.notification-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.notification-content strong{
+    display:block;
+    color:#164f78;
+    font-size:11px;
+    margin-bottom:3px;
+}
+
+.notification-content span{
+    color:#8a9aaa;
+    font-size:10px;
+    line-height:1.4;
+}
+
+.notification-empty{
+    padding:28px 15px;
+    text-align:center;
+    color:#91a1af;
+    font-size:11px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* =========================================================
+   MASTER OWNER PANEL LAYOUT
+========================================================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* =========================================================
+   MASTER SIDEBAR
+========================================================= */
+
+.sidebar{
+    width:245px;
+    min-width:245px;
+    height:calc(100vh - 78px);
+    position:sticky;
+    top:78px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,245,245,.98) 0%,
+            rgba(242,248,255,.98) 52%,
+            rgba(255,255,255,.98) 100%
+        );
+
+    border-right:1px solid #e1e9f0;
+
+    padding:22px 15px 18px;
+
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+
+    display:flex;
+    flex-direction:column;
+
+    overflow-y:auto;
+    overflow-x:hidden;
+
+    flex-shrink:0;
+}
+
+.sidebar::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-track{
+    background:transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#d7e3eb;
+    border-radius:10px;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:12px;
+    font-weight:800;
+    padding:0 13px 9px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.owner-pages-title{
+    margin-top:15px;
+}
+
+.system-title{
+    margin-top:15px;
+}
+
+.nav-btn{
+    width:100%;
+    min-height:43px;
+    height:43px;
+
+    border:0;
+    background:transparent;
+
+    color:#496a82;
+
+    padding:0 14px;
+
+    border-radius:11px;
+    margin-bottom:5px;
+
+    text-align:left;
+
+    font-size:14px;
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:
+        background .2s ease,
+        color .2s ease,
+        transform .2s ease;
+    
+    display:flex;
+    align-items:center;
+}
+
+.nav-btn:hover{
+    background:rgba(225,239,252,.8);
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:
+        linear-gradient(
+            135deg,
+            #eaf6ff,
+            #fff0f0
+        );
+
+    color:#075ca5;
+
+    box-shadow:
+        0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    width:28px;
+    min-width:28px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:flex-start;
+    font-size:17px;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:15px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    color:#b72222;
+    background:#fff0f0;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+}
+
+/* =========================================================
+   PAGE HEADING
+========================================================= */
+
+.page-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:24px;
+}
+
+.page-heading h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.page-heading p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+.add-btn{
+    border:0;
+    background:#ffc21a;
+    color:#063d70;
+    padding:13px 18px;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(255,194,26,.2);
+}
+
+.add-btn:hover{
+    background:#ffb900;
+}
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel{
+    background:rgba(255,255,255,.95);
+    border:1px solid #dce6ee;
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+    margin-bottom:20px;
+}
+
+.panel-header{
+    padding:20px 21px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.panel-title{
+    font-size:18px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.panel-subtitle{
+    font-size:12px;
+    color:#8799a9;
+    margin-top:4px;
+}
+
+.search-box{
+    width:330px;
+    max-width:100%;
+    height:44px;
+    border:1.5px solid #d5e1eb;
+    border-radius:11px;
+    padding:0 14px;
+    outline:none;
+    color:#315671;
+    font-size:13px;
+}
+
+.search-box:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.08);
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:1250px;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f7fafc;
+    color:#71889a;
+    font-size:10px;
+    text-transform:uppercase;
+    padding:13px 12px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:12px;
+    border-top:1px solid #edf2f6;
+    color:#35566f;
+    font-size:12px;
+    vertical-align:middle;
+}
+
+.owner-photo{
+    width:46px;
+    height:46px;
+    border-radius:10px;
+    object-fit:cover;
+    border:1px solid #dce7ef;
+    background:#f3f7fa;
+}
+
+.no-photo{
+    width:46px;
+    height:46px;
+    border-radius:10px;
+    background:#eef5f9;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+}
+
+.agency-name-cell{
+    font-weight:800;
+    color:#164f78;
+}
+
+.code-badge{
+    display:inline-flex;
+    padding:5px 8px;
+    border-radius:7px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+}
+
+.status{
+    display:inline-flex;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.status.active{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.inactive{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.action-group{
+    display:flex;
+    gap:6px;
+}
+
+.action-btn{
+    border:0;
+    padding:7px 9px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:800;
+}
+
+.edit-btn{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.delete-btn{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.document-eye{
+    width:36px;
+    height:36px;
+    border:0;
+    border-radius:9px;
+    background:#eef7ff;
+    color:#0871c3;
+    cursor:pointer;
+    font-size:18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transition:.2s;
+}
+
+.document-eye:hover{
+    background:#dcefff;
+    transform:translateY(-1px);
+}
+
+.document-eye.disabled{
+    opacity:.35;
+    cursor:not-allowed;
+}
+
+.empty{
+    text-align:center;
+    padding:40px 20px;
+    color:#91a1af;
+    font-size:13px;
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.48);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:720px;
+    max-height:92vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:22px;
+    padding:28px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:22px;
+}
+
+.modal-title{
+    font-size:22px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.close-btn{
+    width:36px;
+    height:36px;
+    border:0;
+    border-radius:10px;
+    background:#eef4f8;
+    color:#607b91;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+.form-group{
+    margin-bottom:2px;
+}
+
+.form-group.full{
+    grid-column:1/-1;
+}
+
+label{
+    display:block;
+    font-size:12px;
+    font-weight:800;
+    color:#164f78;
+    margin-bottom:7px;
+}
+
+input,
+select,
+textarea{
+    width:100%;
+    border:1.5px solid #d5e1eb;
+    border-radius:11px;
+    padding:0 12px;
+    font-size:13px;
+    color:#31566f;
+    background:#fff;
+    outline:none;
+}
+
+input,
+select{
+    height:46px;
+}
+
+textarea{
+    min-height:90px;
+    height:90px;
+    padding:12px;
+    resize:vertical;
+    line-height:1.5;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.08);
+}
+
+/* =========================================================
+   PHOTO
+========================================================= */
+
+.photo-area{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    padding:12px;
+    border:1px dashed #cbdce8;
+    border-radius:12px;
+    background:#f9fcff;
+}
+
+.photo-preview{
+    width:70px;
+    height:70px;
+    border-radius:12px;
+    object-fit:cover;
+    border:1px solid #d7e4ec;
+    display:none;
+}
+
+.photo-placeholder{
+    width:70px;
+    height:70px;
+    border-radius:12px;
+    background:#eef5f9;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+}
+
+.photo-info{
+    flex:1;
+}
+
+.photo-info p{
+    font-size:11px;
+    color:#8497a7;
+    line-height:1.5;
+    margin-bottom:7px;
+}
+
+.photo-input{
+    height:auto;
+    padding:7px;
+    font-size:11px;
+}
+
+.status-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.status-row input{
+    width:20px;
+    height:20px;
+}
+
+.status-row label{
+    margin:0;
+    font-size:13px;
+}
+
+.form-message{
+    display:none;
+    margin-bottom:17px;
+    padding:11px 13px;
+    border-radius:10px;
+    font-size:12px;
+    line-height:1.5;
+}
+
+.form-message.error{
+    display:block;
+    color:#bd2828;
+    background:#fff1f1;
+    border:1px solid #ffcaca;
+}
+
+.form-message.success{
+    display:block;
+    color:#16833a;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+}
+
+.modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:22px;
+}
+
+.cancel-btn,
+.save-btn{
+    height:46px;
+    border:0;
+    border-radius:11px;
+    padding:0 20px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.save-btn{
+    background:#ffc21a;
+    color:#063d70;
+}
+
+.save-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* =========================================================
+   DOCUMENT SECTION
+========================================================= */
+
+.documents-section{
+    border:1px solid #dce7ef;
+    border-radius:14px;
+    padding:16px;
+    background:#f9fcff;
+}
+
+.documents-title{
+    font-size:14px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:4px;
+}
+
+.documents-subtitle{
+    font-size:11px;
+    color:#8799a9;
+    margin-bottom:15px;
+}
+
+.document-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+}
+
+.document-card{
+    border:1px solid #dce7ef;
+    border-radius:13px;
+    background:#fff;
+    padding:12px;
+}
+
+.document-card-title{
+    font-size:12px;
+    font-weight:800;
+    color:#164f78;
+    margin-bottom:9px;
+}
+
+.document-preview{
+    width:100%;
+    height:130px;
+    border-radius:9px;
+    background:#eef5f9;
+    object-fit:cover;
+    border:1px solid #e0e9ef;
+    display:none;
+}
+
+.document-placeholder{
+    height:130px;
+    border-radius:9px;
+    background:#f1f6fa;
+    border:1px dashed #cbdce8;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#91a1af;
+    font-size:25px;
+    gap:5px;
+}
+
+.document-placeholder span{
+    font-size:10px;
+}
+
+.document-file{
+    margin-top:8px;
+    width:100%;
+    font-size:10px;
+    padding:6px;
+    height:auto;
+}
+
+.document-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:7px;
+}
+
+.document-action-btn{
+    height:34px;
+    border:0;
+    border-radius:8px;
+    font-size:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.camera-btn{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.remove-doc-btn{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.document-status{
+    margin-top:7px;
+    font-size:10px;
+    font-weight:700;
+    color:#16833a;
+    min-height:13px;
+}
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+.camera-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(3,25,42,.78);
+    z-index:20000;
+    align-items:center;
+    justify-content:center;
+    padding:15px;
+}
+
+.camera-modal.show{
+    display:flex;
+}
+
+.camera-card{
+    width:100%;
+    max-width:620px;
+    background:#fff;
+    border-radius:20px;
+    padding:18px;
+    box-shadow:0 25px 80px rgba(0,0,0,.35);
+}
+
+.camera-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:12px;
+}
+
+.camera-title{
+    font-size:18px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.camera-video-wrap{
+    width:100%;
+    background:#071923;
+    border-radius:14px;
+    overflow:hidden;
+    position:relative;
+}
+
+#cameraVideo{
+    display:block;
+    width:100%;
+    max-height:62vh;
+    object-fit:cover;
+}
+
+.camera-switch{
+    position:absolute;
+    right:12px;
+    top:12px;
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:50%;
+    background:rgba(255,255,255,.9);
+    color:#06477f;
+    font-size:19px;
+    cursor:pointer;
+}
+
+.camera-actions{
+    display:grid;
+    grid-template-columns:1fr 1.5fr 1fr;
+    gap:8px;
+    margin-top:12px;
+}
+
+.camera-action{
+    height:44px;
+    border:0;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.camera-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.camera-capture{
+    background:#ffc21a;
+    color:#063d70;
+}
+
+.camera-switch-btn{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+/* =========================================================
+   DOCUMENT VIEW
+========================================================= */
+
+.documents-view-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.62);
+    z-index:15000;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+}
+
+.documents-view-modal.show{
+    display:flex;
+}
+
+.documents-view-card{
+    width:100%;
+    max-width:900px;
+    max-height:94vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:22px;
+    padding:24px;
+    box-shadow:0 25px 80px rgba(0,0,0,.3);
+}
+
+.documents-view-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.documents-view-title{
+    font-size:21px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.documents-view-subtitle{
+    font-size:11px;
+    color:#8799a9;
+    margin-top:4px;
+}
+
+.view-doc-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:15px;
+}
+
+.view-doc-card{
+    border:1px solid #dce6ee;
+    border-radius:15px;
+    padding:12px;
+    background:#f9fcff;
+}
+
+.view-doc-title{
+    font-size:13px;
+    font-weight:800;
+    color:#164f78;
+    margin-bottom:10px;
+}
+
+.view-doc-image-wrap{
+    height:250px;
+    border-radius:11px;
+    overflow:hidden;
+    background:#eef4f8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.view-doc-image{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:#f4f8fb;
+}
+
+.view-doc-empty{
+    color:#91a1af;
+    text-align:center;
+    font-size:11px;
+}
+
+.view-doc-open{
+    display:block;
+    width:100%;
+    margin-top:9px;
+    height:38px;
+    border:0;
+    border-radius:9px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:11px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+/* =========================================================
+   DELETE CONFIRMATION
+========================================================= */
+
+.confirm-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.48);
+    z-index:10000;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.confirm-modal.show{
+    display:flex;
+}
+
+.confirm-card{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:20px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.confirm-icon{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 15px;
+    font-size:25px;
+}
+
+.confirm-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:8px;
+}
+
+.confirm-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin-bottom:20px;
+}
+
+.confirm-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.confirm-cancel,
+.confirm-delete{
+    height:46px;
+    border:0;
+    border-radius:11px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.confirm-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.confirm-delete{
+    background:#d93636;
+    color:#fff;
+}
+
+.confirm-delete:disabled{
+    opacity:.6;
+}
+
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media(max-width:1000px){
+
+    .sidebar{
+        width:230px;
+        min-width:230px;
+    }
+
+    .main{
+        padding:25px 20px;
+    }
+
+    .document-grid,
+    .view-doc-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .notification-dropdown{
+        right:-10px;
+    }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        margin-left:auto;
+    }
+
+    .notification-btn{
+        width:40px;
+        height:40px;
+    }
+
+    .notification-dropdown{
+        position:fixed;
+        top:62px;
+        right:12px;
+        left:12px;
+        width:auto;
+        max-width:none;
+    }
+
+    .layout{
+        display:block;
+        min-height:calc(100vh - 70px);
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+
+        width:245px;
+        min-width:245px;
+
+        height:calc(100vh - 70px);
+
+        z-index:2000;
+
+        transition:left .25s ease;
+
+        overflow-y:auto;
+        overflow-x:hidden;
+
+        padding:22px 15px 18px;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .main{
+        width:100%;
+        padding:20px 14px 40px;
+    }
+
+    .page-heading{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .page-heading h1{
+        font-size:23px;
+    }
+
+    .add-btn{
+        width:100%;
+    }
+
+    .panel-header{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .search-box{
+        width:100%;
+    }
+
+    .modal{
+        padding:12px;
+    }
+
+    .modal-card{
+        padding:22px 16px;
+        border-radius:18px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+        gap:14px;
+    }
+
+    .form-group.full{
+        grid-column:auto;
+    }
+
+    .address-group{
+        grid-column:1/-1 !important;
+    }
+
+    textarea{
+        min-height:100px;
+        height:100px;
+    }
+
+    .modal-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+    }
+
+    .cancel-btn,
+    .save-btn{
+        width:100%;
+    }
+
+    .document-grid,
+    .view-doc-grid{
+        grid-template-columns:1fr;
+    }
+
+    .documents-view-card{
+        padding:17px;
+    }
+
+    .view-doc-image-wrap{
+        height:300px;
+    }
+
+    .camera-actions{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .camera-capture{
+        grid-column:1/-1;
+        order:-1;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:1500;
+    }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:520px){
+
+    .header{
+        padding:0 11px;
+    }
+
+    .logo{
+        height:44px;
+    }
+
+    .main{
+        padding:18px 11px 35px;
+    }
+
+    .page-heading{
+        margin-bottom:18px;
+    }
+
+    .page-heading h1{
+        font-size:21px;
+    }
+
+    .page-heading p{
+        font-size:12px;
+    }
+
+    .panel{
+        border-radius:15px;
+    }
+
+    .panel-header{
+        padding:17px 15px;
+    }
+
+    .panel-title{
+        font-size:16px;
+    }
+
+    .modal-card{
+        padding:19px 13px;
+    }
+
+    .modal-title{
+        font-size:19px;
+    }
+
+    .documents-view-title{
+        font-size:18px;
+    }
+
+    .confirm-card{
+        padding:23px 18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     MASTER OWNER HEADER
+========================================================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="Open Menu"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <!-- Notification UI - no script added -->
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+                aria-label="Notifications"
+            >
+                🔔
+
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >
+                    0
+                </span>
+
+            </button>
+
+            <div
+                class="notification-dropdown"
+                id="notificationDropdown"
+            >
+
+                <div class="notification-head">
+
+                    <strong>
+                        Notifications
+                    </strong>
+
+                    <button
+                        type="button"
+                        id="markAllRead"
+                    >
+                        Mark all read
+                    </button>
+
+                </div>
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        No new notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="owner-badge">
+
+            <span class="owner-dot"></span>
+
+            Owner
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<div class="layout">
+
+<!-- =========================================================
+     MASTER OWNER SIDEBAR
+========================================================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+
+    <button
+        class="nav-btn active"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="pending-approvals"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+    <!-- OWNER PAGES -->
+
+    <div class="sidebar-title owner-pages-title">
+        Owner Pages
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="request-details"
+        type="button"
+    >
+        <span class="nav-icon">📄</span>
+        Request Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payment-details"
+        type="button"
+    >
+        <span class="nav-icon">💳</span>
+        Payment Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agency-details"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        Agency Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="deliveries"
+        type="button"
+    >
+        <span class="nav-icon">🚚</span>
+        Deliveries
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="repayments"
+        type="button"
+    >
+        <span class="nav-icon">💰</span>
+        Repayments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="notifications"
+        type="button"
+    >
+        <span class="nav-icon">🔔</span>
+        Notifications
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="slips"
+        type="button"
+    >
+        <span class="nav-icon">🧾</span>
+        Slips
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="profile"
+        type="button"
+    >
+        <span class="nav-icon">👤</span>
+        Profile
+    </button>
+
+
+    <!-- SYSTEM -->
+
+    <div class="sidebar-title system-title">
+        System
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="settings"
+        type="button"
+    >
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+
+    <!-- LOGOUT -->
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =========================================================
+     MAIN LPG AGENCIES CONTENT
+========================================================= -->
+
+<main class="main">
+
+    <div class="page-heading">
+
+        <div>
+
+            <h1>
+                LPG Agencies
+            </h1>
+
+            <p>
+                Manage all registered LPG agencies and agency owners.
+            </p>
+
+        </div>
+
+
+        <button
+            class="add-btn"
+            id="addAgencyBtn"
+            type="button"
+        >
+            ➕ Add New Agency
+        </button>
+
+    </div>
+
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <div class="panel-title">
+                    Agency List
+                </div>
+
+                <div class="panel-subtitle">
+                    Search, edit or delete LPG agencies
+                </div>
+
+            </div>
+
+
+            <input
+                type="search"
+                id="searchInput"
+                class="search-box"
+                placeholder="🔎 Search agency, owner, code, city..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Photo
+                        </th>
+
+                        <th>
+                            Agency Name
+                        </th>
+
+                        <th>
+                            Owner Name
+                        </th>
+
+                        <th>
+                            Mobile
+                        </th>
+
+                        <th>
+                            Email
+                        </th>
+
+                        <th>
+                            Agency Code
+                        </th>
+
+                        <th>
+                            LPG Company
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Joining Date
+                        </th>
+
+                        <th>
+                            Documents
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="agencyTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="12"
+                            class="empty"
+                        >
+                            Loading agencies...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+</div>
+
+
+<!-- =========================================================
+     ADD / EDIT MODAL
+========================================================= -->
+
+<div
+    class="modal"
+    id="agencyModal"
+>
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div
+                class="modal-title"
+                id="modalTitle"
+            >
+                Add New LPG Agency
+            </div>
+
+
+            <button
+                type="button"
+                class="close-btn"
+                id="closeModal"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div
+            id="formMessage"
+            class="form-message"
+        ></div>
+
+
+        <form id="agencyForm">
+
+            <input
+                type="hidden"
+                id="agencyId"
+            >
+
+
+            <div class="form-grid">
+
+
+                <div class="form-group full">
+
+                    <label>
+                        Owner Photo
+                    </label>
+
+
+                    <div class="photo-area">
+
+                        <div
+                            class="photo-placeholder"
+                            id="photoPlaceholder"
+                        >
+                            👤
+                        </div>
+
+
+                        <img
+                            id="photoPreview"
+                            class="photo-preview"
+                            alt="Owner Photo"
+                        >
+
+
+                        <div class="photo-info">
+
+                            <p>
+                                Upload owner photo. JPG, PNG or WEBP.
+                            </p>
+
+
+                            <input
+                                type="file"
+                                id="ownerPhoto"
+                                class="photo-input"
+                                accept="image/jpeg,image/png,image/webp"
+                            >
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="agencyName">
+                        Agency Name *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="agencyName"
+                        placeholder="Enter agency name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="ownerName">
+                        Agency Owner Name *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="ownerName"
+                        placeholder="Enter owner name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="mobileNumber">
+                        Agency Mobile Number
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="mobileNumber"
+                        placeholder="Enter mobile number"
+                        maxlength="15"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Agency Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter agency email"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="agencyCode">
+                        Agency Code
+                    </label>
+
+                    <input
+                        type="text"
+                        id="agencyCode"
+                        placeholder="Enter agency code"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="lpgCompany">
+                        LPG Company
+                    </label>
+
+                    <select id="lpgCompany">
+
+                        <option value="">
+                            Select LPG company
+                        </option>
+
+                        <option value="Indane">
+                            Indane
+                        </option>
+
+                        <option value="Bharatgas">
+                            Bharatgas
+                        </option>
+
+                        <option value="HP Gas">
+                            HP Gas
+                        </option>
+
+                        <option value="Other">
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="state">
+                        State
+                    </label>
+
+                    <input
+                        type="text"
+                        id="state"
+                        placeholder="Enter state"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="district">
+                        District
+                    </label>
+
+                    <input
+                        type="text"
+                        id="district"
+                        placeholder="Enter district"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="city">
+                        City
+                    </label>
+
+                    <input
+                        type="text"
+                        id="city"
+                        placeholder="Enter city"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="joiningDate">
+                        Joining Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="joiningDate"
+                    >
+
+                </div>
+
+
+                <div class="form-group full address-group">
+
+                    <label for="address">
+                        Agency Full Address
+                    </label>
+
+                    <textarea
+                        id="address"
+                        placeholder="Enter complete agency address"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <div class="documents-section">
+
+                        <div class="documents-title">
+                            Upload Documents
+                        </div>
+
+                        <div class="documents-subtitle">
+                            Upload Aadhaar Front, Aadhaar Back and PAN Card. Camera and Gallery/Folder both supported.
+                        </div>
+
+
+                        <div class="document-grid">
+
+
+                            <!-- AADHAAR FRONT -->
+
+                            <div class="document-card">
+
+                                <div class="document-card-title">
+                                    Aadhaar Front
+                                </div>
+
+
+                                <div
+                                    class="document-placeholder"
+                                    id="aadhaarFrontPlaceholder"
+                                >
+                                    🪪
+
+                                    <span>
+                                        No document
+                                    </span>
+
+                                </div>
+
+
+                                <img
+                                    id="aadhaarFrontPreview"
+                                    class="document-preview"
+                                    alt="Aadhaar Front"
+                                >
+
+
+                                <input
+                                    type="file"
+                                    id="aadhaarFrontFile"
+                                    class="document-file"
+                                    accept="image/*"
+                                >
+
+
+                                <div class="document-actions">
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn camera-btn"
+                                        onclick="openCamera('aadhaar_front')"
+                                    >
+                                        📷 Camera
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn remove-doc-btn"
+                                        onclick="removeDocument('aadhaar_front')"
+                                    >
+                                        ✕ Remove
+                                    </button>
+
+                                </div>
+
+
+                                <div
+                                    class="document-status"
+                                    id="aadhaarFrontStatus"
+                                ></div>
+
+                            </div>
+
+
+                            <!-- AADHAAR BACK -->
+
+                            <div class="document-card">
+
+                                <div class="document-card-title">
+                                    Aadhaar Back
+                                </div>
+
+
+                                <div
+                                    class="document-placeholder"
+                                    id="aadhaarBackPlaceholder"
+                                >
+                                    🪪
+
+                                    <span>
+                                        No document
+                                    </span>
+
+                                </div>
+
+
+                                <img
+                                    id="aadhaarBackPreview"
+                                    class="document-preview"
+                                    alt="Aadhaar Back"
+                                >
+
+
+                                <input
+                                    type="file"
+                                    id="aadhaarBackFile"
+                                    class="document-file"
+                                    accept="image/*"
+                                >
+
+
+                                <div class="document-actions">
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn camera-btn"
+                                        onclick="openCamera('aadhaar_back')"
+                                    >
+                                        📷 Camera
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn remove-doc-btn"
+                                        onclick="removeDocument('aadhaar_back')"
+                                    >
+                                        ✕ Remove
+                                    </button>
+
+                                </div>
+
+
+                                <div
+                                    class="document-status"
+                                    id="aadhaarBackStatus"
+                                ></div>
+
+                            </div>
+
+
+                            <!-- PAN -->
+
+                            <div class="document-card">
+
+                                <div class="document-card-title">
+                                    PAN Card
+                                </div>
+
+
+                                <div
+                                    class="document-placeholder"
+                                    id="panPlaceholder"
+                                >
+                                    💳
+
+                                    <span>
+                                        No document
+                                    </span>
+
+                                </div>
+
+
+                                <img
+                                    id="panPreview"
+                                    class="document-preview"
+                                    alt="PAN Card"
+                                >
+
+
+                                <input
+                                    type="file"
+                                    id="panFile"
+                                    class="document-file"
+                                    accept="image/*"
+                                >
+
+
+                                <div class="document-actions">
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn camera-btn"
+                                        onclick="openCamera('pan')"
+                                    >
+                                        📷 Camera
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        class="document-action-btn remove-doc-btn"
+                                        onclick="removeDocument('pan')"
+                                    >
+                                        ✕ Remove
+                                    </button>
+
+                                </div>
+
+
+                                <div
+                                    class="document-status"
+                                    id="panStatus"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Agency Status
+                    </label>
+
+
+                    <div class="status-row">
+
+                        <input
+                            type="checkbox"
+                            id="isActive"
+                            checked
+                        >
+
+
+                        <label for="isActive">
+                            Active Agency
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    id="cancelModal"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                    id="saveBtn"
+                >
+                    SAVE AGENCY
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CAMERA MODAL
+========================================================= -->
+
+<div
+    class="camera-modal"
+    id="cameraModal"
+>
+
+    <div class="camera-card">
+
+        <div class="camera-header">
+
+            <div class="camera-title">
+                Capture Document
+            </div>
+
+
+            <button
+                type="button"
+                class="close-btn"
+                onclick="closeCamera()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="camera-video-wrap">
+
+            <video
+                id="cameraVideo"
+                autoplay
+                playsinline
+            ></video>
+
+
+            <button
+                type="button"
+                class="camera-switch"
+                onclick="switchCamera()"
+                title="Switch Camera"
+            >
+                🔄
+            </button>
+
+        </div>
+
+
+        <div class="camera-actions">
+
+            <button
+                type="button"
+                class="camera-action camera-cancel"
+                onclick="closeCamera()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="camera-action camera-capture"
+                onclick="captureDocument()"
+            >
+                📸 Capture
+            </button>
+
+
+            <button
+                type="button"
+                class="camera-action camera-switch-btn"
+                onclick="switchCamera()"
+            >
+                🔄 Switch
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     DOCUMENT VIEW MODAL
+========================================================= -->
+
+<div
+    class="documents-view-modal"
+    id="documentsViewModal"
+>
+
+    <div class="documents-view-card">
+
+        <div class="documents-view-header">
+
+            <div>
+
+                <div
+                    class="documents-view-title"
+                    id="documentsViewTitle"
+                >
+                    Owner Documents
+                </div>
+
+
+                <div
+                    class="documents-view-subtitle"
+                    id="documentsViewSubtitle"
+                >
+                    Documents
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="close-btn"
+                onclick="closeDocumentsView()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="view-doc-grid">
+
+
+            <div class="view-doc-card">
+
+                <div class="view-doc-title">
+                    Aadhaar Front
+                </div>
+
+
+                <div class="view-doc-image-wrap">
+
+                    <img
+                        id="viewAadhaarFront"
+                        class="view-doc-image"
+                        alt="Aadhaar Front"
+                    >
+
+
+                    <div
+                        id="viewAadhaarFrontEmpty"
+                        class="view-doc-empty"
+                    >
+                        Aadhaar Front not uploaded
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="view-doc-open"
+                    id="viewAadhaarFrontButton"
+                    onclick="openDocumentInNewTab('viewAadhaarFront')"
+                >
+                    👁️ View
+                </button>
+
+            </div>
+
+
+            <div class="view-doc-card">
+
+                <div class="view-doc-title">
+                    Aadhaar Back
+                </div>
+
+
+                <div class="view-doc-image-wrap">
+
+                    <img
+                        id="viewAadhaarBack"
+                        class="view-doc-image"
+                        alt="Aadhaar Back"
+                    >
+
+
+                    <div
+                        id="viewAadhaarBackEmpty"
+                        class="view-doc-empty"
+                    >
+                        Aadhaar Back not uploaded
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="view-doc-open"
+                    id="viewAadhaarBackButton"
+                    onclick="openDocumentInNewTab('viewAadhaarBack')"
+                >
+                    👁️ View
+                </button>
+
+            </div>
+
+
+            <div class="view-doc-card">
+
+                <div class="view-doc-title">
+                    PAN Card
+                </div>
+
+
+                <div class="view-doc-image-wrap">
+
+                    <img
+                        id="viewPan"
+                        class="view-doc-image"
+                        alt="PAN Card"
+                    >
+
+
+                    <div
+                        id="viewPanEmpty"
+                        class="view-doc-empty"
+                    >
+                        PAN Card not uploaded
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="view-doc-open"
+                    id="viewPanButton"
+                    onclick="openDocumentInNewTab('viewPan')"
+                >
+                    👁️ View
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     DELETE CONFIRMATION
+========================================================= -->
+
+<div
+    class="confirm-modal"
+    id="confirmModal"
+>
+
+    <div class="confirm-card">
+
+        <div class="confirm-icon">
+            🗑️
+        </div>
+
+
+        <div class="confirm-title">
+            Delete Agency?
+        </div>
+
+
+        <div class="confirm-text">
+            This agency will be permanently deleted from the system.
+            This action cannot be undone.
+        </div>
+
+
+        <div class="confirm-actions">
+
+            <button
+                type="button"
+                class="confirm-cancel"
+                id="confirmCancel"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="confirm-delete"
+                id="confirmDelete"
+            >
+                Delete
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* ================= ELEMENTS ================= */
+
+const agencyTableBody =
+document.getElementById("agencyTableBody");
+
+const searchInput =
+document.getElementById("searchInput");
+
+const addAgencyBtn =
+document.getElementById("addAgencyBtn");
+
+const agencyModal =
+document.getElementById("agencyModal");
+
+const closeModal =
+document.getElementById("closeModal");
+
+const cancelModal =
+document.getElementById("cancelModal");
+
+const agencyForm =
+document.getElementById("agencyForm");
+
+const modalTitle =
+document.getElementById("modalTitle");
+
+const formMessage =
+document.getElementById("formMessage");
+
+const saveBtn =
+document.getElementById("saveBtn");
+
+const agencyId =
+document.getElementById("agencyId");
+
+const agencyName =
+document.getElementById("agencyName");
+
+const ownerName =
+document.getElementById("ownerName");
+
+const mobileNumber =
+document.getElementById("mobileNumber");
+
+const email =
+document.getElementById("email");
+
+const agencyCode =
+document.getElementById("agencyCode");
+
+const lpgCompany =
+document.getElementById("lpgCompany");
+
+const state =
+document.getElementById("state");
+
+const district =
+document.getElementById("district");
+
+const city =
+document.getElementById("city");
+
+const joiningDate =
+document.getElementById("joiningDate");
+
+const address =
+document.getElementById("address");
+
+const isActive =
+document.getElementById("isActive");
+
+const ownerPhoto =
+document.getElementById("ownerPhoto");
+
+const photoPreview =
+document.getElementById("photoPreview");
+
+const photoPlaceholder =
+document.getElementById("photoPlaceholder");
+
+const confirmModal =
+document.getElementById("confirmModal");
+
+const confirmCancel =
+document.getElementById("confirmCancel");
+
+const confirmDelete =
+document.getElementById("confirmDelete");
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const aadhaarFrontFile =
+document.getElementById("aadhaarFrontFile");
+
+const aadhaarBackFile =
+document.getElementById("aadhaarBackFile");
+
+const panFile =
+document.getElementById("panFile");
+
+
+let agencies = [];
+let editingAgency = null;
+let agencyToDelete = null;
+
+
+/* ================= DOCUMENT STATE ================= */
+
+let documentFiles = {
+    aadhaar_front:null,
+    aadhaar_back:null,
+    pan:null
+};
+
+let documentUrls = {
+    aadhaar_front:null,
+    aadhaar_back:null,
+    pan:null
+};
+
+
+/* ================= CAMERA STATE ================= */
+
+let cameraStream = null;
+let currentCameraFacing = "environment";
+let currentCameraDocument = null;
+
+
+/* ================= NAVIGATION ================= */
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+        users:"owner-users.html",
+        agencies:"owner-agencies.html",
+        companies:"owner-companies.html",
+        requests:"owner-requests.html",
+        payments:"owner-payments.html",
+        reports:"owner-reports.html",
+        settings:"owner-settings.html"
+
+    };
+
+    if(pages[page]){
+
+        window.location.href =
+        pages[page];
+
+    }
+
+}
+
+document
+.querySelectorAll("[data-page]")
+.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            openPage(
+                this.dataset.page
+            );
+
+        }
+    );
+
+});
+
+
+/* ================= MOBILE MENU ================= */
+
+if(menuBtn){
+
+    menuBtn.addEventListener(
+        "click",
+        function(){
+
+            sidebar.classList.toggle("open");
+            overlay.classList.toggle("show");
+
+        }
+    );
+
+}
+
+if(overlay){
+
+    overlay.addEventListener(
+        "click",
+        function(){
+
+            sidebar.classList.remove("open");
+            overlay.classList.remove("show");
+
+        }
+    );
+
+}
+
+
+/* ================= SAFE HTML ================= */
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* ================= AUTH ================= */
+
+async function getOwnerSession(){
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient.auth.getSession();
+
+        if(error){
+
+            console.error(
+                "Session error:",
+                error
+            );
+
+            return null;
+
+        }
+
+        return data?.session || null;
+
+    }
+    catch(error){
+
+        console.error(
+            "Session exception:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* ================= LOAD AGENCIES ================= */
+
+async function loadAgencies(){
+
+    agencyTableBody.innerHTML = `
+        <tr>
+            <td colspan="12" class="empty">
+                Loading agencies...
+            </td>
+        </tr>
+    `;
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("agencies")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        );
+
+        if(error){
+
+            console.error(
+                "Agency loading error:",
+                error
+            );
+
+            agencyTableBody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="empty">
+                        Unable to load agencies.<br>
+                        ${escapeHtml(error.message)}
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+        agencies =
+        data || [];
+
+        renderAgencies();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        agencyTableBody.innerHTML = `
+            <tr>
+                <td colspan="12" class="empty">
+                    Unable to load agencies.
+                </td>
+            </tr>
+        `;
+
+    }
+
+}
+
+
+/* ================= DOCUMENT EXISTS ================= */
+
+function hasDocuments(agency){
+
+    const docs =
+    agency.documents || {};
+
+    return Boolean(
+        docs.aadhaar_front ||
+        docs.aadhaar_back ||
+        docs.pan
+    );
+
+}
+
+
+/* ================= RENDER ================= */
+
+function renderAgencies(){
+
+    const search =
+    searchInput.value
+    .trim()
+    .toLowerCase();
+
+    const filtered =
+    agencies.filter(
+        agency => {
+
+            const combined =
+            [
+                agency.agency_name,
+                agency.owner_name,
+                agency.mobile_number,
+                agency.email,
+                agency.agency_code,
+                agency.lpg_company,
+                agency.state,
+                agency.district,
+                agency.city,
+                agency.address
+            ]
+            .join(" ")
+            .toLowerCase();
+
+            return combined.includes(search);
+
+        }
+    );
+
+
+    if(filtered.length === 0){
+
+        agencyTableBody.innerHTML = `
+            <tr>
+                <td colspan="12" class="empty">
+                    ${
+                        search
+                        ? "No agencies found for your search."
+                        : "No agencies added yet."
+                    }
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    agencyTableBody.innerHTML = "";
+
+
+    filtered.forEach(
+        agency => {
+
+            const tr =
+            document.createElement("tr");
+
+
+            const photo =
+            agency.owner_photo_url
+            ? `
+                <img
+                    src="${escapeHtml(agency.owner_photo_url)}"
+                    class="owner-photo"
+                    alt="Owner"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                >
+
+                <div
+                    class="no-photo"
+                    style="display:none;"
+                >
+                    👤
+                </div>
+            `
+            : `
+                <div class="no-photo">
+                    👤
+                </div>
+            `;
+
+
+            const status =
+            agency.is_active
+            ? `
+                <span class="status active">
+                    Active
+                </span>
+            `
+            : `
+                <span class="status inactive">
+                    Inactive
+                </span>
+            `;
+
+
+            const location =
+            [
+                agency.city,
+                agency.district,
+                agency.state
+            ]
+            .filter(Boolean)
+            .join(", ") || "—";
+
+
+            const documentsButton =
+            hasDocuments(agency)
+            ? `
+                <button
+                    type="button"
+                    class="document-eye"
+                    title="View Documents"
+                    onclick="viewDocuments('${agency.id}')"
+                >
+                    👁️
+                </button>
+            `
+            : `
+                <button
+                    type="button"
+                    class="document-eye disabled"
+                    title="No documents uploaded"
+                    disabled
+                >
+                    👁️
+                </button>
+            `;
+
+
+            tr.innerHTML = `
+
+                <td>
+                    ${photo}
+                </td>
+
+                <td>
+                    <div class="agency-name-cell">
+                        ${escapeHtml(
+                            agency.agency_name ||
+                            "—"
+                        )}
+                    </div>
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        agency.owner_name ||
+                        "—"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        agency.mobile_number ||
+                        "—"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        agency.email ||
+                        "—"
+                    )}
+                </td>
+
+                <td>
+                    ${
+                        agency.agency_code
+                        ? `
+                            <span class="code-badge">
+                                ${escapeHtml(
+                                    agency.agency_code
+                                )}
+                            </span>
+                        `
+                        : "—"
+                    }
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        agency.lpg_company ||
+                        "—"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(location)}
+                </td>
+
+                <td>
+                    ${
+                        agency.joining_date
+                        ? new Date(
+                            agency.joining_date +
+                            "T00:00:00"
+                          ).toLocaleDateString(
+                            "en-IN"
+                          )
+                        : "—"
+                    }
+                </td>
+
+                <td>
+                    ${documentsButton}
+                </td>
+
+                <td>
+                    ${status}
+                </td>
+
+                <td>
+
+                    <div class="action-group">
+
+                        <button
+                            type="button"
+                            class="action-btn edit-btn"
+                            onclick="editAgency('${agency.id}')"
+                        >
+                            ✏️ Edit
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-btn delete-btn"
+                            onclick="deleteAgency('${agency.id}')"
+                        >
+                            🗑️ Delete
+                        </button>
+
+                    </div>
+
+                </td>
+
+            `;
+
+            agencyTableBody.appendChild(tr);
+
+        }
+    );
+
+}
+
+
+/* ================= SEARCH ================= */
+
+searchInput.addEventListener(
+    "input",
+    renderAgencies
+);
+
+
+/* ================= RESET DOCUMENTS ================= */
+
+function resetDocuments(){
+
+    documentFiles = {
+        aadhaar_front:null,
+        aadhaar_back:null,
+        pan:null
+    };
+
+    documentUrls = {
+        aadhaar_front:null,
+        aadhaar_back:null,
+        pan:null
+    };
+
+    aadhaarFrontFile.value = "";
+    aadhaarBackFile.value = "";
+    panFile.value = "";
+
+    resetDocumentUI("aadhaar_front");
+    resetDocumentUI("aadhaar_back");
+    resetDocumentUI("pan");
+
+}
+
+
+/* ================= DOCUMENT UI ================= */
+
+function resetDocumentUI(type){
+
+    const map = {
+
+        aadhaar_front:{
+            preview:"aadhaarFrontPreview",
+            placeholder:"aadhaarFrontPlaceholder",
+            status:"aadhaarFrontStatus"
+        },
+
+        aadhaar_back:{
+            preview:"aadhaarBackPreview",
+            placeholder:"aadhaarBackPlaceholder",
+            status:"aadhaarBackStatus"
+        },
+
+        pan:{
+            preview:"panPreview",
+            placeholder:"panPlaceholder",
+            status:"panStatus"
+        }
+
+    };
+
+
+    const item =
+    map[type];
+
+    if(!item){
+        return;
+    }
+
+
+    const preview =
+    document.getElementById(
+        item.preview
+    );
+
+    const placeholder =
+    document.getElementById(
+        item.placeholder
+    );
+
+    const status =
+    document.getElementById(
+        item.status
+    );
+
+
+    preview.src = "";
+    preview.style.display = "none";
+
+    placeholder.style.display = "flex";
+
+    status.textContent = "";
+
+}
+
+
+/* ================= SET DOCUMENT PREVIEW ================= */
+
+function setDocumentPreview(
+    type,
+    source,
+    statusText = ""
+){
+
+    const map = {
+
+        aadhaar_front:{
+            preview:"aadhaarFrontPreview",
+            placeholder:"aadhaarFrontPlaceholder",
+            status:"aadhaarFrontStatus"
+        },
+
+        aadhaar_back:{
+            preview:"aadhaarBackPreview",
+            placeholder:"aadhaarBackPlaceholder",
+            status:"aadhaarBackStatus"
+        },
+
+        pan:{
+            preview:"panPreview",
+            placeholder:"panPlaceholder",
+            status:"panStatus"
+        }
+
+    };
+
+
+    const item =
+    map[type];
+
+    if(!item){
+        return;
+    }
+
+
+    const preview =
+    document.getElementById(
+        item.preview
+    );
+
+    const placeholder =
+    document.getElementById(
+        item.placeholder
+    );
+
+    const status =
+    document.getElementById(
+        item.status
+    );
+
+
+    preview.src = source;
+    preview.style.display = "block";
+
+    placeholder.style.display = "none";
+
+    status.textContent =
+    statusText;
+
+}
+
+
+/* ================= VALIDATE DOCUMENT ================= */
+
+function validateDocumentFile(file){
+
+    if(!file){
+        return false;
+    }
+
+    if(
+        !file.type ||
+        !file.type.startsWith("image/")
+    ){
+
+        showFormMessage(
+            "Please select an image file.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+    if(file.size > 8 * 1024 * 1024){
+
+        showFormMessage(
+            "Document image must be less than 8 MB.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+
+/* ================= FILE INPUT EVENTS ================= */
+
+aadhaarFrontFile.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(!validateDocumentFile(file)){
+
+            this.value = "";
+            return;
+
+        }
+
+        documentFiles.aadhaar_front =
+        file;
+
+        documentUrls.aadhaar_front =
+        null;
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            setDocumentPreview(
+                "aadhaar_front",
+                event.target.result,
+                "New document selected"
+            );
+
+        };
+
+        reader.readAsDataURL(file);
+
+    }
+);
+
+
+aadhaarBackFile.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(!validateDocumentFile(file)){
+
+            this.value = "";
+            return;
+
+        }
+
+        documentFiles.aadhaar_back =
+        file;
+
+        documentUrls.aadhaar_back =
+        null;
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            setDocumentPreview(
+                "aadhaar_back",
+                event.target.result,
+                "New document selected"
+            );
+
+        };
+
+        reader.readAsDataURL(file);
+
+    }
+);
+
+
+panFile.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(!validateDocumentFile(file)){
+
+            this.value = "";
+            return;
+
+        }
+
+        documentFiles.pan =
+        file;
+
+        documentUrls.pan =
+        null;
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            setDocumentPreview(
+                "pan",
+                event.target.result,
+                "New document selected"
+            );
+
+        };
+
+        reader.readAsDataURL(file);
+
+    }
+);
+
+
+/* ================= REMOVE DOCUMENT ================= */
+
+window.removeDocument =
+function(type){
+
+    documentFiles[type] =
+    null;
+
+    documentUrls[type] =
+    null;
+
+    if(type === "aadhaar_front"){
+        aadhaarFrontFile.value = "";
+    }
+
+    if(type === "aadhaar_back"){
+        aadhaarBackFile.value = "";
+    }
+
+    if(type === "pan"){
+        panFile.value = "";
+    }
+
+    resetDocumentUI(type);
+
+};
+
+
+/* ================= CAMERA ================= */
+
+window.openCamera =
+async function(type){
+
+    currentCameraDocument =
+    type;
+
+    currentCameraFacing =
+    "environment";
+
+    const cameraModal =
+    document.getElementById(
+        "cameraModal"
+    );
+
+    cameraModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+    await startCamera();
+
+};
+
+
+async function startCamera(){
+
+    try{
+
+        if(cameraStream){
+
+            cameraStream
+            .getTracks()
+            .forEach(
+                track =>
+                track.stop()
+            );
+
+        }
+
+        const constraints = {
+
+            audio:false,
+
+            video:{
+                facingMode:{
+                    ideal:
+                    currentCameraFacing
+                },
+
+                width:{
+                    ideal:1920
+                },
+
+                height:{
+                    ideal:1080
+                }
+
+            }
+
+        };
+
+        cameraStream =
+        await navigator.mediaDevices.getUserMedia(
+            constraints
+        );
+
+        const video =
+        document.getElementById(
+            "cameraVideo"
+        );
+
+        video.srcObject =
+        cameraStream;
+
+        await video.play();
+
+    }
+    catch(error){
+
+        console.error(
+            "Camera error:",
+            error
+        );
+
+        alert(
+            "Camera open nahi ho pa raha. Browser camera permission allow karein."
+        );
+
+        closeCamera();
+
+    }
+
+}
+
+
+window.switchCamera =
+async function(){
+
+    if(
+        currentCameraFacing ===
+        "environment"
+    ){
+
+        currentCameraFacing =
+        "user";
+
+    }
+    else{
+
+        currentCameraFacing =
+        "environment";
+
+    }
+
+    await startCamera();
+
+};
+
+
+window.captureDocument =
+function(){
+
+    const video =
+    document.getElementById(
+        "cameraVideo"
+    );
+
+    if(
+        !video.videoWidth ||
+        !video.videoHeight
+    ){
+
+        alert(
+            "Camera ready nahi hai."
+        );
+
+        return;
+
+    }
+
+    const canvas =
+    document.createElement(
+        "canvas"
+    );
+
+    canvas.width =
+    video.videoWidth;
+
+    canvas.height =
+    video.videoHeight;
+
+    const context =
+    canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.toBlob(
+        function(blob){
+
+            if(!blob){
+
+                alert(
+                    "Photo capture failed."
+                );
+
+                return;
+
+            }
+
+            const file =
+            new File(
+                [
+                    blob
+                ],
+                "document-" +
+                Date.now() +
+                ".jpg",
+                {
+                    type:"image/jpeg"
+                }
+            );
+
+            documentFiles[
+                currentCameraDocument
+            ] = file;
+
+            documentUrls[
+                currentCameraDocument
+            ] = null;
+
+            const previewUrl =
+            URL.createObjectURL(
+                file
+            );
+
+            setDocumentPreview(
+                currentCameraDocument,
+                previewUrl,
+                "New document captured"
+            );
+
+            closeCamera();
+
+        },
+        "image/jpeg",
+        .92
+    );
+
+};
+
+
+window.closeCamera =
+function(){
+
+    const cameraModal =
+    document.getElementById(
+        "cameraModal"
+    );
+
+    cameraModal.classList.remove(
+        "show"
+    );
+
+    if(cameraStream){
+
+        cameraStream
+        .getTracks()
+        .forEach(
+            track =>
+            track.stop()
+        );
+
+        cameraStream =
+        null;
+
+    }
+
+    const video =
+    document.getElementById(
+        "cameraVideo"
+    );
+
+    video.srcObject =
+    null;
+
+    currentCameraDocument =
+    null;
+
+    document.body.style.overflow =
+    "";
+
+};
+
+
+/* ================= ADD MODAL ================= */
+
+function openAddModal(){
+
+    editingAgency = null;
+
+    agencyForm.reset();
+
+    agencyId.value = "";
+
+    isActive.checked = true;
+
+    modalTitle.textContent =
+    "Add New LPG Agency";
+
+    saveBtn.textContent =
+    "SAVE AGENCY";
+
+    clearFormMessage();
+
+    resetPhotoPreview();
+
+    resetDocuments();
+
+    agencyModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+}
+
+
+addAgencyBtn.addEventListener(
+    "click",
+    openAddModal
+);
+
+
+/* ================= PHOTO ================= */
+
+function resetPhotoPreview(){
+
+    ownerPhoto.value = "";
+
+    photoPreview.src = "";
+
+    photoPreview.style.display =
+    "none";
+
+    photoPlaceholder.style.display =
+    "flex";
+
+}
+
+
+ownerPhoto.addEventListener(
+    "change",
+    function(){
+
+        const file =
+        this.files[0];
+
+        if(!file){
+            return;
+        }
+
+        if(
+            ![
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ].includes(file.type)
+        ){
+
+            showFormMessage(
+                "Please select a JPG, PNG or WEBP image.",
+                "error"
+            );
+
+            this.value = "";
+
+            return;
+
+        }
+
+        if(
+            file.size >
+            5 * 1024 * 1024
+        ){
+
+            showFormMessage(
+                "Photo size must be less than 5 MB.",
+                "error"
+            );
+
+            this.value = "";
+
+            return;
+
+        }
+
+        const reader =
+        new FileReader();
+
+        reader.onload =
+        function(event){
+
+            photoPreview.src =
+            event.target.result;
+
+            photoPreview.style.display =
+            "block";
+
+            photoPlaceholder.style.display =
+            "none";
+
+        };
+
+        reader.readAsDataURL(file);
+
+    }
+);
+
+
+/* ================= FORM MESSAGE ================= */
+
+function showFormMessage(
+    text,
+    type
+){
+
+    formMessage.className =
+    "form-message " + type;
+
+    formMessage.textContent =
+    text;
+
+}
+
+
+function clearFormMessage(){
+
+    formMessage.className =
+    "form-message";
+
+    formMessage.textContent =
+    "";
+
+}
+
+
+/* ================= EDIT ================= */
+
+window.editAgency =
+async function(id){
+
+    const agency =
+    agencies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!agency){
+
+        alert(
+            "Agency data could not be found."
+        );
+
+        return;
+
+    }
+
+    editingAgency =
+    agency;
+
+    agencyId.value =
+    agency.id || "";
+
+    agencyName.value =
+    agency.agency_name || "";
+
+    ownerName.value =
+    agency.owner_name || "";
+
+    mobileNumber.value =
+    agency.mobile_number || "";
+
+    email.value =
+    agency.email || "";
+
+    agencyCode.value =
+    agency.agency_code || "";
+
+    lpgCompany.value =
+    agency.lpg_company || "";
+
+    state.value =
+    agency.state || "";
+
+    district.value =
+    agency.district || "";
+
+    city.value =
+    agency.city || "";
+
+    joiningDate.value =
+    agency.joining_date || "";
+
+    address.value =
+    agency.address || "";
+
+    isActive.checked =
+    agency.is_active !== false;
+
+    ownerPhoto.value =
+    "";
+
+    if(agency.owner_photo_url){
+
+        photoPreview.src =
+        agency.owner_photo_url;
+
+        photoPreview.style.display =
+        "block";
+
+        photoPlaceholder.style.display =
+        "none";
+
+    }
+    else{
+
+        resetPhotoPreview();
+
+    }
+
+    resetDocuments();
+
+    const docs =
+    agency.documents || {};
+
+    if(docs.aadhaar_front){
+
+        documentUrls.aadhaar_front =
+        docs.aadhaar_front;
+
+        setDocumentPreview(
+            "aadhaar_front",
+            docs.aadhaar_front,
+            "Uploaded"
+        );
+
+    }
+
+    if(docs.aadhaar_back){
+
+        documentUrls.aadhaar_back =
+        docs.aadhaar_back;
+
+        setDocumentPreview(
+            "aadhaar_back",
+            docs.aadhaar_back,
+            "Uploaded"
+        );
+
+    }
+
+    if(docs.pan){
+
+        documentUrls.pan =
+        docs.pan;
+
+        setDocumentPreview(
+            "pan",
+            docs.pan,
+            "Uploaded"
+        );
+
+    }
+
+    modalTitle.textContent =
+    "Edit LPG Agency";
+
+    saveBtn.textContent =
+    "UPDATE AGENCY";
+
+    clearFormMessage();
+
+    agencyModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+};
+
+
+/* ================= CLOSE MODAL ================= */
+
+function closeAgencyModal(){
+
+    agencyModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+    editingAgency =
+    null;
+
+    clearFormMessage();
+
+}
+
+
+closeModal.addEventListener(
+    "click",
+    closeAgencyModal
+);
+
+cancelModal.addEventListener(
+    "click",
+    closeAgencyModal
+);
+
+agencyModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            agencyModal
+        ){
+
+            closeAgencyModal();
+
+        }
+
+    }
+);
+
+
+/* ================= UPLOAD OWNER PHOTO ================= */
+
+async function uploadOwnerPhoto(
+    file,
+    agencyRecordId
+){
+
+    if(!file){
+        return null;
+    }
+
+    const session =
+    await getOwnerSession();
+
+    if(!session){
+
+        throw new Error(
+            "Owner login session not found. Please logout and login again."
+        );
+
+    }
+
+    const extension =
+    file.name
+    .split(".")
+    .pop()
+    .toLowerCase();
+
+    const safeExtension =
+    [
+        "jpg",
+        "jpeg",
+        "png",
+        "webp"
+    ].includes(extension)
+    ? extension
+    : "jpg";
+
+    const filePath =
+    "owners/" +
+    agencyRecordId +
+    "-" +
+    Date.now() +
+    "." +
+    safeExtension;
+
+    const {
+        error
+    } =
+    await supabaseClient
+    .storage
+    .from("agency-owner-photos")
+    .upload(
+        filePath,
+        file,
+        {
+            upsert:false,
+            contentType:file.type,
+            cacheControl:"3600"
+        }
+    );
+
+    if(error){
+        throw error;
+    }
+
+    const {
+        data
+    } =
+    supabaseClient
+    .storage
+    .from("agency-owner-photos")
+    .getPublicUrl(
+        filePath
+    );
+
+    if(
+        !data ||
+        !data.publicUrl
+    ){
+
+        throw new Error(
+            "Photo uploaded but public URL could not be generated."
+        );
+
+    }
+
+    return data.publicUrl;
+
+}
+
+
+/* ================= UPLOAD DOCUMENT ================= */
+
+async function uploadAgencyDocument(
+    file,
+    agencyRecordId,
+    documentType
+){
+
+    if(!file){
+        return null;
+    }
+
+    const session =
+    await getOwnerSession();
+
+    if(!session){
+
+        throw new Error(
+            "Owner login session not found."
+        );
+
+    }
+
+    const filePath =
+    "documents/" +
+    agencyRecordId +
+    "/" +
+    documentType +
+    "-" +
+    Date.now() +
+    ".jpg";
+
+    const {
+        error
+    } =
+    await supabaseClient
+    .storage
+    .from("agency-owner-photos")
+    .upload(
+        filePath,
+        file,
+        {
+            upsert:false,
+            contentType:file.type || "image/jpeg",
+            cacheControl:"3600"
+        }
+    );
+
+    if(error){
+
+        console.error(
+            "Document upload error:",
+            error
+        );
+
+        throw error;
+
+    }
+
+    const {
+        data
+    } =
+    supabaseClient
+    .storage
+    .from("agency-owner-photos")
+    .getPublicUrl(
+        filePath
+    );
+
+    if(
+        !data ||
+        !data.publicUrl
+    ){
+
+        throw new Error(
+            "Document uploaded but URL could not be generated."
+        );
+
+    }
+
+    return data.publicUrl;
+
+}
+
+
+/* ================= SAVE ================= */
+
+agencyForm.addEventListener(
+    "submit",
+    async function(event){
+
+        event.preventDefault();
+
+        clearFormMessage();
+
+        const name =
+        agencyName.value.trim();
+
+        const owner =
+        ownerName.value.trim();
+
+        if(!name){
+
+            showFormMessage(
+                "Please enter agency name.",
+                "error"
+            );
+
+            agencyName.focus();
+
+            return;
+
+        }
+
+        if(!owner){
+
+            showFormMessage(
+                "Please enter agency owner name.",
+                "error"
+            );
+
+            ownerName.focus();
+
+            return;
+
+        }
+
+        const mobile =
+        mobileNumber.value.trim();
+
+        if(
+            mobile &&
+            !/^[0-9+\-\s()]{7,15}$/.test(
+                mobile
+            )
+        ){
+
+            showFormMessage(
+                "Please enter a valid mobile number.",
+                "error"
+            );
+
+            mobileNumber.focus();
+
+            return;
+
+        }
+
+        saveBtn.disabled =
+        true;
+
+        const wasEditing =
+        Boolean(editingAgency);
+
+        saveBtn.textContent =
+        wasEditing
+        ? "UPDATING..."
+        : "SAVING...";
+
+        try{
+
+            const session =
+            await getOwnerSession();
+
+            if(!session){
+
+                throw new Error(
+                    "Owner login session not found. Please logout and login again."
+                );
+
+            }
+
+            let codeValue =
+            agencyCode.value
+            .trim()
+            .toUpperCase();
+
+            if(codeValue === ""){
+                codeValue = null;
+            }
+
+            let finalDocuments = {
+
+                aadhaar_front:
+                documentUrls.aadhaar_front || null,
+
+                aadhaar_back:
+                documentUrls.aadhaar_back || null,
+
+                pan:
+                documentUrls.pan || null
+
+            };
+
+            const record = {
+
+                agency_name:name,
+
+                owner_name:owner,
+
+                mobile_number:
+                mobile || null,
+
+                email:
+                email.value.trim() || null,
+
+                agency_code:
+                codeValue,
+
+                lpg_company:
+                lpgCompany.value || null,
+
+                state:
+                state.value.trim() || null,
+
+                district:
+                district.value.trim() || null,
+
+                city:
+                city.value.trim() || null,
+
+                joining_date:
+                joiningDate.value || null,
+
+                address:
+                address.value.trim() || null,
+
+                is_active:
+                isActive.checked,
+
+                documents:
+                finalDocuments
+
+            };
+
+            let savedAgencyId =
+            null;
+
+            let savedAgency =
+            null;
+
+
+            /* ================= UPDATE ================= */
+
+            if(editingAgency){
+
+                savedAgencyId =
+                editingAgency.id;
+
+                const {
+                    data,
+                    error
+                } =
+                await supabaseClient
+                .from("agencies")
+                .update(record)
+                .eq(
+                    "id",
+                    editingAgency.id
+                )
+                .select()
+                .single();
+
+                if(error){
+                    throw error;
+                }
+
+                savedAgency =
+                data;
+
+            }
+
+
+            /* ================= INSERT ================= */
+
+            else{
+
+                const {
+                    data,
+                    error
+                } =
+                await supabaseClient
+                .from("agencies")
+                .insert(
+                    record
+                )
+                .select()
+                .single();
+
+                if(error){
+
+                    if(
+                        error.code === "23505" ||
+                        String(error.message)
+                        .toLowerCase()
+                        .includes("duplicate") ||
+                        String(error.message)
+                        .toLowerCase()
+                        .includes("agency_code")
+                    ){
+
+                        throw new Error(
+                            "This Agency Code already exists. Please enter a different Agency Code."
+                        );
+
+                    }
+
+                    throw error;
+
+                }
+
+                savedAgency =
+                data;
+
+                savedAgencyId =
+                data.id;
+
+            }
+
+
+            /* ================= OWNER PHOTO ================= */
+
+            const photoFile =
+            ownerPhoto.files[0];
+
+            if(photoFile){
+
+                try{
+
+                    const photoUrl =
+                    await uploadOwnerPhoto(
+                        photoFile,
+                        savedAgencyId
+                    );
+
+                    const {
+                        data,
+                        error
+                    } =
+                    await supabaseClient
+                    .from("agencies")
+                    .update({
+                        owner_photo_url:
+                        photoUrl
+                    })
+                    .eq(
+                        "id",
+                        savedAgencyId
+                    )
+                    .select()
+                    .single();
+
+                    if(error){
+                        throw error;
+                    }
+
+                    savedAgency =
+                    data;
+
+                }
+                catch(photoError){
+
+                    console.error(
+                        "Owner photo error:",
+                        photoError
+                    );
+
+                    showFormMessage(
+                        "Agency saved, but owner photo could not be saved.",
+                        "error"
+                    );
+
+                }
+
+            }
+
+
+            /* ================= DOCUMENT UPLOADS ================= */
+
+            const uploadList = [
+
+                {
+                    type:"aadhaar_front",
+                    file:
+                    documentFiles.aadhaar_front
+                },
+
+                {
+                    type:"aadhaar_back",
+                    file:
+                    documentFiles.aadhaar_back
+                },
+
+                {
+                    type:"pan",
+                    file:
+                    documentFiles.pan
+                }
+
+            ];
+
+            let documentsChanged =
+            false;
+
+            for(
+                const item
+                of uploadList
+            ){
+
+                if(!item.file){
+                    continue;
+                }
+
+                const uploadedUrl =
+                await uploadAgencyDocument(
+                    item.file,
+                    savedAgencyId,
+                    item.type
+                );
+
+                if(uploadedUrl){
+
+                    finalDocuments[
+                        item.type
+                    ] =
+                    uploadedUrl;
+
+                    documentsChanged =
+                    true;
+
+                }
+
+            }
+
+
+            /* ================= SAVE DOCUMENT URLs ================= */
+
+            if(
+                documentsChanged ||
+                editingAgency
+            ){
+
+                const {
+                    data,
+                    error
+                } =
+                await supabaseClient
+                .from("agencies")
+                .update({
+
+                    documents:
+                    finalDocuments
+
+                })
+                .eq(
+                    "id",
+                    savedAgencyId
+                )
+                .select()
+                .single();
+
+                if(error){
+                    throw error;
+                }
+
+                savedAgency =
+                data;
+
+            }
+
+
+            /* ================= SUCCESS ================= */
+
+            showFormMessage(
+                wasEditing
+                ? "Agency updated successfully."
+                : "Agency added successfully.",
+                "success"
+            );
+
+            await loadAgencies();
+
+            setTimeout(
+                function(){
+
+                    closeAgencyModal();
+
+                },
+                700
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                "Agency save error:",
+                error
+            );
+
+            showFormMessage(
+                error.message ||
+                "Unable to save agency.",
+                "error"
+            );
+
+        }
+
+        saveBtn.disabled =
+        false;
+
+        saveBtn.textContent =
+        wasEditing
+        ? "UPDATE AGENCY"
+        : "SAVE AGENCY";
+
+    }
+);
+
+
+/* ================= VIEW DOCUMENTS ================= */
+
+window.viewDocuments =
+function(id){
+
+    const agency =
+    agencies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!agency){
+        return;
+    }
+
+    const docs =
+    agency.documents || {};
+
+    document.getElementById(
+        "documentsViewTitle"
+    ).textContent =
+    agency.owner_name
+    ? agency.owner_name + " - Documents"
+    : "Owner Documents";
+
+    document.getElementById(
+        "documentsViewSubtitle"
+    ).textContent =
+    agency.agency_name ||
+    "LPG Agency";
+
+    setupViewDocument(
+        "viewAadhaarFront",
+        "viewAadhaarFrontEmpty",
+        "viewAadhaarFrontButton",
+        docs.aadhaar_front
+    );
+
+    setupViewDocument(
+        "viewAadhaarBack",
+        "viewAadhaarBackEmpty",
+        "viewAadhaarBackButton",
+        docs.aadhaar_back
+    );
+
+    setupViewDocument(
+        "viewPan",
+        "viewPanEmpty",
+        "viewPanButton",
+        docs.pan
+    );
+
+    document
+    .getElementById(
+        "documentsViewModal"
+    )
+    .classList.add("show");
+
+    document.body.style.overflow =
+    "hidden";
+
+};
+
+
+function setupViewDocument(
+    imageId,
+    emptyId,
+    buttonId,
+    url
+){
+
+    const image =
+    document.getElementById(
+        imageId
+    );
+
+    const empty =
+    document.getElementById(
+        emptyId
+    );
+
+    const button =
+    document.getElementById(
+        buttonId
+    );
+
+    image.src = "";
+
+    image.style.display =
+    "none";
+
+    empty.style.display =
+    "block";
+
+    button.disabled =
+    true;
+
+    button.style.opacity =
+    ".45";
+
+    button.style.cursor =
+    "not-allowed";
+
+    if(url){
+
+        image.src =
+        url;
+
+        image.style.display =
+        "block";
+
+        empty.style.display =
+        "none";
+
+        button.disabled =
+        false;
+
+        button.style.opacity =
+        "1";
+
+        button.style.cursor =
+        "pointer";
+
+        image.dataset.url =
+        url;
+
+    }
+    else{
+
+        image.dataset.url =
+        "";
+
+    }
+
+}
+
+
+window.openDocumentInNewTab =
+function(imageId){
+
+    const image =
+    document.getElementById(
+        imageId
+    );
+
+    const url =
+    image.dataset.url;
+
+    if(!url){
+        return;
+    }
+
+    window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+    );
+
+};
+
+
+window.closeDocumentsView =
+function(){
+
+    document
+    .getElementById(
+        "documentsViewModal"
+    )
+    .classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "";
+
+};
+
+
+document
+.getElementById(
+    "documentsViewModal"
+)
+.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            this
+        ){
+
+            closeDocumentsView();
+
+        }
+
+    }
+);
+
+
+/* ================= DELETE ================= */
+
+window.deleteAgency =
+function(id){
+
+    const agency =
+    agencies.find(
+        item =>
+        String(item.id) ===
+        String(id)
+    );
+
+    if(!agency){
+        return;
+    }
+
+    agencyToDelete =
+    agency;
+
+    confirmModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+    "hidden";
+
+};
+
+
+function closeConfirmModal(){
+
+    confirmModal.classList.remove(
+        "show"
+    );
+
+    agencyToDelete =
+    null;
+
+    document.body.style.overflow =
+    "";
+
+}
+
+
+confirmCancel.addEventListener(
+    "click",
+    closeConfirmModal
+);
+
+
+confirmModal.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            event.target ===
+            confirmModal
+        ){
+
+            closeConfirmModal();
+
+        }
+
+    }
+);
+
+
+/* ================= CONFIRM DELETE ================= */
+
+confirmDelete.addEventListener(
+    "click",
+    async function(){
+
+        if(!agencyToDelete){
+            return;
+        }
+
+        const id =
+        agencyToDelete.id;
+
+        confirmDelete.disabled =
+        true;
+
+        confirmDelete.textContent =
+        "Deleting...";
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient
+            .from("agencies")
+            .delete()
+            .eq(
+                "id",
+                id
+            );
+
+            if(error){
+                throw error;
+            }
+
+            closeConfirmModal();
+
+            await loadAgencies();
+
+        }
+        catch(error){
+
+            console.error(
+                "Agency delete error:",
+                error
+            );
+
+            alert(
+                "Unable to delete agency.\n\n" +
+                error.message
+            );
+
+            confirmDelete.disabled =
+            false;
+
+            confirmDelete.textContent =
+            "Delete";
+
+        }
+
+    }
+);
+
+
+/* ================= LOGOUT ================= */
+
+logoutBtn.addEventListener(
+    "click",
+    async function(){
+
+        const answer =
+        confirm(
+            "Are you sure you want to logout?"
+        );
+
+        if(!answer){
+            return;
+        }
+
+        try{
+
+            const {
+                error
+            } =
+            await supabaseClient.auth.signOut();
+
+            if(error){
+                throw error;
+            }
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                "Logout error:",
+                error
+            );
+
+            alert(
+                "Logout failed. Please try again."
+            );
+
+        }
+
+    }
+);
+
+
+/* ================= ESC ================= */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key ===
+            "Escape"
+        ){
+
+            if(
+                agencyModal.classList.contains(
+                    "show"
+                )
+            ){
+
+                closeAgencyModal();
+
+            }
+
+            if(
+                confirmModal.classList.contains(
+                    "show"
+                )
+            ){
+
+                closeConfirmModal();
+
+            }
+
+            if(
+                document
+                .getElementById(
+                    "cameraModal"
+                )
+                .classList.contains(
+                    "show"
+                )
+            ){
+
+                closeCamera();
+
+            }
+
+            if(
+                document
+                .getElementById(
+                    "documentsViewModal"
+                )
+                .classList.contains(
+                    "show"
+                )
+            ){
+
+                closeDocumentsView();
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ================= AUTH STATE ================= */
+
+supabaseClient.auth.onAuthStateChange(
+    function(event, session){
+
+        console.log(
+            "EGC AUTH STATE:",
+            event,
+            session
+            ? session.user.id
+            : null
+        );
+
+    }
+);
+
+
+/* ================= INITIALIZE ================= */
+
+async function initializeAgencyPage(){
+
+    const session =
+    await getOwnerSession();
+
+    if(!session){
+
+        console.warn(
+            "No authenticated owner session found."
+        );
+
+    }
+    else{
+
+        console.log(
+            "Owner session active:",
+            session.user.id
+        );
+
+    }
+
+    await loadAgencies();
+
+}
+
+initializeAgencyPage();
+
+</script>
+
+</body>
+</html>

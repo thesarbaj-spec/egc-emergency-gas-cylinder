@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Payment</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#f3f8fc;
+    color:#073f73;
+    min-height:100vh;
+}
+
+.app{
+    min-height:100vh;
+    background:#fff;
+}
+
+.header{
+    height:82px;
+    background:#fff;
+    border-bottom:1px solid #e4edf5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:sticky;
+    top:0;
+    z-index:50;
+}
+
+.header-left{
+    position:absolute;
+    left:28px;
+}
+
+.back-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:29px;
+    cursor:pointer;
+}
+
+.egc-logo{
+    height:60px;
+    width:auto;
+    object-fit:contain;
+}
+
+.main{
+    width:100%;
+    max-width:1200px;
+    margin:auto;
+    padding:38px 25px 70px;
+}
+
+.page-title{
+    text-align:center;
+    margin-bottom:35px;
+}
+
+.page-title h1{
+    font-size:34px;
+    font-weight:800;
+    color:#06447c;
+    margin-bottom:8px;
+}
+
+.page-title p{
+    font-size:17px;
+    color:#72899e;
+}
+
+.steps{
+    width:100%;
+    max-width:900px;
+    margin:0 auto 42px;
+    display:flex;
+    align-items:flex-start;
+}
+
+.step-box{
+    flex:1;
+    display:flex;
+    align-items:center;
+}
+
+.step-box:last-child{
+    flex:0 0 auto;
+}
+
+.step{
+    min-width:88px;
+    text-align:center;
+}
+
+.step-circle{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    font-size:17px;
+    font-weight:800;
+    background:#fff;
+    border:3px solid #d0dfeb;
+    color:#8ba0b1;
+}
+
+.step.completed .step-circle{
+    background:#168c50;
+    border-color:#168c50;
+    color:#fff;
+}
+
+.step.active .step-circle{
+    background:#0878d1;
+    border-color:#0878d1;
+    color:#fff;
+}
+
+.step-name{
+    margin-top:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#8b9baa;
+}
+
+.step.completed .step-name{
+    color:#168c50;
+}
+
+.step.active .step-name{
+    color:#0872c7;
+}
+
+.step-line{
+    flex:1;
+    height:3px;
+    background:#d6e2ec;
+    margin:22px 8px 0;
+}
+
+.step-line.completed{
+    background:#168c50;
+}
+
+.card{
+    width:100%;
+    max-width:850px;
+    margin:0 auto 22px;
+    background:#fff;
+    border:1px solid #e0eaf2;
+    border-radius:22px;
+    padding:32px;
+    box-shadow:0 10px 40px rgba(7,65,105,.08);
+}
+
+.card-title{
+    font-size:27px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:7px;
+}
+
+.card-subtitle{
+    color:#71879a;
+    font-size:15px;
+    line-height:1.6;
+    margin-bottom:25px;
+}
+
+.summary{
+    background:#f7fbfe;
+    border:1px solid #dcebf5;
+    border-radius:16px;
+    padding:20px;
+}
+
+.summary-title{
+    font-size:18px;
+    font-weight:800;
+    color:#075a96;
+    margin-bottom:16px;
+}
+
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    padding:11px 0;
+    border-bottom:1px solid #e4edf4;
+    font-size:15px;
+}
+
+.summary-row:last-child{
+    border-bottom:0;
+}
+
+.summary-label{
+    color:#71879a;
+}
+
+.summary-value{
+    color:#164c72;
+    font-weight:800;
+    text-align:right;
+}
+
+.summary-row.total{
+    margin-top:8px;
+    padding-top:16px;
+    border-top:2px solid #d8e8f2;
+    border-bottom:0;
+}
+
+.summary-row.total .summary-label,
+.summary-row.total .summary-value{
+    font-size:18px;
+    color:#06477f;
+}
+
+.payment-box{
+    margin-top:22px;
+    border-radius:18px;
+    padding:25px;
+    background:#eef8ff;
+    border:1px solid #cde6f7;
+    text-align:center;
+}
+
+.payment-label{
+    color:#688298;
+    font-size:14px;
+    font-weight:700;
+    margin-bottom:7px;
+}
+
+.payment-amount{
+    font-size:42px;
+    font-weight:900;
+    color:#0878d1;
+}
+
+.payment-note{
+    margin-top:7px;
+    color:#6d8497;
+    font-size:13px;
+}
+
+.qr-section{
+    margin-top:25px;
+    text-align:center;
+}
+
+.qr-title{
+    font-size:19px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:7px;
+}
+
+.qr-subtitle{
+    color:#71879a;
+    font-size:13px;
+    margin-bottom:18px;
+}
+
+.qr-box{
+    width:240px;
+    height:240px;
+    margin:0 auto 15px;
+    background:#fff;
+    border:1px solid #d8e6ef;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+}
+
+.qr-box img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+}
+
+.qr-placeholder{
+    text-align:center;
+    color:#8aa0b0;
+    font-size:14px;
+    line-height:1.6;
+    padding:20px;
+}
+
+.upi-id{
+    display:inline-block;
+    padding:10px 15px;
+    background:#f4f9fc;
+    border:1px solid #dce9f1;
+    border-radius:10px;
+    color:#075a96;
+    font-weight:800;
+    font-size:14px;
+}
+
+.status-box{
+    margin-top:25px;
+    padding:18px;
+    border-radius:14px;
+    background:#fff9e8;
+    border:1px solid #f3dfa5;
+    color:#755817;
+    font-size:14px;
+    line-height:1.6;
+}
+
+.status-box strong{
+    color:#654b0e;
+}
+
+.payment-form{
+    margin-top:25px;
+    padding:22px;
+    background:#f8fbfd;
+    border:1px solid #dfeaf1;
+    border-radius:16px;
+}
+
+.form-title{
+    font-size:19px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:5px;
+}
+
+.form-subtitle{
+    color:#71879a;
+    font-size:13px;
+    line-height:1.5;
+    margin-bottom:20px;
+}
+
+.form-group{
+    margin-bottom:17px;
+}
+
+.form-group:last-child{
+    margin-bottom:0;
+}
+
+.form-label{
+    display:block;
+    margin-bottom:7px;
+    color:#315873;
+    font-size:14px;
+    font-weight:800;
+}
+
+.required{
+    color:#d32f2f;
+}
+
+.optional{
+    color:#8a9aa8;
+    font-weight:600;
+    font-size:12px;
+}
+
+.form-input{
+    width:100%;
+    height:50px;
+    border:1px solid #cfdee8;
+    border-radius:12px;
+    background:#fff;
+    color:#164c72;
+    padding:0 14px;
+    font-size:15px;
+    outline:none;
+    transition:.2s;
+}
+
+.form-input:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.10);
+}
+
+textarea.form-input{
+    height:90px;
+    padding:13px 14px;
+    resize:vertical;
+}
+
+.file-box{
+    width:100%;
+    border:1px dashed #b9d0df;
+    border-radius:12px;
+    background:#fff;
+    padding:15px;
+}
+
+.file-input{
+    width:100%;
+    font-size:13px;
+    color:#527087;
+}
+
+.file-help{
+    margin-top:7px;
+    color:#8498a7;
+    font-size:12px;
+    line-height:1.4;
+}
+
+.preview{
+    display:none;
+    margin-top:12px;
+    text-align:center;
+}
+
+.preview.show{
+    display:block;
+}
+
+.preview img{
+    max-width:180px;
+    max-height:180px;
+    border-radius:12px;
+    border:1px solid #d5e3eb;
+    object-fit:cover;
+}
+
+.auto-date{
+    background:#f3f7fa;
+    color:#607d91;
+}
+
+.checkbox-row{
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+    cursor:pointer;
+    margin-top:18px;
+}
+
+.checkbox-row input{
+    width:20px;
+    height:20px;
+    margin-top:2px;
+    accent-color:#0878d1;
+    flex:0 0 auto;
+}
+
+.checkbox-text{
+    font-size:14px;
+    line-height:1.5;
+    color:#315873;
+    font-weight:600;
+}
+
+.message{
+    display:none;
+    margin-top:18px;
+    padding:14px 17px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.5;
+}
+
+.message.error{
+    display:block;
+    color:#bd2828;
+    background:#fff1f1;
+    border:1px solid #ffc9c9;
+}
+
+.message.success{
+    display:block;
+    color:#16833a;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+}
+
+.request-box{
+    display:none;
+    margin-top:18px;
+    padding:16px;
+    background:#f0fbf5;
+    border:1px solid #bfe8cf;
+    border-radius:13px;
+}
+
+.request-box.show{
+    display:block;
+}
+
+.request-label{
+    font-size:12px;
+    color:#5e806b;
+    font-weight:700;
+    margin-bottom:5px;
+}
+
+.request-number{
+    font-size:18px;
+    color:#08723d;
+    font-weight:900;
+    word-break:break-all;
+}
+
+.action{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    margin-top:28px;
+}
+
+.back-step-btn,
+.pay-btn{
+    height:56px;
+    border-radius:14px;
+    font-size:15px;
+    font-weight:900;
+    cursor:pointer;
+}
+
+.back-step-btn{
+    flex:1;
+    border:1px solid #d2e1ec;
+    background:#fff;
+    color:#15547d;
+}
+
+.pay-btn{
+    flex:1;
+    border:0;
+    background:#ffc21a;
+    color:#063d70;
+    box-shadow:0 7px 18px rgba(255,194,26,.24);
+}
+
+.pay-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+    }
+
+    .header-left{
+        left:14px;
+    }
+
+    .back-btn{
+        width:38px;
+        height:38px;
+        font-size:26px;
+    }
+
+    .egc-logo{
+        height:49px;
+    }
+
+    .main{
+        padding:24px 12px 45px;
+    }
+
+    .page-title{
+        margin-bottom:25px;
+    }
+
+    .page-title h1{
+        font-size:27px;
+    }
+
+    .page-title p{
+        font-size:14px;
+    }
+
+    .steps{
+        margin-bottom:25px;
+    }
+
+    .step{
+        min-width:50px;
+    }
+
+    .step-circle{
+        width:35px;
+        height:35px;
+        font-size:13px;
+    }
+
+    .step-name{
+        font-size:9px;
+    }
+
+    .step-line{
+        margin:17px 2px 0;
+    }
+
+    .card{
+        padding:21px 14px;
+        border-radius:17px;
+    }
+
+    .card-title{
+        font-size:22px;
+    }
+
+    .card-subtitle{
+        font-size:13px;
+    }
+
+    .summary{
+        padding:15px;
+    }
+
+    .summary-row{
+        font-size:13px;
+        gap:10px;
+    }
+
+    .summary-row.total .summary-label,
+    .summary-row.total .summary-value{
+        font-size:16px;
+    }
+
+    .payment-box{
+        padding:20px 14px;
+    }
+
+    .payment-amount{
+        font-size:36px;
+    }
+
+    .qr-box{
+        width:210px;
+        height:210px;
+    }
+
+    .payment-form{
+        padding:17px 13px;
+    }
+
+    .action{
+        flex-direction:column;
+        gap:12px;
+    }
+
+    .back-step-btn,
+    .pay-btn{
+        width:100%;
+        min-width:0;
+        max-width:none;
+        flex:none;
+        height:56px;
+    }
+}
+
+@media(max-width:380px){
+
+    .main{
+        padding-left:9px;
+        padding-right:9px;
+    }
+
+    .card{
+        padding:18px 10px;
+    }
+
+    .summary-row{
+        font-size:12px;
+    }
+
+    .payment-amount{
+        font-size:32px;
+    }
+
+    .qr-box{
+        width:190px;
+        height:190px;
+    }
+
+    .payment-form{
+        padding:15px 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+    <div class="header-left">
+        <button
+            type="button"
+            class="back-btn"
+            id="backBtn"
+        >
+            ‹
+        </button>
+    </div>
+
+    <img
+        src="assets/EGC - Emergency Gas Cylinder logo.png"
+        class="egc-logo"
+        alt="EGC"
+        onerror="this.style.display='none';"
+    >
+
+</header>
+
+<main class="main">
+
+<div class="page-title">
+
+    <h1>Payment</h1>
+
+    <p>
+        Complete your initial payment to continue.
+    </p>
+
+</div>
+
+<div class="steps">
+
+    <div class="step-box">
+        <div class="step completed">
+            <div class="step-circle">✓</div>
+            <div class="step-name">LPG Details</div>
+        </div>
+        <div class="step-line completed"></div>
+    </div>
+
+    <div class="step-box">
+        <div class="step completed">
+            <div class="step-circle">✓</div>
+            <div class="step-name">Verification</div>
+        </div>
+        <div class="step-line completed"></div>
+    </div>
+
+    <div class="step-box">
+        <div class="step completed">
+            <div class="step-circle">✓</div>
+            <div class="step-name">Scheme</div>
+        </div>
+        <div class="step-line completed"></div>
+    </div>
+
+    <div class="step-box">
+        <div class="step active">
+            <div class="step-circle">4</div>
+            <div class="step-name">Payment</div>
+        </div>
+        <div class="step-line"></div>
+    </div>
+
+    <div class="step-box">
+        <div class="step">
+            <div class="step-circle">5</div>
+            <div class="step-name">Complete</div>
+        </div>
+    </div>
+
+</div>
+
+<section class="card">
+
+<h2 class="card-title">
+    Cylinder Payment
+</h2>
+
+<p class="card-subtitle">
+    Pay ₹200 using the QR code, then submit your payment details for owner verification.
+</p>
+
+<div class="summary">
+
+<div class="summary-title">
+    Payment Summary
+</div>
+
+<div class="summary-row">
+    <span class="summary-label">
+        Cylinder Amount
+    </span>
+
+    <span
+        class="summary-value"
+        id="cylinderAmount"
+    >
+        ₹890.00
+    </span>
+</div>
+
+<div class="summary-row">
+    <span class="summary-label">
+        Initial Payment
+    </span>
+
+    <span
+        class="summary-value"
+        id="initialPayment"
+    >
+        ₹200.00
+    </span>
+</div>
+
+<div class="summary-row">
+    <span class="summary-label">
+        Remaining Amount
+    </span>
+
+    <span
+        class="summary-value"
+        id="remainingAmount"
+    >
+        ₹690.00
+    </span>
+</div>
+
+<div class="summary-row">
+    <span class="summary-label">
+        Applicable EMI / Clearing Charge
+    </span>
+
+    <span
+        class="summary-value"
+        id="chargeAmount"
+    >
+        ₹0.00
+    </span>
+</div>
+
+<div class="summary-row total">
+    <span class="summary-label">
+        Pay Now
+    </span>
+
+    <span
+        class="summary-value"
+        id="payNowAmount"
+    >
+        ₹200.00
+    </span>
+</div>
+
+</div>
+
+<div class="payment-box">
+
+<div class="payment-label">
+    PAYMENT AMOUNT
+</div>
+
+<div
+    class="payment-amount"
+    id="largePayAmount"
+>
+    ₹200
+</div>
+
+<div class="payment-note">
+    Pay exactly this amount using the QR code below.
+</div>
+
+</div>
+
+<div class="qr-section">
+
+<div class="qr-title">
+    Scan & Pay
+</div>
+
+<div class="qr-subtitle">
+    Scan the QR code using your UPI app and pay the amount shown above.
+</div>
+
+<div class="qr-box">
+
+<img
+    id="paymentQr"
+    src="assets/egc-payment-qr.png"
+    alt="EGC Payment QR"
+    onerror="this.style.display='none'; document.getElementById('qrPlaceholder').style.display='block';"
+>
+
+<div
+    class="qr-placeholder"
+    id="qrPlaceholder"
+    style="display:none;"
+>
+    <strong>EGC PAYMENT QR</strong>
+    <br><br>
+    QR code image not found.
+    <br><br>
+    Add:
+    <br>
+    <b>assets/egc-payment-qr.png</b>
+</div>
+
+</div>
+
+<div class="upi-id">
+    EGC UPI PAYMENT
+</div>
+
+</div>
+
+<div class="status-box">
+
+<strong>Important:</strong>
+
+<br><br>
+
+After making the ₹200 payment, enter your transaction ID below.
+
+<br><br>
+
+You may also upload <strong>one payment screenshot</strong>. Screenshot is optional.
+
+<br><br>
+
+Your payment will be submitted to the owner for verification. The cylinder request will proceed only after the owner approves the payment.
+
+</div>
+
+<div class="payment-form">
+
+<div class="form-title">
+    Submit Payment Details
+</div>
+
+<div class="form-subtitle">
+    Enter the details of the payment you have just made.
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+    Transaction ID <span class="required">*</span>
+</label>
+
+<input
+    type="text"
+    id="transactionId"
+    class="form-input"
+    placeholder="Enter UPI transaction ID"
+    maxlength="100"
+    autocomplete="off"
+>
+
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+    Payment Screenshot
+    <span class="optional">(Optional)</span>
+</label>
+
+<div class="file-box">
+
+<input
+    type="file"
+    id="paymentScreenshot"
+    class="file-input"
+    accept="image/jpeg,image/png,image/webp"
+>
+
+<div class="file-help">
+    Upload one clear screenshot of your payment confirmation. Maximum 5 MB.
+</div>
+
+<div
+    class="preview"
+    id="screenshotPreview"
+>
+    <img
+        id="previewImage"
+        src=""
+        alt="Payment Screenshot Preview"
+    >
+</div>
+
+</div>
+
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+    Payment Date & Time
+</label>
+
+<input
+    type="text"
+    id="paymentDateTime"
+    class="form-input auto-date"
+    readonly
+>
+
+</div>
+
+<div class="form-group">
+
+<label class="form-label">
+    Payment Note
+    <span class="optional">(Optional)</span>
+</label>
+
+<textarea
+    id="paymentNote"
+    class="form-input"
+    maxlength="500"
+    placeholder="Add any note about your payment..."
+></textarea>
+
+</div>
+
+<label class="checkbox-row">
+
+<input
+    type="checkbox"
+    id="paymentCheck"
+>
+
+<span class="checkbox-text">
+    I confirm that I have paid ₹200 and the transaction details entered above are correct.
+</span>
+
+</label>
+
+</div>
+
+<div
+    class="request-box"
+    id="requestBox"
+>
+
+<div class="request-label">
+    YOUR REQUEST NUMBER
+</div>
+
+<div
+    class="request-number"
+    id="requestNumber"
+>
+    -
+</div>
+
+</div>
+
+<div
+    id="message"
+    class="message"
+></div>
+
+<div class="action">
+
+<button
+    type="button"
+    class="pay-btn"
+    id="paidBtn"
+>
+    SUBMIT PAYMENT →
+</button>
+
+<button
+    type="button"
+    class="back-step-btn"
+    id="backStepBtn"
+>
+    ← BACK
+</button>
+
+</div>
+
+</section>
+
+</main>
+
+</div>
+
+<script>
+
+/* =========================================================
+   SUPABASE CONFIG
+========================================================= */
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const message =
+    document.getElementById("message");
+
+const paymentCheck =
+    document.getElementById("paymentCheck");
+
+const paidBtn =
+    document.getElementById("paidBtn");
+
+const requestBox =
+    document.getElementById("requestBox");
+
+const requestNumberElement =
+    document.getElementById("requestNumber");
+
+const transactionIdInput =
+    document.getElementById("transactionId");
+
+const paymentScreenshot =
+    document.getElementById("paymentScreenshot");
+
+const screenshotPreview =
+    document.getElementById("screenshotPreview");
+
+const previewImage =
+    document.getElementById("previewImage");
+
+const paymentDateTime =
+    document.getElementById("paymentDateTime");
+
+const paymentNote =
+    document.getElementById("paymentNote");
+
+
+/* =========================================================
+   DEFAULT PAYMENT VALUES
+========================================================= */
+
+const CYLINDER_AMOUNT = 890;
+const INITIAL_PAYMENT = 200;
+
+
+/* =========================================================
+   LOAD SCHEME DATA
+========================================================= */
+
+let schemeData = null;
+
+try{
+
+    const savedScheme =
+        localStorage.getItem("egc_scheme");
+
+    if(savedScheme){
+        schemeData = JSON.parse(savedScheme);
+    }
+
+}catch(error){
+
+    console.error(
+        "Scheme data error:",
+        error
+    );
+
+}
+
+
+/* =========================================================
+   LOAD LPG DETAILS
+========================================================= */
+
+let lpgDetails = null;
+
+try{
+
+    const savedLpg =
+        localStorage.getItem("egc_lpg_details");
+
+    if(savedLpg){
+        lpgDetails = JSON.parse(savedLpg);
+    }
+
+}catch(error){
+
+    console.error(
+        "LPG details error:",
+        error
+    );
+
+}
+
+
+/* =========================================================
+   PAYMENT CALCULATION
+========================================================= */
+
+let cylinderAmount =
+    Number(
+        schemeData &&
+        (
+            schemeData.cylinder_amount ||
+            schemeData.cylinderAmount
+        )
+    ) || CYLINDER_AMOUNT;
+
+
+let initialPayment =
+    Number(
+        schemeData &&
+        (
+            schemeData.initial_payment ||
+            schemeData.initialPayment
+        )
+    ) || INITIAL_PAYMENT;
+
+
+let remainingAmount =
+    cylinderAmount -
+    initialPayment;
+
+
+if(remainingAmount < 0){
+    remainingAmount = 0;
+}
+
+
+/* =========================================================
+   EXTRA CHARGE
+========================================================= */
+
+let chargeAmount = 0;
+
+if(
+    schemeData &&
+    schemeData.charge !== undefined
+){
+    chargeAmount =
+        Number(schemeData.charge) || 0;
+}
+
+if(
+    schemeData &&
+    schemeData.extra_charge !== undefined
+){
+    chargeAmount =
+        Number(schemeData.extra_charge) || 0;
+}
+
+if(
+    schemeData &&
+    schemeData.selected_charge !== undefined
+){
+    chargeAmount =
+        Number(schemeData.selected_charge) || 0;
+}
+
+
+/* =========================================================
+   DISPLAY PAYMENT
+========================================================= */
+
+document.getElementById("cylinderAmount").textContent =
+    "₹" + cylinderAmount.toFixed(2);
+
+document.getElementById("initialPayment").textContent =
+    "₹" + initialPayment.toFixed(2);
+
+document.getElementById("remainingAmount").textContent =
+    "₹" + remainingAmount.toFixed(2);
+
+document.getElementById("chargeAmount").textContent =
+    chargeAmount > 0
+    ? "₹" + chargeAmount.toFixed(2)
+    : "₹0.00";
+
+document.getElementById("payNowAmount").textContent =
+    "₹" + initialPayment.toFixed(2);
+
+document.getElementById("largePayAmount").textContent =
+    "₹" + initialPayment.toFixed(2);
+
+
+/* =========================================================
+   AUTOMATIC DATE & TIME
+========================================================= */
+
+function updatePaymentDateTime(){
+
+    const now = new Date();
+
+    paymentDateTime.value =
+        now.toLocaleString(
+            "en-IN",
+            {
+                day:"2-digit",
+                month:"short",
+                year:"numeric",
+                hour:"2-digit",
+                minute:"2-digit",
+                second:"2-digit",
+                hour12:true
+            }
+        );
+
+}
+
+updatePaymentDateTime();
+
+setInterval(
+    updatePaymentDateTime,
+    1000
+);
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(text,type){
+
+    message.className =
+        "message " + type;
+
+    message.textContent =
+        text;
+
+}
+
+function clearMessage(){
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+
+}
+
+
+/* =========================================================
+   REQUEST NUMBER
+========================================================= */
+
+function createRequestNumber(){
+
+    const now =
+        new Date();
+
+    const year =
+        now.getFullYear();
+
+    const month =
+        String(
+            now.getMonth() + 1
+        ).padStart(2,"0");
+
+    const day =
+        String(
+            now.getDate()
+        ).padStart(2,"0");
+
+    const random =
+        Math.floor(
+            100000 +
+            Math.random() * 900000
+        );
+
+    return (
+        "EGC-" +
+        year +
+        month +
+        day +
+        "-" +
+        random
+    );
+
+}
+
+
+/* =========================================================
+   GET LOGGED IN USER
+========================================================= */
+
+async function getLoggedInUser(){
+
+    const result =
+        await supabaseClient.auth.getUser();
+
+    if(result.error){
+        throw result.error;
+    }
+
+    const user =
+        result.data &&
+        result.data.user;
+
+    if(!user){
+
+        throw new Error(
+            "User is not logged in."
+        );
+
+    }
+
+    return user;
+
+}
+
+
+/* =========================================================
+   GET SCHEME DAYS
+========================================================= */
+
+function getRepaymentDays(){
+
+    if(!schemeData){
+        return null;
+    }
+
+    return Number(
+        schemeData.repayment_days ||
+        schemeData.repaymentDays ||
+        schemeData.days ||
+        0
+    ) || null;
+
+}
+
+
+/* =========================================================
+   SCREENSHOT VALIDATION
+========================================================= */
+
+function validateScreenshot(){
+
+    const file =
+        paymentScreenshot.files[0];
+
+    if(!file){
+        return true;
+    }
+
+    const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
+
+    if(!allowedTypes.includes(file.type)){
+
+        showMessage(
+            "Please upload a JPG, PNG or WEBP image.",
+            "error"
+        );
+
+        paymentScreenshot.value = "";
+
+        return false;
+
+    }
+
+    const maxSize =
+        5 * 1024 * 1024;
+
+    if(file.size > maxSize){
+
+        showMessage(
+            "Payment screenshot must be 5 MB or smaller.",
+            "error"
+        );
+
+        paymentScreenshot.value = "";
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+
+/* =========================================================
+   SCREENSHOT PREVIEW
+========================================================= */
+
+paymentScreenshot.addEventListener(
+    "change",
+    function(){
+
+        clearMessage();
+
+        const file =
+            paymentScreenshot.files[0];
+
+        if(!file){
+
+            screenshotPreview.classList.remove(
+                "show"
+            );
+
+            previewImage.src = "";
+
+            return;
+
+        }
+
+        if(!validateScreenshot()){
+            return;
+        }
+
+        const reader =
+            new FileReader();
+
+        reader.onload =
+            function(event){
+
+                previewImage.src =
+                    event.target.result;
+
+                screenshotPreview.classList.add(
+                    "show"
+                );
+
+            };
+
+        reader.readAsDataURL(file);
+
+    }
+);
+
+
+/* =========================================================
+   UPLOAD PAYMENT SCREENSHOT
+========================================================= */
+
+async function uploadPaymentScreenshot(
+    userId,
+    requestId
+){
+
+    const file =
+        paymentScreenshot.files[0];
+
+    if(!file){
+        return null;
+    }
+
+    const extension =
+        file.name
+        .split(".")
+        .pop()
+        .toLowerCase();
+
+    const fileName =
+        userId +
+        "/" +
+        requestId +
+        "-" +
+        Date.now() +
+        "." +
+        extension;
+
+
+    const uploadResult =
+        await supabaseClient
+        .storage
+        .from("payment-screenshots")
+        .upload(
+            fileName,
+            file,
+            {
+                cacheControl:"3600",
+                upsert:false,
+                contentType:file.type
+            }
+        );
+
+
+    if(uploadResult.error){
+
+        console.error(
+            "Screenshot upload error:",
+            uploadResult.error
+        );
+
+        throw new Error(
+            "Payment screenshot upload failed. Please try again."
+        );
+
+    }
+
+
+    const publicResult =
+        supabaseClient
+        .storage
+        .from("payment-screenshots")
+        .getPublicUrl(
+            fileName
+        );
+
+
+    return (
+        publicResult &&
+        publicResult.data &&
+        publicResult.data.publicUrl
+    )
+    ? publicResult.data.publicUrl
+    : null;
+
+}
+
+
+/* =========================================================
+   CREATE CYLINDER REQUEST
+========================================================= */
+
+async function createCylinderRequest(){
+
+    const user =
+        await getLoggedInUser();
+
+
+    const requestNumber =
+        createRequestNumber();
+
+
+    const repaymentDays =
+        getRepaymentDays();
+
+
+    let repaymentDueDate =
+        null;
+
+
+    if(repaymentDays){
+
+        const dueDate =
+            new Date();
+
+        dueDate.setDate(
+            dueDate.getDate() +
+            repaymentDays
+        );
+
+        repaymentDueDate =
+            dueDate.toISOString();
+
+    }
+
+
+    const agencyId =
+        lpgDetails &&
+        (
+            lpgDetails.agency_id ||
+            lpgDetails.agencyId
+        )
+        ? (
+            lpgDetails.agency_id ||
+            lpgDetails.agencyId
+        )
+        : null;
+
+
+    const city =
+        lpgDetails &&
+        (
+            lpgDetails.city ||
+            ""
+        );
+
+
+    const lpgCompany =
+        lpgDetails &&
+        (
+            lpgDetails.company ||
+            lpgDetails.lpg_company ||
+            ""
+        );
+
+
+    const address =
+        localStorage.getItem(
+            "egc_verification_personal"
+        );
+
+
+    let savedPersonal =
+        null;
+
+
+    if(address){
+
+        try{
+
+            savedPersonal =
+                JSON.parse(address);
+
+        }catch(error){
+
+            savedPersonal =
+                null;
+
+        }
+
+    }
+
+
+    const submittedAt =
+        new Date().toISOString();
+
+
+    const requestData = {
+
+        user_id:
+            user.id,
+
+        request_number:
+            requestNumber,
+
+        quantity:
+            1,
+
+        total_amount:
+            cylinderAmount,
+
+        cylinder_amount:
+            cylinderAmount,
+
+        advance_amount:
+            initialPayment,
+
+        remaining_amount:
+            remainingAmount,
+
+        extra_charge:
+            chargeAmount,
+
+        charge_amount:
+            chargeAmount,
+
+        total_payable:
+            remainingAmount +
+            chargeAmount,
+
+        status:
+            "Pending",
+
+        payment_status:
+            "submitted",
+
+        owner_approval:
+            "pending",
+
+        agency_status:
+            "waiting",
+
+        delivery_status:
+            "pending",
+
+        user_status:
+            "pending",
+
+        payment_method:
+            "UPI",
+
+        payment_submitted_at:
+            submittedAt,
+
+        repayment_days:
+            repaymentDays,
+
+        repayment_due_date:
+            repaymentDueDate,
+
+        payment_reference:
+            transactionIdInput.value.trim(),
+
+        address:
+            savedPersonal &&
+            savedPersonal.address
+            ? savedPersonal.address
+            : null,
+
+        city:
+            city || null,
+
+        lpg_company:
+            lpgCompany || null,
+
+        agency_id:
+            agencyId,
+
+        notes:
+            paymentNote.value.trim() || null,
+
+        request_date:
+            submittedAt,
+
+        updated_at:
+            submittedAt
+
+    };
+
+
+    const result =
+        await supabaseClient
+        .from("cylinder_requests")
+        .insert(requestData)
+        .select()
+        .single();
+
+
+    if(result.error){
+
+        console.error(
+            "Supabase request error:",
+            result.error
+        );
+
+        throw result.error;
+
+    }
+
+
+    return result.data;
+
+}
+
+
+/* =========================================================
+   PAYMENT SUBMIT
+========================================================= */
+
+paidBtn.addEventListener(
+    "click",
+    async function(){
+
+        clearMessage();
+
+
+        const transactionId =
+            transactionIdInput.value.trim();
+
+
+        if(!transactionId){
+
+            showMessage(
+                "Please enter your UPI transaction ID.",
+                "error"
+            );
+
+            transactionIdInput.focus();
+
+            return;
+
+        }
+
+
+        if(!paymentCheck.checked){
+
+            showMessage(
+                "Please confirm that you have made the ₹200 payment.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if(!validateScreenshot()){
+            return;
+        }
+
+
+        paidBtn.disabled =
+            true;
+
+        paidBtn.textContent =
+            "SUBMITTING...";
+
+
+        try{
+
+            /*
+             IMPORTANT:
+             First create the request.
+            */
+
+            const request =
+                await createCylinderRequest();
+
+
+            /*
+             Then upload optional screenshot.
+            */
+
+            let screenshotUrl =
+                null;
+
+
+            if(
+                paymentScreenshot.files &&
+                paymentScreenshot.files[0]
+            ){
+
+                paidBtn.textContent =
+                    "UPLOADING...";
+
+
+                screenshotUrl =
+                    await uploadPaymentScreenshot(
+                        request.user_id,
+                        request.id
+                    );
+
+            }
+
+
+            /*
+             Save screenshot URL and final payment details.
+            */
+
+            const updateData = {
+
+                payment_reference:
+                    transactionId,
+
+                payment_submitted_at:
+                    request.payment_submitted_at,
+
+                notes:
+                    paymentNote.value.trim() || null,
+
+                updated_at:
+                    new Date().toISOString()
+
+            };
+
+
+            /*
+             NOTE:
+             Screenshot URL is stored in notes only if
+             the current table has no screenshot column.
+            */
+
+            if(screenshotUrl){
+
+                const screenshotNote =
+                    "Payment Screenshot: " +
+                    screenshotUrl;
+
+                updateData.notes =
+                    paymentNote.value.trim()
+                    ? paymentNote.value.trim() +
+                      "\n\n" +
+                      screenshotNote
+                    : screenshotNote;
+
+            }
+
+
+            const updateResult =
+                await supabaseClient
+                .from("cylinder_requests")
+                .update(updateData)
+                .eq(
+                    "id",
+                    request.id
+                );
+
+
+            if(updateResult.error){
+
+                console.error(
+                    "Payment details update error:",
+                    updateResult.error
+                );
+
+                throw updateResult.error;
+
+            }
+
+
+            /*
+             LOCAL COPY
+            */
+
+            const paymentData = {
+
+                request_id:
+                    request.id,
+
+                request_number:
+                    request.request_number,
+
+                cylinder_amount:
+                    cylinderAmount,
+
+                initial_payment:
+                    initialPayment,
+
+                remaining_amount:
+                    remainingAmount,
+
+                charge:
+                    chargeAmount,
+
+                transaction_id:
+                    transactionId,
+
+                screenshot_url:
+                    screenshotUrl,
+
+                payment_status:
+                    "submitted",
+
+                owner_approval:
+                    "pending",
+
+                agency_status:
+                    "waiting",
+
+                user_status:
+                    "pending",
+
+                payment_method:
+                    "UPI",
+
+                submitted_at:
+                    request.payment_submitted_at,
+
+                payment_note:
+                    paymentNote.value.trim() || ""
+
+            };
+
+
+            localStorage.setItem(
+                "egc_payment_data",
+                JSON.stringify(paymentData)
+            );
+
+
+            localStorage.setItem(
+                "egc_request_id",
+                request.id
+            );
+
+
+            localStorage.setItem(
+                "egc_request_number",
+                request.request_number
+            );
+
+
+            /*
+             SHOW SUCCESS
+            */
+
+            requestNumberElement.textContent =
+                request.request_number;
+
+            requestBox.classList.add(
+                "show"
+            );
+
+
+            showMessage(
+                "Payment submitted successfully. Your payment is now waiting for owner verification.",
+                "success"
+            );
+
+
+            paidBtn.textContent =
+                "SUBMITTED ✓";
+
+
+            /*
+             GO TO COMPLETE PAGE
+            */
+
+            setTimeout(
+                function(){
+
+                    window.location.replace(
+                        "complete.html"
+                    );
+
+                },
+                1200
+            );
+
+
+        }
+        catch(error){
+
+            console.error(
+                "Payment submission error:",
+                error
+            );
+
+
+            paidBtn.disabled =
+                false;
+
+            paidBtn.textContent =
+                "SUBMIT PAYMENT →";
+
+
+            let errorMessage =
+                "Unable to submit your payment. Please try again.";
+
+
+            if(
+                error &&
+                error.message
+            ){
+
+                errorMessage =
+                    error.message;
+
+            }
+
+
+            if(
+                error &&
+                error.code === "42501"
+            ){
+
+                errorMessage =
+                    "Permission denied. Supabase RLS policy needs to allow logged-in users to create and update their cylinder request.";
+
+            }
+
+
+            showMessage(
+                errorMessage,
+                "error"
+            );
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   BACK
+========================================================= */
+
+document.getElementById(
+    "backStepBtn"
+).addEventListener(
+    "click",
+    function(){
+
+        window.location.href =
+            "scheme.html";
+
+    }
+);
+
+
+document.getElementById(
+    "backBtn"
+).addEventListener(
+    "click",
+    function(){
+
+        window.location.href =
+            "scheme.html";
+
+    }
+);
+
+
+/* =========================================================
+   QR FALLBACK
+========================================================= */
+
+window.addEventListener(
+    "load",
+    function(){
+
+        const qr =
+            document.getElementById(
+                "paymentQr"
+            );
+
+        const placeholder =
+            document.getElementById(
+                "qrPlaceholder"
+            );
+
+
+        if(
+            !qr.complete ||
+            qr.naturalWidth === 0
+        ){
+
+            qr.style.display =
+                "none";
+
+            placeholder.style.display =
+                "block";
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>

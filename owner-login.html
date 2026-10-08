@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Owner Login</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#073f73;
+    background:
+        radial-gradient(circle at 10% 10%,rgba(255,190,190,.42),transparent 32%),
+        radial-gradient(circle at 90% 12%,rgba(185,220,255,.45),transparent 32%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.42),transparent 40%),
+        #fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:25px;
+}
+
+.page{
+    width:100%;
+    min-height:calc(100vh - 50px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.login-wrapper{
+    width:100%;
+    max-width:470px;
+}
+
+.logo-area{
+    text-align:center;
+    margin-bottom:22px;
+}
+
+.logo{
+    height:72px;
+    width:auto;
+    object-fit:contain;
+}
+
+.brand-title{
+    font-size:24px;
+    font-weight:800;
+    color:#06477f;
+    margin-top:10px;
+}
+
+.brand-subtitle{
+    font-size:13px;
+    color:#7d91a3;
+    margin-top:5px;
+}
+
+.login-card{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:24px;
+    padding:35px;
+    box-shadow:
+        0 18px 55px rgba(45,75,105,.12),
+        0 3px 12px rgba(45,75,105,.05);
+    backdrop-filter:blur(12px);
+}
+
+.login-heading{
+    text-align:center;
+    margin-bottom:28px;
+}
+
+.login-heading h1{
+    font-size:27px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:7px;
+}
+
+.login-heading p{
+    font-size:14px;
+    color:#8194a5;
+}
+
+.form-group{
+    margin-bottom:20px;
+}
+
+label{
+    display:block;
+    font-size:14px;
+    font-weight:700;
+    color:#164f78;
+    margin-bottom:8px;
+}
+
+.input-wrap{
+    position:relative;
+}
+
+input{
+    width:100%;
+    height:54px;
+    border:1.5px solid #d5e1eb;
+    border-radius:13px;
+    padding:0 15px;
+    font-size:15px;
+    color:#214e6d;
+    background:#fff;
+    outline:none;
+    transition:.2s;
+}
+
+input:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.10);
+}
+
+input::placeholder{
+    color:#a1afbb;
+}
+
+.password-toggle{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    border:0;
+    background:transparent;
+    color:#6e8799;
+    font-size:17px;
+    cursor:pointer;
+    padding:6px;
+}
+
+.forgot-row{
+    text-align:right;
+    margin-top:-9px;
+    margin-bottom:18px;
+}
+
+.forgot-btn{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    padding:3px;
+}
+
+.forgot-btn:hover{
+    color:#06477f;
+    text-decoration:underline;
+}
+
+.login-btn{
+    width:100%;
+    height:56px;
+    border:0;
+    border-radius:14px;
+    background:#ffc21a;
+    color:#063d70;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 7px 18px rgba(255,194,26,.23);
+    transition:.2s;
+    margin-top:5px;
+}
+
+.login-btn:hover{
+    background:#ffb900;
+    transform:translateY(-1px);
+}
+
+.login-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.message{
+    display:none;
+    margin-bottom:18px;
+    padding:13px 15px;
+    border-radius:11px;
+    font-size:13px;
+    line-height:1.5;
+}
+
+.message.error{
+    display:block;
+    color:#bd2828;
+    background:#fff1f1;
+    border:1px solid #ffcaca;
+}
+
+.message.success{
+    display:block;
+    color:#16833a;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+}
+
+.security-note{
+    margin-top:22px;
+    padding:13px 15px;
+    border-radius:12px;
+    background:linear-gradient(135deg,#eef8ff,#fff5f5);
+    border:1px solid #e0eaf2;
+    color:#71889b;
+    font-size:11px;
+    line-height:1.6;
+    text-align:center;
+}
+
+.footer{
+    text-align:center;
+    margin-top:20px;
+    color:#91a0ac;
+    font-size:11px;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.42);
+    z-index:999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:20px;
+    padding:28px;
+    box-shadow:0 20px 70px rgba(0,0,0,.20);
+}
+
+.modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:8px;
+}
+
+.modal-title{
+    font-size:22px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.modal-close{
+    width:35px;
+    height:35px;
+    border:0;
+    border-radius:10px;
+    background:#f1f6fa;
+    color:#607b91;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.modal-text{
+    font-size:13px;
+    color:#8194a5;
+    line-height:1.6;
+    margin-bottom:22px;
+}
+
+.reset-btn{
+    width:100%;
+    height:52px;
+    border:0;
+    border-radius:13px;
+    background:#0878d1;
+    color:#fff;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.reset-btn:hover{
+    background:#066bbd;
+}
+
+.reset-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+@media(max-width:520px){
+
+    body{
+        padding:15px;
+    }
+
+    .page{
+        min-height:calc(100vh - 30px);
+    }
+
+    .login-card{
+        padding:25px 19px;
+        border-radius:19px;
+    }
+
+    .logo{
+        height:60px;
+    }
+
+    .brand-title{
+        font-size:21px;
+    }
+
+    .login-heading h1{
+        font-size:24px;
+    }
+
+    .login-heading p{
+        font-size:13px;
+    }
+
+    input{
+        height:52px;
+    }
+
+    .login-btn{
+        height:54px;
+    }
+
+    .modal-card{
+        padding:23px 18px;
+        border-radius:18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="login-wrapper">
+
+        <div class="logo-area">
+
+            <img
+                src="assets/EGC - Emergency Gas Cylinder logo.png"
+                class="logo"
+                alt="EGC"
+                onerror="this.style.display='none';"
+            >
+
+            <div class="brand-title">
+                Emergency Gas Cylinder
+            </div>
+
+            <div class="brand-subtitle">
+                Owner Management System
+            </div>
+
+        </div>
+
+        <section class="login-card">
+
+            <div class="login-heading">
+
+                <h1>Owner Login</h1>
+
+                <p>
+                    Sign in to manage your EGC system
+                </p>
+
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <form id="loginForm" autocomplete="off">
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Owner Email
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="owner-email"
+                        placeholder="Enter owner email"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <div class="input-wrap">
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="owner-password"
+                            placeholder="Enter password"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            id="passwordToggle"
+                            aria-label="Show password"
+                        >
+                            👁
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="forgot-row">
+
+                    <button
+                        type="button"
+                        class="forgot-btn"
+                        id="forgotBtn"
+                    >
+                        Forgot Password?
+                    </button>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="login-btn"
+                    id="loginBtn"
+                >
+                    LOGIN TO OWNER PANEL
+                </button>
+
+            </form>
+
+            <div class="security-note">
+                🔒 This area is restricted to authorized EGC owners.
+            </div>
+
+        </section>
+
+        <div class="footer">
+            EGC Owner Management System
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="modal" id="forgotModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div class="modal-title">
+                Reset Password
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="modalClose"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <p class="modal-text">
+            Enter your owner email address. We will send you a secure password reset link.
+        </p>
+
+        <div id="resetMessage" class="message"></div>
+
+        <div class="form-group">
+
+            <label for="resetEmail">
+                Owner Email
+            </label>
+
+            <input
+                type="email"
+                id="resetEmail"
+                name="reset-email"
+                placeholder="Enter owner email"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+            >
+
+        </div>
+
+        <button
+            type="button"
+            class="reset-btn"
+            id="resetBtn"
+        >
+            SEND RESET LINK
+        </button>
+
+    </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+
+const loginForm =
+    document.getElementById("loginForm");
+
+const emailInput =
+    document.getElementById("email");
+
+const passwordInput =
+    document.getElementById("password");
+
+const passwordToggle =
+    document.getElementById("passwordToggle");
+
+const loginBtn =
+    document.getElementById("loginBtn");
+
+const message =
+    document.getElementById("message");
+
+const forgotBtn =
+    document.getElementById("forgotBtn");
+
+const forgotModal =
+    document.getElementById("forgotModal");
+
+const modalClose =
+    document.getElementById("modalClose");
+
+const resetEmail =
+    document.getElementById("resetEmail");
+
+const resetBtn =
+    document.getElementById("resetBtn");
+
+const resetMessage =
+    document.getElementById("resetMessage");
+
+
+/* CLEAR LOGIN FIELDS */
+
+function clearLoginFields(){
+
+    emailInput.value = "";
+    passwordInput.value = "";
+
+    emailInput.removeAttribute("value");
+    passwordInput.removeAttribute("value");
+
+    emailInput.setAttribute("autocomplete","off");
+    passwordInput.setAttribute("autocomplete","new-password");
+
+    passwordInput.type = "password";
+    passwordToggle.textContent = "👁";
+
+}
+
+
+/* CLEAR FIELDS WHEN PAGE LOADS */
+
+clearLoginFields();
+
+
+/* CLEAR AGAIN AFTER BROWSER AUTOFILL */
+
+window.addEventListener(
+    "load",
+    function(){
+
+        clearLoginFields();
+
+        setTimeout(
+            function(){
+
+                clearLoginFields();
+
+            },
+            100
+        );
+
+        setTimeout(
+            function(){
+
+                clearLoginFields();
+
+            },
+            500
+        );
+
+        setTimeout(
+            function(){
+
+                clearLoginFields();
+
+            },
+            1200
+        );
+
+    }
+);
+
+
+/* CLEAR WHEN PAGE BECOMES VISIBLE AGAIN */
+
+document.addEventListener(
+    "visibilitychange",
+    function(){
+
+        if(!document.hidden){
+
+            clearLoginFields();
+
+        }
+
+    }
+);
+
+
+/* MESSAGE FUNCTIONS */
+
+function showMessage(text,type){
+
+    message.className =
+        "message " + type;
+
+    message.textContent =
+        text;
+
+}
+
+
+function clearMessage(){
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+
+}
+
+
+function showResetMessage(text,type){
+
+    resetMessage.className =
+        "message " + type;
+
+    resetMessage.textContent =
+        text;
+
+}
+
+
+function clearResetMessage(){
+
+    resetMessage.className =
+        "message";
+
+    resetMessage.textContent =
+        "";
+
+}
+
+
+/* PASSWORD SHOW / HIDE */
+
+passwordToggle.addEventListener(
+    "click",
+    function(){
+
+        if(passwordInput.type === "password"){
+
+            passwordInput.type = "text";
+
+            passwordToggle.textContent = "🙈";
+
+        }
+        else{
+
+            passwordInput.type = "password";
+
+            passwordToggle.textContent = "👁";
+
+        }
+
+    }
+);
+
+
+/* OPEN FORGOT PASSWORD */
+
+forgotBtn.addEventListener(
+    "click",
+    function(){
+
+        clearResetMessage();
+
+        resetEmail.value =
+            emailInput.value.trim();
+
+        forgotModal.classList.add("show");
+
+        setTimeout(
+            function(){
+
+                resetEmail.focus();
+
+            },
+            100
+        );
+
+    }
+);
+
+
+/* CLOSE MODAL */
+
+modalClose.addEventListener(
+    "click",
+    function(){
+
+        forgotModal.classList.remove("show");
+
+        clearResetMessage();
+
+    }
+);
+
+
+/* CLOSE MODAL OUTSIDE */
+
+forgotModal.addEventListener(
+    "click",
+    function(event){
+
+        if(event.target === forgotModal){
+
+            forgotModal.classList.remove("show");
+
+            clearResetMessage();
+
+        }
+
+    }
+);
+
+
+/* FORGOT PASSWORD */
+
+resetBtn.addEventListener(
+    "click",
+    async function(){
+
+        clearResetMessage();
+
+        const email =
+            resetEmail.value.trim();
+
+        if(!email){
+
+            showResetMessage(
+                "Please enter your owner email.",
+                "error"
+            );
+
+            return;
+
+        }
+
+        resetBtn.disabled = true;
+        resetBtn.textContent = "SENDING...";
+
+        try{
+
+            const resetPage =
+                new URL(
+                    "owner-reset-password.html",
+                    window.location.href
+                ).href;
+
+
+            const result =
+                await supabaseClient.auth
+                    .resetPasswordForEmail(
+                        email,
+                        {
+                            redirectTo:resetPage
+                        }
+                    );
+
+
+            if(result.error){
+
+                console.error(
+                    "Password reset error:",
+                    result.error
+                );
+
+                showResetMessage(
+                    result.error.message ||
+                    "Unable to send reset link.",
+                    "error"
+                );
+
+                resetBtn.disabled = false;
+                resetBtn.textContent =
+                    "SEND RESET LINK";
+
+                return;
+
+            }
+
+
+            showResetMessage(
+                "Password reset link has been sent to your email. Please check your inbox.",
+                "success"
+            );
+
+            resetBtn.textContent =
+                "RESET LINK SENT";
+
+        }
+        catch(error){
+
+            console.error(
+                "Reset error:",
+                error
+            );
+
+            showResetMessage(
+                error.message ||
+                "Something went wrong. Please try again.",
+                "error"
+            );
+
+            resetBtn.disabled = false;
+            resetBtn.textContent =
+                "SEND RESET LINK";
+
+        }
+
+    }
+);
+
+
+/* CHECK EXISTING SESSION */
+
+async function checkExistingSession(){
+
+    try{
+
+        const result =
+            await supabaseClient.auth.getSession();
+
+
+        if(result.error){
+
+            console.error(
+                "Session error:",
+                result.error
+            );
+
+            return;
+
+        }
+
+
+        if(
+            result.data &&
+            result.data.session &&
+            result.data.session.user
+        ){
+
+            window.location.replace(
+                "owner-dashboard.html"
+            );
+
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Session check error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* LOGIN */
+
+loginForm.addEventListener(
+    "submit",
+    async function(event){
+
+        event.preventDefault();
+
+        clearMessage();
+
+        const email =
+            emailInput.value.trim();
+
+        const password =
+            passwordInput.value;
+
+
+        if(!email){
+
+            showMessage(
+                "Please enter your owner email.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if(!password){
+
+            showMessage(
+                "Please enter your password.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        loginBtn.disabled = true;
+        loginBtn.textContent =
+            "SIGNING IN...";
+
+
+        try{
+
+            const result =
+                await supabaseClient.auth
+                    .signInWithPassword({
+
+                        email:email,
+
+                        password:password
+
+                    });
+
+
+            console.log(
+                "Supabase login result:",
+                result
+            );
+
+
+            if(result.error){
+
+                console.error(
+                    "Supabase Login Error:",
+                    result.error
+                );
+
+
+                let errorText =
+                    result.error.message ||
+                    "Invalid owner email or password.";
+
+
+                if(
+                    errorText
+                        .toLowerCase()
+                        .includes(
+                            "invalid login credentials"
+                        )
+                ){
+
+                    errorText =
+                        "Invalid email or password. Please check the exact email and password used when creating the Supabase account.";
+
+                }
+
+
+                if(
+                    errorText
+                        .toLowerCase()
+                        .includes(
+                            "email not confirmed"
+                        )
+                ){
+
+                    errorText =
+                        "This email is not confirmed in Supabase.";
+
+                }
+
+
+                showMessage(
+                    errorText,
+                    "error"
+                );
+
+
+                loginBtn.disabled = false;
+
+                loginBtn.textContent =
+                    "LOGIN TO OWNER PANEL";
+
+                return;
+
+            }
+
+
+            if(
+                !result.data ||
+                !result.data.user
+            ){
+
+                showMessage(
+                    "Login failed. Please try again.",
+                    "error"
+                );
+
+                loginBtn.disabled = false;
+
+                loginBtn.textContent =
+                    "LOGIN TO OWNER PANEL";
+
+                return;
+
+            }
+
+
+            showMessage(
+                "Login successful. Opening owner dashboard...",
+                "success"
+            );
+
+
+            loginBtn.textContent =
+                "OPENING DASHBOARD...";
+
+
+            setTimeout(
+                function(){
+
+                    window.location.replace(
+                        "owner-dashboard.html"
+                    );
+
+                },
+                700
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                "Unexpected login error:",
+                error
+            );
+
+            showMessage(
+                error.message ||
+                "Something went wrong. Please try again.",
+                "error"
+            );
+
+            loginBtn.disabled = false;
+
+            loginBtn.textContent =
+                "LOGIN TO OWNER PANEL";
+
+        }
+
+    }
+);
+
+
+/* START */
+
+checkExistingSession();
+
+</script>
+
+</body>
+</html>

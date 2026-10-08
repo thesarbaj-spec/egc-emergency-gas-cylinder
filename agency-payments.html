@@ -1,0 +1,3994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Payment Status</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#173f5f;
+    background:
+        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+        #eef7fc;
+    overflow-x:hidden;
+}
+
+button,input,select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+/* ================= HEADER ================= */
+
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:72px;
+    background:rgba(255,255,255,.97);
+    border-bottom:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    z-index:1000;
+    box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    min-width:0;
+}
+
+.menu-btn{
+    display:none;
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:22px;
+    flex:none;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    min-width:0;
+}
+
+.brand img{
+    width:125px;
+    max-height:48px;
+    object-fit:contain;
+    flex:none;
+}
+
+.brand-text{
+    min-width:0;
+}
+
+.brand-text h2{
+    color:#06477f;
+    font-size:17px;
+    font-weight:800;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.brand-text p{
+    color:#91a1ae;
+    font-size:11px;
+    margin-top:3px;
+    white-space:nowrap;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:none;
+}
+
+.bell-wrap{
+    position:relative;
+}
+
+.bell-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:12px;
+    background:#fff;
+    color:#0871c3;
+    font-size:19px;
+    position:relative;
+}
+
+.bell-btn.has-unread{
+    animation:bellPulse 1.8s infinite;
+}
+
+@keyframes bellPulse{
+    0%,100%{
+        box-shadow:0 0 0 0 rgba(8,113,195,.08);
+    }
+    50%{
+        box-shadow:0 0 0 6px rgba(8,113,195,.08);
+    }
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:800;
+    border:2px solid #fff;
+}
+
+.notification-count.show{
+    display:flex;
+}
+
+/* ================= NOTIFICATION PANEL ================= */
+
+.notification-panel{
+    position:fixed;
+    top:64px;
+    right:20px;
+    width:390px;
+    max-width:calc(100vw - 24px);
+    max-height:560px;
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:17px;
+    box-shadow:0 20px 60px rgba(20,70,100,.20);
+    z-index:9997;
+    display:none;
+    overflow:hidden;
+}
+
+.notification-panel.show{
+    display:block;
+    animation:notificationDrop .18s ease;
+}
+
+@keyframes notificationDrop{
+    from{
+        opacity:0;
+        transform:translateY(-8px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.notification-head{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.notification-head-left h3{
+    color:#06477f;
+    font-size:14px;
+    font-weight:850;
+}
+
+.notification-head-left p{
+    color:#91a1ae;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.mark-all-btn{
+    border:0;
+    background:#eef7ff;
+    color:#0871c3;
+    border-radius:8px;
+    padding:7px 9px;
+    font-size:9px;
+    font-weight:800;
+}
+
+.notification-list{
+    max-height:440px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    gap:11px;
+    cursor:pointer;
+    transition:.18s;
+    background:#fff;
+}
+
+.notification-item:hover{
+    background:#f8fcff;
+}
+
+.notification-item.unread{
+    background:#f2f9ff;
+}
+
+.notification-icon{
+    width:36px;
+    height:36px;
+    flex:0 0 36px;
+    border-radius:11px;
+    background:#eaf4ff;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+}
+
+.notification-item.success .notification-icon{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+.notification-item.warning .notification-icon{
+    background:#fff7df;
+    color:#9b7310;
+}
+
+.notification-item.danger .notification-icon{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+.notification-content{
+    min-width:0;
+    flex:1;
+}
+
+.notification-title{
+    color:#31566f;
+    font-size:11px;
+    font-weight:850;
+    line-height:1.35;
+}
+
+.notification-message{
+    color:#718796;
+    font-size:9px;
+    line-height:1.45;
+    margin-top:3px;
+    word-break:break-word;
+}
+
+.notification-time{
+    color:#a1afb8;
+    font-size:8px;
+    margin-top:5px;
+}
+
+.unread-dot{
+    width:7px;
+    height:7px;
+    flex:0 0 7px;
+    margin-top:5px;
+    border-radius:50%;
+    background:#0871c3;
+}
+
+.notification-empty{
+    padding:45px 20px;
+    text-align:center;
+    color:#91a1ae;
+    font-size:10px;
+}
+
+.notification-empty-icon{
+    font-size:27px;
+    margin-bottom:8px;
+}
+
+.notification-loading{
+    padding:40px 20px;
+    text-align:center;
+    color:#6090ad;
+    font-size:10px;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+    position:fixed;
+    top:72px;
+    left:0;
+    bottom:0;
+    width:235px;
+    background:#fff;
+    border-right:1px solid #dce8f1;
+    padding:22px 14px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#9aaab5;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    padding:0 11px 12px;
+}
+
+.nav-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:#5d788b;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px;
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:700;
+    text-align:left;
+    transition:.2s ease;
+    flex-shrink:0;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    background:#edf7ff;
+    color:#0871c3;
+}
+
+.nav-icon{
+    width:23px;
+    min-width:23px;
+    text-align:center;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    position:static;
+    width:100%;
+    height:1px;
+    flex:0 0 1px;
+    margin-top:auto;
+    margin-bottom:8px;
+    background:#edf2f5;
+}
+
+.logout-nav-btn{
+    position:static;
+    width:100%;
+    height:43px;
+    flex:0 0 43px;
+    margin-bottom:0;
+}
+
+.logout-nav-btn:hover{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+/* ================= OVERLAY ================= */
+
+.overlay{
+    display:none;
+}
+
+/* ================= MAIN ================= */
+
+.main{
+    margin-left:235px;
+    padding:98px 25px 35px;
+}
+
+.container{
+    max-width:1500px;
+    margin:auto;
+}
+
+/* ================= PAGE HEADER ================= */
+
+.page-head{
+    background:rgba(255,255,255,.95);
+    border:1px solid #dce8f1;
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:18px;
+    box-shadow:0 7px 25px rgba(30,75,110,.05);
+}
+
+.page-head h1{
+    color:#06477f;
+    font-size:24px;
+    font-weight:850;
+}
+
+.page-head p{
+    margin-top:6px;
+    color:#8295a3;
+    font-size:11px;
+    line-height:1.5;
+}
+
+.toolbar{
+    display:grid;
+    grid-template-columns:1fr 190px 150px;
+    gap:9px;
+    margin-top:17px;
+}
+
+.toolbar input,
+.toolbar select{
+    width:100%;
+    height:40px;
+    border:1px solid #d7e3eb;
+    border-radius:10px;
+    outline:none;
+    background:#fff;
+    color:#31566f;
+    padding:0 12px;
+    font-size:11px;
+}
+
+.toolbar input:focus,
+.toolbar select:focus{
+    border-color:#72b4df;
+    box-shadow:0 0 0 3px rgba(65,150,215,.07);
+}
+
+/* ================= TABLE ================= */
+
+.table-card{
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 7px 25px rgba(30,75,110,.05);
+}
+
+.table-top{
+    padding:17px 18px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+
+.table-top h3{
+    color:#06477f;
+    font-size:14px;
+    font-weight:850;
+}
+
+.count{
+    font-size:10px;
+    color:#91a1ae;
+    font-weight:800;
+}
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+}
+
+.request-table{
+    width:100%;
+    min-width:1100px;
+    border-collapse:collapse;
+}
+
+.request-table th{
+    background:#f7fafc;
+    color:#718796;
+    font-size:9px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    padding:12px 13px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+.request-table td{
+    border-top:1px solid #edf2f5;
+    padding:12px 13px;
+    color:#496a82;
+    font-size:10px;
+    vertical-align:middle;
+    white-space:nowrap;
+}
+
+.request-table tr:hover td{
+    background:#fbfdff;
+}
+
+.request-number{
+    font-weight:800;
+    color:#07538d;
+}
+
+.customer-name{
+    color:#31566f;
+    font-weight:800;
+    font-size:11px;
+}
+
+.sub{
+    color:#9aaab5;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.money{
+    font-weight:800;
+    color:#1e5d3d;
+}
+
+/* ================= BADGES ================= */
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 8px;
+    border-radius:20px;
+    font-size:8px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.badge-green{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+.badge-yellow{
+    background:#fff7df;
+    color:#9b7310;
+}
+
+.badge-blue{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+.badge-red{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+.badge-gray{
+    background:#eef2f5;
+    color:#6f818e;
+}
+
+/* ================= ACTION ================= */
+
+.view-btn{
+    border:1px solid #cfe2ef;
+    background:#f5fbff;
+    color:#0866a5;
+    border-radius:9px;
+    padding:7px 11px;
+    font-weight:700;
+    font-size:10px;
+}
+
+.view-btn:hover{
+    background:#eaf5fc;
+}
+
+.empty{
+    padding:40px !important;
+    text-align:center !important;
+    color:#91a1ae !important;
+}
+
+.loading{
+    text-align:center;
+    padding:40px !important;
+    color:#6090ad !important;
+}
+
+/* ================= PAYMENT MODAL ================= */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(4,30,50,.50);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:9998;
+    backdrop-filter:blur(4px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:760px;
+    max-height:90vh;
+    overflow:auto;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.modal-head{
+    padding:17px 20px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.modal-head h2{
+    color:#06477f;
+    font-size:18px;
+    font-weight:850;
+}
+
+.close{
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    background:#eef4f8;
+    color:#527087;
+    font-size:18px;
+}
+
+.close:hover{
+    background:#e5eef4;
+}
+
+.modal-body{
+    padding:20px;
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+}
+
+.detail{
+    padding:11px;
+    background:#f7fafc;
+    border:1px solid #e3edf3;
+    border-radius:11px;
+}
+
+.detail label{
+    display:block;
+    font-size:8px;
+    color:#9aaab5;
+    font-weight:900;
+    text-transform:uppercase;
+    margin-bottom:5px;
+}
+
+.detail strong{
+    color:#31566f;
+    word-break:break-word;
+    font-size:11px;
+}
+
+.modal-actions{
+    margin-top:16px;
+    text-align:right;
+}
+
+/* ================= LOGOUT MODAL ================= */
+
+.logout-modal-card{
+    max-width:390px;
+    text-align:center;
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 13px;
+    border-radius:17px;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:850;
+}
+
+.logout-text{
+    color:#718796;
+    font-size:11px;
+    line-height:1.5;
+    margin-top:7px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:20px;
+}
+
+.logout-action-btn{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#c33232;
+    color:#fff;
+}
+
+.logout-confirm:hover{
+    background:#b52d2d;
+}
+
+.logout-action-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* ================= TOAST ================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:310px;
+    max-width:calc(100vw - 40px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:15px;
+    padding:14px 16px;
+    box-shadow:0 15px 45px rgba(20,70,100,.20);
+    transform:translateY(130px);
+    opacity:0;
+    transition:.3s;
+    z-index:9999;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:12px;
+    font-weight:850;
+}
+
+.toast-text{
+    color:#718796;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+/* ================= TABLET ================= */
+
+@media(max-width:1050px){
+
+    .toolbar{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .toolbar .search{
+        grid-column:1 / -1;
+    }
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:800px){
+
+    .header{
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:block;
+        margin-right:10px;
+    }
+
+    .brand{
+        gap:9px;
+        flex:1;
+        min-width:0;
+    }
+
+    .brand img{
+        width:100px;
+        max-height:45px;
+    }
+
+    .brand-text h2{
+        font-size:14px;
+    }
+
+    .brand-text p{
+        display:none;
+    }
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .overlay{
+        position:fixed;
+        inset:72px 0 0 0;
+        background:rgba(0,0,0,.35);
+        z-index:850;
+        display:none;
+    }
+
+    .overlay.show{
+        display:block;
+    }
+
+    .main{
+        margin-left:0;
+        padding:92px 13px 25px;
+    }
+
+    .notification-panel{
+        top:63px;
+        right:10px;
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+/* ================= SMALL MOBILE ================= */
+
+@media(max-width:520px){
+
+    .header{
+        height:65px;
+        padding:0 10px;
+    }
+
+    .menu-btn{
+        width:40px;
+        height:40px;
+        font-size:21px;
+        margin-right:7px;
+    }
+
+    .brand img{
+        width:90px;
+        max-height:42px;
+    }
+
+    .brand-text h2{
+        font-size:12px;
+    }
+
+    .sidebar{
+        top:65px;
+        width:235px;
+        padding:20px 12px;
+    }
+
+    .overlay{
+        inset:65px 0 0 0;
+    }
+
+    .main{
+        padding:82px 10px 25px;
+    }
+
+    .page-head{
+        padding:15px;
+        margin-bottom:12px;
+        border-radius:17px;
+    }
+
+    .page-head h1{
+        font-size:20px;
+    }
+
+    .page-head p{
+        font-size:10px;
+        line-height:1.5;
+    }
+
+    .toolbar{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+        margin-top:14px;
+    }
+
+    .toolbar .search{
+        grid-column:1 / -1;
+    }
+
+    .toolbar input,
+    .toolbar select{
+        height:40px;
+        font-size:10px;
+        padding:0 8px;
+    }
+
+    .table-card{
+        border-radius:17px;
+    }
+
+    .table-top{
+        padding:14px;
+    }
+
+    .table-top h3{
+        font-size:13px;
+    }
+
+    .count{
+        font-size:9px;
+    }
+
+    .request-table th,
+    .request-table td{
+        padding:12px;
+    }
+
+    .modal{
+        padding:10px;
+    }
+
+    .modal-card{
+        border-radius:18px;
+    }
+
+    .modal-head{
+        padding:15px;
+    }
+
+    .modal-body{
+        padding:15px;
+    }
+
+    .toast{
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+    }
+
+    .notification-panel{
+        top:58px;
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+        max-height:calc(100vh - 75px);
+    }
+
+    .notification-list{
+        max-height:calc(100vh - 150px);
+    }
+}
+
+/* ================= EXTRA SMALL ================= */
+
+@media(max-width:360px){
+
+    .header{
+        padding:0 7px;
+    }
+
+    .menu-btn{
+        width:37px;
+        height:37px;
+        font-size:19px;
+    }
+
+    .brand img{
+        width:78px;
+    }
+
+    .brand-text h2{
+        font-size:11px;
+    }
+
+    .bell-btn{
+        width:35px;
+        height:35px;
+        font-size:16px;
+    }
+
+    .sidebar{
+        width:235px;
+    }
+
+    .main{
+        padding-left:8px;
+        padding-right:8px;
+    }
+
+    .page-head{
+        padding:13px;
+    }
+
+    .page-head h1{
+        font-size:18px;
+    }
+
+    .toolbar{
+        gap:7px;
+    }
+
+    .toolbar input,
+    .toolbar select{
+        font-size:9px;
+    }
+}
+
+/* ================= SCROLLBARS ================= */
+
+.sidebar::-webkit-scrollbar,
+.notification-list::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.notification-list::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+.table-wrap::-webkit-scrollbar{
+    height:7px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            aria-label="Open menu"
+        >
+            ☰
+        </button>
+
+        <div class="brand">
+
+            <img
+                src="assets/EGC - Emergency Gas Cylinder logo.png"
+                alt="EGC"
+            >
+
+            <div class="brand-text">
+
+                <h2 id="headerAgencyName">
+                    LPG Agency
+                </h2>
+
+                <p>
+                    Emergency Gas Cylinder Agency Panel
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="bell-wrap">
+
+            <button
+                class="bell-btn"
+                id="notificationBtn"
+                title="Notifications"
+            >
+                🔔
+            </button>
+
+            <span
+                class="notification-count"
+                id="notificationCount"
+            >
+                0
+            </span>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- ================= NOTIFICATION PANEL ================= -->
+
+<div
+    class="notification-panel"
+    id="notificationPanel"
+>
+
+    <div class="notification-head">
+
+        <div class="notification-head-left">
+
+            <h3>
+                Notifications
+            </h3>
+
+            <p id="notificationSummary">
+                Loading notifications...
+            </p>
+
+        </div>
+
+        <button
+            class="mark-all-btn"
+            id="markAllReadBtn"
+        >
+            Mark all read
+        </button>
+
+    </div>
+
+    <div
+        class="notification-list"
+        id="notificationList"
+    >
+
+        <div class="notification-loading">
+            Loading notifications...
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= SIDEBAR ================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <div class="sidebar-title">
+        AGENCY MANAGEMENT
+    </div>
+
+    <button
+        class="nav-btn"
+        id="dashboardBtn"
+    >
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="customersBtn"
+    >
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="requestsBtn"
+    >
+        <span class="nav-icon">🛢️</span>
+        <span>Cylinder Requests</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="requestDetailsBtn"
+    >
+        <span class="nav-icon">📋</span>
+        <span>Request Details</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="requestProcessingBtn"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Request Processing</span>
+    </button>
+
+    <button
+        class="nav-btn active"
+        id="paymentsBtn"
+    >
+        <span class="nav-icon">💳</span>
+        <span>Payments</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="repaymentsBtn"
+    >
+        <span class="nav-icon">💰</span>
+        <span>Repayments</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="deliveriesBtn"
+    >
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="pendingBtn"
+    >
+        <span class="nav-icon">⏳</span>
+        <span>Pending / On Hold</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="slipsBtn"
+    >
+        <span class="nav-icon">🧾</span>
+        <span>Request / Payment Slips</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="notificationsBtn"
+    >
+        <span class="nav-icon">🔔</span>
+        <span>Notifications</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="reportsBtn"
+    >
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="settingsBtn"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+    </button>
+
+    <button
+        class="nav-btn"
+        id="aboutBtn"
+    >
+        <span class="nav-icon">ℹ️</span>
+        <span>About</span>
+    </button>
+
+    <div class="sidebar-bottom"></div>
+
+    <button
+        class="nav-btn logout-nav-btn"
+        id="logoutBtn"
+    >
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+    </button>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- ================= MAIN ================= -->
+
+<main class="main">
+
+<div class="container">
+
+<section class="page-head">
+
+    <h1>
+        💳 Payment Status
+    </h1>
+
+    <p>
+        Approved cylinder requests ke initial payment ka status aur complete payment details yahan view karein.
+    </p>
+
+    <div class="toolbar">
+
+        <input
+            class="search"
+            id="searchInput"
+            type="search"
+            placeholder="Search request no, customer, mobile, email..."
+        >
+
+        <select id="paymentFilter">
+
+            <option value="">
+                All Payment Status
+            </option>
+
+            <option value="pending">
+                Pending
+            </option>
+
+            <option value="paid">
+                Paid
+            </option>
+
+            <option value="verified">
+                Verified
+            </option>
+
+            <option value="completed">
+                Completed
+            </option>
+
+            <option value="failed">
+                Failed
+            </option>
+
+        </select>
+
+        <select id="monthFilter">
+
+            <option value="">
+                All Months
+            </option>
+
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7">August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+
+        </select>
+
+    </div>
+
+</section>
+
+
+<!-- ================= PAYMENT TABLE ================= -->
+
+<section class="table-card">
+
+    <div class="table-top">
+
+        <h3>
+            Initial Payment Records
+        </h3>
+
+        <span
+            class="count"
+            id="paymentCount"
+        >
+            0 Payments
+        </span>
+
+    </div>
+
+    <div class="table-wrap">
+
+        <table class="request-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>Request No.</th>
+                    <th>Customer</th>
+                    <th>Base Amount</th>
+                    <th>Extra Charge</th>
+                    <th>Total Payable</th>
+                    <th>Payment Status</th>
+                    <th>Payment Date</th>
+                    <th>Action</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="paymentTableBody">
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        class="loading"
+                    >
+                        Loading payment records...
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+</div>
+
+</main>
+
+
+<!-- ================= PAYMENT DETAILS MODAL ================= -->
+
+<div
+    class="modal"
+    id="paymentModal"
+>
+
+    <div class="modal-card">
+
+        <div class="modal-head">
+
+            <h2>
+                Payment Details
+            </h2>
+
+            <button
+                class="close"
+                id="paymentClose"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div class="modal-body">
+
+            <div
+                class="detail-grid"
+                id="paymentDetails"
+            ></div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="view-btn"
+                    id="paymentCloseBottom"
+                >
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= LOGOUT MODAL ================= -->
+
+<div
+    class="modal"
+    id="logoutModal"
+>
+
+    <div class="modal-card logout-modal-card">
+
+        <div class="modal-body">
+
+            <div class="logout-icon">
+                🚪
+            </div>
+
+            <div class="logout-title">
+                Logout?
+            </div>
+
+            <div class="logout-text">
+                Kya aap Agency Panel se logout karna chahte hain?
+            </div>
+
+            <div class="logout-actions">
+
+                <button
+                    class="logout-action-btn logout-cancel"
+                    id="logoutCancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="logout-action-btn logout-confirm"
+                    id="logoutConfirm"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= TOAST ================= -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    ></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+let currentUser = null;
+let agencyId = null;
+
+let requests = [];
+let customers = [];
+
+let notifications = [];
+let notificationChannel = null;
+
+
+/* =========================
+   HELPER
+========================= */
+
+const $ = id =>
+    document.getElementById(id);
+
+
+/* =========================
+   ESCAPE
+========================= */
+
+function esc(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+/* =========================
+   MONEY
+========================= */
+
+function money(value){
+
+    const n = Number(value);
+
+    return Number.isFinite(n)
+        ? n
+        : 0;
+
+}
+
+
+function fmtMoney(value){
+
+    return "₹" +
+        money(value).toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+/* =========================
+   DATE
+========================= */
+
+function fmtDate(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d =
+        new Date(value);
+
+    if(
+        Number.isNaN(
+            d.getTime()
+        )
+    ){
+        return "—";
+    }
+
+    return d.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+function relativeTime(value){
+
+    if(!value){
+        return "";
+    }
+
+    const d =
+        new Date(value);
+
+    if(
+        Number.isNaN(
+            d.getTime()
+        )
+    ){
+        return "";
+    }
+
+    const diff =
+        Date.now() -
+        d.getTime();
+
+    const seconds =
+        Math.floor(
+            diff / 1000
+        );
+
+    if(seconds < 60){
+        return "Just now";
+    }
+
+    const minutes =
+        Math.floor(
+            seconds / 60
+        );
+
+    if(minutes < 60){
+        return minutes + " min ago";
+    }
+
+    const hours =
+        Math.floor(
+            minutes / 60
+        );
+
+    if(hours < 24){
+        return hours + " hr ago";
+    }
+
+    const days =
+        Math.floor(
+            hours / 24
+        );
+
+    if(days < 7){
+
+        return days +
+            " day" +
+            (
+                days === 1
+                    ? ""
+                    : "s"
+            ) +
+            " ago";
+
+    }
+
+    return fmtDate(value);
+
+}
+
+
+/* =========================
+   BADGES
+========================= */
+
+function badgeClass(value){
+
+    const status =
+        String(
+            value || ""
+        )
+        .toLowerCase();
+
+    if(
+        [
+            "paid",
+            "verified",
+            "completed",
+            "success",
+            "successful"
+        ].includes(status)
+    ){
+
+        return "badge-green";
+
+    }
+
+    if(
+        [
+            "pending",
+            "waiting"
+        ].includes(status)
+    ){
+
+        return "badge-yellow";
+
+    }
+
+    if(
+        [
+            "processing",
+            "initiated"
+        ].includes(status)
+    ){
+
+        return "badge-blue";
+
+    }
+
+    if(
+        [
+            "failed",
+            "cancelled",
+            "rejected"
+        ].includes(status)
+    ){
+
+        return "badge-red";
+
+    }
+
+    return "badge-gray";
+
+}
+
+
+function badge(value){
+
+    return `
+        <span class="badge ${badgeClass(value)}">
+            ${esc(value || "Not Set")}
+        </span>
+    `;
+
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
+function toast(title,text){
+
+    $("toastTitle").textContent =
+        title || "Notification";
+
+    $("toastText").textContent =
+        text || "";
+
+    $("toast")
+        .classList
+        .add("show");
+
+    clearTimeout(
+        window.egcToast
+    );
+
+    window.egcToast =
+        setTimeout(
+            () => {
+
+                $("toast")
+                    .classList
+                    .remove("show");
+
+            },
+            4500
+        );
+
+}
+
+
+/* =========================
+   SESSION
+========================= */
+
+async function session(){
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .auth
+            .getUser();
+
+    if(
+        error ||
+        !data ||
+        !data.user
+    ){
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    currentUser =
+        data.user;
+
+    return true;
+
+}
+
+
+/* =========================
+   PROFILE
+========================= */
+
+async function profile(){
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq(
+                "id",
+                currentUser.id
+            )
+            .maybeSingle();
+
+    if(
+        error ||
+        !data
+    ){
+
+        toast(
+            "Profile Error",
+            error?.message ||
+            "Agency profile not found."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    agencyId =
+        data.agency_id;
+
+    if(!agencyId){
+
+        toast(
+            "Agency Not Assigned",
+            "This account is not linked with an LPG agency."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+
+/* =========================
+   AGENCY
+========================= */
+
+async function agency(){
+
+    const {
+        data,
+        error
+    } =
+        await supabaseClient
+            .from("agencies")
+            .select("*")
+            .eq(
+                "id",
+                agencyId
+            )
+            .maybeSingle();
+
+    if(
+        !error &&
+        data
+    ){
+
+        $("headerAgencyName")
+            .textContent =
+            data.agency_name ||
+            "LPG Agency";
+
+    }
+
+}
+
+
+/* =========================
+   LOAD REQUESTS
+========================= */
+
+async function load(){
+
+    $("paymentTableBody")
+        .innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="loading"
+                >
+                    Loading payment records...
+                </td>
+            </tr>
+        `;
+
+
+    const result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            );
+
+
+    if(result.error){
+
+        console.error(
+            result.error
+        );
+
+        $("paymentTableBody")
+            .innerHTML = `
+                <tr>
+                    <td
+                        colspan="8"
+                        class="empty"
+                    >
+                        Unable to load payment records.
+                        <br><br>
+                        ${esc(result.error.message)}
+                    </td>
+                </tr>
+            `;
+
+        return;
+
+    }
+
+
+    requests =
+        result.data || [];
+
+
+    const customerResult =
+        await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .eq(
+                "role",
+                "customer"
+            );
+
+
+    customers =
+        customerResult.error
+            ? []
+            : (
+                customerResult.data ||
+                []
+            );
+
+
+    render();
+
+}
+
+
+/* =========================
+   CUSTOMER
+========================= */
+
+function customerFor(request){
+
+    return customers.find(
+        customer =>
+            String(customer.id) ===
+            String(request.user_id)
+    );
+
+}
+
+
+/* =========================
+   PAYMENT DATE
+========================= */
+
+function paymentDate(request){
+
+    return (
+        request.payment_verified_at ||
+        request.payment_paid_at ||
+        request.payment_date ||
+        request.created_at ||
+        request.request_date
+    );
+
+}
+
+
+/* =========================
+   PAYMENT STATUS
+========================= */
+
+function paymentStatus(request){
+
+    return String(
+        request.payment_status ||
+        "pending"
+    )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(){
+
+    const q =
+        $("searchInput")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    const statusFilter =
+        $("paymentFilter")
+            .value
+            .toLowerCase();
+
+
+    const monthFilter =
+        $("monthFilter")
+            .value;
+
+
+    const filtered =
+        requests.filter(
+            request => {
+
+                const customer =
+                    customerFor(
+                        request
+                    );
+
+
+                const searchText = [
+
+                    request.request_number,
+                    request.id,
+                    request.user_id,
+
+                    request.customer_name,
+                    request.mobile,
+                    request.email,
+
+                    customer?.full_name,
+                    customer?.mobile,
+                    customer?.email,
+                    customer?.auth_email,
+                    customer?.user_code
+
+                ]
+                .join(" ")
+                .toLowerCase();
+
+
+                const status =
+                    paymentStatus(
+                        request
+                    );
+
+
+                let monthOk = true;
+
+
+                if(monthFilter !== ""){
+
+                    const d =
+                        new Date(
+                            paymentDate(
+                                request
+                            )
+                        );
+
+
+                    monthOk =
+                        !Number.isNaN(
+                            d.getTime()
+                        ) &&
+                        String(
+                            d.getMonth()
+                        ) ===
+                        String(
+                            monthFilter
+                        );
+
+                }
+
+
+                return (
+
+                    (
+                        !q ||
+                        searchText.includes(q)
+                    ) &&
+
+                    (
+                        !statusFilter ||
+                        status === statusFilter
+                    ) &&
+
+                    monthOk
+
+                );
+
+            }
+        );
+
+
+    $("paymentCount")
+        .textContent =
+        filtered.length +
+        " Payment" +
+        (
+            filtered.length === 1
+                ? ""
+                : "s"
+        );
+
+
+    if(!filtered.length){
+
+        $("paymentTableBody")
+            .innerHTML = `
+                <tr>
+                    <td
+                        colspan="8"
+                        class="empty"
+                    >
+                        No payment records found.
+                    </td>
+                </tr>
+            `;
+
+        return;
+
+    }
+
+
+    $("paymentTableBody")
+        .innerHTML =
+
+        filtered
+            .map(
+                (request,index) => {
+
+                    const customer =
+                        customerFor(
+                            request
+                        );
+
+
+                    const base =
+                        money(
+                            request.total_amount
+                        );
+
+
+                    const extra =
+                        money(
+                            request.extra_charge
+                        );
+
+
+                    const total =
+                        base + extra;
+
+
+                    const status =
+                        paymentStatus(
+                            request
+                        );
+
+
+                    return `
+
+                        <tr>
+
+                            <td>
+
+                                <div class="request-number">
+                                    ${esc(
+                                        request.request_number ||
+                                        "REQ-" +
+                                        (index + 1)
+                                    )}
+                                </div>
+
+                                <div class="sub">
+                                    ID:
+                                    ${esc(
+                                        request.id ||
+                                        "—"
+                                    )}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="customer-name">
+                                    ${esc(
+                                        customer?.full_name ||
+                                        request.customer_name ||
+                                        "Customer"
+                                    )}
+                                </div>
+
+                                <div class="sub">
+                                    ${esc(
+                                        customer?.mobile ||
+                                        request.mobile ||
+                                        customer?.email ||
+                                        request.email ||
+                                        "—"
+                                    )}
+                                </div>
+
+                            </td>
+
+
+                            <td class="money">
+                                ${fmtMoney(base)}
+                            </td>
+
+
+                            <td class="money">
+                                ${fmtMoney(extra)}
+                            </td>
+
+
+                            <td class="money">
+                                ${fmtMoney(total)}
+                            </td>
+
+
+                            <td>
+                                ${badge(status)}
+                            </td>
+
+
+                            <td>
+                                ${fmtDate(
+                                    paymentDate(
+                                        request
+                                    )
+                                )}
+                            </td>
+
+
+                            <td>
+
+                                <button
+                                    class="view-btn"
+                                    data-view="${esc(
+                                        request.id
+                                    )}"
+                                >
+                                    View
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    document
+        .querySelectorAll(
+            "[data-view]"
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    () => {
+
+                        openDetails(
+                            button.dataset.view
+                        );
+
+                    };
+
+            }
+        );
+
+}
+
+
+/* =========================
+   PAYMENT DETAILS
+========================= */
+
+function openDetails(id){
+
+    const request =
+        requests.find(
+            item =>
+                String(item.id) ===
+                String(id)
+        );
+
+
+    if(!request){
+        return;
+    }
+
+
+    const customer =
+        customerFor(
+            request
+        );
+
+
+    const base =
+        money(
+            request.total_amount
+        );
+
+
+    const extra =
+        money(
+            request.extra_charge
+        );
+
+
+    const total =
+        base + extra;
+
+
+    const status =
+        paymentStatus(
+            request
+        );
+
+
+    const fields = [
+
+        [
+            "Request Number",
+            request.request_number ||
+            "—"
+        ],
+
+        [
+            "Customer",
+            customer?.full_name ||
+            request.customer_name ||
+            "Customer"
+        ],
+
+        [
+            "Mobile",
+            customer?.mobile ||
+            request.mobile ||
+            "—"
+        ],
+
+        [
+            "Email",
+            customer?.email ||
+            customer?.auth_email ||
+            request.email ||
+            "—"
+        ],
+
+        [
+            "Base Amount",
+            fmtMoney(base)
+        ],
+
+        [
+            "Extra Charge",
+            fmtMoney(extra)
+        ],
+
+        [
+            "Total Payable",
+            fmtMoney(total)
+        ],
+
+        [
+            "Payment Status",
+            status
+        ],
+
+        [
+            "Payment Date",
+            fmtDate(
+                paymentDate(
+                    request
+                )
+            )
+        ],
+
+        [
+            "Payment Verified At",
+            fmtDate(
+                request.payment_verified_at
+            )
+        ],
+
+        [
+            "Payment ID",
+            request.payment_id ||
+            request.transaction_id ||
+            "—"
+        ],
+
+        [
+            "Payment Method",
+            request.payment_method ||
+            "—"
+        ],
+
+        [
+            "Request Status",
+            request.status ||
+            "pending"
+        ],
+
+        [
+            "Delivery Status",
+            request.delivery_status ||
+            "pending"
+        ],
+
+        [
+            "Customer ID",
+            request.user_id ||
+            "—"
+        ],
+
+        [
+            "Request ID",
+            request.id ||
+            "—"
+        ]
+
+    ];
+
+
+    $("paymentDetails")
+        .innerHTML =
+
+        fields
+            .map(
+                field => `
+
+                    <div class="detail">
+
+                        <label>
+                            ${esc(field[0])}
+                        </label>
+
+                        <strong>
+                            ${esc(field[1])}
+                        </strong>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+    $("paymentModal")
+        .classList
+        .add("show");
+
+}
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function loadNotifications(
+    showNewToast = false
+){
+
+    if(
+        !currentUser ||
+        !agencyId
+    ){
+        return;
+    }
+
+
+    $("notificationList")
+        .innerHTML = `
+            <div class="notification-loading">
+                Loading notifications...
+            </div>
+        `;
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .select("*")
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            )
+            .limit(50);
+
+
+    if(result.error){
+
+        console.error(
+            "Notification error:",
+            result.error
+        );
+
+        $("notificationList")
+            .innerHTML = `
+                <div class="notification-empty">
+                    <div class="notification-empty-icon">
+                        🔔
+                    </div>
+                    Unable to load notifications.
+                    <br><br>
+                    ${esc(result.error.message)}
+                </div>
+            `;
+
+        return;
+
+    }
+
+
+    const oldIds =
+        new Set(
+            notifications.map(
+                item =>
+                    String(item.id)
+            )
+        );
+
+
+    notifications =
+        result.data || [];
+
+
+    const newItems =
+        notifications.filter(
+            item =>
+                !oldIds.has(
+                    String(item.id)
+                )
+        );
+
+
+    renderNotifications();
+
+    updateNotificationCount();
+
+
+    if(
+        showNewToast &&
+        newItems.length
+    ){
+
+        const latest =
+            newItems[0];
+
+
+        toast(
+            latest.title ||
+            "New Notification",
+            latest.message ||
+            "You have a new notification."
+        );
+
+        playNotificationSound();
+
+    }
+
+}
+
+
+function unreadNotifications(){
+
+    return notifications.filter(
+        item =>
+            item.is_read !== true
+    );
+
+}
+
+
+function updateNotificationCount(){
+
+    const count =
+        unreadNotifications().length;
+
+
+    $("notificationCount")
+        .textContent =
+        count > 99
+            ? "99+"
+            : String(count);
+
+
+    if(count > 0){
+
+        $("notificationCount")
+            .classList
+            .add("show");
+
+        $("notificationBtn")
+            .classList
+            .add("has-unread");
+
+    }else{
+
+        $("notificationCount")
+            .classList
+            .remove("show");
+
+        $("notificationBtn")
+            .classList
+            .remove("has-unread");
+
+    }
+
+
+    $("notificationSummary")
+        .textContent =
+        count > 0
+            ? count +
+                " unread notification" +
+                (
+                    count === 1
+                        ? ""
+                        : "s"
+                )
+            : "You're all caught up.";
+
+}
+
+
+function notificationIcon(type){
+
+    const value =
+        String(
+            type || ""
+        ).toLowerCase();
+
+
+    if(value === "success"){
+        return "✅";
+    }
+
+    if(value === "warning"){
+        return "⚠️";
+    }
+
+    if(value === "danger"){
+        return "🚨";
+    }
+
+    if(value === "payment"){
+        return "💳";
+    }
+
+    if(value === "request"){
+        return "🛢️";
+    }
+
+    if(value === "delivery"){
+        return "🚚";
+    }
+
+    return "🔔";
+
+}
+
+
+function notificationClass(type){
+
+    const value =
+        String(
+            type || ""
+        ).toLowerCase();
+
+
+    if(
+        value === "success" ||
+        value === "payment"
+    ){
+        return "success";
+    }
+
+
+    if(
+        value === "warning" ||
+        value === "request" ||
+        value === "delivery"
+    ){
+        return "warning";
+    }
+
+
+    if(value === "danger"){
+        return "danger";
+    }
+
+
+    return "";
+
+}
+
+
+function renderNotifications(){
+
+    const list =
+        $("notificationList");
+
+
+    if(!notifications.length){
+
+        list.innerHTML = `
+            <div class="notification-empty">
+
+                <div class="notification-empty-icon">
+                    🔔
+                </div>
+
+                No notifications yet.
+
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    list.innerHTML =
+        notifications
+            .map(
+                notification => {
+
+                    const unread =
+                        notification.is_read !== true;
+
+
+                    const type =
+                        notification.type ||
+                        "info";
+
+
+                    return `
+
+                        <div
+                            class="
+                                notification-item
+                                ${unread ? "unread" : ""}
+                                ${notificationClass(type)}
+                            "
+                            data-notification-id="${esc(
+                                notification.id
+                            )}"
+                        >
+
+                            <div class="notification-icon">
+                                ${notificationIcon(type)}
+                            </div>
+
+                            <div class="notification-content">
+
+                                <div class="notification-title">
+                                    ${esc(
+                                        notification.title ||
+                                        "Notification"
+                                    )}
+                                </div>
+
+                                <div class="notification-message">
+                                    ${esc(
+                                        notification.message ||
+                                        ""
+                                    )}
+                                </div>
+
+                                <div class="notification-time">
+                                    ${relativeTime(
+                                        notification.created_at
+                                    )}
+                                </div>
+
+                            </div>
+
+                            ${
+                                unread
+                                    ? `
+                                        <div class="unread-dot"></div>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    list
+        .querySelectorAll(
+            "[data-notification-id]"
+        )
+        .forEach(
+            item => {
+
+                item.addEventListener(
+                    "click",
+                    async () => {
+
+                        await markNotificationRead(
+                            item.dataset.notificationId
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+async function markNotificationRead(id){
+
+    const notification =
+        notifications.find(
+            item =>
+                String(item.id) ===
+                String(id)
+        );
+
+
+    if(
+        !notification ||
+        notification.is_read === true
+    ){
+        return;
+    }
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "id",
+                id
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            );
+
+
+    if(result.error){
+
+        console.error(
+            result.error
+        );
+
+        return;
+
+    }
+
+
+    notification.is_read =
+        true;
+
+
+    renderNotifications();
+
+    updateNotificationCount();
+
+}
+
+
+async function markAllNotificationsRead(){
+
+    const unread =
+        unreadNotifications();
+
+
+    if(!unread.length){
+
+        toast(
+            "Notifications",
+            "All notifications are already read."
+        );
+
+        return;
+
+    }
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .eq(
+                "is_read",
+                false
+            );
+
+
+    if(result.error){
+
+        toast(
+            "Error",
+            "Notifications mark as read nahi ho paayi."
+        );
+
+        return;
+
+    }
+
+
+    notifications =
+        notifications.map(
+            item => ({
+                ...item,
+                is_read:true
+            })
+        );
+
+
+    renderNotifications();
+
+    updateNotificationCount();
+
+
+    toast(
+        "Notifications",
+        "All notifications marked as read."
+    );
+
+}
+
+
+function playNotificationSound(){
+
+    try{
+
+        const AudioContext =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+
+        if(!AudioContext){
+            return;
+        }
+
+
+        const ctx =
+            new AudioContext();
+
+
+        const oscillator =
+            ctx.createOscillator();
+
+
+        const gain =
+            ctx.createGain();
+
+
+        oscillator.type =
+            "sine";
+
+
+        oscillator.frequency.value =
+            880;
+
+
+        gain.gain.setValueAtTime(
+            0.0001,
+            ctx.currentTime
+        );
+
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.06,
+            ctx.currentTime + 0.02
+        );
+
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            ctx.currentTime + 0.25
+        );
+
+
+        oscillator.connect(gain);
+
+        gain.connect(
+            ctx.destination
+        );
+
+
+        oscillator.start();
+
+        oscillator.stop(
+            ctx.currentTime + 0.27
+        );
+
+    }catch(error){
+
+        console.log(
+            "Notification sound unavailable."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   REALTIME
+========================= */
+
+function subscribeNotifications(){
+
+    if(!agencyId){
+        return;
+    }
+
+
+    if(notificationChannel){
+
+        supabaseClient
+            .removeChannel(
+                notificationChannel
+            );
+
+    }
+
+
+    notificationChannel =
+        supabaseClient
+            .channel(
+                "agency-payment-notifications-" +
+                String(agencyId)
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"INSERT",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "agency_id=eq." +
+                        String(agencyId)
+                },
+                payload => {
+
+                    const exists =
+                        notifications.some(
+                            item =>
+                                String(item.id) ===
+                                String(payload.new.id)
+                        );
+
+
+                    if(exists){
+                        return;
+                    }
+
+
+                    notifications.unshift(
+                        payload.new
+                    );
+
+
+                    if(
+                        notifications.length >
+                        50
+                    ){
+
+                        notifications =
+                            notifications.slice(
+                                0,
+                                50
+                            );
+
+                    }
+
+
+                    renderNotifications();
+
+                    updateNotificationCount();
+
+
+                    toast(
+                        payload.new.title ||
+                        "New Notification",
+                        payload.new.message ||
+                        "You have a new notification."
+                    );
+
+
+                    playNotificationSound();
+
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"UPDATE",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "agency_id=eq." +
+                        String(agencyId)
+                },
+                payload => {
+
+                    const index =
+                        notifications.findIndex(
+                            item =>
+                                String(item.id) ===
+                                String(payload.new.id)
+                        );
+
+
+                    if(index !== -1){
+
+                        notifications[index] =
+                            payload.new;
+
+                    }
+
+
+                    renderNotifications();
+
+                    updateNotificationCount();
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "Notification realtime:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+
+/* =========================
+   NOTIFICATION BUTTON
+========================= */
+
+$("notificationBtn").onclick =
+    async event => {
+
+        event.stopPropagation();
+
+
+        const panel =
+            $("notificationPanel");
+
+
+        if(
+            panel.classList.contains(
+                "show"
+            )
+        ){
+
+            panel.classList.remove(
+                "show"
+            );
+
+            return;
+
+        }
+
+
+        panel.classList.add(
+            "show"
+        );
+
+
+        await loadNotifications(
+            false
+        );
+
+    };
+
+
+$("notificationPanel").onclick =
+    event => {
+
+        event.stopPropagation();
+
+    };
+
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const panel =
+            $("notificationPanel");
+
+        const button =
+            $("notificationBtn");
+
+
+        if(
+            panel.classList.contains(
+                "show"
+            ) &&
+            !panel.contains(
+                event.target
+            ) &&
+            !button.contains(
+                event.target
+            )
+        ){
+
+            panel.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+$("markAllReadBtn").onclick =
+    async () => {
+
+        await markAllNotificationsRead();
+
+    };
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function nav(id,url){
+
+    const element =
+        $(id);
+
+
+    if(element){
+
+        element.onclick =
+            () => {
+
+                location.href =
+                    url;
+
+            };
+
+    }
+
+}
+
+
+nav(
+    "dashboardBtn",
+    "agency-dashboard.html"
+);
+
+nav(
+    "customersBtn",
+    "agency-customers.html"
+);
+
+nav(
+    "requestsBtn",
+    "agency-cylinder-requests.html"
+);
+
+nav(
+    "requestDetailsBtn",
+    "agency-request-details.html"
+);
+
+nav(
+    "requestProcessingBtn",
+    "agency-processing.html"
+);
+
+nav(
+    "repaymentsBtn",
+    "agency-repayments.html"
+);
+
+nav(
+    "deliveriesBtn",
+    "agency-deliveries.html"
+);
+
+nav(
+    "pendingBtn",
+    "agency-pending.html"
+);
+
+nav(
+    "slipsBtn",
+    "agency-slips.html"
+);
+
+nav(
+    "notificationsBtn",
+    "agency-notifications.html"
+);
+
+nav(
+    "reportsBtn",
+    "agency-reports.html"
+);
+
+nav(
+    "settingsBtn",
+    "agency-settings.html"
+);
+
+nav(
+    "aboutBtn",
+    "agency-about.html"
+);
+
+/* =========================
+   MOBILE MENU
+========================= */
+
+$("menuBtn").onclick =
+    () => {
+
+        $("sidebar")
+            .classList
+            .toggle("open");
+
+        $("overlay")
+            .classList
+            .toggle("show");
+
+    };
+
+
+$("overlay").onclick =
+    () => {
+
+        $("sidebar")
+            .classList
+            .remove("open");
+
+        $("overlay")
+            .classList
+            .remove("show");
+
+    };
+
+
+document
+    .querySelectorAll(
+        ".nav-btn"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    if(
+                        window.innerWidth <=
+                        800
+                    ){
+
+                        $("sidebar")
+                            .classList
+                            .remove("open");
+
+                        $("overlay")
+                            .classList
+                            .remove("show");
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+/* =========================
+   FILTERS
+========================= */
+
+$("searchInput")
+    .addEventListener(
+        "input",
+        render
+    );
+
+
+$("paymentFilter")
+    .addEventListener(
+        "change",
+        render
+    );
+
+
+$("monthFilter")
+    .addEventListener(
+        "change",
+        render
+    );
+
+
+/* =========================
+   PAYMENT MODAL
+========================= */
+
+$("paymentClose").onclick =
+    () => {
+
+        $("paymentModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("paymentCloseBottom").onclick =
+    () => {
+
+        $("paymentModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("paymentModal").onclick =
+    event => {
+
+        if(
+            event.target ===
+            $("paymentModal")
+        ){
+
+            $("paymentModal")
+                .classList
+                .remove("show");
+
+        }
+
+    };
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+$("logoutBtn").onclick =
+    () => {
+
+        $("logoutModal")
+            .classList
+            .add("show");
+
+    };
+
+
+$("logoutCancel").onclick =
+    () => {
+
+        $("logoutModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("logoutModal").onclick =
+    event => {
+
+        if(
+            event.target ===
+            $("logoutModal")
+        ){
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+        }
+
+    };
+
+
+$("logoutConfirm").onclick =
+    async () => {
+
+        const button =
+            $("logoutConfirm");
+
+
+        button.disabled =
+            true;
+
+
+        button.textContent =
+            "Logging out...";
+
+
+        try{
+
+            if(notificationChannel){
+
+                await supabaseClient
+                    .removeChannel(
+                        notificationChannel
+                    );
+
+            }
+
+
+            await supabaseClient
+                .auth
+                .signOut();
+
+
+            location.replace(
+                "agency-login.html"
+            );
+
+        }catch(error){
+
+            button.disabled =
+                false;
+
+
+            button.textContent =
+                "Logout";
+
+
+            toast(
+                "Logout Failed",
+                error.message ||
+                "Please try again."
+            );
+
+        }
+
+    };
+
+
+/* =========================
+   NOTIFICATION BADGE
+========================= */
+
+async function refreshNotificationBadge(){
+
+    if(!agencyId){
+        return;
+    }
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .select(
+                "id,is_read",
+                {
+                    count:"exact"
+                }
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .eq(
+                "is_read",
+                false
+            );
+
+
+    if(result.error){
+
+        console.error(
+            "Notification count error:",
+            result.error
+        );
+
+        return;
+
+    }
+
+
+    const count =
+        result.count || 0;
+
+
+    $("notificationCount")
+        .textContent =
+        count > 99
+            ? "99+"
+            : String(count);
+
+
+    if(count > 0){
+
+        $("notificationCount")
+            .classList
+            .add("show");
+
+        $("notificationBtn")
+            .classList
+            .add("has-unread");
+
+    }else{
+
+        $("notificationCount")
+            .classList
+            .remove("show");
+
+        $("notificationBtn")
+            .classList
+            .remove("has-unread");
+
+    }
+
+}
+
+
+/* =========================
+   ESC KEY
+========================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key ===
+            "Escape"
+        ){
+
+            $("paymentModal")
+                .classList
+                .remove("show");
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+            $("notificationPanel")
+                .classList
+                .remove("show");
+
+            $("sidebar")
+                .classList
+                .remove("open");
+
+            $("overlay")
+                .classList
+                .remove("show");
+
+        }
+
+    }
+);
+
+
+/* =========================
+   AUTH STATE
+========================= */
+
+supabaseClient
+    .auth
+    .onAuthStateChange(
+        event => {
+
+            if(
+                event ===
+                "SIGNED_OUT"
+            ){
+
+                location.replace(
+                    "agency-login.html"
+                );
+
+            }
+
+        }
+    );
+
+
+/* =========================
+   INITIALIZE
+========================= */
+
+async function init(){
+
+    if(
+        !await session()
+    ){
+        return;
+    }
+
+
+    if(
+        !await profile()
+    ){
+        return;
+    }
+
+
+    await agency();
+
+
+    await load();
+
+
+    await loadNotifications(
+        false
+    );
+
+
+    await refreshNotificationBadge();
+
+
+    subscribeNotifications();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

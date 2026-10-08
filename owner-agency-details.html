@@ -1,0 +1,2933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Agency Details</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+    font-family:Arial,Helvetica,sans-serif;
+    background:#eef7fc;
+    color:#17324d;
+}
+
+body{
+    overflow-x:hidden;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header{
+    height:78px;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    z-index:1000;
+    background:#fff;
+    border-bottom:1px solid #dceaf4;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px 0 20px;
+    box-shadow:0 2px 12px rgba(4,71,127,.06);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    min-width:0;
+}
+
+.logo{
+    width:47px;
+    height:47px;
+    object-fit:contain;
+    border-radius:10px;
+}
+
+.header-title{
+    min-width:0;
+}
+
+.header-title h1{
+    font-size:19px;
+    line-height:24px;
+    color:#06477f;
+    font-weight:700;
+}
+
+.header-title p{
+    font-size:12px;
+    color:#7890a5;
+    margin-top:2px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.owner-badge{
+    background:linear-gradient(135deg,#06477f,#0871c3);
+    color:#fff;
+    padding:8px 14px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:12px;
+    background:#eef7fc;
+    color:#075ca5;
+    cursor:pointer;
+    position:relative;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.notification-count{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:18px;
+    height:18px;
+    padding:0 4px;
+    border-radius:20px;
+    background:#e91e63;
+    color:#fff;
+    font-size:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    display:none;
+    position:absolute;
+    top:52px;
+    right:0;
+    width:320px;
+    background:#fff;
+    border:1px solid #dceaf4;
+    border-radius:15px;
+    box-shadow:0 15px 40px rgba(4,71,127,.15);
+    overflow:hidden;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-head{
+    padding:15px 17px;
+    border-bottom:1px solid #edf3f7;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.notification-head strong{
+    color:#06477f;
+    font-size:14px;
+}
+
+.notification-head span{
+    color:#e91e63;
+    font-size:11px;
+    font-weight:700;
+}
+
+.notification-item{
+    padding:13px 17px;
+    border-bottom:1px solid #f0f4f7;
+    display:flex;
+    gap:10px;
+}
+
+.notification-item:last-child{
+    border-bottom:0;
+}
+
+.notification-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#eef7fc;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.notification-item h4{
+    font-size:12px;
+    color:#21435e;
+    margin-bottom:4px;
+}
+
+.notification-item p{
+    font-size:11px;
+    color:#8497a8;
+    line-height:16px;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar{
+    position:fixed;
+    left:0;
+    top:78px;
+    bottom:0;
+    width:245px;
+    z-index:900;
+    padding:18px 13px 14px;
+    background:linear-gradient(180deg,#ffffff 0%,#f4faff 48%,#e8f4fc 100%);
+    border-right:1px solid #dceaf4;
+    overflow-y:auto;
+    scrollbar-width:thin;
+}
+
+.sidebar-section{
+    margin-bottom:19px;
+}
+
+.sidebar-title{
+    padding:0 11px;
+    margin-bottom:8px;
+    color:#8aa0b2;
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.7px;
+}
+
+.nav-link{
+    width:100%;
+    height:43px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    margin-bottom:5px;
+    border-radius:10px;
+    text-decoration:none;
+    color:#45667f;
+    font-size:14px;
+    font-weight:600;
+    transition:.2s ease;
+}
+
+.nav-link:hover{
+    background:#e9f5fd;
+    color:#075ca5;
+}
+
+.nav-link.active{
+    color:#fff;
+    background:linear-gradient(135deg,#075ca5,#0871c3);
+    box-shadow:0 6px 15px rgba(8,113,195,.18);
+}
+
+.nav-icon{
+    width:22px;
+    min-width:22px;
+    text-align:center;
+    font-size:17px;
+    line-height:1;
+}
+
+.logout-area{
+    padding-top:7px;
+    border-top:1px solid #dceaf4;
+    margin-top:7px;
+}
+
+.logout-link{
+    color:#d34a62;
+    cursor:pointer;
+}
+
+.logout-link:hover{
+    background:#fff0f3;
+    color:#c72e4c;
+}
+
+/* =========================
+   MOBILE MENU
+========================= */
+
+.menu-btn{
+    display:none;
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:11px;
+    background:#eef7fc;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,35,65,.42);
+    z-index:850;
+}
+
+.overlay.show{
+    display:block;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main{
+    margin-left:245px;
+    padding:108px 28px 35px;
+    min-height:100vh;
+}
+
+.page-heading{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+    margin-bottom:22px;
+}
+
+.page-heading h2{
+    color:#06477f;
+    font-size:26px;
+    margin-bottom:6px;
+}
+
+.page-heading p{
+    color:#7890a5;
+    font-size:13px;
+}
+
+.back-btn{
+    border:none;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:10px 15px;
+    border-radius:10px;
+    background:#fff;
+    border:1px solid #d9e8f2;
+    color:#075ca5;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+/* =========================
+   AGENCY HERO
+========================= */
+
+.agency-hero{
+    background:linear-gradient(135deg,#06477f,#0871c3);
+    border-radius:18px;
+    padding:23px;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:20px;
+    box-shadow:0 12px 28px rgba(6,71,127,.14);
+}
+
+.agency-main{
+    display:flex;
+    align-items:center;
+    gap:16px;
+}
+
+.agency-avatar{
+    width:67px;
+    height:67px;
+    border-radius:16px;
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.25);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:29px;
+    flex-shrink:0;
+}
+
+.agency-main h3{
+    font-size:21px;
+    margin-bottom:6px;
+}
+
+.agency-main p{
+    font-size:12px;
+    opacity:.85;
+    margin-bottom:4px;
+}
+
+.agency-id{
+    font-size:11px;
+    opacity:.72;
+}
+
+.agency-status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);
+    padding:9px 13px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.status-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#7cffb2;
+    box-shadow:0 0 0 4px rgba(124,255,178,.12);
+}
+
+/* =========================
+   STAT CARDS
+========================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.stat-card{
+    background:#fff;
+    border:1px solid #dceaf4;
+    border-radius:15px;
+    padding:18px;
+    box-shadow:0 5px 18px rgba(4,71,127,.045);
+}
+
+.stat-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:12px;
+}
+
+.stat-icon{
+    width:39px;
+    height:39px;
+    border-radius:11px;
+    background:#eef7fc;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+}
+
+.stat-label{
+    font-size:11px;
+    color:#8095a7;
+    font-weight:600;
+}
+
+.stat-value{
+    color:#06477f;
+    font-size:23px;
+    font-weight:700;
+}
+
+/* =========================
+   CONTENT GRID
+========================= */
+
+.content-grid{
+    display:grid;
+    grid-template-columns:1.35fr .85fr;
+    gap:20px;
+    margin-bottom:20px;
+}
+
+.card{
+    background:#fff;
+    border:1px solid #dceaf4;
+    border-radius:16px;
+    box-shadow:0 5px 18px rgba(4,71,127,.045);
+    overflow:hidden;
+}
+
+.card-header{
+    padding:17px 19px;
+    border-bottom:1px solid #edf3f7;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.card-header h3{
+    font-size:15px;
+    color:#06477f;
+}
+
+.card-header span{
+    font-size:11px;
+    color:#8ba0b0;
+}
+
+.card-body{
+    padding:19px;
+}
+
+/* DETAILS */
+
+.details-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:13px;
+}
+
+.detail-item{
+    background:#f7fbfe;
+    border:1px solid #e7f0f5;
+    border-radius:11px;
+    padding:12px;
+}
+
+.detail-item label{
+    display:block;
+    font-size:10px;
+    color:#8ba0b0;
+    margin-bottom:5px;
+    font-weight:600;
+}
+
+.detail-item strong{
+    display:block;
+    font-size:12px;
+    color:#31546d;
+    word-break:break-word;
+}
+
+/* CONTACT */
+
+.contact-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.contact-item{
+    display:flex;
+    align-items:center;
+    gap:11px;
+}
+
+.contact-icon{
+    width:37px;
+    height:37px;
+    border-radius:10px;
+    background:#eef7fc;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.contact-item small{
+    display:block;
+    color:#8ba0b0;
+    font-size:10px;
+    margin-bottom:3px;
+}
+
+.contact-item strong{
+    color:#31546d;
+    font-size:12px;
+    word-break:break-word;
+}
+
+/* =========================
+   REQUEST SUMMARY
+========================= */
+
+.progress-row{
+    margin-bottom:16px;
+}
+
+.progress-row:last-child{
+    margin-bottom:0;
+}
+
+.progress-head{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:7px;
+}
+
+.progress-head span{
+    font-size:11px;
+    color:#59748a;
+}
+
+.progress-head strong{
+    font-size:11px;
+    color:#06477f;
+}
+
+.progress-bar{
+    width:100%;
+    height:8px;
+    border-radius:20px;
+    background:#edf4f8;
+    overflow:hidden;
+}
+
+.progress-fill{
+    height:100%;
+    border-radius:20px;
+    background:linear-gradient(90deg,#075ca5,#16a2df);
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table-card{
+    background:#fff;
+    border:1px solid #dceaf4;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 5px 18px rgba(4,71,127,.045);
+}
+
+.table-tools{
+    padding:15px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid #edf3f7;
+}
+
+.table-tools h3{
+    color:#06477f;
+    font-size:15px;
+}
+
+.search{
+    width:240px;
+    height:37px;
+    border:1px solid #d9e7f0;
+    border-radius:9px;
+    padding:0 11px;
+    outline:none;
+    font-size:12px;
+    color:#31546d;
+}
+
+.search:focus{
+    border-color:#0871c3;
+    box-shadow:0 0 0 3px rgba(8,113,195,.08);
+}
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:850px;
+}
+
+thead{
+    background:#f5faff;
+}
+
+th{
+    text-align:left;
+    padding:12px 15px;
+    color:#71899c;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    white-space:nowrap;
+}
+
+td{
+    padding:13px 15px;
+    border-top:1px solid #edf3f7;
+    color:#426177;
+    font-size:11px;
+    white-space:nowrap;
+}
+
+.customer{
+    display:flex;
+    align-items:center;
+    gap:9px;
+}
+
+.customer-avatar{
+    width:31px;
+    height:31px;
+    border-radius:9px;
+    background:#eaf5fc;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:11px;
+}
+
+.status{
+    display:inline-flex;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:9px;
+    font-weight:700;
+}
+
+.status.pending{
+    background:#fff5df;
+    color:#b77900;
+}
+
+.status.processing{
+    background:#eaf5ff;
+    color:#0871c3;
+}
+
+.status.delivered{
+    background:#eafaf1;
+    color:#159458;
+}
+
+.status.cancelled{
+    background:#fff0f3;
+    color:#d03d58;
+}
+
+.status.completed{
+    background:#eafaf1;
+    color:#159458;
+}
+
+.view-btn{
+    border:none;
+    background:#eef7fc;
+    color:#075ca5;
+    padding:7px 10px;
+    border-radius:8px;
+    font-size:10px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+/* =========================
+   ACTIVITY
+========================= */
+
+.activity-list{
+    display:flex;
+    flex-direction:column;
+}
+
+.activity{
+    display:flex;
+    gap:11px;
+    padding:13px 0;
+    border-bottom:1px solid #edf3f7;
+}
+
+.activity:first-child{
+    padding-top:0;
+}
+
+.activity:last-child{
+    border-bottom:0;
+    padding-bottom:0;
+}
+
+.activity-icon{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#eef7fc;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.activity h4{
+    font-size:11px;
+    color:#31546d;
+    margin-bottom:3px;
+}
+
+.activity p{
+    font-size:10px;
+    color:#8aa0b1;
+    line-height:15px;
+}
+
+.activity time{
+    display:block;
+    font-size:9px;
+    color:#a1b0bc;
+    margin-top:4px;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:2000;
+    background:rgba(0,35,65,.48);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-box{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:17px;
+    padding:23px;
+    box-shadow:0 25px 70px rgba(0,0,0,.2);
+}
+
+.modal-box h3{
+    color:#06477f;
+    font-size:18px;
+    margin-bottom:8px;
+}
+
+.modal-box p{
+    color:#7890a5;
+    font-size:12px;
+    line-height:19px;
+    margin-bottom:19px;
+}
+
+.modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:9px;
+}
+
+.modal-btn{
+    border:none;
+    border-radius:9px;
+    padding:10px 15px;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#567086;
+}
+
+.confirm-logout{
+    background:linear-gradient(135deg,#d94462,#e91e63);
+    color:#fff;
+}
+
+/* =========================
+   TOAST
+========================= */
+
+.toast{
+    position:fixed;
+    right:22px;
+    bottom:22px;
+    z-index:3000;
+    min-width:260px;
+    max-width:360px;
+    background:#06477f;
+    color:#fff;
+    padding:13px 16px;
+    border-radius:11px;
+    font-size:11px;
+    box-shadow:0 12px 30px rgba(0,0,0,.18);
+    transform:translateY(25px);
+    opacity:0;
+    pointer-events:none;
+    transition:.25s;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:1050px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .content-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .header-left{
+        gap:10px;
+    }
+
+    .logo{
+        width:40px;
+        height:40px;
+    }
+
+    .header-title h1{
+        font-size:16px;
+        line-height:20px;
+    }
+
+    .header-title p{
+        font-size:10px;
+    }
+
+    .owner-badge{
+        display:none;
+    }
+
+    .notification-btn{
+        width:39px;
+        height:39px;
+    }
+
+    .sidebar{
+        top:0;
+        left:-260px;
+        width:245px;
+        z-index:1100;
+        transition:.25s ease;
+        padding-top:20px;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .main{
+        margin-left:0;
+        padding:91px 15px 25px;
+    }
+
+    .page-heading{
+        align-items:flex-start;
+        flex-direction:column;
+        margin-bottom:17px;
+    }
+
+    .page-heading h2{
+        font-size:23px;
+    }
+
+    .agency-hero{
+        align-items:flex-start;
+        flex-direction:column;
+        padding:19px;
+    }
+
+    .agency-status{
+        align-self:flex-start;
+    }
+}
+
+@media(max-width:520px){
+
+    .header-title p{
+        display:none;
+    }
+
+    .notification-panel{
+        width:290px;
+        right:-45px;
+    }
+
+    .main{
+        padding-left:11px;
+        padding-right:11px;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .stat-card{
+        padding:14px;
+    }
+
+    .stat-value{
+        font-size:20px;
+    }
+
+    .stat-icon{
+        width:34px;
+        height:34px;
+        font-size:16px;
+    }
+
+    .agency-main{
+        align-items:flex-start;
+    }
+
+    .agency-avatar{
+        width:56px;
+        height:56px;
+        font-size:24px;
+    }
+
+    .agency-main h3{
+        font-size:17px;
+    }
+
+    .details-grid{
+        grid-template-columns:1fr;
+    }
+
+    .card-body{
+        padding:15px;
+    }
+
+    .table-tools{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .search{
+        width:100%;
+    }
+
+    .toast{
+        left:11px;
+        right:11px;
+        bottom:12px;
+        min-width:0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     HEADER
+========================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button class="menu-btn" id="menuBtn">☰</button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+        >
+
+        <div class="header-title">
+            <h1>Owner Dashboard</h1>
+            <p>Emergency Gas Cylinder Management</p>
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="owner-badge">
+            👑 OWNER
+        </div>
+
+        <div class="notification-wrap">
+
+            <button class="notification-btn" id="headerNotificationBtn">
+                🔔
+                <span class="notification-count" id="notificationCount">0</span>
+            </button>
+
+            <div class="notification-panel" id="notificationPanel">
+
+                <div class="notification-head">
+                    <strong>Notifications</strong>
+                    <span id="notificationPanelCount">0 New</span>
+                </div>
+
+                <div id="notificationItems">
+
+                    <div class="notification-item">
+                        <div class="notification-icon">🔔</div>
+                        <div>
+                            <h4>No new notifications</h4>
+                            <p>New agency and request updates will appear here.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     OVERLAY
+========================= -->
+
+<div class="overlay" id="overlay"></div>
+
+
+<!-- =========================
+     SIDEBAR
+========================= -->
+
+<aside class="sidebar" id="sidebar">
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            Management
+        </div>
+
+        <a class="nav-link" href="owner-dashboard.html">
+            <span class="nav-icon">▦</span>
+            <span>Dashboard</span>
+        </a>
+
+        <a class="nav-link" href="owner-users.html">
+            <span class="nav-icon">👥</span>
+            <span>Users</span>
+        </a>
+
+        <a class="nav-link" href="owner-agencies.html">
+            <span class="nav-icon">🏪</span>
+            <span>LPG Agencies</span>
+        </a>
+
+        <a class="nav-link" href="owner-companies.html">
+            <span class="nav-icon">🏢</span>
+            <span>LPG Companies</span>
+        </a>
+
+        <a class="nav-link" href="owner-pending.html">
+            <span class="nav-icon">⏳</span>
+            <span>Pending Approvals</span>
+        </a>
+
+        <a class="nav-link" href="owner-requests.html">
+            <span class="nav-icon">🛢</span>
+            <span>Cylinder Requests</span>
+        </a>
+
+        <a class="nav-link" href="owner-payments.html">
+            <span class="nav-icon">₹</span>
+            <span>Payments</span>
+        </a>
+
+        <a class="nav-link" href="owner-reports.html">
+            <span class="nav-icon">▤</span>
+            <span>Reports</span>
+        </a>
+
+    </div>
+
+
+    <!-- OWNER PAGES -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            Owner Pages
+        </div>
+
+        <a class="nav-link" href="owner-request-details.html">
+            <span class="nav-icon">📄</span>
+            <span>Request Details</span>
+        </a>
+
+        <a class="nav-link" href="owner-payment-details.html">
+            <span class="nav-icon">💳</span>
+            <span>Payment Details</span>
+        </a>
+
+        <a class="nav-link active" href="owner-agency-details.html">
+            <span class="nav-icon">🏪</span>
+            <span>Agency Details</span>
+        </a>
+
+        <a class="nav-link" href="owner-deliveries.html">
+            <span class="nav-icon">🚚</span>
+            <span>Deliveries</span>
+        </a>
+
+        <a class="nav-link" href="owner-repayments.html">
+            <span class="nav-icon">💰</span>
+            <span>Repayments</span>
+        </a>
+
+        <a class="nav-link" href="owner-notifications.html">
+            <span class="nav-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a class="nav-link" href="owner-slips.html">
+            <span class="nav-icon">🧾</span>
+            <span>Slips</span>
+        </a>
+
+        <a class="nav-link" href="owner-profile.html">
+            <span class="nav-icon">👤</span>
+            <span>Profile</span>
+        </a>
+
+    </div>
+
+
+    <!-- SYSTEM -->
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            System
+        </div>
+
+        <a class="nav-link" href="owner-settings.html">
+            <span class="nav-icon">⚙</span>
+            <span>Settings</span>
+        </a>
+
+    </div>
+
+
+    <!-- LOGOUT -->
+
+    <div class="logout-area">
+
+        <div class="nav-link logout-link" id="logoutBtn">
+            <span class="nav-icon">🚪</span>
+            <span>Logout</span>
+        </div>
+
+    </div>
+
+</aside>
+
+
+<!-- =========================
+     MAIN
+========================= -->
+
+<main class="main">
+
+    <div class="page-heading">
+
+        <div>
+            <h2>Agency Details</h2>
+            <p>
+                View complete LPG agency information, assigned requests and activity.
+            </p>
+        </div>
+
+        <a href="owner-agencies.html" class="back-btn">
+            ← Back to Agencies
+        </a>
+
+    </div>
+
+
+    <!-- AGENCY HERO -->
+
+    <section class="agency-hero">
+
+        <div class="agency-main">
+
+            <div class="agency-avatar">
+                🏪
+            </div>
+
+            <div>
+                <h3 id="agencyName">
+                    LPG Agency
+                </h3>
+
+                <p id="agencyCompany">
+                    LPG Company
+                </p>
+
+                <div class="agency-id" id="agencyId">
+                    Agency ID: —
+                </div>
+            </div>
+
+        </div>
+
+        <div class="agency-status">
+            <span class="status-dot"></span>
+            <span id="agencyStatus">
+                Active
+            </span>
+        </div>
+
+    </section>
+
+
+    <!-- STATS -->
+
+    <section class="stats">
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+                <span class="stat-label">Assigned Requests</span>
+                <div class="stat-icon">🛢</div>
+            </div>
+
+            <div class="stat-value" id="assignedRequests">
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+                <span class="stat-label">Processing</span>
+                <div class="stat-icon">⏳</div>
+            </div>
+
+            <div class="stat-value" id="processingRequests">
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+                <span class="stat-label">Delivered</span>
+                <div class="stat-icon">🚚</div>
+            </div>
+
+            <div class="stat-value" id="deliveredRequests">
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+                <span class="stat-label">Completed</span>
+                <div class="stat-icon">✓</div>
+            </div>
+
+            <div class="stat-value" id="completedRequests">
+                0
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- DETAILS + CONTACT -->
+
+    <section class="content-grid">
+
+        <div class="card">
+
+            <div class="card-header">
+                <h3>Agency Information</h3>
+                <span>Basic Details</span>
+            </div>
+
+            <div class="card-body">
+
+                <div class="details-grid">
+
+                    <div class="detail-item">
+                        <label>Agency Name</label>
+                        <strong id="detailAgencyName">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>Agency ID</label>
+                        <strong id="detailAgencyId">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>LPG Company</label>
+                        <strong id="detailCompany">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>Agency Code</label>
+                        <strong id="detailAgencyCode">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>City</label>
+                        <strong id="detailCity">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>District</label>
+                        <strong id="detailDistrict">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>State</label>
+                        <strong id="detailState">—</strong>
+                    </div>
+
+                    <div class="detail-item">
+                        <label>Registration Date</label>
+                        <strong id="detailCreated">—</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-header">
+                <h3>Contact Information</h3>
+                <span>Agency Contact</span>
+            </div>
+
+            <div class="card-body">
+
+                <div class="contact-list">
+
+                    <div class="contact-item">
+
+                        <div class="contact-icon">👤</div>
+
+                        <div>
+                            <small>Contact Person</small>
+                            <strong id="contactPerson">—</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="contact-item">
+
+                        <div class="contact-icon">📱</div>
+
+                        <div>
+                            <small>Mobile Number</small>
+                            <strong id="contactMobile">—</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="contact-item">
+
+                        <div class="contact-icon">✉️</div>
+
+                        <div>
+                            <small>Email</small>
+                            <strong id="contactEmail">—</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="contact-item">
+
+                        <div class="contact-icon">📍</div>
+
+                        <div>
+                            <small>Address</small>
+                            <strong id="contactAddress">—</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- REQUEST + ACTIVITY -->
+
+    <section class="content-grid">
+
+        <div class="card">
+
+            <div class="card-header">
+                <h3>Request Status</h3>
+                <span>Current distribution</span>
+            </div>
+
+            <div class="card-body">
+
+                <div class="progress-row">
+
+                    <div class="progress-head">
+                        <span>Pending</span>
+                        <strong id="pendingPercent">0%</strong>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="pendingProgress"
+                            style="width:0%">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="progress-row">
+
+                    <div class="progress-head">
+                        <span>Processing</span>
+                        <strong id="processingPercent">0%</strong>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="processingProgress"
+                            style="width:0%">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="progress-row">
+
+                    <div class="progress-head">
+                        <span>Delivered</span>
+                        <strong id="deliveredPercent">0%</strong>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="deliveredProgress"
+                            style="width:0%">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="progress-row">
+
+                    <div class="progress-head">
+                        <span>Completed</span>
+                        <strong id="completedPercent">0%</strong>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="completedProgress"
+                            style="width:0%">
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-header">
+                <h3>Recent Activity</h3>
+                <span>Latest updates</span>
+            </div>
+
+            <div class="card-body">
+
+                <div class="activity-list" id="activityList">
+
+                    <div class="activity">
+
+                        <div class="activity-icon">🏪</div>
+
+                        <div>
+                            <h4>Agency details loaded</h4>
+                            <p>Agency information is ready.</p>
+                            <time>Just now</time>
+                        </div>
+
+                    </div>
+
+                    <div class="activity">
+
+                        <div class="activity-icon">🛢</div>
+
+                        <div>
+                            <h4>Request tracking</h4>
+                            <p>Assigned cylinder requests are shown below.</p>
+                            <time>System</time>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- REQUEST TABLE -->
+
+    <section class="table-card">
+
+        <div class="table-tools">
+
+            <h3>Agency Requests</h3>
+
+            <input
+                type="text"
+                id="searchInput"
+                class="search"
+                placeholder="🔎 Search request, customer..."
+            >
+
+        </div>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Request</th>
+                        <th>Customer</th>
+                        <th>Mobile</th>
+                        <th>City</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Delivery</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="requestTableBody">
+
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:25px;">
+                            Loading agency requests...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- =========================
+     LOGOUT MODAL
+========================= -->
+
+<div class="modal" id="logoutModal">
+
+    <div class="modal-box">
+
+        <h3>Confirm Logout</h3>
+
+        <p>
+            Are you sure you want to logout from the Owner Panel?
+        </p>
+
+        <div class="modal-actions">
+
+            <button
+                class="modal-btn cancel-btn"
+                id="cancelLogout">
+                Cancel
+            </button>
+
+            <button
+                class="modal-btn confirm-logout"
+                id="confirmLogout">
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     TOAST
+========================= -->
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* =========================================================
+   GLOBAL DATA
+========================================================= */
+
+let agencyRequests = [];
+let currentAgency = null;
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+    return document.getElementById(id);
+}
+
+function escapeHTML(value){
+    if(value === null || value === undefined){
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
+function formatMoney(value){
+    const n = Number(value || 0);
+
+    return "₹" + n.toLocaleString("en-IN",{
+        maximumFractionDigits:2
+    });
+}
+
+function formatDate(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d = new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return value;
+    }
+
+    return d.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+}
+
+function getInitials(name){
+
+    if(!name){
+        return "A";
+    }
+
+    return name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0,2)
+        .map(x => x.charAt(0).toUpperCase())
+        .join("");
+}
+
+function normalizeStatus(value){
+
+    const s = String(value || "")
+        .toLowerCase()
+        .trim();
+
+    if(
+        s.includes("deliver")
+    ){
+        return "delivered";
+    }
+
+    if(
+        s.includes("complete") ||
+        s.includes("paid")
+    ){
+        return "completed";
+    }
+
+    if(
+        s.includes("process") ||
+        s.includes("assign")
+    ){
+        return "processing";
+    }
+
+    if(
+        s.includes("cancel")
+    ){
+        return "cancelled";
+    }
+
+    return "pending";
+}
+
+function showToast(message){
+
+    const toast = $("toast");
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+    setTimeout(()=>{
+        toast.classList.remove("show");
+    },2800);
+}
+
+
+/* =========================================================
+   GET AGENCY ID
+========================================================= */
+
+function getAgencyIdFromURL(){
+
+    const params = new URLSearchParams(
+        window.location.search
+    );
+
+    return (
+        params.get("id") ||
+        params.get("agency_id") ||
+        params.get("agencyId")
+    );
+}
+
+
+/* =========================================================
+   SESSION / OWNER CHECK
+========================================================= */
+
+async function checkOwnerSession(){
+
+    const {
+        data,
+        error
+    } = await supabase.auth.getSession();
+
+    if(error){
+        console.error(error);
+        return;
+    }
+
+    if(!data || !data.session){
+
+        /*
+         * Agar aapke project me Owner login ka
+         * fixed page hai to yahan us page ka
+         * path laga sakte hain.
+         */
+
+        window.location.href = "owner-login.html";
+
+        return;
+    }
+
+}
+
+
+/* =========================================================
+   LOAD AGENCY
+========================================================= */
+
+async function loadAgency(){
+
+    const agencyId = getAgencyIdFromURL();
+
+    if(!agencyId){
+
+        showToast("Agency ID nahi mila.");
+
+        setAgencyDefaults();
+
+        return;
+    }
+
+
+    /*
+     * Primary table:
+     * lpg_agencies
+     *
+     * Agar aapke project me agency table ka
+     * exact naam different hai to sirf is
+     * table name ko change karein.
+     */
+
+    let agency = null;
+
+    let error = null;
+
+
+    const result = await supabase
+        .from("lpg_agencies")
+        .select("*")
+        .eq("id",agencyId)
+        .maybeSingle();
+
+    agency = result.data;
+    error = result.error;
+
+
+    if(error){
+
+        console.error(
+            "Agency loading error:",
+            error
+        );
+
+        showToast(
+            "Agency details load nahi ho payi."
+        );
+
+        setAgencyDefaults();
+
+        return;
+    }
+
+
+    if(!agency){
+
+        showToast(
+            "Agency record nahi mila."
+        );
+
+        setAgencyDefaults();
+
+        return;
+    }
+
+
+    currentAgency = agency;
+
+    renderAgency(agency);
+
+    await loadAgencyRequests(agency);
+
+    await loadAgencyNotifications();
+
+}
+
+
+/* =========================================================
+   DEFAULT AGENCY
+========================================================= */
+
+function setAgencyDefaults(){
+
+    $("agencyName").textContent = "LPG Agency";
+    $("agencyCompany").textContent = "LPG Company";
+    $("agencyId").textContent = "Agency ID: —";
+
+    $("detailAgencyName").textContent = "—";
+    $("detailAgencyId").textContent = "—";
+    $("detailCompany").textContent = "—";
+    $("detailAgencyCode").textContent = "—";
+    $("detailCity").textContent = "—";
+    $("detailDistrict").textContent = "—";
+    $("detailState").textContent = "—";
+    $("detailCreated").textContent = "—";
+
+    $("contactPerson").textContent = "—";
+    $("contactMobile").textContent = "—";
+    $("contactEmail").textContent = "—";
+    $("contactAddress").textContent = "—";
+}
+
+
+/* =========================================================
+   RENDER AGENCY
+========================================================= */
+
+function renderAgency(a){
+
+    const name =
+        a.agency_name ||
+        a.name ||
+        a.agency ||
+        a.title ||
+        "LPG Agency";
+
+    const company =
+        a.lpg_company ||
+        a.company_name ||
+        a.company ||
+        a.gas_company ||
+        "LPG Company";
+
+    const id =
+        a.agency_id ||
+        a.id ||
+        "—";
+
+    const code =
+        a.agency_code ||
+        a.code ||
+        "—";
+
+    const person =
+        a.contact_person ||
+        a.owner_name ||
+        a.full_name ||
+        a.contact_name ||
+        a.name ||
+        "—";
+
+    const mobile =
+        a.mobile ||
+        a.phone ||
+        a.contact_mobile ||
+        a.mobile_number ||
+        "—";
+
+    const email =
+        a.email ||
+        a.contact_email ||
+        "—";
+
+    const city =
+        a.city ||
+        a.town ||
+        "—";
+
+    const district =
+        a.district ||
+        "—";
+
+    const state =
+        a.state ||
+        "—";
+
+    const address =
+        a.address ||
+        a.full_address ||
+        a.agency_address ||
+        "—";
+
+    const created =
+        a.created_at ||
+        a.registration_date ||
+        a.created ||
+        null;
+
+    const status =
+        a.status ||
+        a.agency_status ||
+        "Active";
+
+
+    $("agencyName").textContent = name;
+    $("agencyCompany").textContent = company;
+    $("agencyId").textContent =
+        "Agency ID: " + id;
+
+    $("agencyStatus").textContent =
+        String(status);
+
+
+    $("detailAgencyName").textContent =
+        name;
+
+    $("detailAgencyId").textContent =
+        id;
+
+    $("detailCompany").textContent =
+        company;
+
+    $("detailAgencyCode").textContent =
+        code;
+
+    $("detailCity").textContent =
+        city;
+
+    $("detailDistrict").textContent =
+        district;
+
+    $("detailState").textContent =
+        state;
+
+    $("detailCreated").textContent =
+        formatDate(created);
+
+
+    $("contactPerson").textContent =
+        person;
+
+    $("contactMobile").textContent =
+        mobile;
+
+    $("contactEmail").textContent =
+        email;
+
+    $("contactAddress").textContent =
+        address;
+}
+
+
+/* =========================================================
+   LOAD AGENCY REQUESTS
+========================================================= */
+
+async function loadAgencyRequests(agency){
+
+    const agencyId =
+        agency.agency_id ||
+        agency.id;
+
+    const agencyName =
+        agency.agency_name ||
+        agency.name ||
+        agency.agency;
+
+
+    let requests = [];
+
+    /*
+     * First try agency_id.
+     */
+
+    let result = await supabase
+        .from("cylinder_requests")
+        .select("*")
+        .eq("agency_id",agencyId)
+        .order("created_at",{ascending:false});
+
+
+    if(!result.error && result.data){
+
+        requests = result.data;
+    }
+
+
+    /*
+     * If agency_id column/data does not match,
+     * try agency name.
+     */
+
+    if(
+        requests.length === 0 &&
+        agencyName
+    ){
+
+        const resultByName =
+            await supabase
+                .from("cylinder_requests")
+                .select("*")
+                .eq("agency",agencyName)
+                .order(
+                    "created_at",
+                    {ascending:false}
+                );
+
+        if(
+            !resultByName.error &&
+            resultByName.data
+        ){
+
+            requests =
+                resultByName.data;
+        }
+    }
+
+
+    agencyRequests = requests || [];
+
+    renderRequestTable(
+        agencyRequests
+    );
+
+    updateAgencyStats(
+        agencyRequests
+    );
+}
+
+
+/* =========================================================
+   UPDATE STATS
+========================================================= */
+
+function updateAgencyStats(requests){
+
+    const total = requests.length;
+
+    let pending = 0;
+    let processing = 0;
+    let delivered = 0;
+    let completed = 0;
+
+    requests.forEach(r => {
+
+        const status =
+            normalizeStatus(
+                r.request_status ||
+                r.status ||
+                r.delivery_status ||
+                r.agency_status
+            );
+
+        if(status === "pending"){
+            pending++;
+        }
+
+        if(status === "processing"){
+            processing++;
+        }
+
+        if(status === "delivered"){
+            delivered++;
+        }
+
+        if(status === "completed"){
+            completed++;
+        }
+
+    });
+
+
+    $("assignedRequests").textContent =
+        total;
+
+    $("processingRequests").textContent =
+        processing;
+
+    $("deliveredRequests").textContent =
+        delivered;
+
+    $("completedRequests").textContent =
+        completed;
+
+
+    const getPercent = value => {
+
+        if(total === 0){
+            return 0;
+        }
+
+        return Math.round(
+            (value / total) * 100
+        );
+    };
+
+
+    const pendingP =
+        getPercent(pending);
+
+    const processingP =
+        getPercent(processing);
+
+    const deliveredP =
+        getPercent(delivered);
+
+    const completedP =
+        getPercent(completed);
+
+
+    $("pendingPercent").textContent =
+        pendingP + "%";
+
+    $("processingPercent").textContent =
+        processingP + "%";
+
+    $("deliveredPercent").textContent =
+        deliveredP + "%";
+
+    $("completedPercent").textContent =
+        completedP + "%";
+
+
+    $("pendingProgress").style.width =
+        pendingP + "%";
+
+    $("processingProgress").style.width =
+        processingP + "%";
+
+    $("deliveredProgress").style.width =
+        deliveredP + "%";
+
+    $("completedProgress").style.width =
+        completedP + "%";
+}
+
+
+/* =========================================================
+   REQUEST TABLE
+========================================================= */
+
+function renderRequestTable(requests){
+
+    const tbody =
+        $("requestTableBody");
+
+    if(!requests.length){
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9"
+                    style="text-align:center;padding:30px;">
+                    No requests assigned to this agency.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        requests.map(r => {
+
+            const requestNumber =
+                r.request_number ||
+                r.request_no ||
+                r.request_id ||
+                r.id ||
+                "—";
+
+            const customer =
+                r.full_name ||
+                r.customer_name ||
+                r.name ||
+                "Customer";
+
+            const mobile =
+                r.mobile ||
+                r.phone ||
+                r.mobile_number ||
+                "—";
+
+            const city =
+                r.city ||
+                "—";
+
+            const amount =
+                r.total_amount ||
+                r.request_total ||
+                r.cylinder_amount ||
+                r.amount ||
+                0;
+
+            const payment =
+                r.payment_status ||
+                "Pending";
+
+            const delivery =
+                r.delivery_status ||
+                "Pending";
+
+            const status =
+                r.request_status ||
+                r.status ||
+                r.agency_status ||
+                "Pending";
+
+            const normalized =
+                normalizeStatus(status);
+
+
+            return `
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${escapeHTML(requestNumber)}
+                        </strong>
+                    </td>
+
+                    <td>
+
+                        <div class="customer">
+
+                            <div class="customer-avatar">
+                                ${escapeHTML(
+                                    getInitials(customer)
+                                )}
+                            </div>
+
+                            <span>
+                                ${escapeHTML(customer)}
+                            </span>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        ${escapeHTML(mobile)}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(city)}
+                    </td>
+
+                    <td>
+                        ${formatMoney(amount)}
+                    </td>
+
+                    <td>
+                        <span class="status ${
+                            normalizeStatus(payment)
+                        }">
+                            ${escapeHTML(payment)}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="status ${
+                            normalizeStatus(delivery)
+                        }">
+                            ${escapeHTML(delivery)}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="status ${
+                            normalized
+                        }">
+                            ${escapeHTML(status)}
+                        </span>
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="view-btn"
+                            onclick="viewRequest('${String(
+                                r.id || ""
+                            ).replace(/'/g,"\\'")}')"
+                        >
+                            View
+                        </button>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }).join("");
+}
+
+
+/* =========================================================
+   VIEW REQUEST
+========================================================= */
+
+function viewRequest(id){
+
+    if(!id){
+        showToast(
+            "Request ID available nahi hai."
+        );
+
+        return;
+    }
+
+    window.location.href =
+        "owner-request-details.html?id=" +
+        encodeURIComponent(id);
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+$("searchInput").addEventListener(
+    "input",
+    function(){
+
+        const query =
+            this.value
+                .toLowerCase()
+                .trim();
+
+
+        if(!query){
+
+            renderRequestTable(
+                agencyRequests
+            );
+
+            return;
+        }
+
+
+        const filtered =
+            agencyRequests.filter(r => {
+
+                const text = [
+
+                    r.request_number,
+                    r.request_no,
+                    r.request_id,
+                    r.id,
+                    r.full_name,
+                    r.customer_name,
+                    r.name,
+                    r.mobile,
+                    r.phone,
+                    r.city,
+                    r.status,
+                    r.request_status,
+                    r.agency_status
+
+                ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+
+                return text.includes(query);
+            });
+
+
+        renderRequestTable(filtered);
+
+    }
+);
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function loadAgencyNotifications(){
+
+    try{
+
+        const result =
+            await supabase
+                .from("notifications")
+                .select("*")
+                .order(
+                    "created_at",
+                    {ascending:false}
+                )
+                .limit(10);
+
+
+        if(result.error){
+
+            console.log(
+                "Notifications:",
+                result.error.message
+            );
+
+            return;
+        }
+
+
+        const notifications =
+            result.data || [];
+
+        const unread =
+            notifications.filter(n => {
+
+                return (
+                    n.is_read === false ||
+                    n.read === false ||
+                    n.status === "unread"
+                );
+
+            }).length;
+
+
+        $("notificationCount")
+            .textContent = unread;
+
+        $("notificationPanelCount")
+            .textContent =
+                unread + " New";
+
+
+        const container =
+            $("notificationItems");
+
+
+        if(!notifications.length){
+
+            container.innerHTML = `
+                <div class="notification-item">
+                    <div class="notification-icon">
+                        🔔
+                    </div>
+                    <div>
+                        <h4>
+                            No new notifications
+                        </h4>
+                        <p>
+                            New updates will appear here.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        container.innerHTML =
+            notifications
+                .slice(0,5)
+                .map(n => {
+
+                    const title =
+                        n.title ||
+                        n.message ||
+                        "Notification";
+
+                    const message =
+                        n.message ||
+                        n.description ||
+                        "";
+
+                    return `
+                        <div class="notification-item">
+
+                            <div class="notification-icon">
+                                🔔
+                            </div>
+
+                            <div>
+
+                                <h4>
+                                    ${escapeHTML(title)}
+                                </h4>
+
+                                <p>
+                                    ${escapeHTML(message)}
+                                </p>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                }).join("");
+
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+}
+
+
+/* =========================================================
+   MOBILE SIDEBAR
+========================================================= */
+
+const menuBtn =
+    $("menuBtn");
+
+const sidebar =
+    $("sidebar");
+
+const overlay =
+    $("overlay");
+
+
+menuBtn.addEventListener(
+    "click",
+    ()=>{
+
+        sidebar.classList.toggle(
+            "open"
+        );
+
+        overlay.classList.toggle(
+            "show"
+        );
+
+    }
+);
+
+
+overlay.addEventListener(
+    "click",
+    ()=>{
+
+        sidebar.classList.remove(
+            "open"
+        );
+
+        overlay.classList.remove(
+            "show"
+        );
+
+    }
+);
+
+
+/* =========================================================
+   CLOSE SIDEBAR AFTER NAVIGATION
+========================================================= */
+
+document
+    .querySelectorAll(".nav-link")
+    .forEach(link => {
+
+        link.addEventListener(
+            "click",
+            ()=>{
+
+                if(
+                    window.innerWidth <= 800
+                ){
+
+                    sidebar.classList.remove(
+                        "open"
+                    );
+
+                    overlay.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            }
+        );
+
+    });
+
+
+/* =========================================================
+   NOTIFICATION PANEL
+========================================================= */
+
+$("headerNotificationBtn")
+    .addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            $("notificationPanel")
+                .classList.toggle("show");
+
+        }
+    );
+
+
+document.addEventListener(
+    "click",
+    event => {
+
+        if(
+            !event.target.closest(
+                ".notification-wrap"
+            )
+        ){
+
+            $("notificationPanel")
+                .classList.remove("show");
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+$("logoutBtn").addEventListener(
+    "click",
+    ()=>{
+
+        $("logoutModal")
+            .classList.add("show");
+
+    }
+);
+
+
+$("cancelLogout").addEventListener(
+    "click",
+    ()=>{
+
+        $("logoutModal")
+            .classList.remove("show");
+
+    }
+);
+
+
+$("confirmLogout").addEventListener(
+    "click",
+    async ()=>{
+
+        try{
+
+            await supabase.auth.signOut();
+
+        }catch(error){
+
+            console.error(error);
+
+        }
+
+        window.location.href =
+            "login.html";
+
+    }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+(async function(){
+
+    await checkOwnerSession();
+
+    await loadAgency();
+
+})();
+
+</script>
+
+</body>
+</html>

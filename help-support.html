@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Help & Support</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:#eef7fc;
+  color:#003e81;
+  min-height:100vh;
+}
+
+button,
+input,
+textarea{
+  font-family:Arial,sans-serif;
+}
+
+button{
+  cursor:pointer;
+}
+
+.topbar{
+  height:72px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 35px;
+  box-shadow:0 3px 15px rgba(0,62,129,.08);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:115px;
+  height:48px;
+  object-fit:contain;
+}
+
+.brand-text{
+  font-size:13px;
+  color:#70859a;
+}
+
+.profile-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.profile-photo{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#dfeef8;
+  border:2px solid #e1edf5;
+}
+
+.profile-name{
+  font-weight:800;
+  color:#003e81;
+  font-size:14px;
+}
+
+.profile-email{
+  color:#8295a6;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 72px);
+}
+
+.sidebar{
+  width:235px;
+  background:#fff;
+  border-right:1px solid #e1edf5;
+  padding:25px 14px;
+  position:fixed;
+  left:0;
+  top:72px;
+  bottom:0;
+}
+
+.nav-title{
+  font-size:11px;
+  color:#94a5b5;
+  font-weight:800;
+  padding:8px 13px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+.nav-btn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#58738d;
+  padding:13px 14px;
+  border-radius:11px;
+  text-align:left;
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+  background:#eaf5fc;
+  color:#0754a9;
+}
+
+.logout{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:20px;
+  color:#d33b3b;
+}
+
+.main{
+  margin-left:235px;
+  width:calc(100% - 235px);
+  padding:30px;
+}
+
+.page-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.page-head h1{
+  font-size:28px;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.page-head p{
+  color:#71869a;
+  font-size:14px;
+}
+
+.back-btn{
+  border:1px solid #d9e8f1;
+  background:#fff;
+  color:#0754a9;
+  border-radius:12px;
+  padding:12px 17px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.back-btn:hover{
+  background:#eaf5fc;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1.25fr .75fr;
+  gap:20px;
+}
+
+.box{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:20px;
+  padding:23px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+  margin-bottom:20px;
+}
+
+.box-title{
+  font-size:18px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:18px;
+}
+
+.box-subtitle{
+  color:#71869a;
+  font-size:13px;
+  line-height:1.6;
+  margin-bottom:18px;
+}
+
+.faq{
+  border:1px solid #e3edf4;
+  border-radius:14px;
+  margin-bottom:11px;
+  overflow:hidden;
+}
+
+.faq-question{
+  width:100%;
+  border:0;
+  background:#f8fcff;
+  padding:15px;
+  text-align:left;
+  color:#164f82;
+  font-size:13px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.faq-question span{
+  font-size:17px;
+  color:#0754a9;
+}
+
+.faq-answer{
+  display:none;
+  padding:0 15px 15px;
+  color:#62798d;
+  font-size:12px;
+  line-height:1.6;
+  background:#f8fcff;
+}
+
+.faq.open .faq-answer{
+  display:block;
+}
+
+.faq.open .faq-question span{
+  transform:rotate(45deg);
+}
+
+.support-card{
+  background:#f5fbff;
+  border:1px solid #dceef9;
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:13px;
+}
+
+.support-icon{
+  width:43px;
+  height:43px;
+  border-radius:12px;
+  background:#eaf5fc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:21px;
+  margin-bottom:12px;
+}
+
+.support-title{
+  color:#164f82;
+  font-size:14px;
+  font-weight:900;
+  margin-bottom:5px;
+}
+
+.support-text{
+  color:#71869a;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.support-btn{
+  display:block;
+  width:100%;
+  margin-top:12px;
+  height:43px;
+  border-radius:11px;
+  border:0;
+  background:#0754a9;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+}
+
+.support-btn:hover{
+  background:#003e81;
+}
+
+.form-group{
+  margin-bottom:15px;
+}
+
+.form-label{
+  display:block;
+  color:#55718a;
+  font-size:12px;
+  font-weight:800;
+  margin-bottom:7px;
+}
+
+.form-control{
+  width:100%;
+  border:1px solid #d8e6ee;
+  background:#fbfdff;
+  border-radius:11px;
+  padding:13px;
+  outline:none;
+  color:#173f62;
+  font-size:13px;
+}
+
+.form-control:focus{
+  border-color:#6baee5;
+  box-shadow:0 0 0 3px rgba(7,84,169,.08);
+}
+
+textarea.form-control{
+  min-height:120px;
+  resize:vertical;
+}
+
+.submit-btn{
+  width:100%;
+  height:48px;
+  border:0;
+  border-radius:12px;
+  background:linear-gradient(90deg,#ffb900,#ffc515);
+  color:#00418b;
+  font-size:14px;
+  font-weight:900;
+}
+
+.submit-btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.developer-box{
+  margin-top:5px;
+}
+
+.developer-header{
+  text-align:center;
+  margin-bottom:22px;
+}
+
+.developer-badge{
+  display:inline-block;
+  background:#eaf5fc;
+  color:#0754a9;
+  padding:7px 12px;
+  border-radius:20px;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+
+.developer-photo{
+  width:105px;
+  height:105px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+  margin:0 auto 13px;
+  border:4px solid #eaf5fc;
+  box-shadow:0 8px 22px rgba(0,62,129,.12);
+  background:#eaf5fc;
+}
+
+.developer-name{
+  color:#003e81;
+  font-size:20px;
+  font-weight:900;
+}
+
+.developer-role{
+  color:#8295a6;
+  font-size:12px;
+  margin-top:5px;
+}
+
+.developer-about{
+  text-align:center;
+  color:#617a90;
+  font-size:12px;
+  line-height:1.6;
+  max-width:650px;
+  margin:12px auto 22px;
+}
+
+.social-title{
+  text-align:center;
+  color:#55718a;
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  margin-bottom:13px;
+}
+
+.social-grid{
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  gap:9px;
+}
+
+.social-item{
+  text-decoration:none;
+  background:#f7fbfe;
+  border:1px solid #e0ebf2;
+  border-radius:13px;
+  padding:11px 5px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  transition:.18s;
+}
+
+.social-item:hover{
+  transform:translateY(-3px);
+  background:#eaf5fc;
+  border-color:#c7e1f1;
+}
+
+.social-item img{
+  width:27px;
+  height:27px;
+  object-fit:contain;
+}
+
+.social-name{
+  font-size:9px;
+  font-weight:800;
+  color:#527089;
+  text-align:center;
+}
+
+.developer-footer{
+  margin-top:20px;
+  text-align:center;
+  color:#91a0ad;
+  font-size:10px;
+}
+
+.error-box{
+  display:none;
+  background:#fff0f0;
+  border:1px solid #ffd0d0;
+  color:#c62828;
+  padding:13px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.success-box{
+  display:none;
+  background:#e8f8f0;
+  border:1px solid #bfe8d2;
+  color:#087848;
+  padding:13px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.mobile-nav{
+  display:none;
+}
+
+.logout-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,20,40,.55);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.logout-overlay.show{
+  display:flex;
+}
+
+.logout-popup{
+  width:100%;
+  max-width:390px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 25px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  text-align:center;
+}
+
+.logout-icon{
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#fff0f0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 16px;
+  font-size:28px;
+}
+
+.logout-title{
+  font-size:21px;
+  font-weight:900;
+  color:#173f62;
+  margin-bottom:10px;
+}
+
+.logout-subtitle{
+  font-size:13px;
+  color:#7c8d9c;
+  line-height:1.5;
+  margin-bottom:23px;
+}
+
+.logout-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn{
+  height:48px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.logout-cancel-btn{
+  background:#fff;
+  color:#31526d;
+  border:1px solid #d7e2ea;
+}
+
+.logout-confirm-btn{
+  background:#e53935;
+  color:#fff;
+  border:1px solid #e53935;
+}
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  z-index:10001;
+  background:#003e81;
+  color:#fff;
+  padding:13px 18px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(10px);
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+@media(max-width:1100px){
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .social-grid{
+    grid-template-columns:repeat(5,1fr);
+  }
+}
+
+@media(max-width:800px){
+
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:20px 15px 90px;
+  }
+
+  .topbar{
+    height:65px;
+    padding:0 15px;
+  }
+
+  .brand img{
+    width:100px;
+  }
+
+  .brand-text{
+    display:none;
+  }
+
+  .profile-email{
+    display:none;
+  }
+
+  .profile-photo{
+    width:38px;
+    height:38px;
+  }
+
+  .page-head{
+    align-items:flex-start;
+    gap:12px;
+  }
+
+  .page-head h1{
+    font-size:23px;
+  }
+
+  .page-head p{
+    font-size:12px;
+  }
+
+  .back-btn{
+    padding:10px 12px;
+    font-size:11px;
+  }
+
+  .box{
+    padding:18px;
+    border-radius:17px;
+  }
+
+  .social-grid{
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+
+  .mobile-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:67px;
+    background:#fff;
+    border-top:1px solid #dce8ef;
+    z-index:100;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -5px 20px rgba(0,62,129,.08);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .mobile-nav button span{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+
+  .mobile-nav button.active{
+    color:#0754a9;
+  }
+
+  .toast{
+    left:15px;
+    right:15px;
+    bottom:80px;
+    text-align:center;
+  }
+}
+
+@media(max-width:450px){
+
+  .developer-photo{
+    width:92px;
+    height:92px;
+  }
+
+  .developer-name{
+    font-size:18px;
+  }
+
+  .social-grid{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <img
+      src="assets/EGC - Emergency Gas Cylinder logo.png"
+      alt="EGC">
+
+    <div class="brand-text">
+      Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+  <div class="profile-mini">
+
+    <div>
+
+      <div
+        class="profile-name"
+        id="topName">
+        Loading...
+      </div>
+
+      <div
+        class="profile-email"
+        id="topEmail">
+        Loading...
+      </div>
+
+    </div>
+
+    <img
+      id="topPhoto"
+      class="profile-photo"
+      src=""
+      alt="Profile">
+
+  </div>
+
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">
+    MENU
+  </div>
+
+  <button
+    class="nav-btn"
+    onclick="goDashboard()">
+    🏠 &nbsp; Dashboard
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goRequest()">
+    🛢️ &nbsp; Request Cylinder
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goMyRequests()">
+    📋 &nbsp; My Requests
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPayments()">
+    💰 &nbsp; Payments
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goNotifications()">
+    🔔 &nbsp; Notifications
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goProfile()">
+    👤 &nbsp; Profile
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goSettings()">
+    ⚙️ &nbsp; Settings
+  </button>
+
+  <button
+    class="nav-btn active">
+    ❓ &nbsp; Help & Support
+  </button>
+
+  <button
+    class="nav-btn logout"
+    onclick="openLogoutPopup()">
+    🚪 &nbsp; Logout
+  </button>
+
+</aside>
+
+<main class="main">
+
+  <div
+    id="errorBox"
+    class="error-box">
+  </div>
+
+  <div
+    id="successBox"
+    class="success-box">
+  </div>
+
+  <section class="page-head">
+
+    <div>
+
+      <h1>
+        Help & Support
+      </h1>
+
+      <p>
+        Need help? We are here to assist you.
+      </p>
+
+    </div>
+
+    <button
+      class="back-btn"
+      onclick="goDashboard()">
+      ← Dashboard
+    </button>
+
+  </section>
+
+  <div class="grid">
+
+    <div>
+
+      <div class="box">
+
+        <div class="box-title">
+          ❓ Frequently Asked Questions
+        </div>
+
+        <div class="box-subtitle">
+          Find quick answers to common questions about EGC cylinder requests, payments and delivery.
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            How can I request an emergency cylinder?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            Open Request Cylinder from your dashboard, enter the required details and submit your request. Your request will then be processed by EGC.
+          </div>
+
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            How can I check my request status?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            Open My Requests from the customer dashboard. You can see your request number, status, amount and delivery information there.
+          </div>
+
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            Where can I see my payment details?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            Open Payments to see your payment history, payment status and available payment information.
+          </div>
+
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            How will I know when my request is approved?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            EGC notifications will appear in your Notifications section when your request status or payment information changes.
+          </div>
+
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            Can I update my profile information?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            Yes. Open Profile from the customer dashboard to view and update the profile information available to your account.
+          </div>
+
+        </div>
+
+        <div class="faq">
+
+          <button
+            class="faq-question"
+            onclick="toggleFaq(this)">
+            What should I do if I face a problem?
+            <span>+</span>
+          </button>
+
+          <div class="faq-answer">
+            You can use the support options on this page or submit the support form with your issue and account details.
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="box">
+
+        <div class="box-title">
+          📨 Contact Support
+        </div>
+
+        <div class="box-subtitle">
+          Send us your issue or question. Please provide enough details so the support team can understand the problem.
+        </div>
+
+        <form id="supportForm">
+
+          <div class="form-group">
+
+            <label class="form-label">
+              Subject
+            </label>
+
+            <input
+              id="supportSubject"
+              class="form-control"
+              type="text"
+              maxlength="100"
+              placeholder="Enter your issue">
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label">
+              Message
+            </label>
+
+            <textarea
+              id="supportMessage"
+              class="form-control"
+              maxlength="1000"
+              placeholder="Describe your problem..."></textarea>
+
+          </div>
+
+          <button
+            id="supportSubmit"
+            class="submit-btn"
+            type="submit">
+            SEND SUPPORT REQUEST
+          </button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+    <div>
+
+      <div class="box">
+
+        <div class="box-title">
+          🛟 Support Options
+        </div>
+
+        <div class="support-card">
+
+          <div class="support-icon">
+            📋
+          </div>
+
+          <div class="support-title">
+            Check Your Request
+          </div>
+
+          <div class="support-text">
+            View your current and previous cylinder requests.
+          </div>
+
+          <button
+            class="support-btn"
+            onclick="goMyRequests()">
+            VIEW MY REQUESTS
+          </button>
+
+        </div>
+
+        <div class="support-card">
+
+          <div class="support-icon">
+            💳
+          </div>
+
+          <div class="support-title">
+            Payment Support
+          </div>
+
+          <div class="support-text">
+            Check your payment history and payment status.
+          </div>
+
+          <button
+            class="support-btn"
+            onclick="goPayments()">
+            OPEN PAYMENTS
+          </button>
+
+        </div>
+
+        <div class="support-card">
+
+          <div class="support-icon">
+            🔔
+          </div>
+
+          <div class="support-title">
+            Notifications
+          </div>
+
+          <div class="support-text">
+            Check the latest updates related to your account.
+          </div>
+
+          <button
+            class="support-btn"
+            onclick="goNotifications()">
+            OPEN NOTIFICATIONS
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="box developer-box">
+
+    <div class="developer-header">
+
+      <div class="developer-badge">
+        Developer
+      </div>
+
+      <img
+        id="developerPhoto"
+        class="developer-photo"
+        src="assets/developer.png"
+        alt="Developer">
+
+      <div class="developer-name">
+        Sarbaj
+      </div>
+
+      <div class="developer-role">
+        EGC Web Application Developer
+      </div>
+
+      <div class="developer-about">
+        Designed and developed the EGC Emergency Gas Cylinder customer platform and its digital experience.
+      </div>
+
+    </div>
+
+    <div class="social-title">
+      Connect with Developer
+    </div>
+
+    <div class="social-grid">
+
+      <a
+        class="social-item"
+        href="https://www.instagram.com/thesarbaj/"
+        target="_blank"
+        rel="noopener noreferrer">
+
+        <img
+          src="https://cdn.simpleicons.org/instagram"
+          alt="Instagram">
+
+        <div class="social-name">
+          Instagram
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'Facebook')">
+
+        <img
+          src="https://cdn.simpleicons.org/facebook"
+          alt="Facebook">
+
+        <div class="social-name">
+          Facebook
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'YouTube')">
+
+        <img
+          src="https://cdn.simpleicons.org/youtube"
+          alt="YouTube">
+
+        <div class="social-name">
+          YouTube
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'LinkedIn')">
+
+        <img
+          src="https://cdn.simpleicons.org/linkedin"
+          alt="LinkedIn">
+
+        <div class="social-name">
+          LinkedIn
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'X')">
+
+        <img
+          src="https://cdn.simpleicons.org/x"
+          alt="X">
+
+        <div class="social-name">
+          X
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'GitHub')">
+
+        <img
+          src="https://cdn.simpleicons.org/github"
+          alt="GitHub">
+
+        <div class="social-name">
+          GitHub
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'Telegram')">
+
+        <img
+          src="https://cdn.simpleicons.org/telegram"
+          alt="Telegram">
+
+        <div class="social-name">
+          Telegram
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'WhatsApp')">
+
+        <img
+          src="https://cdn.simpleicons.org/whatsapp"
+          alt="WhatsApp">
+
+        <div class="social-name">
+          WhatsApp
+        </div>
+
+      </a>
+
+      <a
+        class="social-item"
+        href="#"
+        onclick="socialNotAvailable(event,'Snapchat')">
+
+        <img
+          src="https://cdn.simpleicons.org/snapchat"
+          alt="Snapchat">
+
+        <div class="social-name">
+          Snapchat
+        </div>
+
+      </a>
+
+    </div>
+
+    <div class="developer-footer">
+      EGC • Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+<nav class="mobile-nav">
+
+  <button onclick="goDashboard()">
+    <span>🏠</span>
+    Home
+  </button>
+
+  <button onclick="goMyRequests()">
+    <span>📋</span>
+    Requests
+  </button>
+
+  <button onclick="goRequest()">
+    <span>➕</span>
+    Request
+  </button>
+
+  <button onclick="goPayments()">
+    <span>💰</span>
+    Payments
+  </button>
+
+  <button class="active">
+    <span>❓</span>
+    Help
+  </button>
+
+</nav>
+
+<div
+  class="logout-overlay"
+  id="logoutOverlay"
+  onclick="closeLogoutPopup(event)">
+
+  <div
+    class="logout-popup"
+    onclick="event.stopPropagation()">
+
+    <div class="logout-icon">
+      🚪
+    </div>
+
+    <div class="logout-title">
+      Are you sure Logout?
+    </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+let currentProfile = null;
+let toastTimer = null;
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+function toast(message){
+
+  const el = $("toast");
+
+  el.textContent = message || "";
+
+  el.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(function(){
+
+    el.classList.remove("show");
+
+  },3000);
+
+}
+
+function showError(message){
+
+  const box = $("errorBox");
+
+  box.textContent =
+    message || "Something went wrong.";
+
+  box.style.display = "block";
+
+}
+
+function showSuccess(message){
+
+  const box = $("successBox");
+
+  box.textContent =
+    message || "Done.";
+
+  box.style.display = "block";
+
+  setTimeout(function(){
+
+    box.style.display = "none";
+
+  },5000);
+
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+async function loadProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id",currentUser.id)
+      .maybeSingle();
+
+  if(result.error){
+
+    console.warn(
+      "Profile load error:",
+      result.error
+    );
+
+    return;
+
+  }
+
+  if(!result.data){
+    return;
+  }
+
+  currentProfile =
+    result.data;
+
+  const name =
+    result.data.full_name ||
+    "EGC Customer";
+
+  const email =
+    result.data.email ||
+    currentUser.email ||
+    "";
+
+  $("topName").textContent =
+    name;
+
+  $("topEmail").textContent =
+    email;
+
+  if(result.data.profile_photo){
+
+    $("topPhoto").src =
+      result.data.profile_photo;
+
+  }else{
+
+    $("topPhoto").src =
+      "https://ui-avatars.com/api/?name=" +
+      encodeURIComponent(name) +
+      "&background=eaf5fc&color=0754a9";
+
+  }
+
+}
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+async function initializePage(){
+
+  try{
+
+    const authResult =
+      await supabaseClient
+        .auth
+        .getUser();
+
+    if(
+      authResult.error ||
+      !authResult.data?.user
+    ){
+
+      window.location.replace(
+        "login.html"
+      );
+
+      return;
+
+    }
+
+    currentUser =
+      authResult.data.user;
+
+    await loadProfile();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    showError(
+      error.message ||
+      "Unable to load page."
+    );
+
+  }
+
+}
+
+supabaseClient
+  .auth
+  .onAuthStateChange(
+    function(event){
+
+      if(event === "SIGNED_OUT"){
+
+        window.location.replace(
+          "login.html"
+        );
+
+      }
+
+    }
+  );
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+function toggleFaq(button){
+
+  const faq =
+    button.parentElement;
+
+  const allFaqs =
+    document.querySelectorAll(
+      ".faq"
+    );
+
+  allFaqs.forEach(function(item){
+
+    if(item !== faq){
+
+      item.classList.remove(
+        "open"
+      );
+
+    }
+
+  });
+
+  faq.classList.toggle(
+    "open"
+  );
+
+}
+
+/* =========================================================
+   SUPPORT FORM
+========================================================= */
+
+$("supportForm")
+  .addEventListener(
+    "submit",
+    async function(event){
+
+      event.preventDefault();
+
+      if(!currentUser?.id){
+
+        showError(
+          "Please login again."
+        );
+
+        return;
+
+      }
+
+      const subject =
+        $("supportSubject")
+          .value
+          .trim();
+
+      const message =
+        $("supportMessage")
+          .value
+          .trim();
+
+      if(!subject){
+
+        showError(
+          "Please enter a subject."
+        );
+
+        $("supportSubject").focus();
+
+        return;
+
+      }
+
+      if(!message){
+
+        showError(
+          "Please describe your problem."
+        );
+
+        $("supportMessage").focus();
+
+        return;
+
+      }
+
+      const button =
+        $("supportSubmit");
+
+      button.disabled = true;
+
+      button.textContent =
+        "SENDING...";
+
+      $("errorBox").style.display =
+        "none";
+
+      try{
+
+        /*
+          Support table is optional at this stage.
+
+          If your Supabase table is named
+          "support_requests", this will save the
+          customer support request.
+        */
+
+        const result =
+          await supabaseClient
+            .from("support_requests")
+            .insert({
+
+              user_id:
+                currentUser.id,
+
+              subject:
+                subject,
+
+              message:
+                message,
+
+              status:
+                "open"
+
+            });
+
+        if(result.error){
+
+          /*
+            If support_requests table is not created yet,
+            don't break the complete customer page.
+          */
+
+          console.warn(
+            "Support request:",
+            result.error
+          );
+
+          toast(
+            "Support system will be connected next."
+          );
+
+        }else{
+
+          $("supportForm").reset();
+
+          showSuccess(
+            "Your support request has been submitted successfully."
+          );
+
+          toast(
+            "Support request submitted."
+          );
+
+        }
+
+      }catch(error){
+
+        console.error(
+          error
+        );
+
+        showError(
+          error.message ||
+          "Unable to submit support request."
+        );
+
+      }finally{
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "SEND SUPPORT REQUEST";
+
+      }
+
+    }
+  );
+
+/* =========================================================
+   SOCIAL
+========================================================= */
+
+function socialNotAvailable(
+  event,
+  name
+){
+
+  event.preventDefault();
+
+  toast(
+    name +
+    " link will be connected."
+  );
+
+}
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function goDashboard(){
+
+  window.location.href =
+    "dashboard.html";
+
+}
+
+function goRequest(){
+
+  window.location.href =
+    "request-cylinder.html";
+
+}
+
+function goMyRequests(){
+
+  window.location.href =
+    "my-requests.html";
+
+}
+
+function goPayments(){
+
+  window.location.href =
+    "payments.html";
+
+}
+
+function goNotifications(){
+
+  window.location.href =
+    "notifications.html";
+
+}
+
+function goProfile(){
+
+  window.location.href =
+    "profile.html";
+
+}
+
+function goSettings(){
+
+  window.location.href =
+    "setting.html";
+
+}
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function openLogoutPopup(){
+
+  $("logoutOverlay")
+    .classList
+    .add("show");
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+function closeLogoutPopup(event){
+
+  if(
+    event &&
+    event.target &&
+    event.target.id !==
+    "logoutOverlay"
+  ){
+
+    return;
+
+  }
+
+  $("logoutOverlay")
+    .classList
+    .remove("show");
+
+  document.body.style.overflow =
+    "";
+
+}
+
+async function confirmLogout(){
+
+  const button =
+    $("confirmLogoutBtn");
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Logging out...";
+
+  const result =
+    await supabaseClient
+      .auth
+      .signOut();
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Logout";
+
+    toast(
+      result.error.message ||
+      "Logout failed."
+    );
+
+    return;
+
+  }
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+/* =========================================================
+   ESC
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(event.key === "Escape"){
+
+      closeLogoutPopup();
+
+    }
+
+  }
+);
+
+/* =========================================================
+   START
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initializePage
+);
+
+</script>
+
+</body>
+</html>

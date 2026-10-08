@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Settings</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:#eef7fc;
+  color:#003e81;
+  min-height:100vh;
+}
+
+button,
+input{
+  font-family:Arial,sans-serif;
+}
+
+button{
+  cursor:pointer;
+}
+
+.topbar{
+  height:72px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 35px;
+  box-shadow:0 3px 15px rgba(0,62,129,.08);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:115px;
+  height:48px;
+  object-fit:contain;
+}
+
+.brand-text{
+  font-size:13px;
+  color:#70859a;
+}
+
+.profile-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.profile-photo{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#dfeef8;
+  border:2px solid #e1edf5;
+}
+
+.profile-name{
+  font-weight:800;
+  color:#003e81;
+  font-size:14px;
+}
+
+.profile-email{
+  color:#8295a6;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 72px);
+}
+
+.sidebar{
+  width:235px;
+  background:#fff;
+  border-right:1px solid #e1edf5;
+  padding:25px 14px;
+  position:fixed;
+  left:0;
+  top:72px;
+  bottom:0;
+}
+
+.nav-title{
+  font-size:11px;
+  color:#94a5b5;
+  font-weight:800;
+  padding:8px 13px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+.nav-btn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#58738d;
+  padding:13px 14px;
+  border-radius:11px;
+  text-align:left;
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+  background:#eaf5fc;
+  color:#0754a9;
+}
+
+.logout{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:20px;
+  color:#d33b3b;
+}
+
+.main{
+  margin-left:235px;
+  width:calc(100% - 235px);
+  padding:30px;
+  max-width:1300px;
+}
+
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.page-title{
+  font-size:28px;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.page-subtitle{
+  color:#71869a;
+  font-size:14px;
+}
+
+.back-btn{
+  border:0;
+  background:#fff;
+  color:#0754a9;
+  border-radius:12px;
+  padding:12px 17px;
+  font-weight:800;
+  box-shadow:0 5px 18px rgba(0,62,129,.08);
+}
+
+.back-btn:hover{
+  background:#eaf5fc;
+}
+
+.settings-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+
+.box{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:20px;
+  padding:23px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+  margin-bottom:20px;
+}
+
+.box-title{
+  font-size:18px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.box-subtitle{
+  color:#8193a3;
+  font-size:12px;
+  line-height:1.5;
+  margin-bottom:20px;
+}
+
+.setting-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  padding:16px 0;
+  border-bottom:1px solid #edf3f7;
+}
+
+.setting-row:last-child{
+  border-bottom:0;
+}
+
+.setting-info{
+  flex:1;
+}
+
+.setting-name{
+  color:#174e7e;
+  font-size:14px;
+  font-weight:800;
+}
+
+.setting-description{
+  color:#8798a7;
+  font-size:11px;
+  line-height:1.45;
+  margin-top:4px;
+}
+
+.toggle{
+  width:48px;
+  height:27px;
+  border:0;
+  border-radius:20px;
+  background:#cbd9e3;
+  position:relative;
+  flex-shrink:0;
+  transition:.2s;
+}
+
+.toggle::after{
+  content:"";
+  position:absolute;
+  width:21px;
+  height:21px;
+  background:#fff;
+  border-radius:50%;
+  left:3px;
+  top:3px;
+  box-shadow:0 2px 5px rgba(0,0,0,.15);
+  transition:.2s;
+}
+
+.toggle.active{
+  background:#0872d5;
+}
+
+.toggle.active::after{
+  left:24px;
+}
+
+.action-btn{
+  width:100%;
+  height:48px;
+  border:0;
+  border-radius:12px;
+  background:#eaf5fc;
+  color:#0754a9;
+  font-size:14px;
+  font-weight:900;
+  margin-top:12px;
+}
+
+.action-btn:hover{
+  background:#dceefa;
+}
+
+.security-btn{
+  background:#0754a9;
+  color:#fff;
+}
+
+.security-btn:hover{
+  background:#003e81;
+}
+
+.danger-btn{
+  background:#fff0f0;
+  color:#c62828;
+}
+
+.danger-btn:hover{
+  background:#ffe2e2;
+}
+
+.account-card{
+  background:#f5fbff;
+  border:1px solid #dceef9;
+  border-radius:15px;
+  padding:17px;
+}
+
+.account-line{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:10px 0;
+  border-bottom:1px solid #e3eff6;
+}
+
+.account-line:last-child{
+  border-bottom:0;
+}
+
+.account-label{
+  color:#8999a8;
+  font-size:11px;
+}
+
+.account-value{
+  color:#174e7e;
+  font-size:12px;
+  font-weight:800;
+  text-align:right;
+  word-break:break-word;
+}
+
+.status-badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:12px;
+  background:#e5f8ef;
+  color:#087848;
+  font-size:10px;
+  font-weight:900;
+}
+
+.error-box{
+  display:none;
+  background:#fff0f0;
+  border:1px solid #ffd0d0;
+  color:#c62828;
+  padding:13px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.success-box{
+  display:none;
+  background:#e5f8ef;
+  border:1px solid #c4ecd9;
+  color:#087848;
+  padding:13px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  z-index:10001;
+  background:#003e81;
+  color:#fff;
+  padding:13px 18px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(10px);
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.mobile-nav{
+  display:none;
+}
+
+.logout-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,20,40,.55);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.logout-overlay.show{
+  display:flex;
+}
+
+.logout-popup{
+  width:100%;
+  max-width:390px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 25px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  text-align:center;
+}
+
+.logout-icon{
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#fff0f0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 16px;
+  font-size:28px;
+}
+
+.logout-title{
+  font-size:21px;
+  font-weight:900;
+  color:#173f62;
+  margin-bottom:10px;
+}
+
+.logout-subtitle{
+  font-size:13px;
+  color:#7c8d9c;
+  line-height:1.5;
+  margin-bottom:23px;
+}
+
+.logout-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn{
+  height:48px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.logout-cancel-btn{
+  background:#fff;
+  color:#31526d;
+  border:1px solid #d7e2ea;
+}
+
+.logout-confirm-btn{
+  background:#e53935;
+  color:#fff;
+  border:1px solid #e53935;
+}
+
+@media(max-width:1000px){
+
+  .settings-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media(max-width:800px){
+
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:20px 15px 90px;
+  }
+
+  .topbar{
+    height:65px;
+    padding:0 15px;
+  }
+
+  .layout{
+    min-height:calc(100vh - 65px);
+  }
+
+  .brand img{
+    width:100px;
+  }
+
+  .brand-text{
+    display:none;
+  }
+
+  .profile-email{
+    display:none;
+  }
+
+  .profile-photo{
+    width:38px;
+    height:38px;
+  }
+
+  .page-title{
+    font-size:23px;
+  }
+
+  .page-subtitle{
+    font-size:12px;
+  }
+
+  .page-header{
+    align-items:flex-start;
+    gap:12px;
+  }
+
+  .back-btn{
+    padding:10px 12px;
+    font-size:11px;
+  }
+
+  .box{
+    padding:18px;
+    border-radius:17px;
+  }
+
+  .mobile-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:67px;
+    background:#fff;
+    border-top:1px solid #dce8ef;
+    z-index:100;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -5px 20px rgba(0,62,129,.08);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .mobile-nav button span{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+
+  .mobile-nav button.active{
+    color:#0754a9;
+  }
+
+  .toast{
+    left:15px;
+    right:15px;
+    bottom:80px;
+    text-align:center;
+  }
+
+}
+
+@media(max-width:450px){
+
+  .page-header{
+    display:block;
+  }
+
+  .back-btn{
+    margin-top:12px;
+  }
+
+  .setting-row{
+    align-items:flex-start;
+  }
+
+  .logout-buttons{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <img
+      src="assets/EGC - Emergency Gas Cylinder logo.png"
+      alt="EGC"
+    >
+
+    <div class="brand-text">
+      Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+  <div class="profile-mini">
+
+    <div>
+
+      <div
+        class="profile-name"
+        id="topName">
+        Loading...
+      </div>
+
+      <div
+        class="profile-email"
+        id="topEmail">
+        Loading...
+      </div>
+
+    </div>
+
+    <img
+      id="topPhoto"
+      class="profile-photo"
+      src=""
+      alt="Profile"
+    >
+
+  </div>
+
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">
+    MENU
+  </div>
+
+  <button
+    class="nav-btn"
+    onclick="goDashboard()">
+    🏠 &nbsp; Dashboard
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goRequest()">
+    🛢️ &nbsp; Request Cylinder
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goRequests()">
+    📋 &nbsp; My Requests
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPayments()">
+    💰 &nbsp; Payments
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goNotifications()">
+    🔔 &nbsp; Notifications
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goProfile()">
+    👤 &nbsp; Profile
+  </button>
+
+  <button
+    class="nav-btn active"
+    onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    ⚙️ &nbsp; Settings
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goHelp()">
+    ❓ &nbsp; Help & Support
+  </button>
+
+  <button
+    class="nav-btn logout"
+    onclick="openLogoutPopup()">
+    🚪 &nbsp; Logout
+  </button>
+
+</aside>
+
+<main class="main">
+
+<div
+  id="errorBox"
+  class="error-box">
+</div>
+
+<div
+  id="successBox"
+  class="success-box">
+</div>
+
+<section class="page-header">
+
+  <div>
+
+    <h1 class="page-title">
+      Settings
+    </h1>
+
+    <p class="page-subtitle">
+      Manage your EGC account preferences and security.
+    </p>
+
+  </div>
+
+  <button
+    class="back-btn"
+    onclick="goDashboard()">
+    ← Dashboard
+  </button>
+
+</section>
+
+<div class="settings-grid">
+
+<div>
+
+<div class="box">
+
+  <div class="box-title">
+    ⚙️ Preferences
+  </div>
+
+  <div class="box-subtitle">
+    Control how EGC notifications and updates are shown to you.
+  </div>
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        Payment Notifications
+      </div>
+
+      <div class="setting-description">
+        Receive notifications when your payment information or payment status changes.
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      class="toggle active"
+      id="paymentToggle"
+      onclick="toggleSetting('paymentNotifications')">
+    </button>
+
+  </div>
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        Request Updates
+      </div>
+
+      <div class="setting-description">
+        Receive updates about your cylinder request status.
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      class="toggle active"
+      id="requestToggle"
+      onclick="toggleSetting('requestNotifications')">
+    </button>
+
+  </div>
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        Delivery Updates
+      </div>
+
+      <div class="setting-description">
+        Receive notifications when your cylinder delivery status changes.
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      class="toggle active"
+      id="deliveryToggle"
+      onclick="toggleSetting('deliveryNotifications')">
+    </button>
+
+  </div>
+
+  <div class="setting-row">
+
+    <div class="setting-info">
+
+      <div class="setting-name">
+        Browser Notifications
+      </div>
+
+      <div class="setting-description">
+        Allow EGC to show notifications from this browser.
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      class="toggle"
+      id="browserToggle"
+      onclick="toggleBrowserNotifications()">
+    </button>
+
+  </div>
+
+</div>
+
+<div class="box">
+
+  <div class="box-title">
+    🔐 Security
+  </div>
+
+  <div class="box-subtitle">
+    Keep your EGC account secure.
+  </div>
+
+  <button
+    class="action-btn security-btn"
+    onclick="changeMPIN()">
+    🔑 Change MPIN
+  </button>
+
+  <button
+    class="action-btn"
+    onclick="goProfile()">
+    👤 Manage Profile
+  </button>
+
+</div>
+
+</div>
+
+<div>
+
+<div class="box">
+
+  <div class="box-title">
+    👤 Account Information
+  </div>
+
+  <div class="box-subtitle">
+    Your currently logged-in EGC account.
+  </div>
+
+  <div class="account-card">
+
+    <div class="account-line">
+
+      <span class="account-label">
+        Full Name
+      </span>
+
+      <span
+        class="account-value"
+        id="accountName">
+        Loading...
+      </span>
+
+    </div>
+
+    <div class="account-line">
+
+      <span class="account-label">
+        Email
+      </span>
+
+      <span
+        class="account-value"
+        id="accountEmail">
+        Loading...
+      </span>
+
+    </div>
+
+    <div class="account-line">
+
+      <span class="account-label">
+        Mobile
+      </span>
+
+      <span
+        class="account-value"
+        id="accountMobile">
+        Loading...
+      </span>
+
+    </div>
+
+    <div class="account-line">
+
+      <span class="account-label">
+        Account Status
+      </span>
+
+      <span class="account-value">
+
+        <span class="status-badge">
+          Active
+        </span>
+
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div class="box">
+
+  <div class="box-title">
+    🚪 Account
+  </div>
+
+  <div class="box-subtitle">
+    You can safely sign out from this device.
+  </div>
+
+  <button
+    class="action-btn danger-btn"
+    onclick="openLogoutPopup()">
+    🚪 Logout
+  </button>
+
+</div>
+
+</div>
+
+</div>
+
+</main>
+
+</div>
+
+<nav class="mobile-nav">
+
+<button onclick="goDashboard()">
+
+  <span>🏠</span>
+  Home
+
+</button>
+
+<button onclick="goRequests()">
+
+  <span>📋</span>
+  Requests
+
+</button>
+
+<button onclick="goRequest()">
+
+  <span>➕</span>
+  Request
+
+</button>
+
+<button onclick="goPayments()">
+
+  <span>💰</span>
+  Payments
+
+</button>
+
+<button class="active">
+
+  <span>⚙️</span>
+  Settings
+
+</button>
+
+</nav>
+
+<div
+  class="logout-overlay"
+  id="logoutOverlay"
+  onclick="closeLogoutPopup(event)">
+
+  <div
+    class="logout-popup"
+    onclick="event.stopPropagation()">
+
+    <div class="logout-icon">
+      🚪
+    </div>
+
+    <div class="logout-title">
+      Are you sure Logout?
+    </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+let currentUser = null;
+let currentProfile = null;
+let toastTimer = null;
+
+let settings = {
+  paymentNotifications:true,
+  requestNotifications:true,
+  deliveryNotifications:true
+};
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function toast(message){
+
+  const el =
+    $("toast");
+
+  el.textContent =
+    message || "";
+
+  el.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer =
+    setTimeout(
+      function(){
+        el.classList.remove("show");
+      },
+      3000
+    );
+
+}
+
+
+function showError(message){
+
+  const box =
+    $("errorBox");
+
+  box.textContent =
+    message || "Something went wrong.";
+
+  box.style.display =
+    "block";
+
+}
+
+
+function clearError(){
+
+  $("errorBox").style.display =
+    "none";
+
+}
+
+
+function showSuccess(message){
+
+  const box =
+    $("successBox");
+
+  box.textContent =
+    message || "";
+
+  box.style.display =
+    "block";
+
+  setTimeout(
+    function(){
+      box.style.display =
+        "none";
+    },
+    3500
+  );
+
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+async function loadProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .maybeSingle();
+
+  if(result.error){
+
+    console.warn(
+      "Profile load error:",
+      result.error
+    );
+
+    return;
+
+  }
+
+  if(!result.data){
+    return;
+  }
+
+  currentProfile =
+    result.data;
+
+  const name =
+    result.data.full_name ||
+    "EGC Customer";
+
+  const email =
+    result.data.email ||
+    currentUser.email ||
+    "";
+
+  const mobile =
+    result.data.mobile ||
+    "Not added";
+
+  $("topName").textContent =
+    name;
+
+  $("topEmail").textContent =
+    email;
+
+  $("accountName").textContent =
+    name;
+
+  $("accountEmail").textContent =
+    email || "Not available";
+
+  $("accountMobile").textContent =
+    mobile;
+
+  if(result.data.profile_photo){
+
+    $("topPhoto").src =
+      result.data.profile_photo;
+
+  }else{
+
+    $("topPhoto").src =
+      "https://ui-avatars.com/api/?name=" +
+      encodeURIComponent(name) +
+      "&background=eaf5fc&color=0754a9";
+
+  }
+
+}
+
+
+/* =========================================================
+   LOCAL SETTINGS
+========================================================= */
+
+function loadLocalSettings(){
+
+  try{
+
+    const saved =
+      localStorage.getItem(
+        "egc_customer_settings"
+      );
+
+    if(saved){
+
+      const parsed =
+        JSON.parse(saved);
+
+      settings =
+        {
+          ...settings,
+          ...parsed
+        };
+
+    }
+
+  }catch(error){
+
+    console.warn(
+      "Settings read error:",
+      error
+    );
+
+  }
+
+  updateToggle(
+    "paymentToggle",
+    settings.paymentNotifications
+  );
+
+  updateToggle(
+    "requestToggle",
+    settings.requestNotifications
+  );
+
+  updateToggle(
+    "deliveryToggle",
+    settings.deliveryNotifications
+  );
+
+  updateBrowserToggle();
+
+}
+
+
+function saveLocalSettings(){
+
+  try{
+
+    localStorage.setItem(
+      "egc_customer_settings",
+      JSON.stringify(settings)
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Settings save error:",
+      error
+    );
+
+  }
+
+}
+
+
+function updateToggle(id,active){
+
+  const button =
+    $(id);
+
+  if(!button){
+    return;
+  }
+
+  if(active){
+
+    button.classList.add(
+      "active"
+    );
+
+  }else{
+
+    button.classList.remove(
+      "active"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   TOGGLE SETTING
+========================================================= */
+
+function toggleSetting(key){
+
+  settings[key] =
+    !settings[key];
+
+  saveLocalSettings();
+
+  if(key === "paymentNotifications"){
+
+    updateToggle(
+      "paymentToggle",
+      settings[key]
+    );
+
+  }
+
+  if(key === "requestNotifications"){
+
+    updateToggle(
+      "requestToggle",
+      settings[key]
+    );
+
+  }
+
+  if(key === "deliveryNotifications"){
+
+    updateToggle(
+      "deliveryToggle",
+      settings[key]
+    );
+
+  }
+
+  toast(
+    settings[key]
+    ? "Setting enabled."
+    : "Setting disabled."
+  );
+
+}
+
+
+/* =========================================================
+   BROWSER NOTIFICATIONS
+========================================================= */
+
+async function toggleBrowserNotifications(){
+
+  if(!("Notification" in window)){
+
+    toast(
+      "Browser notifications are not supported."
+    );
+
+    return;
+
+  }
+
+  if(
+    Notification.permission ===
+    "granted"
+  ){
+
+    toast(
+      "Browser notifications are already enabled."
+    );
+
+    updateBrowserToggle();
+
+    return;
+
+  }
+
+  if(
+    Notification.permission ===
+    "denied"
+  ){
+
+    toast(
+      "Notifications are blocked. Please allow them in browser settings."
+    );
+
+    updateBrowserToggle();
+
+    return;
+
+  }
+
+  try{
+
+    const permission =
+      await Notification.requestPermission();
+
+    updateBrowserToggle();
+
+    if(
+      permission ===
+      "granted"
+    ){
+
+      toast(
+        "Browser notifications enabled."
+      );
+
+      showTestNotification();
+
+    }else{
+
+      toast(
+        "Browser notification permission was not granted."
+      );
+
+    }
+
+  }catch(error){
+
+    console.warn(
+      error
+    );
+
+    toast(
+      "Unable to change notification permission."
+    );
+
+  }
+
+}
+
+
+function updateBrowserToggle(){
+
+  const active =
+    "Notification" in window &&
+    Notification.permission ===
+    "granted";
+
+  updateToggle(
+    "browserToggle",
+    active
+  );
+
+}
+
+
+function showTestNotification(){
+
+  if(
+    !("Notification" in window)
+  ){
+    return;
+  }
+
+  if(
+    Notification.permission !==
+    "granted"
+  ){
+    return;
+  }
+
+  try{
+
+    new Notification(
+      "EGC Notifications Enabled",
+      {
+        body:
+          "You will receive important EGC updates here.",
+        icon:
+          "assets/EGC - Emergency Gas Cylinder logo.png"
+      }
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Test notification error:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CHANGE MPIN
+========================================================= */
+
+function changeMPIN(){
+
+  window.location.href =
+    "change-mpin.html";
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function goDashboard(){
+
+  window.location.href =
+    "dashboard.html";
+
+}
+
+
+function goRequest(){
+
+  window.location.href =
+    "request-cylinder.html";
+
+}
+
+
+function goRequests(){
+
+  window.location.href =
+    "my-requests.html";
+
+}
+
+
+function goPayments(){
+
+  window.location.href =
+    "payments.html";
+
+}
+
+
+function goNotifications(){
+
+  window.location.href =
+    "notifications.html";
+
+}
+
+
+function goProfile(){
+
+  window.location.href =
+    "profile.html";
+
+}
+
+
+function goHelp(){
+
+  window.location.href =
+    "help-support.html";
+
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function openLogoutPopup(){
+
+  $("logoutOverlay")
+    .classList
+    .add("show");
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+
+function closeLogoutPopup(event){
+
+  if(
+    event &&
+    event.target &&
+    event.target.id !==
+    "logoutOverlay"
+  ){
+
+    return;
+
+  }
+
+  $("logoutOverlay")
+    .classList
+    .remove("show");
+
+  document.body.style.overflow =
+    "";
+
+}
+
+
+async function confirmLogout(){
+
+  const button =
+    $("confirmLogoutBtn");
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Logging out...";
+
+  const result =
+    await supabaseClient
+      .auth
+      .signOut();
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Logout";
+
+    toast(
+      result.error.message ||
+      "Logout failed."
+    );
+
+    return;
+
+  }
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+
+/* =========================================================
+   AUTH STATE
+========================================================= */
+
+supabaseClient
+  .auth
+  .onAuthStateChange(
+    function(event){
+
+      if(
+        event ===
+        "SIGNED_OUT"
+      ){
+
+        window.location.replace(
+          "login.html"
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   ESCAPE
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(
+      event.key ===
+      "Escape"
+    ){
+
+      closeLogoutPopup();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+async function initializePage(){
+
+  try{
+
+    clearError();
+
+    const authResult =
+      await supabaseClient
+        .auth
+        .getUser();
+
+    if(
+      authResult.error ||
+      !authResult.data?.user
+    ){
+
+      window.location.replace(
+        "login.html"
+      );
+
+      return;
+
+    }
+
+    currentUser =
+      authResult.data.user;
+
+    loadLocalSettings();
+
+    await loadProfile();
+
+  }catch(error){
+
+    console.error(
+      "Settings initialization error:",
+      error
+    );
+
+    showError(
+      error.message ||
+      "Unable to load settings."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initializePage
+);
+
+</script>
+
+</body>
+</html>

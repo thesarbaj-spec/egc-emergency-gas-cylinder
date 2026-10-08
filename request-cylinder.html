@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - LPG Details</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    min-height:100%;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#f4f8fc;
+    color:#073f73;
+}
+
+.app{
+    width:100%;
+    min-height:100vh;
+    background:#fff;
+}
+
+/* HEADER */
+.header{
+    width:100%;
+    height:82px;
+    background:#fff;
+    border-bottom:1px solid #e3edf5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:sticky;
+    top:0;
+    z-index:100;
+}
+
+.header-left{
+    position:absolute;
+    left:28px;
+    display:flex;
+    align-items:center;
+}
+
+.back-btn{
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:29px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.2s;
+}
+
+.back-btn:hover{
+    background:#dcefff;
+}
+
+.egc-logo{
+    height:60px;
+    width:auto;
+    max-width:260px;
+    object-fit:contain;
+}
+
+/* MAIN */
+.main{
+    width:100%;
+    max-width:1450px;
+    margin:0 auto;
+    padding:42px 60px 80px;
+}
+
+.page-title{
+    text-align:center;
+    margin-bottom:36px;
+}
+
+.page-title h1{
+    font-size:36px;
+    font-weight:800;
+    color:#06447c;
+    margin-bottom:9px;
+}
+
+.page-title p{
+    font-size:17px;
+    color:#71879a;
+}
+
+/* STEPS */
+.steps{
+    width:100%;
+    max-width:950px;
+    margin:0 auto 44px;
+    display:flex;
+    align-items:flex-start;
+}
+
+.step-box{
+    flex:1;
+    display:flex;
+    align-items:center;
+}
+
+.step-box:last-child{
+    flex:0 0 auto;
+}
+
+.step{
+    min-width:95px;
+    text-align:center;
+}
+
+.step-circle{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    font-size:17px;
+    font-weight:800;
+    background:#fff;
+    border:3px solid #d0dfeb;
+    color:#8ba0b1;
+}
+
+.step.active .step-circle{
+    background:#0878d1;
+    border-color:#0878d1;
+    color:#fff;
+}
+
+.step-name{
+    margin-top:9px;
+    font-size:13px;
+    font-weight:700;
+    color:#8b9baa;
+    white-space:nowrap;
+}
+
+.step.active .step-name{
+    color:#0872c7;
+}
+
+.step-line{
+    flex:1;
+    height:3px;
+    background:#d6e2ec;
+    margin:23px 10px 0;
+}
+
+/* CARD */
+.card{
+    width:100%;
+    max-width:1120px;
+    margin:0 auto;
+    background:#fff;
+    border:1px solid #dfe9f1;
+    border-radius:22px;
+    padding:40px;
+    box-shadow:0 12px 42px rgba(7,65,105,.08);
+}
+
+.card-title{
+    font-size:28px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:7px;
+}
+
+.card-subtitle{
+    font-size:15px;
+    color:#71879a;
+    margin-bottom:31px;
+}
+
+/* SAVED DETAILS NOTICE */
+.saved-box{
+    display:none;
+    margin-bottom:25px;
+    padding:17px 19px;
+    border-radius:14px;
+    background:#effaf3;
+    border:1px solid #bfe7ca;
+    color:#24743d;
+}
+
+.saved-box.show{
+    display:block;
+}
+
+.saved-box-title{
+    font-size:15px;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.saved-box-text{
+    font-size:13px;
+    line-height:1.5;
+}
+
+/* FORM */
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+}
+
+.form-group.full{
+    grid-column:1 / -1;
+}
+
+label{
+    font-size:15px;
+    font-weight:700;
+    color:#084a7e;
+    margin-bottom:9px;
+}
+
+select{
+    width:100%;
+    height:56px;
+    border:1.5px solid #d3e0eb;
+    border-radius:13px;
+    padding:0 15px;
+    font-size:16px;
+    color:#254d6c;
+    background:#fff;
+    outline:none;
+    cursor:pointer;
+    transition:.2s;
+}
+
+select:hover{
+    border-color:#b8cedf;
+}
+
+select:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.10);
+}
+
+select:disabled{
+    background:#f5f8fa;
+    color:#91a2ae;
+    cursor:not-allowed;
+}
+
+/* AGENCY STATUS */
+.agency-status{
+    margin-top:9px;
+    font-size:13px;
+    color:#6d879a;
+    min-height:18px;
+}
+
+.agency-status.success{
+    color:#16833a;
+}
+
+.agency-status.error{
+    color:#bd2828;
+}
+
+/* INFO */
+.info{
+    margin-top:27px;
+    padding:18px 20px;
+    background:#eef8ff;
+    border:1px solid #cce7fa;
+    border-radius:14px;
+    color:#52728d;
+    font-size:14px;
+    line-height:1.6;
+}
+
+/* MESSAGE */
+.message{
+    display:none;
+    margin-top:18px;
+    padding:14px 17px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.5;
+    white-space:pre-line;
+}
+
+.message.error{
+    display:block;
+    color:#bd2828;
+    background:#fff1f1;
+    border:1px solid #ffc9c9;
+}
+
+.message.success{
+    display:block;
+    color:#16833a;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+}
+
+/* BUTTON */
+.action{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:30px;
+}
+
+.continue-btn{
+    min-width:250px;
+    height:58px;
+    border:0;
+    border-radius:14px;
+    background:#ffc21a;
+    color:#063d70;
+    font-size:17px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 7px 18px rgba(255,194,26,.24);
+    transition:.2s;
+}
+
+.continue-btn:hover{
+    background:#ffb900;
+    transform:translateY(-1px);
+}
+
+.continue-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+}
+
+/* DESKTOP */
+@media(min-width:1200px){
+
+    .main{
+        padding-left:80px;
+        padding-right:80px;
+    }
+
+    .card{
+        padding:44px;
+    }
+}
+
+/* TABLET */
+@media(max-width:900px){
+
+    .main{
+        padding:32px 25px 60px;
+    }
+
+    .card{
+        padding:30px;
+    }
+
+    .steps{
+        max-width:800px;
+    }
+}
+
+/* MOBILE */
+@media(max-width:700px){
+
+    .header{
+        height:70px;
+    }
+
+    .header-left{
+        left:14px;
+    }
+
+    .back-btn{
+        width:38px;
+        height:38px;
+        font-size:26px;
+    }
+
+    .egc-logo{
+        height:49px;
+        max-width:210px;
+    }
+
+    .main{
+        padding:25px 15px 45px;
+    }
+
+    .page-title{
+        margin-bottom:29px;
+    }
+
+    .page-title h1{
+        font-size:28px;
+    }
+
+    .page-title p{
+        font-size:14px;
+    }
+
+    .steps{
+        margin-bottom:30px;
+    }
+
+    .step{
+        min-width:52px;
+    }
+
+    .step-circle{
+        width:36px;
+        height:36px;
+        font-size:13px;
+    }
+
+    .step-name{
+        font-size:9px;
+    }
+
+    .step-line{
+        margin:17px 3px 0;
+    }
+
+    .card{
+        padding:23px 17px;
+        border-radius:17px;
+    }
+
+    .card-title{
+        font-size:23px;
+    }
+
+    .card-subtitle{
+        font-size:14px;
+        margin-bottom:25px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+        gap:19px;
+    }
+
+    .form-group.full{
+        grid-column:auto;
+    }
+
+    .action{
+        justify-content:stretch;
+    }
+
+    .continue-btn{
+        width:100%;
+    }
+
+    .saved-box{
+        padding:15px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header class="header">
+
+        <div class="header-left">
+
+            <button
+                type="button"
+                class="back-btn"
+                id="backBtn"
+                aria-label="Back"
+            >‹</button>
+
+        </div>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="egc-logo"
+            alt="EGC - Emergency Gas Cylinder"
+            onerror="this.style.display='none';"
+        >
+
+    </header>
+
+
+    <main class="main">
+
+        <div class="page-title">
+
+            <h1>LPG Details</h1>
+
+            <p>
+                Select your LPG connection details
+            </p>
+
+        </div>
+
+
+        <!-- STEPS -->
+
+        <div class="steps">
+
+            <div class="step-box">
+
+                <div class="step active">
+
+                    <div class="step-circle">
+                        1
+                    </div>
+
+                    <div class="step-name">
+                        LPG Details
+                    </div>
+
+                </div>
+
+                <div class="step-line"></div>
+
+            </div>
+
+
+            <div class="step-box">
+
+                <div class="step">
+
+                    <div class="step-circle">
+                        2
+                    </div>
+
+                    <div class="step-name">
+                        Verification
+                    </div>
+
+                </div>
+
+                <div class="step-line"></div>
+
+            </div>
+
+
+            <div class="step-box">
+
+                <div class="step">
+
+                    <div class="step-circle">
+                        3
+                    </div>
+
+                    <div class="step-name">
+                        Scheme
+                    </div>
+
+                </div>
+
+                <div class="step-line"></div>
+
+            </div>
+
+
+            <div class="step-box">
+
+                <div class="step">
+
+                    <div class="step-circle">
+                        4
+                    </div>
+
+                    <div class="step-name">
+                        Payment
+                    </div>
+
+                </div>
+
+                <div class="step-line"></div>
+
+            </div>
+
+
+            <div class="step-box">
+
+                <div class="step">
+
+                    <div class="step-circle">
+                        5
+                    </div>
+
+                    <div class="step-name">
+                        Complete
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CARD -->
+
+        <section class="card">
+
+            <h2 class="card-title">
+                LPG Details
+            </h2>
+
+            <p class="card-subtitle">
+                Select your location, LPG company and registered agency
+            </p>
+
+
+            <!-- SAVED DETAILS -->
+
+            <div
+                id="savedBox"
+                class="saved-box"
+            >
+
+                <div class="saved-box-title">
+                    ✓ Your LPG details are already saved
+                </div>
+
+                <div class="saved-box-text">
+                    Your saved details have been loaded automatically.
+                    You can continue directly to verification.
+                </div>
+
+            </div>
+
+
+            <div class="form-grid">
+
+                <!-- STATE -->
+
+                <div class="form-group">
+
+                    <label for="state">
+                        State
+                    </label>
+
+                    <select id="state">
+
+                        <option value="">
+                            Select State
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- DISTRICT -->
+
+                <div class="form-group">
+
+                    <label for="district">
+                        District
+                    </label>
+
+                    <select
+                        id="district"
+                        disabled
+                    >
+
+                        <option value="">
+                            Select District
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- CITY -->
+
+                <div class="form-group">
+
+                    <label for="city">
+                        City
+                    </label>
+
+                    <select
+                        id="city"
+                        disabled
+                    >
+
+                        <option value="">
+                            Select City
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- COMPANY -->
+
+                <div class="form-group">
+
+                    <label for="company">
+                        LPG Company
+                    </label>
+
+                    <select id="company">
+
+                        <option value="">
+                            Select LPG Company
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- AGENCY -->
+
+                <div class="form-group full">
+
+                    <label for="agency">
+                        LPG Agency
+                    </label>
+
+                    <select
+                        id="agency"
+                        disabled
+                    >
+
+                        <option value="">
+                            Select LPG Company first
+                        </option>
+
+                    </select>
+
+                    <div
+                        id="agencyStatus"
+                        class="agency-status"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div class="info">
+
+                Your LPG connection details will be securely saved
+                to your EGC account.
+
+                <br>
+
+                You will not need to enter these details again for
+                future cylinder requests unless you want to change
+                your LPG agency or connection details.
+
+            </div>
+
+
+            <div
+                id="message"
+                class="message"
+            ></div>
+
+
+            <div class="action">
+
+                <button
+                    type="button"
+                    id="continueBtn"
+                    class="continue-btn"
+                >
+                    CONTINUE →
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- SUPABASE -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE CONFIGURATION
+========================================================= */
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+let supabaseClient = null;
+
+
+try {
+
+    if (
+        SUPABASE_URL &&
+        SUPABASE_ANON_KEY &&
+        window.supabase
+    ) {
+
+        supabaseClient =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY
+            );
+
+        console.log(
+            "Supabase initialized successfully."
+        );
+
+    }
+
+} catch (error) {
+
+    console.error(
+        "Supabase initialization error:",
+        error
+    );
+
+}
+
+
+/* =========================================================
+   LOCATION DATA
+========================================================= */
+
+const LOCATION_DATA = {
+
+    "Uttarakhand": {
+
+        "Udham Singh Nagar": [
+            "Khatima",
+            "Nanakmatta",
+            "Sitarganj",
+            "Rudrapur",
+            "Kashipur",
+            "Bazpur",
+            "Gadarpur",
+            "Jaspur"
+        ],
+
+        "Nainital": [
+            "Haldwani",
+            "Nainital",
+            "Ramnagar",
+            "Lalkuan"
+        ],
+
+        "Dehradun": [
+            "Dehradun",
+            "Rishikesh",
+            "Mussoorie"
+        ],
+
+        "Champawat": [
+            "Champawat",
+            "Lohaghat",
+            "Tanakpur"
+        ],
+
+        "Almora": [
+            "Almora",
+            "Ranikhet",
+            "Dwarahat"
+        ]
+
+    },
+
+
+    "Uttar Pradesh": {
+
+        "Bareilly": [
+            "Bareilly",
+            "Faridpur",
+            "Aonla"
+        ],
+
+        "Pilibhit": [
+            "Pilibhit",
+            "Puranpur",
+            "Bisalpur"
+        ],
+
+        "Lucknow": [
+            "Lucknow"
+        ],
+
+        "Moradabad": [
+            "Moradabad",
+            "Thakurdwara"
+        ],
+
+        "Rampur": [
+            "Rampur",
+            "Milak"
+        ]
+
+    },
+
+
+    "Delhi": {
+
+        "New Delhi": [
+            "New Delhi"
+        ]
+
+    },
+
+
+    "Haryana": {
+
+        "Gurugram": [
+            "Gurugram"
+        ],
+
+        "Faridabad": [
+            "Faridabad"
+        ]
+
+    }
+
+};
+
+
+/* =========================================================
+   LPG COMPANIES
+========================================================= */
+
+const LPG_COMPANIES = [
+    "Indane",
+    "Bharatgas",
+    "HP Gas"
+];
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const stateSelect =
+    document.getElementById("state");
+
+const districtSelect =
+    document.getElementById("district");
+
+const citySelect =
+    document.getElementById("city");
+
+const companySelect =
+    document.getElementById("company");
+
+const agencySelect =
+    document.getElementById("agency");
+
+const agencyStatus =
+    document.getElementById("agencyStatus");
+
+const continueBtn =
+    document.getElementById("continueBtn");
+
+const message =
+    document.getElementById("message");
+
+const backBtn =
+    document.getElementById("backBtn");
+
+const savedBox =
+    document.getElementById("savedBox");
+
+
+/* =========================================================
+   NORMALIZE TEXT
+========================================================= */
+
+function normalize(value) {
+
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(text, type) {
+
+    if (!message) {
+        return;
+    }
+
+    message.className =
+        "message " + type;
+
+    message.textContent =
+        text;
+
+}
+
+
+function clearMessage() {
+
+    if (!message) {
+        return;
+    }
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+
+}
+
+
+/* =========================================================
+   AGENCY STATUS
+========================================================= */
+
+function setAgencyStatus(
+    text,
+    type = ""
+) {
+
+    if (!agencyStatus) {
+        return;
+    }
+
+    agencyStatus.textContent =
+        text || "";
+
+    agencyStatus.className =
+        "agency-status";
+
+    if (type) {
+
+        agencyStatus.classList.add(
+            type
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOAD STATES
+========================================================= */
+
+function loadStates() {
+
+    stateSelect.innerHTML =
+        '<option value="">Select State</option>';
+
+    Object.keys(
+        LOCATION_DATA
+    ).forEach(function(state) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            state;
+
+        option.textContent =
+            state;
+
+        stateSelect.appendChild(
+            option
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   LOAD DISTRICTS
+========================================================= */
+
+function loadDistricts() {
+
+    const state =
+        stateSelect.value;
+
+    districtSelect.innerHTML =
+        '<option value="">Select District</option>';
+
+    citySelect.innerHTML =
+        '<option value="">Select City</option>';
+
+    districtSelect.disabled =
+        true;
+
+    citySelect.disabled =
+        true;
+
+    resetAgency(
+        "Select LPG Company first"
+    );
+
+    if (!state) {
+        return;
+    }
+
+    const districts =
+        LOCATION_DATA[state] || {};
+
+    Object.keys(
+        districts
+    ).forEach(function(district) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            district;
+
+        option.textContent =
+            district;
+
+        districtSelect.appendChild(
+            option
+        );
+
+    });
+
+    districtSelect.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   LOAD CITIES
+========================================================= */
+
+function loadCities() {
+
+    const state =
+        stateSelect.value;
+
+    const district =
+        districtSelect.value;
+
+    citySelect.innerHTML =
+        '<option value="">Select City</option>';
+
+    citySelect.disabled =
+        true;
+
+    resetAgency(
+        "Select LPG Company first"
+    );
+
+    if (
+        !state ||
+        !district
+    ) {
+
+        return;
+
+    }
+
+    const cities =
+        LOCATION_DATA[state]?.[district] || [];
+
+    cities.forEach(function(city) {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            city;
+
+        option.textContent =
+            city;
+
+        citySelect.appendChild(
+            option
+        );
+
+    });
+
+    citySelect.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   LOAD LPG COMPANIES
+========================================================= */
+
+function loadCompanies() {
+
+    companySelect.innerHTML =
+        '<option value="">Select LPG Company</option>';
+
+    LPG_COMPANIES.forEach(
+        function(company) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                company;
+
+            option.textContent =
+                company;
+
+            companySelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   RESET AGENCY
+========================================================= */
+
+function resetAgency(text) {
+
+    agencySelect.innerHTML =
+        '<option value="">' +
+        text +
+        '</option>';
+
+    agencySelect.disabled =
+        true;
+
+    setAgencyStatus("");
+
+}
+
+
+/* =========================================================
+   ADD AGENCIES TO DROPDOWN
+========================================================= */
+
+function addAgenciesToDropdown(
+    agencies
+) {
+
+    agencySelect.innerHTML =
+        '<option value="">Select LPG Agency</option>';
+
+    if (
+        !agencies ||
+        agencies.length === 0
+    ) {
+
+        agencySelect.innerHTML =
+            '<option value="">No agency found</option>';
+
+        agencySelect.disabled =
+            true;
+
+        return;
+
+    }
+
+
+    agencies.forEach(
+        function(agency) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                agency.id;
+
+            option.textContent =
+                agency.agency_name +
+                (
+                    agency.agency_code
+                        ? " • " +
+                          agency.agency_code
+                        : ""
+                );
+
+
+            option.dataset.name =
+                agency.agency_name || "";
+
+            option.dataset.code =
+                agency.agency_code || "";
+
+            option.dataset.company =
+                agency.lpg_company || "";
+
+            option.dataset.mobile =
+                agency.mobile_number || "";
+
+            option.dataset.address =
+                agency.address || "";
+
+            option.dataset.state =
+                agency.state || "";
+
+            option.dataset.district =
+                agency.district || "";
+
+            option.dataset.city =
+                agency.city || "";
+
+
+            agencySelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    agencySelect.disabled =
+        false;
+
+}
+
+
+/* =========================================================
+   LOAD AGENCIES FROM SUPABASE
+========================================================= */
+
+async function loadAgencies() {
+
+    clearMessage();
+
+    const company =
+        companySelect.value.trim();
+
+    const state =
+        stateSelect.value.trim();
+
+    const district =
+        districtSelect.value.trim();
+
+    const city =
+        citySelect.value.trim();
+
+
+    if (!company) {
+
+        resetAgency(
+            "Select LPG Company first"
+        );
+
+        return;
+
+    }
+
+
+    if (!state) {
+
+        resetAgency(
+            "Select State first"
+        );
+
+        return;
+
+    }
+
+
+    if (!district) {
+
+        resetAgency(
+            "Select District first"
+        );
+
+        return;
+
+    }
+
+
+    if (!city) {
+
+        resetAgency(
+            "Select City first"
+        );
+
+        return;
+
+    }
+
+
+    if (!supabaseClient) {
+
+        resetAgency(
+            "Supabase unavailable"
+        );
+
+        setAgencyStatus(
+            "Supabase could not be initialized.",
+            "error"
+        );
+
+        showMessage(
+            "Supabase could not be initialized.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    agencySelect.innerHTML =
+        '<option value="">Loading agencies...</option>';
+
+    agencySelect.disabled =
+        true;
+
+    setAgencyStatus(
+        "Searching registered agencies..."
+    );
+
+
+    console.log(
+        "Searching agencies:",
+        {
+            company,
+            state,
+            district,
+            city
+        }
+    );
+
+
+    let result;
+
+    try {
+
+        result =
+            await supabaseClient
+                .from("agencies")
+                .select(
+                    "id,agency_name,agency_code,mobile_number,address,is_active,status,lpg_company,state,district,city"
+                )
+                .eq(
+                    "is_active",
+                    true
+                )
+                .eq(
+                    "lpg_company",
+                    company
+                )
+                .order(
+                    "agency_name",
+                    {
+                        ascending:true
+                    }
+                );
+
+    } catch (error) {
+
+        console.error(
+            "Agency request exception:",
+            error
+        );
+
+        resetAgency(
+            "Unable to load agencies"
+        );
+
+        setAgencyStatus(
+            "Supabase request failed.",
+            "error"
+        );
+
+        showMessage(
+            "Unable to load LPG agencies.\n\n" +
+            "Error: " +
+            (
+                error?.message ||
+                String(error)
+            ),
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const data =
+        result?.data || [];
+
+    const error =
+        result?.error;
+
+
+    if (error) {
+
+        console.error(
+            "Supabase agency error:",
+            error
+        );
+
+        resetAgency(
+            "Unable to load agencies"
+        );
+
+        setAgencyStatus(
+            "Supabase returned an error.",
+            "error"
+        );
+
+        showMessage(
+            "Unable to load LPG agencies.\n\n" +
+            "Supabase error: " +
+            (
+                error.message ||
+                "Unknown error"
+            ) +
+            "\n\nCode: " +
+            (
+                error.code ||
+                "N/A"
+            ),
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "Agencies received:",
+        data
+    );
+
+
+    const filtered =
+        data.filter(
+            function(agency) {
+
+                return (
+
+                    normalize(
+                        agency.lpg_company
+                    ) ===
+                    normalize(company)
+
+                    &&
+
+                    normalize(
+                        agency.state
+                    ) ===
+                    normalize(state)
+
+                    &&
+
+                    normalize(
+                        agency.district
+                    ) ===
+                    normalize(district)
+
+                    &&
+
+                    normalize(
+                        agency.city
+                    ) ===
+                    normalize(city)
+
+                );
+
+            }
+        );
+
+
+    if (
+        filtered.length === 0
+    ) {
+
+        resetAgency(
+            "No agency found"
+        );
+
+        setAgencyStatus(
+            "No registered " +
+            company +
+            " agency found for " +
+            city +
+            ".",
+            "error"
+        );
+
+        showMessage(
+            "No active LPG agency was found for:\n\n" +
+            company +
+            " • " +
+            city +
+            " • " +
+            district +
+            " • " +
+            state +
+            "\n\nPlease check your location and LPG company.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    addAgenciesToDropdown(
+        filtered
+    );
+
+
+    setAgencyStatus(
+        filtered.length +
+        (
+            filtered.length === 1
+                ? " agency found."
+                : " agencies found."
+        ),
+        "success"
+    );
+
+
+    if (
+        filtered.length === 1
+    ) {
+
+        agencySelect.value =
+            filtered[0].id;
+
+    }
+
+}
+
+
+/* =========================================================
+   GET CURRENT USER
+========================================================= */
+
+async function getCurrentUser() {
+
+    if (!supabaseClient) {
+        return null;
+    }
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth.getUser();
+
+        if (error) {
+
+            console.error(
+                "User error:",
+                error
+            );
+
+            return null;
+
+        }
+
+        return data?.user || null;
+
+    } catch (error) {
+
+        console.error(
+            "getCurrentUser exception:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* =========================================================
+   SAVE DETAILS LOCALLY
+========================================================= */
+
+function saveDetailsLocally(details) {
+
+    try {
+
+        localStorage.setItem(
+            "egc_lpg_details",
+            JSON.stringify(details)
+        );
+
+        /*
+         * This flag tells future pages that LPG details
+         * have already been completed once.
+         */
+
+        localStorage.setItem(
+            "egc_lpg_details_completed",
+            "true"
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Local storage save error:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   LOAD SAVED DETAILS
+========================================================= */
+
+async function loadSavedDetails() {
+
+    let savedDetails =
+        null;
+
+
+    const saved =
+        localStorage.getItem(
+            "egc_lpg_details"
+        );
+
+
+    if (saved) {
+
+        try {
+
+            savedDetails =
+                JSON.parse(saved);
+
+        } catch (error) {
+
+            console.error(
+                "Saved details error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * No saved details
+     */
+
+    if (!savedDetails) {
+
+        return;
+
+    }
+
+
+    /*
+     * STATE
+     */
+
+    if (savedDetails.state) {
+
+        stateSelect.value =
+            savedDetails.state;
+
+        loadDistricts();
+
+    }
+
+
+    /*
+     * DISTRICT
+     */
+
+    if (savedDetails.district) {
+
+        districtSelect.value =
+            savedDetails.district;
+
+        loadCities();
+
+    }
+
+
+    /*
+     * CITY
+     */
+
+    if (savedDetails.city) {
+
+        citySelect.value =
+            savedDetails.city;
+
+    }
+
+
+    /*
+     * COMPANY
+     */
+
+    if (savedDetails.company) {
+
+        companySelect.value =
+            savedDetails.company;
+
+        await loadAgencies();
+
+    }
+
+
+    /*
+     * AGENCY
+     */
+
+    if (savedDetails.agency_id) {
+
+        const option =
+            Array.from(
+                agencySelect.options
+            ).find(
+                function(item) {
+
+                    return (
+                        item.value ===
+                        savedDetails.agency_id
+                    );
+
+                }
+            );
+
+
+        if (option) {
+
+            agencySelect.value =
+                savedDetails.agency_id;
+
+        }
+
+    }
+
+
+    /*
+     * SHOW SAVED NOTICE
+     */
+
+    if (
+        savedBox &&
+        savedDetails.state &&
+        savedDetails.district &&
+        savedDetails.city &&
+        savedDetails.company &&
+        savedDetails.agency_id
+    ) {
+
+        savedBox.classList.add(
+            "show"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SAVE LPG DETAILS
+========================================================= */
+
+async function saveDetails() {
+
+    clearMessage();
+
+
+    const state =
+        stateSelect.value.trim();
+
+    const district =
+        districtSelect.value.trim();
+
+    const city =
+        citySelect.value.trim();
+
+    const company =
+        companySelect.value.trim();
+
+    const agencyId =
+        agencySelect.value;
+
+
+    /*
+     * VALIDATION
+     */
+
+    if (!state) {
+
+        showMessage(
+            "Please select your State.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    if (!district) {
+
+        showMessage(
+            "Please select your District.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    if (!city) {
+
+        showMessage(
+            "Please select your City.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    if (!company) {
+
+        showMessage(
+            "Please select your LPG Company.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    if (!agencyId) {
+
+        showMessage(
+            "Please select your LPG Agency.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    const selectedAgency =
+        agencySelect.options[
+            agencySelect.selectedIndex
+        ];
+
+
+    /*
+     * LPG DETAILS
+     *
+     * These details are reusable for
+     * future cylinder requests.
+     */
+
+    const details = {
+
+        state:
+            state,
+
+        district:
+            district,
+
+        city:
+            city,
+
+        company:
+            company,
+
+        agency_id:
+            agencyId,
+
+        agency_name:
+            selectedAgency?.dataset?.name ||
+            "",
+
+        agency_code:
+            selectedAgency?.dataset?.code ||
+            "",
+
+        agency_mobile:
+            selectedAgency?.dataset?.mobile ||
+            "",
+
+        agency_address:
+            selectedAgency?.dataset?.address ||
+            "",
+
+        saved_at:
+            new Date().toISOString()
+
+    };
+
+
+    /*
+     * SAVE LOCALLY
+     */
+
+    const localSaved =
+        saveDetailsLocally(
+            details
+        );
+
+
+    if (!localSaved) {
+
+        showMessage(
+            "Unable to save LPG details on this device.",
+            "error"
+        );
+
+        return false;
+
+    }
+
+
+    /*
+     * SAVE AGENCY ID TO USER PROFILE
+     *
+     * Supabase Auth UUID remains the real
+     * backend user identity.
+     *
+     * EGC000001 etc. will be handled separately
+     * as the visible user ID.
+     */
+
+    if (supabaseClient) {
+
+        const user =
+            await getCurrentUser();
+
+
+        if (user) {
+
+            try {
+
+                const {
+                    error
+                } =
+                    await supabaseClient
+                        .from("profiles")
+                        .update({
+
+                            agency_id:
+                                agencyId,
+
+                            updated_at:
+                                new Date().toISOString()
+
+                        })
+                        .eq(
+                            "id",
+                            user.id
+                        );
+
+
+                if (error) {
+
+                    console.error(
+                        "Profile update error:",
+                        error
+                    );
+
+                    /*
+                     * Do not block the user here.
+                     * LPG details are already saved locally.
+                     */
+
+                } else {
+
+                    console.log(
+                        "Agency ID saved to profile."
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Profile update exception:",
+                    error
+                );
+
+            }
+
+        } else {
+
+            console.warn(
+                "No logged-in user found."
+            );
+
+        }
+
+    }
+
+
+    /*
+     * SAVE CURRENT FLOW STATE
+     *
+     * Verification page can continue
+     * from this point.
+     */
+
+    localStorage.setItem(
+        "egc_current_step",
+        "verification"
+    );
+
+
+    localStorage.setItem(
+        "egc_lpg_completed_at",
+        new Date().toISOString()
+    );
+
+
+    console.log(
+        "LPG details saved:",
+        details
+    );
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   CONTINUE BUTTON
+========================================================= */
+
+continueBtn.addEventListener(
+    "click",
+    async function() {
+
+        clearMessage();
+
+        continueBtn.disabled =
+            true;
+
+        continueBtn.textContent =
+            "SAVING...";
+
+
+        const saved =
+            await saveDetails();
+
+
+        if (saved) {
+
+            showMessage(
+                "LPG details saved successfully. Opening verification...",
+                "success"
+            );
+
+
+            setTimeout(
+                function() {
+
+                    window.location.href =
+                        "verification.html";
+
+                },
+                700
+            );
+
+
+        } else {
+
+            continueBtn.disabled =
+                false;
+
+            continueBtn.textContent =
+                "CONTINUE →";
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   STATE CHANGE
+========================================================= */
+
+stateSelect.addEventListener(
+    "change",
+    function() {
+
+        loadDistricts();
+
+        clearMessage();
+
+    }
+);
+
+
+/* =========================================================
+   DISTRICT CHANGE
+========================================================= */
+
+districtSelect.addEventListener(
+    "change",
+    function() {
+
+        loadCities();
+
+        clearMessage();
+
+    }
+);
+
+
+/* =========================================================
+   CITY CHANGE
+========================================================= */
+
+citySelect.addEventListener(
+    "change",
+    async function() {
+
+        clearMessage();
+
+        if (
+            companySelect.value
+        ) {
+
+            await loadAgencies();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   COMPANY CHANGE
+========================================================= */
+
+companySelect.addEventListener(
+    "change",
+    async function() {
+
+        clearMessage();
+
+        await loadAgencies();
+
+    }
+);
+
+
+/* =========================================================
+   AGENCY CHANGE
+========================================================= */
+
+agencySelect.addEventListener(
+    "change",
+    function() {
+
+        clearMessage();
+
+    }
+);
+
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+backBtn.addEventListener(
+    "click",
+    function() {
+
+        if (
+            document.referrer &&
+            document.referrer !==
+            window.location.href
+        ) {
+
+            history.back();
+
+        } else {
+
+            window.location.href =
+                "dashboard.html";
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   START PAGE
+========================================================= */
+
+async function initializePage() {
+
+    loadStates();
+
+    loadCompanies();
+
+    resetAgency(
+        "Select LPG Company first"
+    );
+
+    await loadSavedDetails();
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+initializePage();
+
+</script>
+
+</body>
+</html>

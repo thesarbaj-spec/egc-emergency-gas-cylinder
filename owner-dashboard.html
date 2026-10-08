@@ -1,0 +1,4000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Owner Dashboard</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #ffffff;
+}
+
+button{
+    font-family:inherit;
+}
+
+.app{
+    min-height:100vh;
+}
+
+/* ================= HEADER ================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.94);
+    border-bottom:1px solid rgba(215,225,235,.9);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+    display:none;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* ================= NOTIFICATION ================= */
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:46px;
+    height:46px;
+    border:0;
+    border-radius:13px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:21px;
+    cursor:pointer;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.notification-btn:hover{
+    background:#e2f1ff;
+}
+
+.notification-badge{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    display:none;
+    position:absolute;
+    top:58px;
+    right:0;
+    width:330px;
+    max-width:calc(100vw - 28px);
+    background:#fff;
+    border:1px solid #e1eaf1;
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(30,70,100,.18);
+    overflow:hidden;
+    z-index:5000;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-header{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notification-title{
+    font-size:15px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.clear-notifications{
+    border:0;
+    background:transparent;
+    color:#0878d1;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.notification-list{
+    max-height:320px;
+    overflow-y:auto;
+}
+
+.notification-empty{
+    padding:28px 18px;
+    text-align:center;
+    color:#91a1af;
+    font-size:12px;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #edf2f6;
+    cursor:pointer;
+}
+
+.notification-item:hover{
+    background:#f8fbff;
+}
+
+.notification-item-title{
+    font-size:12px;
+    font-weight:800;
+    color:#075080;
+}
+
+.notification-item-text{
+    font-size:11px;
+    color:#7e93a5;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+.notification-item-time{
+    font-size:9px;
+    color:#a0adb8;
+    margin-top:5px;
+}
+
+/* ================= LAYOUT ================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+    width:245px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,245,245,.98) 0%,
+            rgba(242,248,255,.98) 52%,
+            rgba(255,255,255,.98) 100%
+        );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:13px;
+    font-weight:800;
+    opacity:.9;
+    padding:0 13px 12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:13px 14px;
+    border-radius:11px;
+    margin-bottom:5px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.nav-btn:hover{
+    background:rgba(225,239,252,.8);
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-block;
+    width:25px;
+    font-size:17px;
+}
+
+.nav-pending{
+    display:none;
+    float:right;
+    min-width:20px;
+    height:20px;
+    padding:0 6px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+}
+
+/* SIDEBAR BOTTOM */
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+/* ================= MAIN ================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+    background:
+        radial-gradient(circle at 85% 15%,rgba(190,225,255,.25),transparent 32%),
+        radial-gradient(circle at 10% 85%,rgba(255,205,205,.22),transparent 30%);
+}
+
+.welcome{
+    margin-bottom:25px;
+}
+
+.welcome h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.welcome p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+/* ================= STAT CARDS ================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:15px;
+    margin-bottom:28px;
+}
+
+.stat-card{
+    background:rgba(255,255,255,.92);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:17px;
+    padding:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    min-width:0;
+    transition:.2s;
+}
+
+.stat-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 32px rgba(50,80,110,.10);
+}
+
+.stat-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.stat-icon{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    background:linear-gradient(135deg,#eef8ff,#fff1f1);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+}
+
+.stat-number{
+    font-size:28px;
+    font-weight:800;
+    color:#06477f;
+    margin-top:14px;
+}
+
+.stat-name{
+    color:#8093a4;
+    font-size:11px;
+    font-weight:700;
+    margin-top:4px;
+}
+
+.stat-link{
+    color:#0878d1;
+    font-size:11px;
+    font-weight:700;
+    margin-top:12px;
+    cursor:pointer;
+}
+
+/* PENDING CARD */
+
+.pending-card{
+    border-color:#ffe2a8;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,252,241,.98),
+            rgba(255,255,255,.96)
+        );
+}
+
+.pending-card .stat-number{
+    color:#a36b00;
+}
+
+.pending-card .stat-icon{
+    background:#fff7df;
+}
+
+/* ================= CONTENT ================= */
+
+.content-grid{
+    display:grid;
+    grid-template-columns:1.35fr .85fr;
+    gap:20px;
+}
+
+.panel{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+}
+
+.panel-header{
+    padding:20px 21px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.panel-title{
+    font-size:18px;
+    color:#06477f;
+    font-weight:800;
+}
+
+.panel-subtitle{
+    font-size:12px;
+    color:#8799a9;
+    margin-top:4px;
+}
+
+.view-btn{
+    border:0;
+    background:#eef7ff;
+    color:#0871c3;
+    padding:8px 12px;
+    border-radius:9px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.view-btn:hover{
+    background:#e1f1ff;
+}
+
+/* ================= QUICK ACTIONS ================= */
+
+.quick-actions{
+    padding:20px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.quick-btn{
+    min-height:85px;
+    border:1px solid #e1eaf1;
+    background:linear-gradient(135deg,#ffffff,#f8fbff);
+    border-radius:13px;
+    cursor:pointer;
+    text-align:left;
+    padding:15px;
+    color:#075080;
+    transition:.2s;
+}
+
+.quick-btn:hover{
+    border-color:#b7d5ed;
+    background:linear-gradient(135deg,#f2f9ff,#fff5f5);
+    transform:translateY(-1px);
+}
+
+.quick-icon{
+    font-size:22px;
+    margin-bottom:8px;
+}
+
+.quick-title{
+    font-size:13px;
+    font-weight:800;
+}
+
+.quick-text{
+    font-size:11px;
+    color:#8a9baa;
+    margin-top:4px;
+}
+
+/* ================= TABLE ================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:650px;
+}
+
+th{
+    background:#f7fafc;
+    color:#71889a;
+    font-size:11px;
+    text-transform:uppercase;
+    padding:13px 15px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:14px 15px;
+    border-top:1px solid #edf2f6;
+    color:#35566f;
+    font-size:13px;
+}
+
+.status{
+    display:inline-flex;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.status.pending{
+    background:#fff7df;
+    color:#a36b00;
+}
+
+.status.completed{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.processing{
+    background:#edf6ff;
+    color:#086db7;
+}
+
+.status.rejected{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.status.approved{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.empty{
+    text-align:center;
+    padding:35px 20px;
+    color:#91a1af;
+    font-size:13px;
+}
+
+/* ================= AGENCIES ================= */
+
+.agency-list{
+    padding:8px 20px 20px;
+}
+
+.agency-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 0;
+    border-bottom:1px solid #edf2f6;
+}
+
+.agency-item:last-child{
+    border-bottom:0;
+}
+
+.agency-info{
+    min-width:0;
+}
+
+.agency-name{
+    font-size:13px;
+    font-weight:800;
+    color:#315671;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.agency-location{
+    font-size:11px;
+    color:#91a0ac;
+    margin-top:4px;
+}
+
+.agency-company{
+    font-size:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    padding:5px 8px;
+    border-radius:8px;
+    white-space:nowrap;
+}
+
+/* ================= FLOW PANEL ================= */
+
+.flow-panel{
+    margin-top:20px;
+}
+
+.flow-content{
+    padding:20px;
+}
+
+.flow-step{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:11px 0;
+}
+
+.flow-number{
+    width:31px;
+    height:31px;
+    border-radius:50%;
+    background:#eef7ff;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:800;
+    flex-shrink:0;
+}
+
+.flow-text{
+    min-width:0;
+}
+
+.flow-title{
+    font-size:12px;
+    font-weight:800;
+    color:#315671;
+}
+
+.flow-sub{
+    font-size:10px;
+    color:#8b9daa;
+    margin-top:3px;
+}
+
+.flow-line{
+    width:1px;
+    height:10px;
+    background:#dce8f0;
+    margin-left:15px;
+}
+
+/* ================= LOGOUT MODAL ================= */
+
+.logout-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    background:rgba(5,35,58,.45);
+    z-index:99999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-card{
+    width:100%;
+    max-width:520px;
+    background:#ffffff;
+    border-radius:22px;
+    padding:30px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    text-align:center;
+    animation:logoutPopup .18s ease;
+}
+
+@keyframes logoutPopup{
+    from{
+        opacity:0;
+        transform:scale(.95) translateY(8px);
+    }
+    to{
+        opacity:1;
+        transform:scale(1) translateY(0);
+    }
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 16px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:27px;
+}
+
+.logout-title{
+    font-size:21px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:8px;
+}
+
+.logout-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin-bottom:22px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    width:100%;
+}
+
+.logout-cancel,
+.logout-confirm{
+    width:100%;
+    height:48px;
+    min-height:48px;
+    border:0;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-cancel:hover{
+    background:#e3edf3;
+}
+
+.logout-confirm{
+    background:#d93636;
+    color:#ffffff;
+}
+
+.logout-confirm:hover{
+    background:#c62d2d;
+}
+
+.logout-confirm:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* ================= OVERLAY ================= */
+
+.overlay{
+    display:none;
+}
+
+/* ================= TABLET ================= */
+
+@media(max-width:1200px){
+
+    .stats{
+        grid-template-columns:repeat(3,1fr);
+    }
+}
+
+@media(max-width:1000px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .content-grid{
+        grid-template-columns:1fr;
+    }
+
+    .sidebar{
+        width:220px;
+    }
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle{
+        display:none;
+    }
+
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        gap:7px;
+    }
+
+    .notification-btn{
+        width:42px;
+        height:42px;
+        border-radius:11px;
+        font-size:19px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:76px;
+        right:14px;
+        width:330px;
+        max-width:calc(100vw - 28px);
+    }
+
+    .layout{
+        display:block;
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:200;
+        transition:.25s;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .main{
+        padding:20px 14px 40px;
+    }
+
+    .welcome h1{
+        font-size:23px;
+    }
+
+    .welcome p{
+        font-size:13px;
+        line-height:1.5;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+        gap:11px;
+        margin-bottom:20px;
+    }
+
+    .stat-card{
+        padding:14px;
+        border-radius:14px;
+    }
+
+    .stat-icon{
+        width:37px;
+        height:37px;
+        border-radius:10px;
+        font-size:18px;
+    }
+
+    .stat-number{
+        font-size:23px;
+        margin-top:11px;
+    }
+
+    .stat-name{
+        font-size:10px;
+        line-height:1.3;
+    }
+
+    .stat-link{
+        font-size:10px;
+        margin-top:9px;
+    }
+
+    .content-grid{
+        gap:14px;
+    }
+
+    .panel{
+        border-radius:15px;
+    }
+
+    .panel-header{
+        padding:16px;
+    }
+
+    .panel-title{
+        font-size:16px;
+    }
+
+    .panel-subtitle{
+        font-size:10px;
+    }
+
+    .quick-actions{
+        padding:14px;
+        gap:9px;
+    }
+
+    .quick-btn{
+        min-height:78px;
+        padding:12px;
+    }
+
+    .quick-icon{
+        font-size:19px;
+        margin-bottom:6px;
+    }
+
+    .quick-title{
+        font-size:12px;
+    }
+
+    .quick-text{
+        font-size:10px;
+    }
+
+    .flow-content{
+        padding:15px;
+    }
+
+    .logout-modal{
+        padding:14px;
+    }
+
+    .logout-card{
+        width:100%;
+        max-width:430px;
+        padding:24px 16px;
+        border-radius:18px;
+    }
+
+    .logout-title{
+        font-size:20px;
+    }
+
+    .logout-text{
+        font-size:12px;
+        margin-bottom:18px;
+    }
+
+    .logout-actions{
+        display:grid !important;
+        grid-template-columns:1fr 1fr !important;
+        gap:9px !important;
+    }
+
+    .logout-cancel,
+    .logout-confirm{
+        width:100% !important;
+        height:46px !important;
+        min-height:46px !important;
+        font-size:13px;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:150;
+    }
+}
+
+@media(max-width:420px){
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .stat-card{
+        padding:12px;
+    }
+
+    .stat-number{
+        font-size:21px;
+    }
+
+    .quick-actions{
+        grid-template-columns:1fr 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="owner-badge">
+            <span class="owner-dot"></span>
+            Owner
+        </div>
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+                title="Notifications"
+            >
+                🔔
+
+                <span
+                    class="notification-badge"
+                    id="notificationBadge"
+                >
+                    0
+                </span>
+
+            </button>
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-header">
+
+                    <div class="notification-title">
+                        Notifications
+                    </div>
+
+                    <button
+                        class="clear-notifications"
+                        id="clearNotifications"
+                        type="button"
+                    >
+                        Clear
+                    </button>
+
+                </div>
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        No new notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<div class="layout">
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+    <!-- EXISTING BUTTONS -->
+
+    <button
+        class="nav-btn active"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="pending"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+
+        <span
+            class="nav-pending"
+            id="sidebarPendingBadge"
+        >
+            0
+        </span>
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+    <!-- NEW REQUIRED BUTTONS -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:25px;"
+    >
+        Owner Pages
+    </div>
+
+    <button
+        class="nav-btn"
+        data-page="request-details"
+        type="button"
+    >
+        <span class="nav-icon">📄</span>
+        Request Details
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="payment-details"
+        type="button"
+    >
+        <span class="nav-icon">💳</span>
+        Payment Details
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="deliveries"
+        type="button"
+    >
+        <span class="nav-icon">🚚</span>
+        Deliveries
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="repayments"
+        type="button"
+    >
+        <span class="nav-icon">💰</span>
+        Repayments
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="notifications"
+        type="button"
+    >
+        <span class="nav-icon">🔔</span>
+        Notifications
+    </button>
+
+    <button
+        class="nav-btn"
+        data-page="slips"
+        type="button"
+    >
+        <span class="nav-icon">🧾</span>
+        Slips
+    </button>
+
+
+    <!-- EXISTING SYSTEM -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:25px;"
+    >
+        System
+    </div>
+
+    <button
+        class="nav-btn"
+        data-page="settings"
+        type="button"
+    >
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<main class="main">
+
+    <div class="welcome">
+
+        <h1>
+            Owner Dashboard
+        </h1>
+
+        <p>
+            Manage users, agencies, cylinder requests, approvals and payments.
+        </p>
+
+    </div>
+
+
+    <section class="stats">
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+
+                <div>
+
+                    <div class="stat-name">
+                        TOTAL USERS
+                    </div>
+
+                    <div
+                        class="stat-number"
+                        id="totalUsers"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="stat-icon">
+                    👥
+                </div>
+
+            </div>
+
+            <div
+                class="stat-link"
+                data-page="users"
+            >
+                View Users →
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+
+                <div>
+
+                    <div class="stat-name">
+                        TOTAL AGENCIES
+                    </div>
+
+                    <div
+                        class="stat-number"
+                        id="totalAgencies"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="stat-icon">
+                    🏪
+                </div>
+
+            </div>
+
+            <div
+                class="stat-link"
+                data-page="agencies"
+            >
+                Manage Agencies →
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+
+                <div>
+
+                    <div class="stat-name">
+                        LPG COMPANIES
+                    </div>
+
+                    <div
+                        class="stat-number"
+                        id="totalCompanies"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="stat-icon">
+                    🏢
+                </div>
+
+            </div>
+
+            <div
+                class="stat-link"
+                data-page="companies"
+            >
+                Manage Companies →
+            </div>
+
+        </div>
+
+
+        <div class="stat-card pending-card">
+
+            <div class="stat-top">
+
+                <div>
+
+                    <div class="stat-name">
+                        PENDING APPROVALS
+                    </div>
+
+                    <div
+                        class="stat-number"
+                        id="pendingRequests"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="stat-icon">
+                    ⏳
+                </div>
+
+            </div>
+
+            <div
+                class="stat-link"
+                data-page="pending"
+            >
+                Review Requests →
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-top">
+
+                <div>
+
+                    <div class="stat-name">
+                        TOTAL REQUESTS
+                    </div>
+
+                    <div
+                        class="stat-number"
+                        id="totalRequests"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="stat-icon">
+                    🛢
+                </div>
+
+            </div>
+
+            <div
+                class="stat-link"
+                data-page="requests"
+            >
+                View Requests →
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="content-grid">
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <div class="panel-title">
+                        Recent Cylinder Requests
+                    </div>
+
+                    <div class="panel-subtitle">
+                        Latest requests received from users
+                    </div>
+
+                </div>
+
+                <button
+                    class="view-btn"
+                    data-page="requests"
+                    type="button"
+                >
+                    View All
+                </button>
+
+            </div>
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Request ID</th>
+                            <th>Agency</th>
+                            <th>City</th>
+                            <th>Status</th>
+                            <th>Date</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="requestTableBody">
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="empty"
+                            >
+                                Loading requests...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <div>
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <div class="panel-title">
+                            Quick Actions
+                        </div>
+
+                        <div class="panel-subtitle">
+                            Owner control center
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="quick-actions">
+
+                    <button
+                        class="quick-btn"
+                        data-page="pending"
+                        type="button"
+                    >
+
+                        <div class="quick-icon">
+                            ⏳
+                        </div>
+
+                        <div class="quick-title">
+                            Pending Approvals
+                        </div>
+
+                        <div class="quick-text">
+                            Review and approve user requests
+                        </div>
+
+                    </button>
+
+
+                    <button
+                        class="quick-btn"
+                        data-page="payments"
+                        type="button"
+                    >
+
+                        <div class="quick-icon">
+                            ₹
+                        </div>
+
+                        <div class="quick-title">
+                            Payments
+                        </div>
+
+                        <div class="quick-text">
+                            Verify submitted payments
+                        </div>
+
+                    </button>
+
+
+                    <button
+                        class="quick-btn"
+                        data-page="users"
+                        type="button"
+                    >
+
+                        <div class="quick-icon">
+                            👤
+                        </div>
+
+                        <div class="quick-title">
+                            Users
+                        </div>
+
+                        <div class="quick-text">
+                            View registered users
+                        </div>
+
+                    </button>
+
+
+                    <button
+                        class="quick-btn"
+                        data-page="agencies"
+                        type="button"
+                    >
+
+                        <div class="quick-icon">
+                            🏪
+                        </div>
+
+                        <div class="quick-title">
+                            Agencies
+                        </div>
+
+                        <div class="quick-text">
+                            Manage LPG agencies
+                        </div>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="panel"
+                style="margin-top:20px;"
+            >
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <div class="panel-title">
+                            LPG Agencies
+                        </div>
+
+                        <div class="panel-subtitle">
+                            Recently added agencies
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="view-btn"
+                        data-page="agencies"
+                        type="button"
+                    >
+                        View All
+                    </button>
+
+                </div>
+
+
+                <div
+                    class="agency-list"
+                    id="agencyList"
+                >
+
+                    <div class="empty">
+                        Loading agencies...
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel flow-panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <div class="panel-title">
+                            EGC Request Flow
+                        </div>
+
+                        <div class="panel-subtitle">
+                            Owner-side request lifecycle
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="flow-content">
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            1
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                User submits request
+                            </div>
+
+                            <div class="flow-sub">
+                                LPG details, verification and scheme are saved.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            2
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Owner reviews request
+                            </div>
+
+                            <div class="flow-sub">
+                                Owner checks user and request details.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            3
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Owner approves
+                            </div>
+
+                            <div class="flow-sub">
+                                User becomes eligible for initial payment.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            4
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Initial payment verification
+                            </div>
+
+                            <div class="flow-sub">
+                                Owner verifies the ₹200 payment.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            5
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Agency processing
+                            </div>
+
+                            <div class="flow-sub">
+                                Selected agency processes and delivers cylinder.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            6
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Repayment
+                            </div>
+
+                            <div class="flow-sub">
+                                Remaining payment and applicable charge are handled.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <div class="flow-step">
+
+                        <div class="flow-number">
+                            7
+                        </div>
+
+                        <div class="flow-text">
+
+                            <div class="flow-title">
+                                Owner final approval
+                            </div>
+
+                            <div class="flow-sub">
+                                After full repayment the request can be completed.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+</div>
+
+</div>
+
+
+<!-- LOGOUT CONFIRMATION POPUP -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout Confirmation
+        </div>
+
+        <div class="logout-text">
+            Kya aap EGC Owner Panel se logout karna chahte hain?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                type="button"
+                class="logout-cancel"
+                id="logoutCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="logout-confirm"
+                id="logoutConfirm"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const totalUsers =
+document.getElementById("totalUsers");
+
+const totalAgencies =
+document.getElementById("totalAgencies");
+
+const totalCompanies =
+document.getElementById("totalCompanies");
+
+const totalRequests =
+document.getElementById("totalRequests");
+
+const pendingRequests =
+document.getElementById("pendingRequests");
+
+const sidebarPendingBadge =
+document.getElementById("sidebarPendingBadge");
+
+const requestTableBody =
+document.getElementById("requestTableBody");
+
+const agencyList =
+document.getElementById("agencyList");
+
+const logoutBtn =
+document.getElementById("logoutBtn");
+
+const logoutModal =
+document.getElementById("logoutModal");
+
+const logoutCancel =
+document.getElementById("logoutCancel");
+
+const logoutConfirm =
+document.getElementById("logoutConfirm");
+
+const menuBtn =
+document.getElementById("menuBtn");
+
+const sidebar =
+document.getElementById("sidebar");
+
+const overlay =
+document.getElementById("overlay");
+
+const notificationBtn =
+document.getElementById("notificationBtn");
+
+const notificationPanel =
+document.getElementById("notificationPanel");
+
+const notificationBadge =
+document.getElementById("notificationBadge");
+
+const notificationList =
+document.getElementById("notificationList");
+
+const clearNotifications =
+document.getElementById("clearNotifications");
+
+
+/* =====================================================
+   MASTER OWNER PAGE ROUTES
+   IMPORTANT:
+   Pending Approvals = owner-pending-approvals.html
+===================================================== */
+
+const OWNER_PAGE_ROUTES = Object.freeze({
+
+    dashboard:
+        "owner-dashboard.html",
+
+    users:
+        "owner-users.html",
+
+    agencies:
+        "owner-agencies.html",
+
+    companies:
+        "owner-companies.html",
+
+    pending:
+        "owner-pending.html",
+
+    requests:
+        "owner-requests.html",
+
+    payments:
+        "owner-payments.html",
+
+    reports:
+        "owner-reports.html",
+
+    "request-details":
+        "owner-request-details.html",
+
+    "payment-details":
+        "owner-payment-details.html",
+
+    "agency-details":
+        "owner-agency-details.html",
+
+    deliveries:
+        "owner-deliveries.html",
+
+    repayments:
+        "owner-repayments.html",
+
+    notifications:
+        "owner-notifications.html",
+
+    slips:
+        "owner-slips.html",
+
+    profile:
+        "owner-profile.html",
+
+    settings:
+        "owner-settings.html"
+
+});
+
+
+/* =====================================================
+   SAFE PAGE NAVIGATION
+===================================================== */
+
+function openPage(page){
+
+    if(!page){
+        console.warn("No page supplied.");
+        return;
+    }
+
+    const route =
+        OWNER_PAGE_ROUTES[page];
+
+    if(!route){
+
+        console.error(
+            "Unknown Owner Panel page:",
+            page
+        );
+
+        return;
+    }
+
+    /*
+       Close mobile sidebar before navigation.
+    */
+
+    if(sidebar){
+        sidebar.classList.remove("open");
+    }
+
+    if(overlay){
+        overlay.classList.remove("show");
+    }
+
+    /*
+       Use an explicit relative URL so every
+       data-page always goes to its own file.
+    */
+
+    const targetURL =
+        new URL(
+            route,
+            window.location.href
+        ).href;
+
+    console.log(
+        "EGC Owner Navigation:",
+        page,
+        "=>",
+        route
+    );
+
+    window.location.assign(
+        targetURL
+    );
+
+}
+
+
+/* =====================================================
+   ALL SIDEBAR / QUICK ACTION / STAT NAVIGATION
+===================================================== */
+
+document
+.querySelectorAll("[data-page]")
+.forEach(element => {
+
+    element.addEventListener(
+        "click",
+        function(event){
+
+            /*
+               Prevent any parent click from
+               interfering with navigation.
+            */
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const page =
+                this.getAttribute("data-page");
+
+            openPage(page);
+
+        }
+    );
+
+});
+
+
+/* =====================================================
+   MOBILE MENU
+===================================================== */
+
+if(menuBtn){
+
+    menuBtn.addEventListener(
+        "click",
+        function(event){
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if(!sidebar || !overlay){
+                return;
+            }
+
+            sidebar.classList.toggle("open");
+            overlay.classList.toggle("show");
+
+        }
+    );
+
+}
+
+
+if(overlay){
+
+    overlay.addEventListener(
+        "click",
+        function(){
+
+            if(sidebar){
+                sidebar.classList.remove("open");
+            }
+
+            overlay.classList.remove("show");
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   USER COUNT
+===================================================== */
+
+async function loadUserCount(){
+
+    try{
+
+        const {
+            count,
+            error
+        } =
+        await supabaseClient
+        .from("profiles")
+        .select("*",{
+            count:"exact",
+            head:true
+        })
+        .eq(
+            "role",
+            "customer"
+        );
+
+        if(error){
+
+            console.error(
+                "Customer user count error:",
+                error
+            );
+
+            if(totalUsers){
+                totalUsers.textContent = "—";
+            }
+
+            return;
+        }
+
+        if(totalUsers){
+            totalUsers.textContent =
+                count ?? 0;
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Customer user count exception:",
+            error
+        );
+
+        if(totalUsers){
+            totalUsers.textContent = "—";
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   AGENCY COUNT
+===================================================== */
+
+async function loadAgencyCount(){
+
+    try{
+
+        const {
+            count,
+            error
+        } =
+        await supabaseClient
+        .from("agencies")
+        .select("*",{
+            count:"exact",
+            head:true
+        })
+        .eq(
+            "is_active",
+            true
+        );
+
+        if(error){
+
+            console.error(
+                "Agency count error:",
+                error
+            );
+
+            if(totalAgencies){
+                totalAgencies.textContent = "—";
+            }
+
+            return;
+        }
+
+        if(totalAgencies){
+            totalAgencies.textContent =
+                count ?? 0;
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Agency count exception:",
+            error
+        );
+
+        if(totalAgencies){
+            totalAgencies.textContent = "—";
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   COMPANY COUNT
+===================================================== */
+
+async function loadCompanyCount(){
+
+    try{
+
+        const {
+            count,
+            error
+        } =
+        await supabaseClient
+        .from("lpg_companies")
+        .select("*",{
+            count:"exact",
+            head:true
+        });
+
+        if(error){
+
+            console.error(
+                "LPG company count error:",
+                error
+            );
+
+            if(totalCompanies){
+                totalCompanies.textContent = "—";
+            }
+
+            return;
+        }
+
+        if(totalCompanies){
+            totalCompanies.textContent =
+                count ?? 0;
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "LPG company count exception:",
+            error
+        );
+
+        if(totalCompanies){
+            totalCompanies.textContent = "—";
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   TOTAL REQUEST COUNT
+===================================================== */
+
+async function loadRequestCount(){
+
+    try{
+
+        const {
+            count,
+            error
+        } =
+        await supabaseClient
+        .from("cylinder_requests")
+        .select("*",{
+            count:"exact",
+            head:true
+        });
+
+        if(error){
+
+            console.warn(
+                "Request count error:",
+                error.message
+            );
+
+            if(totalRequests){
+                totalRequests.textContent = "0";
+            }
+
+            return;
+        }
+
+        if(totalRequests){
+            totalRequests.textContent =
+                count ?? 0;
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Request count exception:",
+            error
+        );
+
+        if(totalRequests){
+            totalRequests.textContent = "0";
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   PENDING APPROVAL COUNT
+===================================================== */
+
+async function loadPendingRequestCount(){
+
+    try{
+
+        const {
+            count,
+            error
+        } =
+        await supabaseClient
+        .from("cylinder_requests")
+        .select("*",{
+            count:"exact",
+            head:true
+        })
+        .eq(
+            "status",
+            "pending"
+        );
+
+        if(error){
+
+            console.warn(
+                "Pending request count error:",
+                error.message
+            );
+
+            if(pendingRequests){
+                pendingRequests.textContent = "0";
+            }
+
+            if(sidebarPendingBadge){
+                sidebarPendingBadge.style.display =
+                    "none";
+            }
+
+            return;
+        }
+
+        const countValue =
+            count ?? 0;
+
+        if(pendingRequests){
+            pendingRequests.textContent =
+                countValue;
+        }
+
+        if(sidebarPendingBadge){
+
+            if(countValue > 0){
+
+                sidebarPendingBadge.style.display =
+                    "inline-flex";
+
+                sidebarPendingBadge.textContent =
+                    countValue > 99
+                    ? "99+"
+                    : countValue;
+
+            }
+            else{
+
+                sidebarPendingBadge.style.display =
+                    "none";
+
+            }
+
+        }
+
+    }
+    catch(error){
+
+        console.error(
+            "Pending request count exception:",
+            error
+        );
+
+        if(pendingRequests){
+            pendingRequests.textContent = "0";
+        }
+
+        if(sidebarPendingBadge){
+            sidebarPendingBadge.style.display =
+                "none";
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   RECENT REQUESTS
+===================================================== */
+
+async function loadRecentRequests(){
+
+    if(!requestTableBody){
+        return;
+    }
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("cylinder_requests")
+        .select(`
+            id,
+            created_at,
+            status,
+            city,
+            agency_id
+        `)
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        )
+        .limit(5);
+
+        if(error){
+
+            console.warn(
+                "Request loading:",
+                error.message
+            );
+
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="empty"
+                    >
+                        No requests available yet.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        if(
+            !data ||
+            data.length === 0
+        ){
+
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="5"
+                        class="empty"
+                    >
+                        No cylinder requests yet.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        requestTableBody.innerHTML = "";
+
+        data.forEach(request => {
+
+            const tr =
+                document.createElement("tr");
+
+            const status =
+                String(
+                    request.status ||
+                    "Pending"
+                );
+
+            const statusLower =
+                status.toLowerCase();
+
+            let statusClass =
+                "pending";
+
+            if(
+                statusLower.includes("completed")
+            ){
+
+                statusClass =
+                    "completed";
+
+            }
+            else if(
+                statusLower.includes("processing")
+            ){
+
+                statusClass =
+                    "processing";
+
+            }
+            else if(
+                statusLower.includes("approved")
+            ){
+
+                statusClass =
+                    "approved";
+
+            }
+            else if(
+                statusLower.includes("rejected") ||
+                statusLower.includes("cancelled")
+            ){
+
+                statusClass =
+                    "rejected";
+
+            }
+
+            const date =
+                request.created_at
+                ? new Date(
+                    request.created_at
+                ).toLocaleDateString(
+                    "en-IN"
+                )
+                : "—";
+
+            const shortId =
+                request.id
+                ? String(
+                    request.id
+                ).substring(0,8)
+                : "—";
+
+            const agencyId =
+                request.agency_id
+                ? String(
+                    request.agency_id
+                ).substring(0,8)
+                : "—";
+
+            tr.innerHTML = `
+
+                <td>
+                    #${escapeHtml(shortId)}
+                </td>
+
+                <td>
+                    ${escapeHtml(agencyId)}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        request.city || "—"
+                    )}
+                </td>
+
+                <td>
+
+                    <span
+                        class="status ${statusClass}"
+                    >
+                        ${escapeHtml(status)}
+                    </span>
+
+                </td>
+
+                <td>
+                    ${escapeHtml(date)}
+                </td>
+
+            `;
+
+            /*
+               Clicking a recent request opens
+               Request Details instead of doing
+               nothing.
+            */
+
+            tr.style.cursor = "pointer";
+
+            tr.addEventListener(
+                "click",
+                function(){
+
+                    if(request.id){
+
+                        sessionStorage.setItem(
+                            "egc_selected_request_id",
+                            String(request.id)
+                        );
+
+                    }
+
+                    openPage(
+                        "request-details"
+                    );
+
+                }
+            );
+
+            requestTableBody.appendChild(tr);
+
+        });
+
+    }
+    catch(error){
+
+        console.error(
+            "Recent request error:",
+            error
+        );
+
+        requestTableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    Unable to load requests.
+                </td>
+            </tr>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   AGENCIES
+===================================================== */
+
+async function loadAgencies(){
+
+    if(!agencyList){
+        return;
+    }
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("agencies")
+        .select(`
+            id,
+            agency_name,
+            agency_code,
+            lpg_company,
+            state,
+            district,
+            city,
+            is_active
+        `)
+        .eq(
+            "is_active",
+            true
+        )
+        .order(
+            "agency_name",
+            {
+                ascending:true
+            }
+        )
+        .limit(5);
+
+        if(error){
+
+            console.error(
+                "Agency loading:",
+                error
+            );
+
+            agencyList.innerHTML = `
+                <div class="empty">
+                    Unable to load agencies.
+                </div>
+            `;
+
+            return;
+        }
+
+        if(
+            !data ||
+            data.length === 0
+        ){
+
+            agencyList.innerHTML = `
+                <div class="empty">
+                    No agencies added yet.
+                </div>
+            `;
+
+            return;
+        }
+
+        agencyList.innerHTML = "";
+
+        data.forEach(agency => {
+
+            const item =
+                document.createElement("div");
+
+            item.className =
+                "agency-item";
+
+            item.innerHTML = `
+
+                <div class="agency-info">
+
+                    <div class="agency-name">
+                        ${escapeHtml(
+                            agency.agency_name ||
+                            "Unnamed Agency"
+                        )}
+                    </div>
+
+                    <div class="agency-location">
+
+                        ${escapeHtml(
+                            agency.city || "—"
+                        )},
+
+                        ${escapeHtml(
+                            agency.district || "—"
+                        )},
+
+                        ${escapeHtml(
+                            agency.state || "—"
+                        )}
+
+                    </div>
+
+                </div>
+
+                <div class="agency-company">
+
+                    ${escapeHtml(
+                        agency.lpg_company ||
+                        "LPG"
+                    )}
+
+                </div>
+
+            `;
+
+            /*
+               Agency item opens Agency Details.
+            */
+
+            item.style.cursor = "pointer";
+
+            item.addEventListener(
+                "click",
+                function(){
+
+                    if(agency.id){
+
+                        sessionStorage.setItem(
+                            "egc_selected_agency_id",
+                            String(agency.id)
+                        );
+
+                    }
+
+                    openPage(
+                        "agency-details"
+                    );
+
+                }
+            );
+
+            agencyList.appendChild(
+                item
+            );
+
+        });
+
+    }
+    catch(error){
+
+        console.error(
+            "Agency exception:",
+            error
+        );
+
+        agencyList.innerHTML = `
+            <div class="empty">
+                Unable to load agencies.
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   NOTIFICATION SYSTEM
+===================================================== */
+
+let notifications = [];
+
+
+/* =====================================================
+   ADD NOTIFICATION
+===================================================== */
+
+function addNotification(notification){
+
+    if(!notification){
+        return;
+    }
+
+    notifications.unshift(
+        notification
+    );
+
+    if(
+        notifications.length > 30
+    ){
+
+        notifications =
+            notifications.slice(0,30);
+
+    }
+
+    renderNotifications();
+
+    showNotificationBadge();
+
+    if(
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ){
+
+        try{
+
+            new Notification(
+                notification.title ||
+                "EGC Notification",
+                {
+                    body:
+                    notification.text ||
+                    ""
+                }
+            );
+
+        }
+        catch(error){
+
+            console.warn(
+                "Browser notification error:",
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   SHOW NOTIFICATION BADGE
+===================================================== */
+
+function showNotificationBadge(){
+
+    if(!notificationBadge){
+        return;
+    }
+
+    const count =
+        notifications.length;
+
+    if(count > 0){
+
+        notificationBadge.style.display =
+            "flex";
+
+        notificationBadge.textContent =
+            count > 99
+            ? "99+"
+            : count;
+
+    }
+    else{
+
+        notificationBadge.style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =====================================================
+   RENDER NOTIFICATIONS
+===================================================== */
+
+function renderNotifications(){
+
+    if(!notificationList){
+        return;
+    }
+
+    if(
+        notifications.length === 0
+    ){
+
+        notificationList.innerHTML = `
+            <div class="notification-empty">
+                No new notifications
+            </div>
+        `;
+
+        showNotificationBadge();
+
+        return;
+
+    }
+
+    notificationList.innerHTML = "";
+
+    notifications.forEach(
+        notification => {
+
+            const item =
+                document.createElement("div");
+
+            item.className =
+                "notification-item";
+
+            item.innerHTML = `
+
+                <div class="notification-item-title">
+
+                    ${escapeHtml(
+                        notification.title ||
+                        "Notification"
+                    )}
+
+                </div>
+
+                <div class="notification-item-text">
+
+                    ${escapeHtml(
+                        notification.text ||
+                        ""
+                    )}
+
+                </div>
+
+                <div class="notification-item-time">
+
+                    ${escapeHtml(
+                        notification.time ||
+                        ""
+                    )}
+
+                </div>
+
+            `;
+
+            notificationList.appendChild(
+                item
+            );
+
+        }
+    );
+
+    showNotificationBadge();
+
+}
+
+
+/* =====================================================
+   SAFE HTML
+===================================================== */
+
+function escapeHtml(value){
+
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+/* =====================================================
+   NOTIFICATION TIME
+===================================================== */
+
+function formatNotificationTime(
+    timestamp = null
+){
+
+    const date =
+        timestamp
+        ? new Date(timestamp)
+        : new Date();
+
+    if(
+        Number.isNaN(
+            date.getTime()
+        )
+    ){
+
+        return new Date()
+        .toLocaleString(
+            "en-IN",
+            {
+                dateStyle:"short",
+                timeStyle:"short"
+            }
+        );
+
+    }
+
+    return date.toLocaleString(
+        "en-IN",
+        {
+            dateStyle:"short",
+            timeStyle:"short"
+        }
+    );
+
+}
+
+
+/* =====================================================
+   REALTIME NOTIFICATIONS
+===================================================== */
+
+function startRealtimeNotifications(){
+
+    try{
+
+        const channel =
+            supabaseClient
+            .channel(
+                "owner-dashboard-realtime"
+            );
+
+
+        /* NEW CYLINDER REQUEST */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"cylinder_requests"
+            },
+            payload => {
+
+                const request =
+                    payload.new || {};
+
+                addNotification({
+
+                    title:
+                        "New Cylinder Request",
+
+                    text:
+                        "A new cylinder request has been received" +
+                        (
+                            request.city
+                            ? " from " +
+                              request.city
+                            : "."
+                        ),
+
+                    time:
+                        formatNotificationTime(
+                            request.created_at
+                        )
+
+                });
+
+                loadRequestCount();
+                loadPendingRequestCount();
+                loadRecentRequests();
+
+            }
+        );
+
+
+        /* CYLINDER REQUEST UPDATE */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"UPDATE",
+                schema:"public",
+                table:"cylinder_requests"
+            },
+            payload => {
+
+                const request =
+                    payload.new || {};
+
+                addNotification({
+
+                    title:
+                        "Request Updated",
+
+                    text:
+                        "A cylinder request has been updated" +
+                        (
+                            request.status
+                            ? " to " +
+                              request.status
+                            : "."
+                        ),
+
+                    time:
+                        formatNotificationTime()
+
+                });
+
+                loadRequestCount();
+                loadPendingRequestCount();
+                loadRecentRequests();
+
+            }
+        );
+
+
+        /* DATABASE NOTIFICATION INSERT */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"INSERT",
+                schema:"public",
+                table:"notifications"
+            },
+            payload => {
+
+                const notification =
+                    payload.new || {};
+
+                const title =
+                    notification.title ||
+                    notification.notification_title ||
+                    "New Notification";
+
+                const text =
+                    notification.message ||
+                    notification.text ||
+                    notification.body ||
+                    notification.description ||
+                    "You have received a new notification.";
+
+                const time =
+                    notification.created_at ||
+                    notification.inserted_at ||
+                    null;
+
+                addNotification({
+
+                    title:title,
+
+                    text:text,
+
+                    time:
+                        formatNotificationTime(
+                            time
+                        )
+
+                });
+
+            }
+        );
+
+
+        /* DATABASE NOTIFICATION UPDATE */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event:"UPDATE",
+                schema:"public",
+                table:"notifications"
+            },
+            payload => {
+
+                const notification =
+                    payload.new || {};
+
+                const title =
+                    notification.title ||
+                    notification.notification_title ||
+                    "Notification Updated";
+
+                const text =
+                    notification.message ||
+                    notification.text ||
+                    notification.body ||
+                    notification.description ||
+                    "A notification has been updated.";
+
+                addNotification({
+
+                    title:title,
+
+                    text:text,
+
+                    time:
+                        formatNotificationTime(
+                            notification.created_at
+                        )
+
+                });
+
+            }
+        );
+
+
+        channel.subscribe(
+            status => {
+
+                console.log(
+                    "EGC REALTIME STATUS:",
+                    status
+                );
+
+            }
+        );
+
+
+        window.egcRealtimeChannel =
+            channel;
+
+    }
+    catch(error){
+
+        console.error(
+            "Realtime notification error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD EXISTING NOTIFICATIONS
+===================================================== */
+
+async function loadExistingNotifications(){
+
+    if(!notificationList){
+        return;
+    }
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+        .from("notifications")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        )
+        .limit(30);
+
+        if(error){
+
+            console.warn(
+                "Existing notifications could not be loaded:",
+                error.message
+            );
+
+            return;
+
+        }
+
+        if(
+            !data ||
+            data.length === 0
+        ){
+
+            renderNotifications();
+            return;
+
+        }
+
+        notifications =
+            data
+            .reverse()
+            .map(
+                notification => {
+
+                    return {
+
+                        title:
+                            notification.title ||
+                            notification.notification_title ||
+                            "Notification",
+
+                        text:
+                            notification.message ||
+                            notification.text ||
+                            notification.body ||
+                            notification.description ||
+                            "You have a new notification.",
+
+                        time:
+                            formatNotificationTime(
+                                notification.created_at
+                            )
+
+                    };
+
+                }
+            );
+
+        renderNotifications();
+
+    }
+    catch(error){
+
+        console.warn(
+            "Existing notification loading error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   BROWSER NOTIFICATION PERMISSION
+===================================================== */
+
+function requestNotificationPermission(){
+
+    if(
+        "Notification" in window &&
+        Notification.permission === "default"
+    ){
+
+        Notification.requestPermission()
+        .then(
+            permission => {
+
+                console.log(
+                    "Browser notification permission:",
+                    permission
+                );
+
+            }
+        )
+        .catch(
+            error =>
+                console.warn(
+                    "Notification permission:",
+                    error
+                )
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   NOTIFICATION BUTTON
+===================================================== */
+
+if(notificationBtn){
+
+    notificationBtn.addEventListener(
+        "click",
+        function(event){
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if(!notificationPanel){
+                return;
+            }
+
+            notificationPanel.classList.toggle(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CLEAR NOTIFICATIONS
+===================================================== */
+
+if(clearNotifications){
+
+    clearNotifications.addEventListener(
+        "click",
+        async function(event){
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            notifications = [];
+
+            renderNotifications();
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CLOSE NOTIFICATION PANEL
+===================================================== */
+
+document.addEventListener(
+    "click",
+    function(event){
+
+        if(
+            notificationPanel &&
+            notificationBtn &&
+            !notificationPanel.contains(
+                event.target
+            ) &&
+            !notificationBtn.contains(
+                event.target
+            )
+        ){
+
+            notificationPanel.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   LOGOUT POPUP
+===================================================== */
+
+if(logoutBtn){
+
+    logoutBtn.addEventListener(
+        "click",
+        function(event){
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if(sidebar){
+                sidebar.classList.remove(
+                    "open"
+                );
+            }
+
+            if(overlay){
+                overlay.classList.remove(
+                    "show"
+                );
+            }
+
+            if(logoutModal){
+
+                logoutModal.classList.add(
+                    "show"
+                );
+
+                document.body.style.overflow =
+                    "hidden";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CANCEL LOGOUT
+===================================================== */
+
+if(logoutCancel){
+
+    logoutCancel.addEventListener(
+        "click",
+        function(){
+
+            if(logoutModal){
+                logoutModal.classList.remove(
+                    "show"
+                );
+            }
+
+            document.body.style.overflow =
+                "";
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CLICK OUTSIDE LOGOUT POPUP
+===================================================== */
+
+if(logoutModal){
+
+    logoutModal.addEventListener(
+        "click",
+        function(event){
+
+            if(
+                event.target ===
+                logoutModal
+            ){
+
+                logoutModal.classList.remove(
+                    "show"
+                );
+
+                document.body.style.overflow =
+                    "";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CONFIRM LOGOUT
+===================================================== */
+
+if(logoutConfirm){
+
+    logoutConfirm.addEventListener(
+        "click",
+        async function(){
+
+            logoutConfirm.disabled =
+                true;
+
+            logoutConfirm.textContent =
+                "Logging out...";
+
+            try{
+
+                const {
+                    error
+                } =
+                await supabaseClient.auth
+                .signOut();
+
+                if(error){
+
+                    console.error(
+                        "Logout error:",
+                        error
+                    );
+
+                    logoutConfirm.disabled =
+                        false;
+
+                    logoutConfirm.textContent =
+                        "Logout";
+
+                    alert(
+                        "Logout failed. Please try again."
+                    );
+
+                    return;
+
+                }
+
+                window.location.replace(
+                    "owner-login.html"
+                );
+
+            }
+            catch(error){
+
+                console.error(
+                    "Logout exception:",
+                    error
+                );
+
+                logoutConfirm.disabled =
+                    false;
+
+                logoutConfirm.textContent =
+                    "Logout";
+
+                alert(
+                    "Logout failed. Please try again."
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   ESC KEY
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key !== "Escape"
+        ){
+            return;
+        }
+
+        if(
+            logoutModal &&
+            logoutModal.classList.contains(
+                "show"
+            )
+        ){
+
+            logoutModal.classList.remove(
+                "show"
+            );
+
+            document.body.style.overflow =
+                "";
+
+        }
+
+        if(notificationPanel){
+
+            notificationPanel.classList.remove(
+                "show"
+            );
+
+        }
+
+        if(sidebar){
+
+            sidebar.classList.remove(
+                "open"
+            );
+
+        }
+
+        if(overlay){
+
+            overlay.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   INITIALIZE DASHBOARD
+===================================================== */
+
+async function initDashboard(){
+
+    await Promise.all([
+
+        loadUserCount(),
+
+        loadAgencyCount(),
+
+        loadCompanyCount(),
+
+        loadRequestCount(),
+
+        loadPendingRequestCount(),
+
+        loadRecentRequests(),
+
+        loadAgencies(),
+
+        loadExistingNotifications()
+
+    ]);
+
+    startRealtimeNotifications();
+
+    requestNotificationPermission();
+
+}
+
+
+initDashboard();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EGC - Emergency Gas Cylinder</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      font-family:Arial, sans-serif;
+      background:#eef7fc;
+      color:#003e81;
+      overflow-x:hidden;
+    }
+
+    .app{
+      width:100%;
+      min-height:100vh;
+      background:#eef7fc;
+    }
+
+    /* ================= HEADER ================= */
+
+    .hero{
+      width:100%;
+      min-height:100vh;
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 15% 45%, rgba(255,255,255,.95), transparent 30%),
+        radial-gradient(circle at 85% 55%, rgba(255,255,255,.9), transparent 32%),
+        #eef7fc;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .top-content{
+      width:min(100%,1100px);
+      padding:38px 25px 0;
+      text-align:center;
+      position:relative;
+      z-index:3;
+    }
+
+    .logo{
+      width:min(450px,85vw);
+      max-height:230px;
+      object-fit:contain;
+      display:block;
+      margin:0 auto 0px;
+    }
+
+    .finance-title{
+      width:min(820px,88vw);
+      min-height:65px;
+      margin:0 auto;
+      padding:14px 25px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(90deg,#ffb900,#ffc515);
+      border-radius:40px;
+      color:#00418b;
+      font-size:clamp(20px,2.4vw,31px);
+      font-weight:800;
+      line-height:1.2;
+      box-shadow:0 10px 24px rgba(247,185,0,.18);
+    }
+
+    .description{
+      max-width:850px;
+      margin:45px auto 0;
+      color:#004080;
+      font-size:clamp(20px,2.5vw,30px);
+      line-height:1.45;
+      font-weight:700;
+    }
+
+    .divider{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      margin:24px auto 20px;
+    }
+
+    .divider span{
+      display:block;
+      width:95px;
+      height:7px;
+      border-radius:10px;
+    }
+
+    .divider .yellow{
+      background:#ffb900;
+    }
+
+    .divider .blue{
+      background:#0063c7;
+    }
+
+    /* ================= CYLINDER ================= */
+
+    .visual-area{
+      width:min(800px,90vw);
+      height:380px;
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:flex-end;
+      z-index:2;
+    }
+
+    .rings{
+      position:absolute;
+      width:330px;
+      height:330px;
+      left:50%;
+      bottom:15px;
+      transform:translateX(-50%);
+    }
+
+    .ring-yellow{
+      position:absolute;
+      width:230px;
+      height:300px;
+      border-left:8px solid #ffb900;
+      border-radius:50%;
+      transform:rotate(20deg);
+      left:25px;
+      top:20px;
+    }
+
+    .ring-blue{
+      position:absolute;
+      width:230px;
+      height:300px;
+      border-left:8px solid #0754a9;
+      border-radius:50%;
+      transform:rotate(20deg);
+      left:45px;
+      top:20px;
+    }
+
+    .cylinder{
+      position:absolute;
+      bottom:0;
+      left:50%;
+      transform:translateX(-50%);
+      width:755px;
+      height:450px;
+      object-fit:contain;
+      z-index:3;
+    }
+
+    .shield{
+      position:absolute;
+      width:120px;
+      height:150px;
+      right:calc(50% - 205px);
+      bottom:55px;
+      background:#0872d5;
+      clip-path:polygon(50% 0%,92% 16%,86% 78%,50% 100%,14% 78%,8% 16%);
+      z-index:4;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-size:48px;
+      font-weight:800;
+      text-shadow:0 2px 2px rgba(0,0,0,.15);
+    }
+
+    /* ================= BOTTOM ================= */
+
+    .bottom-section{
+      width:100%;
+      min-height:360px;
+      margin-top:-1px;
+      position:relative;
+      background:linear-gradient(180deg,#0754a9,#003e81);
+      color:white;
+      z-index:5;
+      padding:80px 25px 40px;
+    }
+
+    .bottom-section:before{
+      content:"";
+      position:absolute;
+      top:-35px;
+      left:-5%;
+      width:110%;
+      height:70px;
+      background:#ffb900;
+      border-radius:50% 50% 0 0 / 100% 100% 0 0;
+      z-index:-1;
+    }
+
+    .bottom-section:after{
+      content:"";
+      position:absolute;
+      top:-28px;
+      left:-5%;
+      width:110%;
+      height:55px;
+      background:#0754a9;
+      border-radius:50% 50% 0 0 / 100% 100% 0 0;
+      z-index:-1;
+    }
+
+    .features{
+      width:min(1050px,100%);
+      margin:auto;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:25px;
+    }
+
+    .feature{
+      text-align:center;
+    }
+
+    .feature-icon{
+      width:76px;
+      height:76px;
+      margin:0 auto 12px;
+      border-radius:50%;
+      border:4px solid rgba(255,255,255,.85);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-size:34px;
+      font-weight:bold;
+      box-shadow:0 5px 12px rgba(0,0,0,.15);
+    }
+
+    .feature:nth-child(1) .feature-icon{
+      background:#167be0;
+    }
+
+    .feature:nth-child(2) .feature-icon{
+      background:#16bd5b;
+    }
+
+    .feature:nth-child(3) .feature-icon{
+      background:#ff8b16;
+    }
+
+    .feature:nth-child(4) .feature-icon{
+      background:#a828d2;
+    }
+
+    .feature h3{
+      font-size:18px;
+      line-height:1.25;
+      font-weight:700;
+      color:#fff;
+    }
+
+    .powered{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:25px;
+      margin-top:48px;
+      font-size:22px;
+      font-weight:700;
+    }
+
+    .powered-line{
+      width:125px;
+      height:2px;
+      background:white;
+    }
+
+    .get-started{
+      display:block;
+      width:min(400px,90%);
+      margin:32px auto 0;
+      padding:17px 25px;
+      border:0;
+      border-radius:35px;
+      background:linear-gradient(90deg,#ffb900,#ffc515);
+      color:#00418b;
+      font-size:18px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 8px 18px rgba(0,0,0,.15);
+      transition:.2s;
+    }
+
+    .get-started:hover{
+      transform:translateY(-2px);
+    }
+
+    /* ================= TABLET ================= */
+
+    @media(max-width:800px){
+
+      .top-content{
+        padding-top:28px;
+      }
+
+      .logo{
+        width:85vw;
+        max-height:100px;
+      }
+
+      .finance-title{
+        font-size:22px;
+        min-height:60px;
+        padding:12px 20px;
+      }
+
+      .description{
+        margin-top:35px;
+        font-size:22px;
+      }
+
+      .visual-area{
+        height:330px;
+      }
+
+      .cylinder{
+        width:180px;
+        height:250px;
+      }
+
+      .rings{
+        transform:translateX(-50%) scale(.82);
+        bottom:0;
+      }
+
+      .shield{
+        width:95px;
+        height:120px;
+        right:calc(50% - 175px);
+        bottom:45px;
+        font-size:38px;
+      }
+
+      .bottom-section{
+        padding-top:70px;
+      }
+
+      .features{
+        gap:12px;
+      }
+
+      .feature-icon{
+        width:65px;
+        height:65px;
+        font-size:29px;
+      }
+
+      .feature h3{
+        font-size:14px;
+      }
+
+      .powered{
+        font-size:18px;
+      }
+    }
+
+    /* ================= MOBILE ================= */
+
+    @media(max-width:500px){
+
+      .hero{
+        min-height:auto;
+      }
+
+      .top-content{
+        padding:24px 15px 0;
+      }
+
+      .logo{
+        width:50vw;
+        max-height:150px;
+        margin-bottom:1px;
+      }
+
+      .finance-title{
+        width:92vw;
+        min-height:60px;
+        padding:10px 16px;
+        border-radius:35px;
+        font-size:19px;
+      }
+
+      .description{
+        width:92vw;
+        margin-top:32px;
+        font-size:20px;
+        line-height:1.4;
+      }
+
+      .divider{
+        margin:18px auto 10px;
+      }
+
+      .divider span{
+        width:70px;
+        height:6px;
+      }
+
+      .visual-area{
+        width:100%;
+        height:330px;
+      }
+
+      .rings{
+        width:280px;
+        height:280px;
+        bottom:0;
+        transform:translateX(-50%) scale(.72);
+      }
+
+      .cylinder{
+        width:450px;
+        height:350px;
+        bottom:0;
+      }
+
+      .shield{
+        width:78px;
+        height:100px;
+        right:calc(50% - 145px);
+        bottom:35px;
+        font-size:32px;
+      }
+
+      .bottom-section{
+        min-height:350px;
+        padding:65px 12px 30px;
+      }
+
+      .features{
+        grid-template-columns:repeat(4,1fr);
+        gap:4px;
+      }
+
+      .feature-icon{
+        width:62px;
+        height:62px;
+        font-size:27px;
+        border-width:3px;
+      }
+
+      .feature h3{
+        font-size:12px;
+      }
+
+      .powered{
+        gap:10px;
+        margin-top:35px;
+        font-size:16px;
+      }
+
+      .powered-line{
+        width:55px;
+      }
+
+      .get-started{
+        width:88%;
+        margin-top:25px;
+        padding:15px;
+        font-size:16px;
+      }
+    }
+
+    @media(max-width:360px){
+
+      .description{
+        font-size:18px;
+      }
+
+      .finance-title{
+        font-size:17px;
+      }
+
+      .feature-icon{
+        width:55px;
+        height:55px;
+        font-size:23px;
+      }
+
+      .feature h3{
+        font-size:10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <section class="hero">
+
+      <div class="top-content">
+
+        <!-- APNA LOGO LINK YAHAN DALO -->
+        <img
+          class="logo"
+          src="assets/EGC - Emergency Gas Cylinder logo.png"
+          alt="EGC - Emergency Gas Cylinder"
+        >
+
+        <div class="finance-title">
+          Short-Term Emergency LPG Finance
+        </div>
+
+        <div class="description">
+          अचानक गैस खत्म होने पर,<br>
+          अधिकृत वित्तीय व्यवस्था के माध्यम से<br>
+          LPG Cylinder लेने में सहायता।
+        </div>
+
+        <div class="divider">
+          <span class="yellow"></span>
+          <span class="blue"></span>
+        </div>
+
+      </div>
+
+      <div class="visual-area">
+        </div>
+
+        <!-- APNI LPG CYLINDER IMAGE KA LINK YAHAN DALO -->
+        <img
+          class="cylinder"
+          src="assets/Cylinder logo.png"
+          alt="LPG Cylinder"
+        >
+
+      </div>
+
+    </section>
+
+    <section class="bottom-section">
+
+      <div class="features">
+
+        <div class="feature">
+          <div class="feature-icon">ϟ</div>
+          <h3>Quick<br>Finance</h3>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">✓</div>
+          <h3>Secure<br>&amp; Trusted</h3>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">▤</div>
+          <h3>Simple<br>Process</h3>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">₹</div>
+          <h3>Easy<br>Repayment</h3>
+        </div>
+
+      </div>
+
+      <div class="powered">
+        <span class="powered-line"></span>
+        <span>Powered by EGC</span>
+        <span class="powered-line"></span>
+      </div>
+
+      <button class="get-started" onclick="window.location.href='login.html'">
+        GET STARTED →
+      </button>
+
+    </section>
+
+  </div>
+
+  <script>
+    function startFinance(){
+      alert("EGC Finance process will start here.");
+    }
+  </script>
+
+</body>
+</html>

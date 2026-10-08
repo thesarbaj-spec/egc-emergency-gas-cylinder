@@ -1,0 +1,4629 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processing | EGC Agency</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#173f5f;
+    background:
+        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+        #eef7fc;
+}
+
+button,input,select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:72px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    z-index:1000;
+    box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:13px;
+}
+
+.menu-btn{
+    display:none;
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:22px;
+}
+
+.logo{
+    width:125px;
+    max-height:48px;
+    object-fit:contain;
+}
+
+.agency-title{
+    color:#06477f;
+    font-size:17px;
+    font-weight:800;
+}
+
+.agency-subtitle{
+    color:#91a1ae;
+    font-size:11px;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.bell-wrap{
+    position:relative;
+}
+
+.bell-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:12px;
+    background:#fff;
+    color:#0871c3;
+    font-size:19px;
+    position:relative;
+}
+
+.bell-btn.has-unread{
+    animation:bellPulse 1.8s infinite;
+}
+
+@keyframes bellPulse{
+    0%,100%{
+        box-shadow:0 0 0 0 rgba(8,113,195,.12);
+    }
+    50%{
+        box-shadow:0 0 0 7px rgba(8,113,195,0);
+    }
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:800;
+    border:2px solid #fff;
+}
+
+.notification-count.show{
+    display:flex;
+}
+
+
+/* =========================================================
+   NOTIFICATION POPUP
+========================================================= */
+
+.notification-popup{
+    position:fixed;
+    top:78px;
+    right:24px;
+    width:365px;
+    max-width:calc(100vw - 28px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:18px;
+    box-shadow:0 20px 60px rgba(20,70,100,.20);
+    z-index:3000;
+    display:none;
+    overflow:hidden;
+}
+
+.notification-popup.show{
+    display:block;
+}
+
+.notification-head{
+    padding:15px 16px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.notification-head-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:850;
+}
+
+.notification-head-sub{
+    color:#91a1ae;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.mark-all-btn{
+    border:0;
+    background:#edf7ff;
+    color:#0871c3;
+    border-radius:8px;
+    padding:7px 9px;
+    font-size:9px;
+    font-weight:800;
+}
+
+.notification-list{
+    max-height:370px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    gap:11px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.notification-item:hover{
+    background:#f8fcff;
+}
+
+.notification-item.unread{
+    background:#f1f8ff;
+}
+
+.notification-icon{
+    flex:0 0 36px;
+    width:36px;
+    height:36px;
+    border-radius:11px;
+    background:#eaf4ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+}
+
+.notification-content{
+    min-width:0;
+    flex:1;
+}
+
+.notification-title{
+    color:#31566f;
+    font-size:11px;
+    font-weight:850;
+    line-height:1.3;
+}
+
+.notification-message{
+    color:#718796;
+    font-size:9px;
+    line-height:1.45;
+    margin-top:3px;
+    word-break:break-word;
+}
+
+.notification-time{
+    color:#a0adb6;
+    font-size:8px;
+    margin-top:5px;
+}
+
+.notification-unread-dot{
+    width:7px;
+    height:7px;
+    background:#e53935;
+    border-radius:50%;
+    margin-top:5px;
+    flex:0 0 7px;
+}
+
+.notification-empty{
+    padding:30px 15px;
+    text-align:center;
+    color:#91a1ae;
+    font-size:10px;
+}
+
+.notification-footer{
+    border-top:1px solid #edf2f5;
+    padding:10px;
+    text-align:center;
+}
+
+.view-all-btn{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+}
+
+
+/* =========================================================
+   SIDEBAR - MASTER REPORTS DESIGN
+========================================================= */
+
+.sidebar{
+    position:fixed;
+    top:72px;
+    left:0;
+    bottom:0;
+    width:235px;
+    background:#fff;
+    border-right:1px solid #dce8f1;
+    padding:22px 14px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#9aaab5;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    padding:0 11px 12px;
+}
+
+.nav-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:#5d788b;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px;
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:700;
+    text-align:left;
+    transition:.2s ease;
+    flex-shrink:0;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    background:#edf7ff;
+    color:#0871c3;
+}
+
+.nav-icon{
+    width:23px;
+    min-width:23px;
+    text-align:center;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    position:static;
+    width:100%;
+    height:1px;
+    flex:0 0 1px;
+    margin-top:auto;
+    margin-bottom:8px;
+    background:#edf2f5;
+}
+
+.logout-nav-btn{
+    position:static;
+    width:100%;
+    height:43px;
+    flex:0 0 43px;
+    margin-bottom:0;
+}
+
+.logout-nav-btn:hover{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+.overlay.show{
+    display:block;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    margin-left:235px;
+    padding:98px 25px 35px;
+}
+
+.container{
+    max-width:1500px;
+    margin:auto;
+}
+
+
+/* =========================================================
+   WELCOME
+========================================================= */
+
+.welcome{
+    margin-bottom:20px;
+}
+
+.welcome h1{
+    color:#06477f;
+    font-size:27px;
+    font-weight:850;
+}
+
+.welcome p{
+    margin-top:6px;
+    color:#8295a3;
+    font-size:12px;
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:18px;
+}
+
+.stat{
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:17px;
+    padding:17px;
+    box-shadow:0 7px 25px rgba(30,75,110,.05);
+}
+
+.stat-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.stat-label{
+    color:#8da0ae;
+    font-size:9px;
+    font-weight:900;
+    letter-spacing:.8px;
+}
+
+.stat-number{
+    color:#06477f;
+    font-size:25px;
+    font-weight:850;
+    margin-top:7px;
+}
+
+.stat-icon{
+    width:43px;
+    height:43px;
+    border-radius:13px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel{
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:18px;
+    margin-bottom:18px;
+    overflow:hidden;
+    box-shadow:0 7px 25px rgba(30,75,110,.04);
+}
+
+.panel-header{
+    padding:17px 18px;
+    border-bottom:1px solid #edf2f5;
+}
+
+.panel-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:850;
+}
+
+.panel-subtitle{
+    color:#91a1ae;
+    font-size:10px;
+    margin-top:5px;
+}
+
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+.search{
+    display:grid;
+    grid-template-columns:1fr 190px 190px;
+    gap:9px;
+    padding:14px 18px;
+    background:#fbfdff;
+    border-bottom:1px solid #edf2f5;
+}
+
+.search-input,
+.filter{
+    width:100%;
+    height:40px;
+    border:1px solid #d7e3eb;
+    border-radius:10px;
+    outline:none;
+    background:#fff;
+    color:#31566f;
+    padding:0 12px;
+    font-size:11px;
+}
+
+.search-input:focus,
+.filter:focus{
+    border-color:#72b4df;
+    box-shadow:0 0 0 3px rgba(65,150,215,.07);
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:1250px;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f7fafc;
+    color:#718796;
+    font-size:9px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    padding:12px 13px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    border-top:1px solid #edf2f5;
+    padding:12px 13px;
+    color:#496a82;
+    font-size:10px;
+    vertical-align:middle;
+}
+
+tr:hover td{
+    background:#fbfdff;
+}
+
+.customer-name{
+    color:#31566f;
+    font-weight:800;
+    font-size:11px;
+}
+
+.customer-email{
+    color:#9aaab5;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.request-number{
+    color:#07538d;
+    font-weight:800;
+}
+
+.money{
+    color:#31566f;
+    font-weight:850;
+}
+
+.empty,
+.loading{
+    text-align:center !important;
+    padding:30px !important;
+    color:#91a1ae !important;
+}
+
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 8px;
+    border-radius:20px;
+    font-size:8px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.green{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+.yellow{
+    background:#fff7df;
+    color:#9b7310;
+}
+
+.red{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+.blue{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+.gray{
+    background:#eef2f5;
+    color:#6f818e;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.action-group{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+}
+
+.action-btn{
+    border:0;
+    min-height:31px;
+    padding:0 9px;
+    border-radius:8px;
+    font-size:9px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.view-btn{
+    background:#eef7ff;
+    color:#0871c3;
+}
+
+.view-btn:hover{
+    background:#dcefff;
+}
+
+.processing-btn{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+.processing-btn:hover{
+    background:#dcefff;
+}
+
+.ready-btn{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+.ready-btn:hover{
+    background:#d9f1e2;
+}
+
+.action-btn:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+
+/* =========================================================
+   DETAILS MODAL
+========================================================= */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(4,30,50,.50);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:9998;
+    backdrop-filter:blur(4px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:650px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:20px;
+    padding:23px;
+    position:relative;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.modal-close{
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    background:#eef4f8;
+    color:#527087;
+    font-size:18px;
+}
+
+.modal-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:850;
+    padding-right:40px;
+}
+
+.modal-subtitle{
+    color:#91a1ae;
+    font-size:10px;
+    margin-top:5px;
+}
+
+.details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:18px;
+}
+
+.detail-box{
+    background:#f8fbfd;
+    border:1px solid #e4edf2;
+    border-radius:11px;
+    padding:11px;
+}
+
+.detail-label{
+    color:#91a1ae;
+    font-size:8px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.detail-value{
+    color:#31566f;
+    font-size:11px;
+    font-weight:800;
+    margin-top:5px;
+    word-break:break-word;
+}
+
+.modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:18px;
+}
+
+.modal-action{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.modal-processing{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+.modal-ready{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+
+/* =========================================================
+   STATUS MODAL
+========================================================= */
+
+.status-modal-card{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border-radius:20px;
+    padding:23px;
+    position:relative;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.status-options{
+    display:grid;
+    gap:9px;
+    margin-top:18px;
+}
+
+.status-option{
+    width:100%;
+    min-height:48px;
+    border:1px solid #dce8f1;
+    background:#f9fcfe;
+    border-radius:11px;
+    color:#31566f;
+    text-align:left;
+    padding:9px 12px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.status-option:hover{
+    background:#edf7ff;
+    border-color:#b9d9ec;
+    color:#0871c3;
+}
+
+.status-option.active{
+    background:#eaf4ff;
+    border-color:#72b4df;
+    color:#0871c3;
+}
+
+.status-option small{
+    display:block;
+    color:#91a1ae;
+    font-size:8px;
+    font-weight:600;
+    margin-top:3px;
+}
+
+.status-save{
+    width:100%;
+    height:42px;
+    border:0;
+    border-radius:10px;
+    margin-top:16px;
+    background:#0871c3;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+}
+
+.status-save:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:310px;
+    max-width:calc(100vw - 40px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:15px;
+    padding:14px 16px;
+    box-shadow:0 15px 45px rgba(20,70,100,.20);
+    transform:translateY(130px);
+    opacity:0;
+    transition:.3s;
+    z-index:9999;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:12px;
+    font-weight:850;
+}
+
+.toast-text{
+    color:#718796;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+
+/* =========================================================
+   LOGOUT MODAL
+========================================================= */
+
+.logout-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(4,30,50,.50);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:10000;
+    backdrop-filter:blur(4px);
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-card{
+    width:100%;
+    max-width:390px;
+    background:#fff;
+    border-radius:20px;
+    padding:23px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 13px;
+    border-radius:17px;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:850;
+}
+
+.logout-text{
+    color:#718796;
+    font-size:11px;
+    line-height:1.5;
+    margin-top:7px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:20px;
+}
+
+.logout-action-btn{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#c33232;
+    color:#fff;
+}
+
+.logout-action-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media(max-width:1050px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .search{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .search-input{
+        grid-column:1 / -1;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:800px){
+
+    .header{
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:block;
+    }
+
+    .logo{
+        width:100px;
+    }
+
+    .agency-title{
+        font-size:14px;
+    }
+
+    .agency-subtitle{
+        display:none;
+    }
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .main{
+        margin-left:0;
+        padding:91px 14px 30px;
+    }
+
+    .overlay{
+        position:fixed;
+        inset:72px 0 0 0;
+        background:rgba(0,0,0,.35);
+        z-index:850;
+        display:none;
+    }
+
+    .overlay.show{
+        display:block;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .notification-popup{
+        top:70px;
+        right:10px;
+        width:calc(100vw - 20px);
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:520px){
+
+    .header{
+        height:65px;
+    }
+
+    .sidebar{
+        top:65px;
+        width:235px;
+        padding:20px 12px;
+    }
+
+    .overlay{
+        inset:65px 0 0 0;
+    }
+
+    .main{
+        padding-top:82px;
+    }
+
+    .welcome h1{
+        font-size:22px;
+    }
+
+    .stats{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .stat:nth-child(3),
+    .stat:nth-child(4){
+        grid-column:1 / -1;
+    }
+
+    .stat{
+        padding:13px 11px;
+        border-radius:15px;
+    }
+
+    .stat-label{
+        font-size:8px;
+        line-height:1.3;
+    }
+
+    .stat-number{
+        font-size:20px;
+        margin-top:6px;
+    }
+
+    .stat-icon{
+        width:36px;
+        height:36px;
+        border-radius:11px;
+        font-size:17px;
+    }
+
+    .panel{
+        border-radius:17px;
+    }
+
+    .panel-header{
+        padding:14px;
+    }
+
+    .panel-title{
+        font-size:13px;
+    }
+
+    .panel-subtitle{
+        font-size:9px;
+    }
+
+    .search{
+        grid-template-columns:1fr 1fr;
+        padding:12px;
+    }
+
+    .search-input{
+        grid-column:1 / -1;
+    }
+
+    .search-input,
+    .filter{
+        height:40px;
+        font-size:10px;
+        padding:0 9px;
+    }
+
+    .logo{
+        width:90px;
+    }
+
+    .agency-title{
+        font-size:13px;
+    }
+
+    th{
+        font-size:8px;
+        padding:11px;
+    }
+
+    td{
+        font-size:9px;
+        padding:11px;
+    }
+
+    .details-grid{
+        grid-template-columns:1fr;
+    }
+
+    .modal-actions{
+        grid-template-columns:1fr;
+    }
+
+    .toast{
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+    }
+
+}
+
+
+/* =========================================================
+   EXTRA SMALL
+========================================================= */
+
+@media(max-width:360px){
+
+    .header{
+        padding:0 8px;
+    }
+
+    .menu-btn{
+        width:36px;
+        height:36px;
+        font-size:20px;
+    }
+
+    .logo{
+        width:82px;
+    }
+
+    .agency-title{
+        font-size:12px;
+    }
+
+    .main{
+        padding-left:8px;
+        padding-right:8px;
+    }
+
+    .stats{
+        gap:7px;
+    }
+
+    .stat{
+        padding:11px 8px;
+    }
+
+    .stat-label{
+        font-size:7px;
+    }
+
+    .stat-number{
+        font-size:18px;
+    }
+
+    .stat-icon{
+        width:32px;
+        height:32px;
+        font-size:15px;
+    }
+
+    .search{
+        gap:7px;
+    }
+
+    .search-input,
+    .filter{
+        font-size:9px;
+    }
+
+    .bell-btn{
+        width:36px;
+        height:36px;
+        font-size:16px;
+    }
+
+}
+
+
+/* =========================================================
+   SCROLLBARS
+========================================================= */
+
+.sidebar::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+.table-wrap::-webkit-scrollbar{
+    height:7px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+.notification-list::-webkit-scrollbar{
+    width:5px;
+}
+
+.notification-list::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+.modal-card::-webkit-scrollbar{
+    width:5px;
+}
+
+.modal-card::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button class="menu-btn" id="menuBtn">
+            ☰
+        </button>
+
+        <img
+            class="logo"
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            alt="EGC"
+        >
+
+        <div>
+
+            <div
+                class="agency-title"
+                id="headerAgencyName"
+            >
+                LPG Agency
+            </div>
+
+            <div class="agency-subtitle">
+                Emergency Gas Cylinder Agency Panel
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <div class="bell-wrap">
+
+            <button
+                class="bell-btn"
+                id="notificationBtn"
+                title="Notifications"
+            >
+                🔔
+            </button>
+
+            <span
+                class="notification-count"
+                id="notificationCount"
+            >
+                0
+            </span>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- NOTIFICATION POPUP -->
+
+<div
+    class="notification-popup"
+    id="notificationPopup"
+>
+
+    <div class="notification-head">
+
+        <div>
+
+            <div class="notification-head-title">
+                Notifications
+            </div>
+
+            <div
+                class="notification-head-sub"
+                id="notificationSummary"
+            >
+                No unread notifications
+            </div>
+
+        </div>
+
+        <button
+            class="mark-all-btn"
+            id="markAllReadBtn"
+        >
+            Mark all read
+        </button>
+
+    </div>
+
+
+    <div
+        class="notification-list"
+        id="notificationList"
+    >
+
+        <div class="notification-empty">
+            Loading notifications...
+        </div>
+
+    </div>
+
+
+    <div class="notification-footer">
+
+        <button
+            class="view-all-btn"
+            id="viewAllNotificationsBtn"
+        >
+            View All Notifications →
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     SIDEBAR
+======================================================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <div class="sidebar-title">
+        AGENCY MANAGEMENT
+    </div>
+
+
+    <button
+        class="nav-btn"
+        id="dashboardBtn"
+    >
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="customersBtn"
+    >
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="requestsBtn"
+    >
+        <span class="nav-icon">🛢️</span>
+        <span>Cylinder Requests</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="requestDetailsBtn"
+    >
+        <span class="nav-icon">📋</span>
+        <span>Request Details</span>
+    </button>
+
+
+    <button
+        class="nav-btn active"
+        id="processingBtn"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Request Processing</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="paymentsBtn"
+    >
+        <span class="nav-icon">💳</span>
+        <span>Payments</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="repaymentsBtn"
+    >
+        <span class="nav-icon">💰</span>
+        <span>Repayments</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="deliveriesBtn"
+    >
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="pendingBtn"
+    >
+        <span class="nav-icon">⏳</span>
+        <span>Pending / On Hold</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="slipsBtn"
+    >
+        <span class="nav-icon">🧾</span>
+        <span>Request / Payment Slips</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="notificationsBtn"
+    >
+        <span class="nav-icon">🔔</span>
+        <span>Notifications</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="reportsBtn"
+    >
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="settingsBtn"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+    </button>
+
+
+    <button
+        class="nav-btn"
+        id="aboutBtn"
+    >
+        <span class="nav-icon">ℹ️</span>
+        <span>About</span>
+    </button>
+
+
+    <div class="sidebar-bottom"></div>
+
+
+    <button
+        class="nav-btn logout-nav-btn"
+        id="logoutBtn"
+    >
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+    </button>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =======================================================
+     MAIN
+======================================================= -->
+
+<main class="main">
+
+    <div class="container">
+
+
+        <div class="welcome">
+
+            <h1>
+                ⚙️ Request Processing
+            </h1>
+
+            <p>
+                Manage assigned cylinder requests and update their processing status.
+            </p>
+
+        </div>
+
+
+        <!-- STATS -->
+
+        <section class="stats">
+
+
+            <div class="stat">
+
+                <div class="stat-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            ASSIGNED
+                        </div>
+
+                        <div
+                            class="stat-number"
+                            id="assignedCount"
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        📋
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            PROCESSING
+                        </div>
+
+                        <div
+                            class="stat-number"
+                            id="processingCount"
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ⚙️
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            READY
+                        </div>
+
+                        <div
+                            class="stat-number"
+                            id="readyCount"
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        ✅
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="stat-top">
+
+                    <div>
+
+                        <div class="stat-label">
+                            TOTAL PROCESSING
+                        </div>
+
+                        <div
+                            class="stat-number"
+                            id="totalCount"
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                    <div class="stat-icon">
+                        🛢️
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- PROCESSING TABLE -->
+
+        <section class="panel">
+
+
+            <div class="panel-header">
+
+                <div class="panel-title">
+                    Assigned Cylinder Requests
+                </div>
+
+                <div class="panel-subtitle">
+                    View assigned requests and update their agency processing status.
+                </div>
+
+            </div>
+
+
+            <div class="search">
+
+                <input
+                    class="search-input"
+                    id="search"
+                    type="search"
+                    placeholder="Search customer, mobile, email, request number..."
+                >
+
+
+                <select
+                    class="filter"
+                    id="statusFilter"
+                >
+
+                    <option value="">
+                        All Processing Status
+                    </option>
+
+                    <option value="assigned">
+                        Assigned
+                    </option>
+
+                    <option value="processing">
+                        Processing
+                    </option>
+
+                    <option value="ready">
+                        Ready
+                    </option>
+
+                    <option value="out_for_delivery">
+                        Out for Delivery
+                    </option>
+
+                </select>
+
+
+                <select
+                    class="filter"
+                    id="paymentFilter"
+                >
+
+                    <option value="">
+                        All Payment Status
+                    </option>
+
+                    <option value="approved">
+                        Payment Approved
+                    </option>
+
+                    <option value="verified">
+                        Payment Verified
+                    </option>
+
+                    <option value="pending">
+                        Payment Pending
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Customer
+                            </th>
+
+                            <th>
+                                EGC User ID
+                            </th>
+
+                            <th>
+                                Request
+                            </th>
+
+                            <th>
+                                Qty
+                            </th>
+
+                            <th>
+                                Payment
+                            </th>
+
+                            <th>
+                                Agency Status
+                            </th>
+
+                            <th>
+                                Created
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="tbody">
+
+                        <tr>
+
+                            <td
+                                colspan="8"
+                                class="loading"
+                            >
+                                Loading processing requests...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<!-- =======================================================
+     REQUEST DETAILS MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="detailsModal"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="modal-close"
+            id="closeDetails"
+        >
+            ×
+        </button>
+
+        <div class="modal-title">
+            Request Details
+        </div>
+
+        <div
+            class="modal-subtitle"
+            id="detailsSubtitle"
+        >
+            Request information
+        </div>
+
+        <div
+            class="details-grid"
+            id="detailsGrid"
+        >
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                class="modal-action modal-processing"
+                id="modalProcessingBtn"
+            >
+                ⚙️ Mark Processing
+            </button>
+
+            <button
+                class="modal-action modal-ready"
+                id="modalReadyBtn"
+            >
+                ✅ Mark Ready
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     STATUS MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="statusModal"
+>
+
+    <div class="status-modal-card">
+
+        <button
+            class="modal-close"
+            id="closeStatus"
+        >
+            ×
+        </button>
+
+        <div class="modal-title">
+            Update Processing Status
+        </div>
+
+        <div
+            class="modal-subtitle"
+            id="statusSubtitle"
+        >
+            Select the current agency status.
+        </div>
+
+        <div class="status-options">
+
+
+            <button
+                class="status-option"
+                data-status="assigned"
+            >
+                📋 Assigned
+
+                <small>
+                    Request has been assigned to this agency.
+                </small>
+
+            </button>
+
+
+            <button
+                class="status-option"
+                data-status="processing"
+            >
+                ⚙️ Processing
+
+                <small>
+                    Agency is currently preparing the request.
+                </small>
+
+            </button>
+
+
+            <button
+                class="status-option"
+                data-status="ready"
+            >
+                ✅ Ready
+
+                <small>
+                    Request is prepared and ready for delivery.
+                </small>
+
+            </button>
+
+
+            <button
+                class="status-option"
+                data-status="out_for_delivery"
+            >
+                🚚 Out for Delivery
+
+                <small>
+                    Request has moved to the delivery stage.
+                </small>
+
+            </button>
+
+        </div>
+
+
+        <button
+            class="status-save"
+            id="saveStatusBtn"
+        >
+            Save Status
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     LOGOUT MODAL
+======================================================= -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout?
+        </div>
+
+        <div class="logout-text">
+            Are you sure you want to logout from the EGC Agency Panel?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                class="logout-action-btn logout-cancel"
+                id="cancelLogout"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="logout-action-btn logout-confirm"
+                id="confirmLogout"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     TOAST
+======================================================= -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    ></div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+
+let agencyId = null;
+let currentUserId = null;
+
+let rows = [];
+let customers = [];
+
+let notifications = [];
+let notificationChannel = null;
+let requestChannel = null;
+
+let selectedRequest = null;
+let selectedStatus = null;
+
+
+/* BASIC HELPERS */
+
+const $ = id =>
+    document.getElementById(id);
+
+
+function esc(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+function dt(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d = new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return "—";
+    }
+
+    return d.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+function money(value){
+
+    const n = Number(value);
+
+    return Number.isFinite(n)
+        ? n
+        : 0;
+
+}
+
+
+function fm(value){
+
+    return "₹" +
+        money(value).toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+/* BADGE */
+
+function badge(value){
+
+    const original =
+        String(value || "pending");
+
+    const s =
+        original.toLowerCase();
+
+    let c = "yellow";
+
+    if([
+        "paid",
+        "verified",
+        "approved",
+        "completed",
+        "delivered",
+        "ready"
+    ].includes(s)){
+
+        c = "green";
+
+    }else if([
+        "rejected",
+        "cancelled",
+        "failed"
+    ].includes(s)){
+
+        c = "red";
+
+    }else if([
+        "processing",
+        "out_for_delivery"
+    ].includes(s)){
+
+        c = "blue";
+
+    }else if(
+        s === "assigned"
+    ){
+
+        c = "yellow";
+
+    }
+
+    const label =
+        original
+            .replace(/_/g," ")
+            .replace(/\b\w/g,char =>
+                char.toUpperCase()
+            );
+
+    return `
+        <span class="badge ${c}">
+            ${esc(label)}
+        </span>
+    `;
+
+}
+
+
+/* TOAST */
+
+function showToast(title,text){
+
+    $("toastTitle").textContent =
+        title || "Notification";
+
+    $("toastText").textContent =
+        text || "";
+
+    $("toast")
+        .classList
+        .add("show");
+
+    clearTimeout(
+        window.egcToast
+    );
+
+    window.egcToast =
+        setTimeout(
+            () => {
+
+                $("toast")
+                    .classList
+                    .remove("show");
+
+            },
+            4500
+        );
+
+}
+
+
+/* NOTIFICATION ICON */
+
+function notificationIcon(type){
+
+    const t =
+        String(type || "")
+            .toLowerCase();
+
+    if(t.includes("payment")){
+        return "💳";
+    }
+
+    if(t.includes("delivery")){
+        return "🚚";
+    }
+
+    if(
+        t.includes("request") ||
+        t.includes("cylinder")
+    ){
+        return "🛢️";
+    }
+
+    if(t.includes("customer")){
+        return "👤";
+    }
+
+    if(
+        t.includes("success") ||
+        t.includes("approved")
+    ){
+        return "✅";
+    }
+
+    if(
+        t.includes("warning") ||
+        t.includes("pending")
+    ){
+        return "⚠️";
+    }
+
+    return "🔔";
+
+}
+
+
+/* NOTIFICATION DATE */
+
+function notificationDate(value){
+
+    if(!value){
+        return "";
+    }
+
+    const d = new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return "";
+    }
+
+    return d.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+/* LOAD NOTIFICATIONS */
+
+async function loadNotifications(){
+
+    if(!agencyId){
+        return;
+    }
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .select(
+                "id,agency_id,user_id,title,message,type,is_read,created_at"
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            )
+            .limit(50);
+
+    if(result.error){
+
+        console.error(
+            "Notification load error:",
+            result.error
+        );
+
+        notifications = [];
+
+        renderNotifications();
+
+        return;
+    }
+
+    notifications =
+        result.data || [];
+
+    renderNotifications();
+
+}
+
+
+/* RENDER NOTIFICATIONS */
+
+function renderNotifications(){
+
+    const list =
+        $("notificationList");
+
+    const unread =
+        notifications.filter(
+            item =>
+                !item.is_read
+        );
+
+    $("notificationCount")
+        .textContent =
+        unread.length > 99
+            ? "99+"
+            : unread.length;
+
+    if(unread.length){
+
+        $("notificationCount")
+            .classList
+            .add("show");
+
+        $("notificationBtn")
+            .classList
+            .add("has-unread");
+
+        $("notificationSummary")
+            .textContent =
+            unread.length +
+            " unread notification" +
+            (
+                unread.length === 1
+                    ? ""
+                    : "s"
+            );
+
+    }else{
+
+        $("notificationCount")
+            .classList
+            .remove("show");
+
+        $("notificationBtn")
+            .classList
+            .remove("has-unread");
+
+        $("notificationSummary")
+            .textContent =
+            "No unread notifications";
+
+    }
+
+
+    if(!notifications.length){
+
+        list.innerHTML = `
+            <div class="notification-empty">
+                🔔<br><br>
+                No notifications yet.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    list.innerHTML =
+        notifications
+            .map(notification => {
+
+                return `
+
+                    <div
+                        class="notification-item ${
+                            notification.is_read
+                                ? ""
+                                : "unread"
+                        }"
+                        data-id="${esc(notification.id)}"
+                    >
+
+                        <div class="notification-icon">
+                            ${notificationIcon(
+                                notification.type
+                            )}
+                        </div>
+
+                        <div class="notification-content">
+
+                            <div class="notification-title">
+                                ${esc(
+                                    notification.title ||
+                                    "Notification"
+                                )}
+                            </div>
+
+                            <div class="notification-message">
+                                ${esc(
+                                    notification.message ||
+                                    ""
+                                )}
+                            </div>
+
+                            <div class="notification-time">
+                                ${esc(
+                                    notificationDate(
+                                        notification.created_at
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+                        ${
+                            !notification.is_read
+                                ? `
+                                    <div
+                                        class="notification-unread-dot"
+                                        title="Unread"
+                                    ></div>
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+                `;
+
+            })
+            .join("");
+
+
+    list
+        .querySelectorAll(".notification-item")
+        .forEach(item => {
+
+            item.addEventListener(
+                "click",
+                async () => {
+
+                    await markNotificationRead(
+                        item.dataset.id
+                    );
+
+                }
+            );
+
+        });
+
+}
+
+
+/* MARK ONE */
+
+async function markNotificationRead(id){
+
+    if(!id || !agencyId){
+        return;
+    }
+
+    const notification =
+        notifications.find(
+            item =>
+                String(item.id) ===
+                String(id)
+        );
+
+    if(
+        !notification ||
+        notification.is_read
+    ){
+        return;
+    }
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "id",
+                id
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            );
+
+    if(result.error){
+
+        console.error(
+            "Mark notification read error:",
+            result.error
+        );
+
+        return;
+    }
+
+    notification.is_read = true;
+
+    renderNotifications();
+
+}
+
+
+/* MARK ALL */
+
+async function markAllNotificationsRead(){
+
+    if(!agencyId){
+        return;
+    }
+
+    const unreadIds =
+        notifications
+            .filter(
+                item =>
+                    !item.is_read
+            )
+            .map(
+                item =>
+                    item.id
+            );
+
+    if(!unreadIds.length){
+
+        showToast(
+            "Notifications",
+            "There are no unread notifications."
+        );
+
+        return;
+    }
+
+    const button =
+        $("markAllReadBtn");
+
+    button.disabled = true;
+
+    button.textContent =
+        "Marking...";
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .in(
+                "id",
+                unreadIds
+            );
+
+
+    button.disabled = false;
+
+    button.textContent =
+        "Mark all read";
+
+
+    if(result.error){
+
+        showToast(
+            "Failed",
+            result.error.message ||
+            "Could not mark notifications as read."
+        );
+
+        return;
+    }
+
+
+    notifications =
+        notifications.map(
+            item => {
+
+                if(
+                    unreadIds.includes(
+                        item.id
+                    )
+                ){
+
+                    return {
+                        ...item,
+                        is_read:true
+                    };
+
+                }
+
+                return item;
+
+            }
+        );
+
+
+    renderNotifications();
+
+    showToast(
+        "Notifications",
+        "All notifications marked as read."
+    );
+
+}
+
+
+/* REALTIME NOTIFICATIONS */
+
+function subscribeNotifications(){
+
+    if(!agencyId){
+        return;
+    }
+
+    if(notificationChannel){
+
+        try{
+
+            supabaseClient
+                .removeChannel(
+                    notificationChannel
+                );
+
+        }catch(error){
+
+            console.log(error);
+
+        }
+
+    }
+
+
+    notificationChannel =
+        supabaseClient
+            .channel(
+                "egc-agency-processing-notifications-" +
+                agencyId +
+                "-" +
+                Date.now()
+            )
+
+            .on(
+                "postgres_changes",
+                {
+                    event:"INSERT",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "agency_id=eq." +
+                        agencyId
+                },
+                payload => {
+
+                    notifications =
+                        [
+                            payload.new,
+                            ...notifications
+                        ]
+                        .slice(0,50);
+
+                    renderNotifications();
+
+                    showToast(
+                        payload.new.title ||
+                        "New Notification",
+                        payload.new.message ||
+                        "You have received a new notification."
+                    );
+
+                }
+            )
+
+            .on(
+                "postgres_changes",
+                {
+                    event:"UPDATE",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "agency_id=eq." +
+                        agencyId
+                },
+                payload => {
+
+                    const index =
+                        notifications.findIndex(
+                            item =>
+                                String(item.id) ===
+                                String(payload.new.id)
+                        );
+
+                    if(index !== -1){
+
+                        notifications[index] =
+                            payload.new;
+
+                    }
+
+                    renderNotifications();
+
+                }
+            )
+
+            .subscribe();
+
+}
+
+
+/* REQUEST REALTIME */
+
+function subscribeRequests(){
+
+    if(!agencyId){
+        return;
+    }
+
+    if(requestChannel){
+
+        try{
+
+            supabaseClient
+                .removeChannel(
+                    requestChannel
+                );
+
+        }catch(error){
+
+            console.log(error);
+
+        }
+
+    }
+
+
+    requestChannel =
+        supabaseClient
+            .channel(
+                "egc-agency-processing-requests-" +
+                agencyId +
+                "-" +
+                Date.now()
+            )
+
+            .on(
+                "postgres_changes",
+                {
+                    event:"*",
+                    schema:"public",
+                    table:"cylinder_requests",
+                    filter:
+                        "agency_id=eq." +
+                        agencyId
+                },
+                async () => {
+
+                    await load();
+
+                }
+            )
+
+            .subscribe();
+
+}
+
+
+/* CUSTOMER */
+
+function customerFor(request){
+
+    return customers.find(
+        customer =>
+            String(customer.id) ===
+            String(request.user_id)
+    ) || {};
+
+}
+
+
+/* STATUS */
+
+function processingStatus(request){
+
+    const value =
+        String(
+            request.agency_status ||
+            request.processing_status ||
+            request.processing_stage ||
+            ""
+        )
+        .toLowerCase()
+        .trim();
+
+    if(value){
+        return value;
+    }
+
+    const delivery =
+        String(
+            request.delivery_status ||
+            ""
+        )
+        .toLowerCase()
+        .trim();
+
+    if(delivery === "out_for_delivery"){
+        return "out_for_delivery";
+    }
+
+    const status =
+        String(
+            request.status ||
+            ""
+        )
+        .toLowerCase()
+        .trim();
+
+    if(status === "processing"){
+        return "processing";
+    }
+
+    if(status === "ready"){
+        return "ready";
+    }
+
+    return "assigned";
+
+}
+
+
+/* WHETHER REQUEST BELONGS ON PROCESSING PAGE */
+
+function isProcessingRequest(request){
+
+    const ownerApproval =
+        String(
+            request.owner_approval ||
+            ""
+        )
+        .toLowerCase();
+
+    const assignment =
+        String(
+            request.agency_assignment_status ||
+            request.assignment_status ||
+            ""
+        )
+        .toLowerCase();
+
+    const status =
+        processingStatus(request);
+
+
+    const allowedStatus = [
+        "assigned",
+        "processing",
+        "ready",
+        "out_for_delivery"
+    ];
+
+
+    const approved =
+        [
+            "approved",
+            "approve",
+            "accepted"
+        ].includes(
+            ownerApproval
+        );
+
+
+    const assigned =
+        [
+            "assigned",
+            "accepted",
+            "active"
+        ].includes(
+            assignment
+        );
+
+
+    return (
+        approved ||
+        assigned ||
+        allowedStatus.includes(status)
+    );
+
+}
+
+
+/* LOAD DATA */
+
+async function load(){
+
+    $("tbody").innerHTML = `
+        <tr>
+            <td colspan="8" class="loading">
+                Loading processing requests...
+            </td>
+        </tr>
+    `;
+
+
+    const result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            );
+
+
+    if(result.error){
+
+        console.error(
+            "Processing request error:",
+            result.error
+        );
+
+        $("tbody").innerHTML = `
+            <tr>
+                <td colspan="8" class="empty">
+                    ${esc(
+                        result.error.message
+                    )}
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    rows =
+        (result.data || [])
+            .filter(
+                request =>
+                    isProcessingRequest(
+                        request
+                    )
+            );
+
+
+    const ids =
+        [
+            ...new Set(
+                rows
+                    .map(
+                        item =>
+                            item.user_id
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+    if(ids.length){
+
+        const customerResult =
+            await supabaseClient
+                .from("profiles")
+                .select(
+                    "id,full_name,mobile,email,egc_user_id,profile_photo"
+                )
+                .in(
+                    "id",
+                    ids
+                );
+
+
+        if(customerResult.error){
+
+            console.error(
+                "Customer load error:",
+                customerResult.error
+            );
+
+            customers = [];
+
+        }else{
+
+            customers =
+                customerResult.data || [];
+
+        }
+
+    }else{
+
+        customers = [];
+
+    }
+
+
+    render();
+
+}
+
+
+/* RENDER */
+
+function render(){
+
+    const q =
+        $("search")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    const statusFilter =
+        $("statusFilter")
+            .value
+            .toLowerCase();
+
+
+    const paymentFilter =
+        $("paymentFilter")
+            .value
+            .toLowerCase();
+
+
+    const data =
+        rows.filter(
+            request => {
+
+                const customer =
+                    customerFor(
+                        request
+                    );
+
+
+                const status =
+                    processingStatus(
+                        request
+                    );
+
+
+                const paymentStatus =
+                    String(
+                        request.payment_status ||
+                        "pending"
+                    )
+                    .toLowerCase();
+
+
+                const searchText =
+                    [
+                        customer.full_name,
+                        customer.mobile,
+                        customer.email,
+                        customer.egc_user_id,
+                        request.request_number,
+                        request.user_id,
+                        request.id,
+                        request.customer_name,
+                        request.mobile,
+                        request.email
+                    ]
+                    .join(" ")
+                    .toLowerCase();
+
+
+                const searchMatch =
+                    !q ||
+                    searchText.includes(q);
+
+
+                const statusMatch =
+                    !statusFilter ||
+                    status === statusFilter;
+
+
+                const paymentMatch =
+                    !paymentFilter ||
+                    paymentStatus === paymentFilter;
+
+
+                return (
+                    searchMatch &&
+                    statusMatch &&
+                    paymentMatch
+                );
+
+            }
+        );
+
+
+    let assigned = 0;
+    let processing = 0;
+    let ready = 0;
+
+
+    rows.forEach(request => {
+
+        const status =
+            processingStatus(
+                request
+            );
+
+        if(status === "assigned"){
+            assigned++;
+        }
+
+        if(status === "processing"){
+            processing++;
+        }
+
+        if(status === "ready"){
+            ready++;
+        }
+
+    });
+
+
+    $("assignedCount")
+        .textContent =
+        assigned;
+
+    $("processingCount")
+        .textContent =
+        processing;
+
+    $("readyCount")
+        .textContent =
+        ready;
+
+    $("totalCount")
+        .textContent =
+        rows.length;
+
+
+    if(!data.length){
+
+        $("tbody").innerHTML = `
+            <tr>
+                <td colspan="8" class="empty">
+                    No processing requests found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    $("tbody").innerHTML =
+        data
+            .map(
+                request => {
+
+                    const customer =
+                        customerFor(
+                            request
+                        );
+
+
+                    const status =
+                        processingStatus(
+                            request
+                        );
+
+
+                    return `
+
+                        <tr>
+
+                            <td>
+
+                                <div class="customer-name">
+                                    ${esc(
+                                        customer.full_name ||
+                                        request.customer_name ||
+                                        "Customer"
+                                    )}
+                                </div>
+
+                                <div class="customer-email">
+                                    ${esc(
+                                        customer.email ||
+                                        request.email ||
+                                        "—"
+                                    )}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                <span class="request-number">
+                                    ${esc(
+                                        customer.egc_user_id ||
+                                        request.egc_user_id ||
+                                        "—"
+                                    )}
+                                </span>
+                            </td>
+
+
+                            <td>
+
+                                <div class="request-number">
+                                    ${esc(
+                                        request.request_number ||
+                                        "—"
+                                    )}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                ${esc(
+                                    request.quantity ||
+                                    0
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${badge(
+                                    request.payment_status ||
+                                    "pending"
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${badge(
+                                    status
+                                )}
+                            </td>
+
+
+                            <td>
+                                ${dt(
+                                    request.created_at ||
+                                    request.request_date
+                                )}
+                            </td>
+
+
+                            <td>
+
+                                <div class="action-group">
+
+                                    <button
+                                        class="action-btn view-btn"
+                                        data-view="${esc(request.id)}"
+                                    >
+                                        👁 View
+                                    </button>
+
+                                    <button
+                                        class="action-btn processing-btn"
+                                        data-processing="${esc(request.id)}"
+                                    >
+                                        ⚙ Status
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    document
+        .querySelectorAll("[data-view]")
+        .forEach(button => {
+
+            button.onclick =
+                () => {
+
+                    const request =
+                        rows.find(
+                            item =>
+                                String(item.id) ===
+                                String(
+                                    button.dataset.view
+                                )
+                        );
+
+                    if(request){
+                        openDetails(request);
+                    }
+
+                };
+
+        });
+
+
+    document
+        .querySelectorAll("[data-processing]")
+        .forEach(button => {
+
+            button.onclick =
+                () => {
+
+                    const request =
+                        rows.find(
+                            item =>
+                                String(item.id) ===
+                                String(
+                                    button.dataset.processing
+                                )
+                        );
+
+                    if(request){
+                        openStatusModal(
+                            request
+                        );
+                    }
+
+                };
+
+        });
+
+}
+
+
+/* DETAILS */
+
+function openDetails(request){
+
+    selectedRequest =
+        request;
+
+
+    const customer =
+        customerFor(
+            request
+        );
+
+
+    $("detailsSubtitle")
+        .textContent =
+        request.request_number ||
+        "Request details";
+
+
+    $("detailsGrid").innerHTML = `
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                EGC User ID
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    customer.egc_user_id ||
+                    request.egc_user_id ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Customer
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    customer.full_name ||
+                    request.customer_name ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Mobile
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    customer.mobile ||
+                    request.mobile ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Email
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    customer.email ||
+                    request.email ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Request Number
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    request.request_number ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Quantity
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    request.quantity ||
+                    0
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                LPG Company
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    request.lpg_company ||
+                    request.company ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                LPG Agency
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    request.lpg_agency ||
+                    request.agency_name ||
+                    "—"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Payment Status
+            </div>
+
+            <div class="detail-value">
+                ${badge(
+                    request.payment_status ||
+                    "pending"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Processing Status
+            </div>
+
+            <div class="detail-value">
+                ${badge(
+                    processingStatus(
+                        request
+                    )
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Delivery Status
+            </div>
+
+            <div class="detail-value">
+                ${badge(
+                    request.delivery_status ||
+                    "pending"
+                )}
+            </div>
+
+        </div>
+
+
+        <div class="detail-box">
+
+            <div class="detail-label">
+                Request Date
+            </div>
+
+            <div class="detail-value">
+                ${esc(
+                    dt(
+                        request.created_at ||
+                        request.request_date
+                    )
+                )}
+            </div>
+
+        </div>
+
+    `;
+
+
+    $("detailsModal")
+        .classList
+        .add("show");
+
+}
+
+
+/* STATUS MODAL */
+
+function openStatusModal(request){
+
+    selectedRequest =
+        request;
+
+    selectedStatus =
+        processingStatus(
+            request
+        );
+
+
+    $("statusSubtitle")
+        .textContent =
+        (
+            request.request_number ||
+            "Request"
+        ) +
+        " — select current processing stage";
+
+
+    document
+        .querySelectorAll(".status-option")
+        .forEach(button => {
+
+            button.classList.toggle(
+                "active",
+                button.dataset.status ===
+                selectedStatus
+            );
+
+        });
+
+
+    $("statusModal")
+        .classList
+        .add("show");
+
+}
+
+
+/* STATUS OPTION */
+
+document
+    .querySelectorAll(".status-option")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                selectedStatus =
+                    button.dataset.status;
+
+
+                document
+                    .querySelectorAll(
+                        ".status-option"
+                    )
+                    .forEach(item => {
+
+                        item.classList.toggle(
+                            "active",
+                            item === button
+                        );
+
+                    });
+
+            }
+        );
+
+    });
+
+
+/* SAVE STATUS */
+
+async function saveProcessingStatus(){
+
+    if(
+        !selectedRequest ||
+        !selectedStatus ||
+        !agencyId
+    ){
+        return;
+    }
+
+
+    const button =
+        $("saveStatusBtn");
+
+
+    button.disabled = true;
+
+    button.textContent =
+        "Saving...";
+
+
+    /*
+        We update the agency-side processing field
+        when it exists in the project schema.
+
+        The fallback below also keeps the main
+        cylinder request status synchronized.
+    */
+
+    const updateData = {
+        agency_status:
+            selectedStatus,
+        processing_status:
+            selectedStatus
+    };
+
+
+    let result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update(
+                updateData
+            )
+            .eq(
+                "id",
+                selectedRequest.id
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            );
+
+
+    /*
+        If the project does not yet contain the
+        optional agency_status / processing_status
+        columns, fall back to the existing status field.
+    */
+
+    if(
+        result.error &&
+        (
+            result.error.message
+                .toLowerCase()
+                .includes("agency_status") ||
+            result.error.message
+                .toLowerCase()
+                .includes("processing_status")
+        )
+    ){
+
+        result =
+            await supabaseClient
+                .from("cylinder_requests")
+                .update({
+                    status:
+                        selectedStatus
+                })
+                .eq(
+                    "id",
+                    selectedRequest.id
+                )
+                .eq(
+                    "agency_id",
+                    agencyId
+                );
+
+    }
+
+
+    button.disabled = false;
+
+    button.textContent =
+        "Save Status";
+
+
+    if(result.error){
+
+        showToast(
+            "Update Failed",
+            result.error.message ||
+            "Could not update processing status."
+        );
+
+        return;
+    }
+
+
+    $("statusModal")
+        .classList
+        .remove("show");
+
+
+    showToast(
+        "Status Updated",
+        "Request processing status updated successfully."
+    );
+
+
+    await load();
+
+}
+
+
+/* QUICK PROCESSING BUTTON */
+
+$("modalProcessingBtn").onclick =
+    async () => {
+
+        if(!selectedRequest){
+            return;
+        }
+
+        selectedStatus =
+            "processing";
+
+        await saveFromDetails();
+
+    };
+
+
+/* QUICK READY BUTTON */
+
+$("modalReadyBtn").onclick =
+    async () => {
+
+        if(!selectedRequest){
+            return;
+        }
+
+        selectedStatus =
+            "ready";
+
+        await saveFromDetails();
+
+    };
+
+
+async function saveFromDetails(){
+
+    if(
+        !selectedRequest ||
+        !selectedStatus ||
+        !agencyId
+    ){
+        return;
+    }
+
+
+    const button =
+        selectedStatus === "ready"
+            ? $("modalReadyBtn")
+            : $("modalProcessingBtn");
+
+
+    button.disabled = true;
+
+    button.textContent =
+        "Saving...";
+
+
+    let result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update({
+                agency_status:
+                    selectedStatus,
+                processing_status:
+                    selectedStatus
+            })
+            .eq(
+                "id",
+                selectedRequest.id
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            );
+
+
+    if(
+        result.error &&
+        (
+            result.error.message
+                .toLowerCase()
+                .includes("agency_status") ||
+            result.error.message
+                .toLowerCase()
+                .includes("processing_status")
+        )
+    ){
+
+        result =
+            await supabaseClient
+                .from("cylinder_requests")
+                .update({
+                    status:
+                        selectedStatus
+                })
+                .eq(
+                    "id",
+                    selectedRequest.id
+                )
+                .eq(
+                    "agency_id",
+                    agencyId
+                );
+
+    }
+
+
+    button.disabled = false;
+
+    button.textContent =
+        selectedStatus === "ready"
+            ? "✅ Mark Ready"
+            : "⚙️ Mark Processing";
+
+
+    if(result.error){
+
+        showToast(
+            "Update Failed",
+            result.error.message ||
+            "Could not update status."
+        );
+
+        return;
+    }
+
+
+    $("detailsModal")
+        .classList
+        .remove("show");
+
+
+    showToast(
+        "Status Updated",
+        "Request status updated successfully."
+    );
+
+
+    await load();
+
+}
+
+
+/* NAVIGATION */
+
+function nav(id,url){
+
+    const element =
+        $(id);
+
+    if(element){
+
+        element.onclick =
+            () => {
+
+                location.href =
+                    url;
+
+            };
+
+    }
+
+}
+
+nav(
+    "dashboardBtn",
+    "agency-dashboard.html"
+);
+
+nav(
+    "customersBtn",
+    "agency-customers.html"
+);
+
+nav(
+    "requestsBtn",
+    "agency-cylinder-requests.html"
+);
+
+nav(
+    "requestDetailsBtn",
+    "agency-request-details.html"
+);
+
+nav(
+    "paymentsBtn",
+    "agency-payments.html"
+);
+
+nav(
+    "repaymentsBtn",
+    "agency-repayments.html"
+);
+
+nav(
+    "deliveriesBtn",
+    "agency-deliveries.html"
+);
+
+nav(
+    "pendingBtn",
+    "agency-pending.html"
+);
+
+nav(
+    "slipsBtn",
+    "agency-slips.html"
+);
+
+nav(
+    "notificationsBtn",
+    "agency-notifications.html"
+);
+
+nav(
+    "reportsBtn",
+    "agency-reports.html"
+);
+
+nav(
+    "settingsBtn",
+    "agency-settings.html"
+);
+
+nav(
+    "aboutBtn",
+    "agency-about.html"
+);
+
+/* MOBILE MENU */
+
+$("menuBtn").onclick =
+    () => {
+
+        $("sidebar")
+            .classList
+            .toggle("open");
+
+        $("overlay")
+            .classList
+            .toggle("show");
+
+    };
+
+
+$("overlay").onclick =
+    () => {
+
+        $("sidebar")
+            .classList
+            .remove("open");
+
+        $("overlay")
+            .classList
+            .remove("show");
+
+    };
+
+
+document
+    .querySelectorAll(".nav-btn")
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    if(
+                        window.innerWidth <=
+                        800
+                    ){
+
+                        $("sidebar")
+                            .classList
+                            .remove("open");
+
+                        $("overlay")
+                            .classList
+                            .remove("show");
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+/* FILTERS */
+
+$("search")
+    .addEventListener(
+        "input",
+        render
+    );
+
+$("statusFilter")
+    .addEventListener(
+        "change",
+        render
+    );
+
+$("paymentFilter")
+    .addEventListener(
+        "change",
+        render
+    );
+
+
+/* DETAILS CLOSE */
+
+$("closeDetails").onclick =
+    () => {
+
+        $("detailsModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("detailsModal").onclick =
+    event => {
+
+        if(
+            event.target ===
+            $("detailsModal")
+        ){
+
+            $("detailsModal")
+                .classList
+                .remove("show");
+
+        }
+
+    };
+
+
+/* STATUS CLOSE */
+
+$("closeStatus").onclick =
+    () => {
+
+        $("statusModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("statusModal").onclick =
+    event => {
+
+        if(
+            event.target ===
+            $("statusModal")
+        ){
+
+            $("statusModal")
+                .classList
+                .remove("show");
+
+        }
+
+    };
+
+
+/* NOTIFICATIONS */
+
+$("notificationBtn").onclick =
+    async event => {
+
+        event.stopPropagation();
+
+        $("notificationPopup")
+            .classList
+            .toggle("show");
+
+        if(
+            $("notificationPopup")
+                .classList
+                .contains("show")
+        ){
+
+            await loadNotifications();
+
+        }
+
+    };
+
+
+$("notificationPopup").onclick =
+    event => {
+
+        event.stopPropagation();
+
+    };
+
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const popup =
+            $("notificationPopup");
+
+        const button =
+            $("notificationBtn");
+
+        if(
+            popup.classList.contains("show") &&
+            !popup.contains(event.target) &&
+            !button.contains(event.target)
+        ){
+
+            popup.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+$("markAllReadBtn").onclick =
+    async () => {
+
+        await markAllNotificationsRead();
+
+    };
+
+
+$("viewAllNotificationsBtn").onclick =
+    () => {
+
+        location.href =
+            "agency-notifications.html";
+
+    };
+
+
+/* LOGOUT */
+
+$("logoutBtn").onclick =
+    () => {
+
+        $("logoutModal")
+            .classList
+            .add("show");
+
+    };
+
+
+$("cancelLogout").onclick =
+    () => {
+
+        $("logoutModal")
+            .classList
+            .remove("show");
+
+    };
+
+
+$("logoutModal").onclick =
+    event => {
+
+        if(
+            event.target ===
+            $("logoutModal")
+        ){
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+        }
+
+    };
+
+
+$("confirmLogout").onclick =
+    async () => {
+
+        const button =
+            $("confirmLogout");
+
+        button.disabled = true;
+
+        button.textContent =
+            "Logging out...";
+
+
+        try{
+
+            await supabaseClient
+                .auth
+                .signOut();
+
+            location.replace(
+                "agency-login.html"
+            );
+
+        }catch(error){
+
+            button.disabled = false;
+
+            button.textContent =
+                "Logout";
+
+            showToast(
+                "Logout Failed",
+                error.message ||
+                "Please try again."
+            );
+
+        }
+
+    };
+
+
+/* KEYBOARD */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key ===
+            "Escape"
+        ){
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+            $("detailsModal")
+                .classList
+                .remove("show");
+
+            $("statusModal")
+                .classList
+                .remove("show");
+
+            $("sidebar")
+                .classList
+                .remove("open");
+
+            $("overlay")
+                .classList
+                .remove("show");
+
+            $("notificationPopup")
+                .classList
+                .remove("show");
+
+        }
+
+    }
+);
+
+
+/* AUTH */
+
+supabaseClient
+    .auth
+    .onAuthStateChange(
+        event => {
+
+            if(
+                event ===
+                "SIGNED_OUT"
+            ){
+
+                location.replace(
+                    "agency-login.html"
+                );
+
+            }
+
+        }
+    );
+
+
+/* INIT */
+
+async function init(){
+
+    const userResult =
+        await supabaseClient
+            .auth
+            .getUser();
+
+
+    if(
+        userResult.error ||
+        !userResult.data?.user
+    ){
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return;
+    }
+
+
+    currentUserId =
+        userResult.data.user.id;
+
+
+    const profileResult =
+        await supabaseClient
+            .from("profiles")
+            .select(
+                "agency_id"
+            )
+            .eq(
+                "id",
+                currentUserId
+            )
+            .maybeSingle();
+
+
+    if(
+        profileResult.error ||
+        !profileResult.data?.agency_id
+    ){
+
+        $("tbody").innerHTML = `
+            <tr>
+                <td colspan="8" class="empty">
+                    Agency profile not found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    agencyId =
+        profileResult.data.agency_id;
+
+
+    await loadAgency();
+
+    await load();
+
+    await loadNotifications();
+
+    subscribeNotifications();
+
+    subscribeRequests();
+
+}
+
+
+/* AGENCY */
+
+async function loadAgency(){
+
+    const result =
+        await supabaseClient
+            .from("agencies")
+            .select("*")
+            .eq(
+                "id",
+                agencyId
+            )
+            .maybeSingle();
+
+
+    if(
+        !result.error &&
+        result.data
+    ){
+
+        $("headerAgencyName")
+            .textContent =
+            result.data.agency_name ||
+            "LPG Agency";
+
+    }
+
+}
+
+
+/* START */
+
+init();
+
+</script>
+
+</body>
+</html>

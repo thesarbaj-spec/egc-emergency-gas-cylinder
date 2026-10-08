@@ -1,0 +1,3810 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Agency Settings</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html{
+    font-size:16px;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#173f5f;
+    overflow-x:hidden;
+    background:
+        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+        #eef7fc;
+}
+
+button,input,select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+/* HEADER */
+
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:72px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    z-index:1000;
+    box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.menu-btn{
+    display:none;
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:22px;
+    flex-shrink:0;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    min-width:0;
+}
+
+.brand img{
+    width:125px;
+    max-height:48px;
+    object-fit:contain;
+    flex-shrink:0;
+}
+
+.brand-text{
+    min-width:0;
+}
+
+.brand h2{
+    color:#06477f;
+    font-size:17px;
+    font-weight:800;
+    margin:0;
+    white-space:nowrap;
+}
+
+.brand p{
+    color:#91a1ae;
+    font-size:11px;
+    margin-top:3px;
+    white-space:nowrap;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-left:auto;
+}
+
+/* REAL NOTIFICATION BELL */
+
+.notification-wrap{
+    position:relative;
+}
+
+.bell-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:12px;
+    background:#fff;
+    color:#0871c3;
+    font-size:19px;
+    position:relative;
+}
+
+.bell-btn:hover{
+    background:#edf7ff;
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:19px;
+    height:19px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:9px;
+    font-weight:900;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-count.show{
+    display:flex;
+}
+
+/* NOTIFICATION DROPDOWN */
+
+.notification-dropdown{
+    position:absolute;
+    top:52px;
+    right:0;
+    width:350px;
+    max-width:calc(100vw - 20px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:16px;
+    box-shadow:0 18px 55px rgba(20,70,100,.20);
+    display:none;
+    overflow:hidden;
+    z-index:5000;
+}
+
+.notification-dropdown.show{
+    display:block;
+}
+
+.notification-head{
+    padding:14px 15px;
+    border-bottom:1px solid #edf2f5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.notification-head strong{
+    color:#06477f;
+    font-size:12px;
+}
+
+.notification-head button{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:9px;
+    font-weight:800;
+}
+
+.notification-list{
+    max-height:360px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    padding:12px 14px;
+    border-bottom:1px solid #edf2f5;
+    cursor:pointer;
+    transition:.2s;
+    position:relative;
+}
+
+.notification-item:hover{
+    background:#f6fbfe;
+}
+
+.notification-item.unread{
+    background:#edf7ff;
+}
+
+.notification-item.unread:before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:3px;
+    background:#0871c3;
+}
+
+.notification-item-title{
+    color:#31566f;
+    font-size:10px;
+    font-weight:800;
+    padding-right:10px;
+}
+
+.notification-item-message{
+    color:#718796;
+    font-size:9px;
+    line-height:1.45;
+    margin-top:4px;
+}
+
+.notification-item-time{
+    color:#9aaab5;
+    font-size:8px;
+    margin-top:6px;
+}
+
+.notification-empty{
+    padding:30px 15px;
+    text-align:center;
+    color:#91a1ae;
+    font-size:10px;
+}
+
+.notification-footer{
+    padding:10px 14px;
+    border-top:1px solid #edf2f5;
+    text-align:center;
+}
+
+.notification-footer button{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:9px;
+    font-weight:800;
+}
+
+.agency-pill{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 13px;
+    border-radius:20px;
+    background:#eef9f2;
+    color:#24804a;
+    font-size:11px;
+    font-weight:800;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    position:fixed;
+    top:72px;
+    left:0;
+    bottom:0;
+    width:235px;
+    background:#fff;
+    border-right:1px solid #dce8f1;
+    padding:22px 14px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#9aaab5;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    padding:0 11px 12px;
+}
+
+.nav-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:#5d788b;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px;
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:700;
+    text-align:left;
+    transition:.2s ease;
+    flex-shrink:0;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    background:#edf7ff;
+    color:#0871c3;
+}
+
+.nav-icon{
+    width:23px;
+    min-width:23px;
+    text-align:center;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    position:static;
+    width:100%;
+    height:1px;
+    flex:0 0 1px;
+    margin-top:auto;
+    margin-bottom:8px;
+    background:#edf2f5;
+}
+
+.logout-nav-btn{
+    position:static;
+    width:100%;
+    height:43px;
+    flex:0 0 43px;
+    margin-bottom:0;
+}
+
+.logout-nav-btn:hover{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+/* OVERLAY */
+
+.overlay{
+    display:none;
+}
+
+/* MAIN */
+
+.main{
+    margin-left:235px;
+    padding:98px 25px 35px;
+}
+
+.container{
+    max-width:1250px;
+    margin:auto;
+}
+
+/* PAGE HEADER */
+
+.page-head{
+    background:rgba(255,255,255,.95);
+    border:1px solid #d9e8f4;
+    border-radius:18px;
+    padding:20px 22px;
+    margin-bottom:18px;
+    box-shadow:0 7px 25px rgba(28,91,128,.05);
+}
+
+.page-head h1{
+    font-size:25px;
+    color:#06477f;
+    margin-bottom:6px;
+}
+
+.page-head p{
+    color:#8095a7;
+    font-size:12px;
+}
+
+/* GRID */
+
+.settings-grid{
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+    gap:16px;
+}
+
+.card{
+    background:rgba(255,255,255,.97);
+    border:1px solid #d9e8f4;
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 7px 25px rgba(28,91,128,.05);
+    margin-bottom:16px;
+}
+
+.card-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+}
+
+.card-icon{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+    background:#edf7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
+
+.card-title h3{
+    color:#06477f;
+    font-size:14px;
+}
+
+.card-title p{
+    color:#91a1ae;
+    font-size:9px;
+    margin-top:3px;
+}
+
+/* FIELDS */
+
+.field{
+    margin-bottom:14px;
+}
+
+.field:last-child{
+    margin-bottom:0;
+}
+
+.field label{
+    display:block;
+    color:#718796;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.field input,
+.field select{
+    width:100%;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:10px;
+    padding:0 12px;
+    outline:none;
+    background:#f9fcfe;
+    color:#31566f;
+    font-size:11px;
+}
+
+.field input:focus,
+.field select:focus{
+    border-color:#8bc5eb;
+    background:#fff;
+}
+
+.field input:disabled{
+    color:#617b8c;
+    background:#f3f7f9;
+    cursor:not-allowed;
+}
+
+/* TWO FIELD */
+
+.two-fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:14px;
+}
+
+.two-fields .field{
+    margin-bottom:0;
+}
+
+/* BUTTON */
+
+.primary-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:#0871c3;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    margin-top:16px;
+    box-shadow:0 7px 18px rgba(8,113,195,.18);
+}
+
+.primary-btn:hover{
+    background:#075fa5;
+}
+
+.primary-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* STATUS */
+
+.status-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 0;
+    border-bottom:1px solid #edf2f5;
+}
+
+.status-row:last-child{
+    border-bottom:0;
+}
+
+.status-info{
+    min-width:0;
+}
+
+.status-info strong{
+    display:block;
+    color:#31566f;
+    font-size:11px;
+}
+
+.status-info span{
+    display:block;
+    color:#91a1ae;
+    font-size:9px;
+    margin-top:3px;
+    line-height:1.4;
+}
+
+.status-badge{
+    flex-shrink:0;
+    padding:5px 9px;
+    border-radius:20px;
+    background:#eaf8ef;
+    color:#24804a;
+    font-size:8px;
+    font-weight:900;
+}
+
+/* SWITCH */
+
+.switch{
+    position:relative;
+    width:42px;
+    height:23px;
+    flex-shrink:0;
+}
+
+.switch input{
+    opacity:0;
+    width:0;
+    height:0;
+}
+
+.slider{
+    position:absolute;
+    inset:0;
+    background:#d8e4eb;
+    border-radius:20px;
+    transition:.2s;
+}
+
+.slider:before{
+    content:"";
+    position:absolute;
+    width:17px;
+    height:17px;
+    left:3px;
+    top:3px;
+    background:#fff;
+    border-radius:50%;
+    box-shadow:0 2px 5px rgba(0,0,0,.15);
+    transition:.2s;
+}
+
+.switch input:checked + .slider{
+    background:#0871c3;
+}
+
+.switch input:checked + .slider:before{
+    transform:translateX(19px);
+}
+
+/* SECURITY */
+
+.security-box{
+    border:1px solid #dce8f1;
+    border-radius:13px;
+    padding:14px;
+    background:#f9fcfe;
+}
+
+.security-box strong{
+    display:block;
+    color:#31566f;
+    font-size:11px;
+}
+
+.security-box p{
+    color:#91a1ae;
+    font-size:9px;
+    line-height:1.5;
+    margin-top:4px;
+}
+
+.outline-btn{
+    width:100%;
+    height:40px;
+    border:1px solid #cfe0eb;
+    border-radius:10px;
+    background:#fff;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+    margin-top:11px;
+}
+
+.outline-btn:hover{
+    background:#edf7ff;
+}
+
+.outline-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+/* ACCOUNT */
+
+.account-id{
+    word-break:break-all;
+    color:#0871c3!important;
+}
+
+/* MODAL */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(11,43,64,.48);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    z-index:3000;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:min(410px,100%);
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 25px 80px rgba(0,0,0,.2);
+}
+
+.modal-body{
+    padding:25px 20px;
+}
+
+.modal-icon{
+    width:55px;
+    height:55px;
+    border-radius:16px;
+    background:#edf7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    margin:0 auto 13px;
+}
+
+.modal-body h3{
+    text-align:center;
+    color:#06477f;
+    font-size:18px;
+    margin-bottom:7px;
+}
+
+.modal-body p{
+    text-align:center;
+    color:#718796;
+    font-size:10px;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:18px;
+}
+
+.modal-actions button{
+    height:41px;
+    border:0;
+    border-radius:10px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.confirm-btn{
+    background:#0871c3;
+    color:#fff;
+}
+
+/* TOAST */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:310px;
+    max-width:calc(100vw - 40px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:15px;
+    padding:14px 16px;
+    box-shadow:0 15px 45px rgba(20,70,100,.20);
+    transform:translateY(130px);
+    opacity:0;
+    transition:.3s;
+    z-index:4000;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:12px;
+    font-weight:850;
+}
+
+.toast-text{
+    color:#718796;
+    font-size:10px;
+    margin-top:4px;
+    line-height:1.45;
+}
+
+/* TABLET */
+
+@media(max-width:1050px){
+
+    .settings-grid{
+        grid-template-columns:1fr;
+    }
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+    .header{
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:block;
+        margin-right:10px;
+    }
+
+    .brand{
+        gap:9px;
+        flex:1;
+    }
+
+    .brand img{
+        width:100px;
+        max-height:45px;
+    }
+
+    .brand h2{
+        font-size:14px;
+    }
+
+    .brand p{
+        display:none;
+    }
+
+    .header-right{
+        gap:7px;
+    }
+
+    .agency-pill{
+        display:none;
+    }
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .overlay{
+        position:fixed;
+        inset:72px 0 0 0;
+        background:rgba(0,0,0,.35);
+        z-index:850;
+        display:none;
+    }
+
+    .overlay.show{
+        display:block;
+    }
+
+    .main{
+        margin-left:0;
+        padding:91px 14px 30px;
+    }
+
+    .notification-dropdown{
+        right:-5px;
+        width:330px;
+    }
+}
+
+/* SMALL MOBILE */
+
+@media(max-width:520px){
+
+    .header{
+        height:65px;
+        padding:0 10px;
+    }
+
+    .menu-btn{
+        width:40px;
+        height:40px;
+        font-size:21px;
+        margin-right:7px;
+    }
+
+    .brand{
+        gap:7px;
+    }
+
+    .brand img{
+        width:90px;
+        max-height:43px;
+    }
+
+    .brand h2{
+        font-size:13px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+
+    .bell-btn{
+        width:38px;
+        height:38px;
+        border-radius:11px;
+        font-size:17px;
+    }
+
+    .sidebar{
+        top:65px;
+        width:235px;
+        padding:20px 12px;
+    }
+
+    .overlay{
+        inset:65px 0 0 0;
+    }
+
+    .main{
+        padding:82px 10px 25px;
+    }
+
+    .page-head{
+        padding:15px;
+        border-radius:17px;
+    }
+
+    .page-head h1{
+        font-size:20px;
+    }
+
+    .page-head p{
+        font-size:10px;
+        line-height:1.5;
+    }
+
+    .card{
+        padding:15px;
+        border-radius:17px;
+    }
+
+    .two-fields{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+        margin-bottom:12px;
+    }
+
+    .field label{
+        font-size:9px;
+        margin-bottom:5px;
+    }
+
+    .field input,
+    .field select{
+        height:40px;
+        padding:0 8px;
+        font-size:10px;
+        border-radius:9px;
+    }
+
+    .card-title h3{
+        font-size:13px;
+    }
+
+    .card-title p{
+        font-size:8px;
+    }
+
+    .status-info strong{
+        font-size:10px;
+    }
+
+    .status-info span{
+        font-size:8px;
+    }
+
+    .toast{
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+    }
+
+    .notification-dropdown{
+        position:fixed;
+        top:71px;
+        left:10px;
+        right:10px;
+        width:auto;
+        max-width:none;
+    }
+}
+
+/* EXTRA SMALL */
+
+@media(max-width:360px){
+
+    .header{
+        padding:0 7px;
+    }
+
+    .menu-btn{
+        width:37px;
+        height:37px;
+        font-size:19px;
+    }
+
+    .brand img{
+        width:82px;
+        max-height:40px;
+    }
+
+    .brand h2{
+        font-size:12px;
+    }
+
+    .bell-btn{
+        width:35px;
+        height:35px;
+        font-size:16px;
+    }
+
+    .main{
+        padding-left:8px;
+        padding-right:8px;
+    }
+
+    .card{
+        padding:13px;
+    }
+
+    .two-fields{
+        grid-template-columns:1fr 1fr;
+        gap:7px;
+    }
+
+    .field input,
+    .field select{
+        height:38px;
+        font-size:9px;
+        padding:0 7px;
+    }
+
+    .field label{
+        font-size:8px;
+    }
+}
+
+/* SCROLLBARS */
+
+.sidebar::-webkit-scrollbar,
+.notification-list::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.notification-list::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+
+    <button class="menu-btn" id="menuBtn">☰</button>
+
+    <div class="brand">
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            alt="EGC"
+        >
+
+        <div class="brand-text">
+
+            <h2 id="headerAgencyName">
+                LPG Agency
+            </h2>
+
+            <p>
+                Emergency Gas Cylinder Agency Panel
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="header-right">
+
+        <div class="notification-wrap">
+
+            <button
+                class="bell-btn"
+                id="notificationBtn"
+                title="Notifications"
+            >
+                🔔
+
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >
+                    0
+                </span>
+
+            </button>
+
+            <div
+                class="notification-dropdown"
+                id="notificationDropdown"
+            >
+
+                <div class="notification-head">
+
+                    <strong>
+                        Notifications
+                    </strong>
+
+                    <button id="markAllReadBtn">
+                        Mark all as read
+                    </button>
+
+                </div>
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        Loading notifications...
+                    </div>
+
+                </div>
+
+                <div class="notification-footer">
+
+                    <button id="viewAllNotificationsBtn">
+                        View All Notifications
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="agency-pill">
+            🏢 Agency
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- MASTER AGENCY SIDEBAR -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-title">
+        AGENCY MANAGEMENT
+    </div>
+
+    <button class="nav-btn" id="dashboardBtn">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </button>
+
+    <button class="nav-btn" id="customersBtn">
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+    </button>
+
+    <button class="nav-btn" id="requestsBtn">
+        <span class="nav-icon">🛢️</span>
+        <span>Cylinder Requests</span>
+    </button>
+
+    <button class="nav-btn" id="requestDetailsBtn">
+        <span class="nav-icon">📋</span>
+        <span>Request Details</span>
+    </button>
+
+    <button class="nav-btn" id="processingBtn">
+        <span class="nav-icon">⚙️</span>
+        <span>Request Processing</span>
+    </button>
+
+    <button class="nav-btn" id="paymentsBtn">
+        <span class="nav-icon">💳</span>
+        <span>Payments</span>
+    </button>
+
+    <button class="nav-btn" id="repaymentsBtn">
+        <span class="nav-icon">💰</span>
+        <span>Repayments</span>
+    </button>
+
+    <button class="nav-btn" id="deliveriesBtn">
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries</span>
+    </button>
+
+    <button class="nav-btn" id="pendingBtn">
+        <span class="nav-icon">⏳</span>
+        <span>Pending / On Hold</span>
+    </button>
+
+    <button class="nav-btn" id="slipsBtn">
+        <span class="nav-icon">🧾</span>
+        <span>Request / Payment Slips</span>
+    </button>
+
+    <button class="nav-btn" id="notificationsBtn">
+        <span class="nav-icon">🔔</span>
+        <span>Notifications</span>
+    </button>
+
+    <button class="nav-btn" id="reportsBtn">
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+    </button>
+
+    <button class="nav-btn active" id="settingsBtn">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+    </button>
+
+    <button class="nav-btn" id="aboutBtn">
+        <span class="nav-icon">ℹ️</span>
+        <span>About</span>
+    </button>
+
+    <div class="sidebar-bottom"></div>
+
+    <button class="nav-btn logout-nav-btn" id="logoutBtn">
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+    </button>
+
+</aside>
+
+
+<div class="overlay" id="overlay"></div>
+
+
+<main class="main">
+
+<div class="container">
+
+<section class="page-head">
+
+    <h1>⚙️ Agency Settings</h1>
+
+    <p>
+        Manage your agency information, account preferences and notification settings.
+    </p>
+
+</section>
+
+
+<div class="settings-grid">
+
+<div>
+
+<section class="card">
+
+    <div class="card-title">
+
+        <div class="card-icon">
+            🏢
+        </div>
+
+        <div>
+
+            <h3>Agency Information</h3>
+
+            <p>
+                Information connected to your EGC agency account
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="two-fields">
+
+        <div class="field">
+
+            <label>Agency Name</label>
+
+            <input
+                type="text"
+                id="agencyName"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label>Agency Code</label>
+
+            <input
+                type="text"
+                id="agencyCode"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+    </div>
+
+    <div class="two-fields">
+
+        <div class="field">
+
+            <label>Contact Number</label>
+
+            <input
+                type="text"
+                id="agencyPhone"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label>Email</label>
+
+            <input
+                type="text"
+                id="agencyEmail"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+    </div>
+
+    <div class="field">
+
+        <label>Agency Address</label>
+
+        <input
+            type="text"
+            id="agencyAddress"
+            placeholder="Loading..."
+            disabled
+        >
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>Agency Account Status</strong>
+
+            <span>
+                Current status of your EGC agency account
+            </span>
+
+        </div>
+
+        <span
+            class="status-badge"
+            id="agencyStatus"
+        >
+            Active
+        </span>
+
+    </div>
+
+</section>
+
+
+<section class="card">
+
+    <div class="card-title">
+
+        <div class="card-icon">
+            🔔
+        </div>
+
+        <div>
+
+            <h3>Notification Preferences</h3>
+
+            <p>
+                Control real-time alerts from your EGC agency account
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>New Cylinder Request</strong>
+
+            <span>
+                Receive browser alerts when a new notification is created for your agency account.
+            </span>
+
+        </div>
+
+        <label class="switch">
+
+            <input
+                type="checkbox"
+                id="newRequestToggle"
+                checked
+            >
+
+            <span class="slider"></span>
+
+        </label>
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>Payment Updates</strong>
+
+            <span>
+                Receive real-time payment and account notification alerts.
+            </span>
+
+        </div>
+
+        <label class="switch">
+
+            <input
+                type="checkbox"
+                id="paymentToggle"
+                checked
+            >
+
+            <span class="slider"></span>
+
+        </label>
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>Delivery Updates</strong>
+
+            <span>
+                Receive browser notifications for delivery-related alerts.
+            </span>
+
+        </div>
+
+        <label class="switch">
+
+            <input
+                type="checkbox"
+                id="deliveryToggle"
+                checked
+            >
+
+            <span class="slider"></span>
+
+        </label>
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>System Notifications</strong>
+
+            <span>
+                Allow important EGC system notifications and announcements.
+            </span>
+
+        </div>
+
+        <label class="switch">
+
+            <input
+                type="checkbox"
+                id="systemToggle"
+                checked
+            >
+
+            <span class="slider"></span>
+
+        </label>
+
+    </div>
+
+    <div class="security-box" style="margin-top:15px;">
+
+        <strong>
+            Browser Notifications
+        </strong>
+
+        <p id="browserNotificationStatus">
+            Checking notification permission...
+        </p>
+
+        <button
+            class="outline-btn"
+            id="enableBrowserNotificationBtn"
+        >
+            Enable Browser Notifications
+        </button>
+
+    </div>
+
+</section>
+
+</div>
+
+
+<div>
+
+<section class="card">
+
+    <div class="card-title">
+
+        <div class="card-icon">
+            👤
+        </div>
+
+        <div>
+
+            <h3>Account Information</h3>
+
+            <p>
+                Your agency panel account details
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="two-fields">
+
+        <div class="field">
+
+            <label>Account User ID</label>
+
+            <input
+                type="text"
+                id="userId"
+                class="account-id"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label>Login Email</label>
+
+            <input
+                type="text"
+                id="loginEmail"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+    </div>
+
+    <div class="two-fields">
+
+        <div class="field">
+
+            <label>Account Role</label>
+
+            <input
+                type="text"
+                id="accountRole"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label>Account Created</label>
+
+            <input
+                type="text"
+                id="accountCreated"
+                placeholder="Loading..."
+                disabled
+            >
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="card">
+
+    <div class="card-title">
+
+        <div class="card-icon">
+            🔐
+        </div>
+
+        <div>
+
+            <h3>Security</h3>
+
+            <p>
+                Manage your agency account security
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="security-box">
+
+        <strong>
+            Password Security
+        </strong>
+
+        <p>
+            Your account is protected through Supabase Authentication.
+            A password reset email can be requested for the current login email.
+        </p>
+
+        <button
+            class="outline-btn"
+            id="resetPasswordBtn"
+        >
+            Send Password Reset Email
+        </button>
+
+    </div>
+
+    <div class="security-box" style="margin-top:12px;">
+
+        <strong>
+            Session
+        </strong>
+
+        <p>
+            Sign out from this agency account on this device.
+        </p>
+
+        <button
+            class="outline-btn"
+            id="securityLogoutBtn"
+        >
+            Logout From Account
+        </button>
+
+    </div>
+
+</section>
+
+
+<section class="card">
+
+    <div class="card-title">
+
+        <div class="card-icon">
+            ℹ️
+        </div>
+
+        <div>
+
+            <h3>EGC Agency Panel</h3>
+
+            <p>
+                Emergency Gas Cylinder
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="status-row">
+
+        <div class="status-info">
+
+            <strong>Panel Version</strong>
+
+            <span>
+                Current agency dashboard version
+            </span>
+
+        </div>
+
+        <span class="status-badge">
+            EGC
+        </span>
+
+    </div>
+
+</section>
+
+</div>
+
+</div>
+
+</div>
+
+</main>
+
+
+<!-- LOGOUT MODAL -->
+
+<div class="modal" id="logoutModal">
+
+    <div class="modal-card">
+
+        <div class="modal-body">
+
+            <div class="modal-icon">
+                🚪
+            </div>
+
+            <h3>
+                Logout?
+            </h3>
+
+            <p>
+                Are you sure you want to logout from the EGC Agency Panel?
+            </p>
+
+            <div class="modal-actions">
+
+                <button
+                    class="cancel-btn"
+                    id="logoutCancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="confirm-btn"
+                    id="logoutConfirm"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- PASSWORD RESET MODAL -->
+
+<div class="modal" id="resetModal">
+
+    <div class="modal-card">
+
+        <div class="modal-body">
+
+            <div class="modal-icon">
+                🔐
+            </div>
+
+            <h3>
+                Reset Password?
+            </h3>
+
+            <p id="resetMessage">
+                A password reset link will be sent to your registered email address.
+            </p>
+
+            <div class="modal-actions">
+
+                <button
+                    class="cancel-btn"
+                    id="resetCancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="confirm-btn"
+                    id="resetConfirm"
+                >
+                    Send Email
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div class="toast" id="toast">
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    ></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+let currentProfile = null;
+let currentAgency = null;
+
+let realtimeChannel = null;
+
+let notifications = [];
+
+let browserNotificationAllowed = false;
+
+/* =========================
+HELPER
+========================= */
+
+const $ = id =>
+document.getElementById(id);
+
+/* =========================
+ESCAPE
+========================= */
+
+function esc(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+/* =========================
+DATE
+========================= */
+
+function fmtDate(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d =
+        new Date(value);
+
+    if(
+        Number.isNaN(
+            d.getTime()
+        )
+    ){
+        return "—";
+    }
+
+    return d.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+/* =========================
+RELATIVE DATE
+========================= */
+
+function relativeTime(value){
+
+    if(!value){
+        return "";
+    }
+
+    const time =
+        new Date(value).getTime();
+
+    if(Number.isNaN(time)){
+        return "";
+    }
+
+    const diff =
+        Date.now() - time;
+
+    const seconds =
+        Math.floor(diff / 1000);
+
+    if(seconds < 10){
+        return "Just now";
+    }
+
+    if(seconds < 60){
+        return seconds + " sec ago";
+    }
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+    if(minutes < 60){
+        return minutes + " min ago";
+    }
+
+    const hours =
+        Math.floor(minutes / 60);
+
+    if(hours < 24){
+        return hours + " hour" +
+            (hours === 1 ? "" : "s") +
+            " ago";
+    }
+
+    const days =
+        Math.floor(hours / 24);
+
+    if(days < 7){
+        return days + " day" +
+            (days === 1 ? "" : "s") +
+            " ago";
+    }
+
+    return fmtDate(value);
+
+}
+
+/* =========================
+TOAST
+========================= */
+
+function toast(title,text){
+
+    $("toastTitle")
+        .textContent =
+            title || "Notification";
+
+    $("toastText")
+        .textContent =
+            text || "";
+
+    $("toast")
+        .classList
+        .add("show");
+
+    clearTimeout(
+        window.egcToast
+    );
+
+    window.egcToast =
+        setTimeout(
+            () => {
+
+                $("toast")
+                    .classList
+                    .remove("show");
+
+            },
+            4500
+        );
+
+}
+
+/* =========================
+SESSION
+========================= */
+
+async function loadSession(){
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .auth
+        .getUser();
+
+    if(
+        error ||
+        !data?.user
+    ){
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    currentUser =
+        data.user;
+
+    return true;
+
+}
+
+/* =========================
+PROFILE
+========================= */
+
+async function loadProfile(){
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq(
+            "id",
+            currentUser.id
+        )
+        .maybeSingle();
+
+    if(
+        error ||
+        !data
+    ){
+
+        console.error(error);
+
+        toast(
+            "Profile Error",
+            error?.message ||
+            "Agency profile not found."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    currentProfile =
+        data;
+
+    if(
+        data.role &&
+        String(data.role).toLowerCase() !== "agency"
+    ){
+
+        toast(
+            "Access Denied",
+            "This account is not an agency account."
+        );
+
+        await supabaseClient
+            .auth
+            .signOut();
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+/* =========================
+AGENCY
+========================= */
+
+async function loadAgency(){
+
+    if(!currentProfile?.agency_id){
+
+        toast(
+            "Agency Not Assigned",
+            "This account is not linked to an LPG agency."
+        );
+
+        return false;
+
+    }
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("agencies")
+        .select("*")
+        .eq(
+            "id",
+            currentProfile.agency_id
+        )
+        .maybeSingle();
+
+    if(error){
+
+        console.error(error);
+
+        toast(
+            "Agency Error",
+            error.message
+        );
+
+        return false;
+
+    }
+
+    currentAgency =
+        data;
+
+    renderAgency();
+
+    return true;
+
+}
+
+/* =========================
+AGENCY FIELD FINDER
+========================= */
+
+function firstValue(
+    object,
+    keys,
+    fallback=""
+){
+
+    for(
+        const key of keys
+    ){
+
+        if(
+            object &&
+            object[key] !== null &&
+            object[key] !== undefined &&
+            String(object[key]).trim() !== ""
+        ){
+
+            return object[key];
+
+        }
+
+    }
+
+    return fallback;
+
+}
+
+/* =========================
+GET LOGIN EMAIL
+========================= */
+
+function getLoginEmail(){
+
+    const authEmail =
+        currentUser?.email;
+
+    const profileEmail =
+        currentProfile?.email;
+
+    const agencyEmail =
+        currentAgency?.email ||
+        currentAgency?.agency_email ||
+        currentAgency?.contact_email;
+
+    return (
+        authEmail ||
+        profileEmail ||
+        agencyEmail ||
+        ""
+    );
+
+}
+
+/* =========================
+RENDER AGENCY
+========================= */
+
+function renderAgency(){
+
+    const agency =
+        currentAgency || {};
+
+    const profile =
+        currentProfile || {};
+
+    const name =
+        firstValue(
+            agency,
+            [
+                "agency_name",
+                "name",
+                "agencyName"
+            ],
+            "LPG Agency"
+        );
+
+    const code =
+        firstValue(
+            agency,
+            [
+                "agency_code",
+                "code",
+                "agencyCode"
+            ],
+            "—"
+        );
+
+    const phone =
+        firstValue(
+            agency,
+            [
+                "phone",
+                "mobile",
+                "contact_number",
+                "contact"
+            ],
+            "—"
+        );
+
+    const email =
+        firstValue(
+            agency,
+            [
+                "email",
+                "agency_email",
+                "contact_email"
+            ],
+            profile.email ||
+            currentUser.email ||
+            "—"
+        );
+
+    const address =
+        firstValue(
+            agency,
+            [
+                "address",
+                "agency_address",
+                "full_address"
+            ],
+            "—"
+        );
+
+    const status =
+        firstValue(
+            agency,
+            [
+                "status",
+                "agency_status"
+            ],
+            "active"
+        );
+
+    $("headerAgencyName")
+        .textContent =
+            name;
+
+    $("agencyName")
+        .value =
+            name;
+
+    $("agencyCode")
+        .value =
+            code;
+
+    $("agencyPhone")
+        .value =
+            phone;
+
+    $("agencyEmail")
+        .value =
+            email;
+
+    $("agencyAddress")
+        .value =
+            address;
+
+    $("agencyStatus")
+        .textContent =
+            String(status)
+            .charAt(0)
+            .toUpperCase() +
+            String(status)
+            .slice(1);
+
+    const role =
+        profile.role ||
+        "agency";
+
+    const loginEmail =
+        getLoginEmail();
+
+    $("userId")
+        .value =
+            currentUser.id;
+
+    $("loginEmail")
+        .value =
+            loginEmail ||
+            "—";
+
+    $("accountRole")
+        .value =
+            String(role)
+            .charAt(0)
+            .toUpperCase() +
+            String(role)
+            .slice(1);
+
+    $("accountCreated")
+        .value =
+            fmtDate(
+                currentUser.created_at ||
+                profile.created_at ||
+                agency.created_at
+            );
+
+}
+
+/* =====================================================
+REAL NOTIFICATIONS
+===================================================== */
+
+/* =========================
+LOAD REAL NOTIFICATIONS
+FROM public.notifications
+========================= */
+
+async function loadNotifications(){
+
+    if(!currentUser?.id){
+        return;
+    }
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .from("notifications")
+        .select("*")
+        .eq(
+            "user_id",
+            currentUser.id
+        )
+        .order(
+            "created_at",
+            {
+                ascending:false
+            }
+        )
+        .limit(30);
+
+    if(error){
+
+        console.error(
+            "Notification load error:",
+            error
+        );
+
+        renderNotifications();
+
+        return;
+
+    }
+
+    notifications =
+        Array.isArray(data)
+            ? data
+            : [];
+
+    renderNotifications();
+
+}
+
+/* =========================
+UNREAD COUNT
+========================= */
+
+function updateNotificationCount(){
+
+    const unread =
+        notifications.filter(
+            notification =>
+                notification.is_read !== true
+        ).length;
+
+    const count =
+        $("notificationCount");
+
+    if(unread > 0){
+
+        count.textContent =
+            unread > 99
+                ? "99+"
+                : unread;
+
+        count.classList
+            .add("show");
+
+    }else{
+
+        count.classList
+            .remove("show");
+
+    }
+
+}
+
+/* =========================
+RENDER NOTIFICATIONS
+========================= */
+
+function renderNotifications(){
+
+    const list =
+        $("notificationList");
+
+    if(!notifications.length){
+
+        list.innerHTML =
+            `
+            <div class="notification-empty">
+                🔔 No notifications yet.
+            </div>
+            `;
+
+        updateNotificationCount();
+
+        return;
+
+    }
+
+    list.innerHTML =
+        notifications
+            .map(
+                notification => {
+
+                    const unread =
+                        notification.is_read !== true;
+
+                    const title =
+                        esc(
+                            notification.title ||
+                            "EGC Notification"
+                        );
+
+                    const message =
+                        esc(
+                            notification.message ||
+                            ""
+                        );
+
+                    const time =
+                        relativeTime(
+                            notification.created_at
+                        );
+
+                    return `
+                    <div
+                        class="notification-item ${unread ? "unread" : ""}"
+                        data-notification-id="${esc(notification.id)}"
+                    >
+
+                        <div class="notification-item-title">
+                            ${title}
+                        </div>
+
+                        <div class="notification-item-message">
+                            ${message}
+                        </div>
+
+                        <div class="notification-item-time">
+                            ${time}
+                        </div>
+
+                    </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+    list
+        .querySelectorAll(
+            ".notification-item"
+        )
+        .forEach(
+            element => {
+
+                element.addEventListener(
+                    "click",
+                    async () => {
+
+                        const id =
+                            element.dataset.notificationId;
+
+                        await markNotificationRead(
+                            id
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+    updateNotificationCount();
+
+}
+
+/* =========================
+MARK ONE READ
+========================= */
+
+async function markNotificationRead(id){
+
+    if(!id){
+        return;
+    }
+
+    const notification =
+        notifications.find(
+            item =>
+                String(item.id) ===
+                String(id)
+        );
+
+    if(!notification){
+        return;
+    }
+
+    if(notification.is_read === true){
+        return;
+    }
+
+    const {
+        error
+    } =
+    await supabaseClient
+        .from("notifications")
+        .update({
+            is_read:true
+        })
+        .eq(
+            "id",
+            id
+        )
+        .eq(
+            "user_id",
+            currentUser.id
+        );
+
+    if(error){
+
+        console.error(
+            "Mark notification read error:",
+            error
+        );
+
+        toast(
+            "Notification Error",
+            error.message ||
+            "Unable to mark notification as read."
+        );
+
+        return;
+
+    }
+
+    notification.is_read =
+        true;
+
+    renderNotifications();
+
+}
+
+/* =========================
+MARK ALL READ
+========================= */
+
+async function markAllNotificationsRead(){
+
+    const unread =
+        notifications.filter(
+            item =>
+                item.is_read !== true
+        );
+
+    if(!unread.length){
+
+        toast(
+            "Notifications",
+            "All notifications are already read."
+        );
+
+        return;
+
+    }
+
+    const button =
+        $("markAllReadBtn");
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Updating...";
+
+    try{
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .eq(
+                "is_read",
+                false
+            );
+
+        if(error){
+            throw error;
+        }
+
+        notifications =
+            notifications.map(
+                item => ({
+                    ...item,
+                    is_read:true
+                })
+            );
+
+        renderNotifications();
+
+        toast(
+            "Notifications Updated",
+            "All notifications have been marked as read."
+        );
+
+    }catch(error){
+
+        console.error(
+            "Mark all read error:",
+            error
+        );
+
+        toast(
+            "Update Failed",
+            error.message ||
+            "Unable to mark notifications as read."
+        );
+
+    }finally{
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Mark all as read";
+
+    }
+
+}
+
+/* =========================
+REALTIME NOTIFICATIONS
+========================= */
+
+function startNotificationRealtime(){
+
+    if(!currentUser?.id){
+        return;
+    }
+
+    if(realtimeChannel){
+
+        supabaseClient
+            .removeChannel(
+                realtimeChannel
+            );
+
+        realtimeChannel =
+            null;
+
+    }
+
+    realtimeChannel =
+        supabaseClient
+            .channel(
+                "egc-agency-notifications-" +
+                currentUser.id
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"INSERT",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "user_id=eq." +
+                        currentUser.id
+                },
+                payload => {
+
+                    const newNotification =
+                        payload.new;
+
+                    const alreadyExists =
+                        notifications.some(
+                            item =>
+                                String(item.id) ===
+                                String(newNotification.id)
+                        );
+
+                    if(alreadyExists){
+                        return;
+                    }
+
+                    notifications.unshift(
+                        newNotification
+                    );
+
+                    notifications =
+                        notifications.slice(
+                            0,
+                            30
+                        );
+
+                    renderNotifications();
+
+                    showBrowserNotification(
+                        newNotification
+                    );
+
+                    if(
+                        newNotification.title ||
+                        newNotification.message
+                    ){
+
+                        toast(
+                            newNotification.title ||
+                            "New Notification",
+                            newNotification.message ||
+                            "You have a new EGC notification."
+                        );
+
+                    }
+
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"UPDATE",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "user_id=eq." +
+                        currentUser.id
+                },
+                payload => {
+
+                    const updated =
+                        payload.new;
+
+                    const index =
+                        notifications.findIndex(
+                            item =>
+                                String(item.id) ===
+                                String(updated.id)
+                        );
+
+                    if(index >= 0){
+
+                        notifications[index] =
+                            updated;
+
+                    }else{
+
+                        notifications.unshift(
+                            updated
+                        );
+
+                    }
+
+                    notifications =
+                        notifications.slice(
+                            0,
+                            30
+                        );
+
+                    renderNotifications();
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "Notification realtime:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+/* =========================
+STOP REALTIME
+========================= */
+
+async function stopNotificationRealtime(){
+
+    if(!realtimeChannel){
+        return;
+    }
+
+    try{
+
+        await supabaseClient
+            .removeChannel(
+                realtimeChannel
+            );
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+
+    realtimeChannel =
+        null;
+
+}
+
+/* =====================================================
+BROWSER NOTIFICATIONS
+===================================================== */
+
+function updateBrowserNotificationStatus(){
+
+    const status =
+        $("browserNotificationStatus");
+
+    const button =
+        $("enableBrowserNotificationBtn");
+
+    if(!("Notification" in window)){
+
+        browserNotificationAllowed =
+            false;
+
+        status.textContent =
+            "This browser does not support system notifications.";
+
+        button.disabled =
+            true;
+
+        button.textContent =
+            "Not Supported";
+
+        return;
+
+    }
+
+    if(Notification.permission === "granted"){
+
+        browserNotificationAllowed =
+            true;
+
+        status.textContent =
+            "Browser notifications are enabled for this device.";
+
+        button.textContent =
+            "Notifications Enabled";
+
+        button.disabled =
+            true;
+
+        return;
+
+    }
+
+    if(Notification.permission === "denied"){
+
+        browserNotificationAllowed =
+            false;
+
+        status.textContent =
+            "Browser notifications are blocked. Allow them from your browser settings.";
+
+        button.textContent =
+            "Browser Permission Blocked";
+
+        button.disabled =
+            true;
+
+        return;
+
+    }
+
+    browserNotificationAllowed =
+        false;
+
+    status.textContent =
+        "Browser notifications are not enabled yet.";
+
+    button.textContent =
+        "Enable Browser Notifications";
+
+    button.disabled =
+        false;
+
+}
+
+/* =========================
+REQUEST BROWSER PERMISSION
+========================= */
+
+async function enableBrowserNotifications(){
+
+    if(!("Notification" in window)){
+
+        toast(
+            "Not Supported",
+            "Your browser does not support system notifications."
+        );
+
+        return;
+
+    }
+
+    try{
+
+        const permission =
+            await Notification.requestPermission();
+
+        updateBrowserNotificationStatus();
+
+        if(permission === "granted"){
+
+            toast(
+                "Notifications Enabled",
+                "You will receive EGC alerts on this device."
+            );
+
+        }else{
+
+            toast(
+                "Notifications Not Enabled",
+                "Browser notification permission was not granted."
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(error);
+
+        toast(
+            "Permission Error",
+            "Unable to request browser notification permission."
+        );
+
+    }
+
+}
+
+/* =========================
+SHOW BROWSER NOTIFICATION
+========================= */
+
+function showBrowserNotification(notification){
+
+    if(!browserNotificationAllowed){
+        return;
+    }
+
+    if(
+        !notification
+    ){
+        return;
+    }
+
+    if(
+        notification.is_read === true
+    ){
+        return;
+    }
+
+    try{
+
+        const title =
+            notification.title ||
+            "EGC Notification";
+
+        const message =
+            notification.message ||
+            "You have a new notification.";
+
+        const systemNotification =
+            new Notification(
+                title,
+                {
+                    body:message,
+                    icon:
+                        "assets/EGC - Emergency Gas Cylinder logo.png",
+                    tag:
+                        "egc-" +
+                        String(
+                            notification.id ||
+                            Date.now()
+                        )
+                }
+            );
+
+        systemNotification.onclick =
+            () => {
+
+                window.focus();
+
+                $("notificationDropdown")
+                    .classList
+                    .add("show");
+
+                if(notification.id){
+
+                    markNotificationRead(
+                        notification.id
+                    );
+
+                }
+
+                systemNotification.close();
+
+            };
+
+    }catch(error){
+
+        console.error(
+            "Browser notification error:",
+            error
+        );
+
+    }
+
+}
+
+/* =====================================================
+NOTIFICATION PREFERENCES
+===================================================== */
+
+/*
+    These switches control which type of browser alert
+    should be shown.
+
+    The actual notification records still come from
+    public.notifications.
+
+    The switches are stored only as browser preference.
+*/
+
+function getNotificationPreferences(){
+
+    return {
+
+        newRequest:
+            $("newRequestToggle").checked,
+
+        payment:
+            $("paymentToggle").checked,
+
+        delivery:
+            $("deliveryToggle").checked,
+
+        system:
+            $("systemToggle").checked
+
+    };
+
+}
+
+function saveNotificationPreference(){
+
+    const preferences =
+        getNotificationPreferences();
+
+    try{
+
+        localStorage.setItem(
+            "egcAgencyNotificationPreferences_" +
+            currentUser.id,
+            JSON.stringify(
+                preferences
+            )
+        );
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+function loadNotificationPreferences(){
+
+    if(!currentUser?.id){
+        return;
+    }
+
+    try{
+
+        const saved =
+            localStorage.getItem(
+                "egcAgencyNotificationPreferences_" +
+                currentUser.id
+            );
+
+        if(!saved){
+            return;
+        }
+
+        const settings =
+            JSON.parse(saved);
+
+        $("newRequestToggle")
+            .checked =
+                settings.newRequest !== false;
+
+        $("paymentToggle")
+            .checked =
+                settings.payment !== false;
+
+        $("deliveryToggle")
+            .checked =
+                settings.delivery !== false;
+
+        $("systemToggle")
+            .checked =
+                settings.system !== false;
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+/* =====================================================
+PASSWORD RESET
+===================================================== */
+
+$("resetPasswordBtn").onclick =
+() => {
+
+    const email =
+        getLoginEmail();
+
+    if(!email){
+
+        toast(
+            "Email Not Available",
+            "No login email is available for this account."
+        );
+
+        return;
+
+    }
+
+    $("resetMessage")
+        .textContent =
+            "A password reset link will be sent to " +
+            email +
+            ".";
+
+    $("resetModal")
+        .classList
+        .add("show");
+
+};
+
+/* =========================
+RESET CANCEL
+========================= */
+
+$("resetCancel").onclick =
+() => {
+
+    $("resetModal")
+        .classList
+        .remove("show");
+
+};
+
+/* =========================
+RESET CONFIRM
+========================= */
+
+$("resetConfirm").onclick =
+async () => {
+
+    const button =
+        $("resetConfirm");
+
+    const email =
+        getLoginEmail();
+
+    if(!email){
+
+        toast(
+            "Reset Failed",
+            "Login email was not found for this account."
+        );
+
+        return;
+
+    }
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Sending...";
+
+    try{
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .auth
+            .resetPasswordForEmail(
+                email,
+                {
+                    redirectTo:
+                        window.location.origin +
+                        "/agency-reset-password.html"
+                }
+            );
+
+        if(error){
+            throw error;
+        }
+
+        $("resetModal")
+            .classList
+            .remove("show");
+
+        toast(
+            "Email Sent",
+            "Password reset instructions have been sent to " +
+            email +
+            "."
+        );
+
+    }catch(error){
+
+        console.error(
+            "Password reset error:",
+            error
+        );
+
+        toast(
+            "Reset Failed",
+            error?.message ||
+            "Unable to send password reset email. Please try again."
+        );
+
+    }finally{
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Send Email";
+
+    }
+
+};
+
+/* =====================================================
+LOGOUT
+===================================================== */
+
+function openLogout(){
+
+    $("logoutModal")
+        .classList
+        .add("show");
+
+}
+
+$("logoutBtn").onclick =
+openLogout;
+
+$("securityLogoutBtn").onclick =
+openLogout;
+
+$("logoutCancel").onclick =
+() => {
+
+    $("logoutModal")
+        .classList
+        .remove("show");
+
+};
+
+/* =========================
+LOGOUT CONFIRM
+========================= */
+
+$("logoutConfirm").onclick =
+async () => {
+
+    const button =
+        $("logoutConfirm");
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Logging out...";
+
+    try{
+
+        await stopNotificationRealtime();
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .auth
+            .signOut();
+
+        if(error){
+            throw error;
+        }
+
+        location.replace(
+            "agency-login.html"
+        );
+
+    }catch(error){
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Logout";
+
+        toast(
+            "Logout Failed",
+            error.message ||
+            "Please try again."
+        );
+
+    }
+
+};
+
+/* =====================================================
+MODAL OUTSIDE CLICK
+===================================================== */
+
+$("logoutModal").onclick =
+event => {
+
+    if(
+        event.target ===
+        $("logoutModal")
+    ){
+
+        $("logoutModal")
+            .classList
+            .remove("show");
+
+    }
+
+};
+
+$("resetModal").onclick =
+event => {
+
+    if(
+        event.target ===
+        $("resetModal")
+    ){
+
+        $("resetModal")
+            .classList
+            .remove("show");
+
+    }
+
+};
+
+/* =====================================================
+NOTIFICATION DROPDOWN
+===================================================== */
+
+$("notificationBtn").onclick =
+event => {
+
+    event.stopPropagation();
+
+    $("notificationDropdown")
+        .classList
+        .toggle("show");
+
+};
+
+$("notificationDropdown").onclick =
+event => {
+
+    event.stopPropagation();
+
+};
+
+document.addEventListener(
+    "click",
+    event => {
+
+        if(
+            !$("notificationDropdown")
+                .contains(event.target) &&
+            event.target !==
+                $("notificationBtn")
+        ){
+
+            $("notificationDropdown")
+                .classList
+                .remove("show");
+
+        }
+
+    }
+);
+
+/* =========================
+MARK ALL
+========================= */
+
+$("markAllReadBtn").onclick =
+async () => {
+
+    await markAllNotificationsRead();
+
+};
+
+/* =========================
+VIEW ALL
+========================= */
+
+$("viewAllNotificationsBtn").onclick =
+() => {
+
+    location.href =
+        "agency-notifications.html";
+
+};
+
+/* =====================================================
+BROWSER NOTIFICATION BUTTON
+===================================================== */
+
+$("enableBrowserNotificationBtn").onclick =
+enableBrowserNotifications;
+
+/* =====================================================
+NOTIFICATION TOGGLES
+===================================================== */
+
+[
+    "newRequestToggle",
+    "paymentToggle",
+    "deliveryToggle",
+    "systemToggle"
+]
+.forEach(
+    id => {
+
+        $(id).addEventListener(
+            "change",
+            () => {
+
+                saveNotificationPreference();
+
+                const checked =
+                    $(id).checked;
+
+                toast(
+                    "Notification Setting",
+                    checked
+                        ? "This notification type has been enabled."
+                        : "This notification type has been disabled."
+                );
+
+            }
+        );
+
+    }
+);
+
+/* =====================================================
+NAVIGATION
+===================================================== */
+
+function nav(id,url){
+
+    const element =
+        $(id);
+
+    if(element){
+
+        element.onclick =
+            () => {
+
+                location.href =
+                    url;
+
+            };
+
+    }
+
+}
+nav(
+    "dashboardBtn",
+    "agency-dashboard.html"
+);
+
+nav(
+    "customersBtn",
+    "agency-customers.html"
+);
+
+nav(
+    "requestsBtn",
+    "agency-cylinder-requests.html"
+);
+
+nav(
+    "requestDetailsBtn",
+    "agency-request-details.html"
+);
+
+nav(
+    "paymentsBtn",
+    "agency-payments.html"
+);
+
+nav(
+    "repaymentsBtn",
+    "agency-repayments.html"
+);
+
+nav(
+    "deliveriesBtn",
+    "agency-deliveries.html"
+);
+
+nav(
+    "pendingBtn",
+    "agency-pending.html"
+);
+
+nav(
+    "slipsBtn",
+    "agency-slips.html"
+);
+
+nav(
+    "notificationsBtn",
+    "agency-notifications.html"
+);
+
+nav(
+    "reportsBtn",
+    "agency-reports.html"
+);
+
+nav(
+    "processingBtn",
+    "agency-processing.html"
+);
+
+nav(
+    "aboutBtn",
+    "agency-about.html"
+);
+
+/* =====================================================
+MOBILE MENU
+===================================================== */
+
+$("menuBtn").onclick =
+() => {
+
+    $("sidebar")
+        .classList
+        .toggle("open");
+
+    $("overlay")
+        .classList
+        .toggle("show");
+
+};
+
+$("overlay").onclick =
+() => {
+
+    $("sidebar")
+        .classList
+        .remove("open");
+
+    $("overlay")
+        .classList
+        .remove("show");
+
+};
+
+/* =====================================================
+SIDEBAR CLOSE
+===================================================== */
+
+document
+.querySelectorAll(".nav-btn")
+.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                if(
+                    window.innerWidth <= 800
+                ){
+
+                    $("sidebar")
+                        .classList
+                        .remove("open");
+
+                    $("overlay")
+                        .classList
+                        .remove("show");
+
+                }
+
+            }
+        );
+
+    }
+);
+
+/* =====================================================
+ESCAPE KEY
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key === "Escape"
+        ){
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+            $("resetModal")
+                .classList
+                .remove("show");
+
+            $("notificationDropdown")
+                .classList
+                .remove("show");
+
+            $("sidebar")
+                .classList
+                .remove("open");
+
+            $("overlay")
+                .classList
+                .remove("show");
+
+        }
+
+    }
+);
+
+/* =====================================================
+AUTH STATE
+===================================================== */
+
+supabaseClient
+.auth
+.onAuthStateChange(
+    async event => {
+
+        if(
+            event === "SIGNED_OUT"
+        ){
+
+            await stopNotificationRealtime();
+
+            location.replace(
+                "agency-login.html"
+            );
+
+        }
+
+    }
+);
+
+/* =====================================================
+INITIALIZE
+===================================================== */
+
+async function init(){
+
+    updateBrowserNotificationStatus();
+
+    if(
+        !await loadSession()
+    ){
+        return;
+    }
+
+    if(
+        !await loadProfile()
+    ){
+        return;
+    }
+
+    await loadAgency();
+
+    loadNotificationPreferences();
+
+    await loadNotifications();
+
+    startNotificationRealtime();
+
+}
+
+init();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,3593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Request Complete</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#eef7fc;
+    color:#073f73;
+    min-height:100vh;
+}
+
+button{
+    font-family:Arial,Helvetica,sans-serif;
+    cursor:pointer;
+}
+
+.app{
+    min-height:100vh;
+    background:#eef7fc;
+}
+
+/* ================= HEADER ================= */
+
+.header{
+    height:82px;
+    background:#fff;
+    border-bottom:1px solid #e4edf5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:sticky;
+    top:0;
+    z-index:100;
+    box-shadow:0 3px 15px rgba(0,62,129,.04);
+}
+
+.header-left{
+    position:absolute;
+    left:28px;
+}
+
+.back-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:29px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.2s ease;
+}
+
+.back-btn:hover{
+    background:#dcefff;
+    transform:translateX(-2px);
+}
+
+.egc-logo{
+    height:60px;
+    width:auto;
+    object-fit:contain;
+}
+
+/* ================= MAIN ================= */
+
+.main{
+    width:100%;
+    max-width:1200px;
+    margin:auto;
+    padding:38px 25px 70px;
+}
+
+/* ================= MESSAGE ================= */
+
+.message{
+    display:none;
+    width:100%;
+    max-width:850px;
+    margin:0 auto 20px;
+    padding:14px 17px;
+    border-radius:13px;
+    font-size:14px;
+    line-height:1.5;
+}
+
+.message.error{
+    display:block;
+    background:#fff1f1;
+    border:1px solid #ffc9c9;
+    color:#bd2828;
+}
+
+.message.success{
+    display:block;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+    color:#16833a;
+}
+
+/* ================= TITLE ================= */
+
+.page-title{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.page-title h1{
+    font-size:34px;
+    font-weight:800;
+    color:#06447c;
+    margin-bottom:8px;
+}
+
+.page-title p{
+    font-size:17px;
+    color:#72899e;
+    line-height:1.5;
+}
+
+/* ================= PROGRESS ================= */
+
+.step-progress{
+    width:100%;
+    max-width:850px;
+    margin:0 auto 35px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+}
+
+.step-item{
+    flex:1;
+    position:relative;
+    text-align:center;
+}
+
+.step-item:not(:last-child)::after{
+    content:"";
+    position:absolute;
+    top:21px;
+    left:50%;
+    width:100%;
+    height:4px;
+    background:#20a45a;
+    z-index:0;
+}
+
+.step-circle{
+    width:44px;
+    height:44px;
+    margin:0 auto 9px;
+    border-radius:50%;
+    background:#20a45a;
+    border:4px solid #20a45a;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:900;
+    position:relative;
+    z-index:2;
+}
+
+.step-item.active .step-circle{
+    background:#0878d1;
+    border-color:#0878d1;
+    box-shadow:0 0 0 5px #eaf5ff;
+}
+
+.step-title{
+    font-size:11px;
+    font-weight:900;
+    color:#168c50;
+    white-space:nowrap;
+}
+
+.step-item.active .step-title{
+    color:#0878d1;
+}
+
+/* ================= COMMON ================= */
+
+.success-card,
+.card,
+.status-card,
+.payment-summary,
+.slip-card{
+    width:100%;
+    max-width:850px;
+    margin:0 auto 22px;
+    background:#fff;
+    border:1px solid #e0eaf2;
+    border-radius:22px;
+    padding:32px;
+    box-shadow:0 10px 40px rgba(7,65,105,.08);
+}
+
+.card-title{
+    font-size:22px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:20px;
+}
+
+/* ================= SUCCESS ================= */
+
+.success-card{
+    text-align:center;
+}
+
+.success-icon{
+    width:76px;
+    height:76px;
+    margin:0 auto 18px;
+    border-radius:50%;
+    background:#eafaf1;
+    border:3px solid #20a45a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#168c50;
+    font-size:39px;
+    font-weight:900;
+}
+
+.success-card h1{
+    font-size:29px;
+    color:#06477f;
+    font-weight:900;
+    margin-bottom:9px;
+}
+
+.success-card p{
+    color:#71879a;
+    font-size:14px;
+    line-height:1.7;
+    max-width:680px;
+    margin:0 auto;
+}
+
+.request-box{
+    margin-top:24px;
+    padding:19px;
+    border-radius:16px;
+    background:#eef8ff;
+    border:1px solid #cde6f7;
+}
+
+.request-label{
+    color:#6d8497;
+    font-size:11px;
+    font-weight:900;
+    margin-bottom:8px;
+    letter-spacing:.5px;
+}
+
+.request-number{
+    font-size:25px;
+    font-weight:900;
+    color:#0878d1;
+    letter-spacing:.7px;
+    word-break:break-word;
+}
+
+/* ================= CUSTOMER ================= */
+
+.customer-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:13px;
+}
+
+.detail-box{
+    background:#f7fbfe;
+    border:1px solid #e3eef5;
+    border-radius:13px;
+    padding:15px;
+}
+
+.detail-label{
+    color:#8799a8;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    margin-bottom:6px;
+}
+
+.detail-value{
+    color:#174d72;
+    font-size:14px;
+    font-weight:900;
+    word-break:break-word;
+}
+
+.user-id-value{
+    font-family:monospace;
+    color:#0754a9;
+    font-size:12px;
+}
+
+.request-date-box{
+    grid-column:1/-1;
+}
+
+.request-date-value{
+    font-size:15px;
+}
+
+/* ================= REQUEST ================= */
+
+.request-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:13px;
+}
+
+.request-detail{
+    background:#f7fbfe;
+    border:1px solid #e3eef5;
+    border-radius:13px;
+    padding:15px;
+}
+
+.request-detail-full{
+    grid-column:1/-1;
+}
+
+/* ================= STATUS ================= */
+
+.status-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:18px;
+}
+
+.status-current{
+    padding:8px 13px;
+    border-radius:20px;
+    background:#fff5d9;
+    color:#86651b;
+    font-size:10px;
+    font-weight:900;
+}
+
+.status-current.approved,
+.status-current.completed,
+.status-current.paid{
+    background:#eafaf1;
+    color:#168c50;
+}
+
+.status-current.rejected,
+.status-current.cancelled{
+    background:#fff0f0;
+    color:#c62828;
+}
+
+.status-line{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:15px 0;
+    border-bottom:1px solid #e7eef4;
+}
+
+.status-line:last-child{
+    border-bottom:0;
+}
+
+.status-dot{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#eef5fa;
+    color:#7891a3;
+    font-weight:900;
+    flex-shrink:0;
+}
+
+.status-line.done .status-dot{
+    background:#eafaf1;
+    color:#168c50;
+}
+
+.status-line.active .status-dot{
+    background:#eaf5ff;
+    color:#0878d1;
+    box-shadow:0 0 0 4px #f2f9ff;
+}
+
+.status-content{
+    flex:1;
+}
+
+.status-title{
+    font-size:14px;
+    font-weight:900;
+    color:#174d72;
+    margin-bottom:4px;
+}
+
+.status-description{
+    font-size:11px;
+    line-height:1.5;
+    color:#788d9e;
+}
+
+.status-badge{
+    padding:7px 11px;
+    border-radius:20px;
+    font-size:9px;
+    font-weight:900;
+    background:#f0f4f7;
+    color:#7890a3;
+    white-space:nowrap;
+}
+
+.status-line.done .status-badge{
+    background:#eafaf1;
+    color:#168c50;
+}
+
+.status-line.active .status-badge{
+    background:#eaf5ff;
+    color:#0878d1;
+}
+
+/* ================= PAYMENT SUMMARY ================= */
+
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:13px 0;
+    border-bottom:1px solid #e6eef4;
+    font-size:14px;
+}
+
+.summary-row:last-child{
+    border-bottom:0;
+}
+
+.summary-label{
+    color:#71879a;
+}
+
+.summary-value{
+    color:#164c72;
+    font-weight:900;
+    text-align:right;
+}
+
+.summary-row.highlight{
+    margin-top:8px;
+    padding-top:17px;
+    border-top:2px solid #dbe9f2;
+    border-bottom:0;
+}
+
+.summary-row.highlight .summary-label,
+.summary-row.highlight .summary-value{
+    color:#0878d1;
+    font-size:18px;
+}
+
+/* ================= PAYMENT SLIP ================= */
+
+.slip-card{
+    border-color:#d8e6ef;
+}
+
+.slip-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:15px;
+    padding-bottom:18px;
+    border-bottom:2px solid #e5eef4;
+}
+
+.slip-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.slip-logo{
+    width:105px;
+    height:48px;
+    object-fit:contain;
+}
+
+.slip-title{
+    color:#003e81;
+    font-size:19px;
+    font-weight:900;
+}
+
+.slip-subtitle{
+    color:#8295a6;
+    font-size:10px;
+    margin-top:3px;
+}
+
+.slip-status{
+    padding:8px 12px;
+    border-radius:20px;
+    background:#fff5d9;
+    color:#86651b;
+    font-size:9px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.slip-request{
+    margin-top:18px;
+    padding:14px;
+    border-radius:12px;
+    background:#eef8ff;
+    border:1px solid #cde6f7;
+}
+
+.slip-request-label{
+    font-size:9px;
+    color:#7890a3;
+    font-weight:900;
+}
+
+.slip-request-number{
+    margin-top:5px;
+    font-size:19px;
+    color:#0878d1;
+    font-weight:900;
+}
+
+.slip-section-title{
+    margin-top:21px;
+    margin-bottom:10px;
+    color:#174d72;
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.slip-table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.slip-table td{
+    padding:10px 6px;
+    border-bottom:1px solid #edf2f6;
+    font-size:12px;
+}
+
+.slip-table td:first-child{
+    color:#8193a1;
+    width:45%;
+}
+
+.slip-table td:last-child{
+    color:#174d72;
+    font-weight:900;
+    text-align:right;
+    word-break:break-word;
+}
+
+.slip-total{
+    margin-top:16px;
+    padding:14px;
+    border-radius:12px;
+    background:#f5fbff;
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    font-weight:900;
+    color:#0754a9;
+}
+
+.slip-note{
+    margin-top:15px;
+    padding:13px;
+    border-radius:10px;
+    background:#fff9e8;
+    color:#725817;
+    font-size:10px;
+    line-height:1.6;
+}
+
+.print-btn{
+    width:100%;
+    height:50px;
+    margin-top:18px;
+    border:0;
+    border-radius:13px;
+    background:#0878d1;
+    color:#fff;
+    font-size:13px;
+    font-weight:900;
+    box-shadow:0 7px 18px rgba(8,120,209,.18);
+    transition:.2s ease;
+}
+
+.print-btn:hover{
+    background:#0668b8;
+}
+
+/* ================= INFO ================= */
+
+.info-box{
+    width:100%;
+    max-width:850px;
+    margin:0 auto 22px;
+    padding:19px;
+    border-radius:15px;
+    background:#fff9e8;
+    border:1px solid #f1dda5;
+    color:#725817;
+    font-size:13px;
+    line-height:1.7;
+}
+
+.info-box strong{
+    color:#5f470e;
+}
+
+/* ================= ACTIONS ================= */
+
+.actions{
+    width:100%;
+    max-width:850px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:12px;
+}
+
+.action-btn{
+    height:54px;
+    border-radius:14px;
+    font-size:14px;
+    font-weight:900;
+    transition:.2s ease;
+}
+
+.home-btn{
+    border:1px solid #d2e1ec;
+    background:#fff;
+    color:#15547d;
+}
+
+.home-btn:hover{
+    background:#f3f9fd;
+}
+
+.dashboard-btn{
+    border:0;
+    background:#0878d1;
+    color:#fff;
+    box-shadow:0 7px 18px rgba(8,120,209,.18);
+}
+
+.dashboard-btn:hover{
+    background:#0668b8;
+}
+
+.refresh-btn{
+    border:1px solid #bcdcf1;
+    background:#eef8ff;
+    color:#0754a9;
+}
+
+.refresh-btn:hover{
+    background:#e0f2ff;
+}
+
+.refresh-btn.loading{
+    opacity:.75;
+    cursor:wait;
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+    }
+
+    .header-left{
+        left:14px;
+    }
+
+    .back-btn{
+        width:38px;
+        height:38px;
+        font-size:26px;
+    }
+
+    .egc-logo{
+        height:49px;
+    }
+
+    .main{
+        padding:24px 12px 45px;
+    }
+
+    .page-title{
+        margin-bottom:22px;
+    }
+
+    .page-title h1{
+        font-size:27px;
+    }
+
+    .page-title p{
+        font-size:14px;
+    }
+
+    .step-progress{
+        margin-bottom:28px;
+    }
+
+    .step-item:not(:last-child)::after{
+        top:18px;
+        height:3px;
+    }
+
+    .step-circle{
+        width:38px;
+        height:38px;
+        font-size:14px;
+        border-width:3px;
+        margin-bottom:7px;
+    }
+
+    .step-title{
+        font-size:8px;
+    }
+
+    .success-card,
+    .card,
+    .status-card,
+    .payment-summary,
+    .slip-card{
+        padding:22px 15px;
+        border-radius:18px;
+    }
+
+    .success-card{
+        padding-top:27px;
+        padding-bottom:27px;
+    }
+
+    .success-icon{
+        width:68px;
+        height:68px;
+        font-size:34px;
+    }
+
+    .success-card h1{
+        font-size:24px;
+    }
+
+    .success-card p{
+        font-size:13px;
+    }
+
+    .request-number{
+        font-size:20px;
+    }
+
+    .card-title{
+        font-size:19px;
+    }
+
+    .customer-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .detail-value{
+        font-size:13px;
+    }
+
+    .user-id-value{
+        font-size:10px;
+    }
+
+    .request-date-value{
+        font-size:13px;
+    }
+
+    .request-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .status-top{
+        align-items:flex-start;
+    }
+
+    .status-line{
+        gap:9px;
+    }
+
+    .status-dot{
+        width:35px;
+        height:35px;
+        font-size:12px;
+    }
+
+    .status-title{
+        font-size:13px;
+    }
+
+    .status-description{
+        font-size:10px;
+    }
+
+    .status-badge{
+        font-size:8px;
+        padding:5px 7px;
+    }
+
+    .summary-row{
+        font-size:13px;
+    }
+
+    .summary-row.highlight .summary-label,
+    .summary-row.highlight .summary-value{
+        font-size:16px;
+    }
+
+    .slip-header{
+        align-items:center;
+    }
+
+    .slip-logo{
+        width:90px;
+        height:40px;
+    }
+
+    .slip-title{
+        font-size:15px;
+    }
+
+    .slip-status{
+        font-size:8px;
+        padding:7px 9px;
+    }
+
+    .actions{
+        grid-template-columns:1fr;
+    }
+
+    .action-btn{
+        width:100%;
+        height:54px;
+    }
+}
+
+@media(max-width:500px){
+
+    .step-title{
+        font-size:7px;
+    }
+
+    .step-circle{
+        width:35px;
+        height:35px;
+    }
+
+    .step-item:not(:last-child)::after{
+        top:17px;
+    }
+
+    .detail-box{
+        padding:13px 10px;
+    }
+
+    .detail-label{
+        font-size:9px;
+    }
+
+    .detail-value{
+        font-size:12px;
+    }
+
+    .user-id-value{
+        font-size:9px;
+    }
+}
+
+@media(max-width:390px){
+
+    .main{
+        padding-left:9px;
+        padding-right:9px;
+    }
+
+    .success-card,
+    .card,
+    .status-card,
+    .payment-summary,
+    .slip-card{
+        padding:19px 11px;
+    }
+
+    .customer-grid{
+        gap:9px;
+    }
+
+    .detail-box{
+        padding:12px 8px;
+    }
+
+    .detail-label{
+        font-size:8px;
+    }
+
+    .detail-value{
+        font-size:11px;
+    }
+
+    .user-id-value{
+        font-size:8px;
+    }
+
+    .request-date-value{
+        font-size:12px;
+    }
+
+    .status-badge{
+        display:none;
+    }
+
+    .request-number{
+        font-size:18px;
+    }
+
+    .slip-table td{
+        font-size:10px;
+    }
+
+    .slip-title{
+        font-size:14px;
+    }
+}
+
+/* ================= PRINT ================= */
+
+@media print{
+
+    @page{
+        size:A4;
+        margin:12mm;
+    }
+
+    body{
+        background:#fff;
+    }
+
+    .header,
+    .page-title,
+    .step-progress,
+    .success-card,
+    .status-card,
+    .card,
+    .payment-summary,
+    .info-box,
+    .actions,
+    .message,
+    .print-btn{
+        display:none !important;
+    }
+
+    .main{
+        max-width:100%;
+        padding:0;
+    }
+
+    .slip-card{
+        display:block !important;
+        max-width:100%;
+        margin:0;
+        border:0;
+        box-shadow:none;
+        border-radius:0;
+        padding:10px;
+    }
+
+    .slip-card *{
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+    <div class="header-left">
+        <button type="button" class="back-btn" id="backBtn" aria-label="Go Back">
+            ‹
+        </button>
+    </div>
+
+    <img
+        src="assets/EGC - Emergency Gas Cylinder logo.png"
+        class="egc-logo"
+        alt="EGC"
+        onerror="this.style.display='none';"
+    >
+
+</header>
+
+<main class="main">
+
+<div id="message" class="message"></div>
+
+<div class="page-title">
+    <h1>Request Complete</h1>
+    <p>Your EGC cylinder request has been submitted successfully.</p>
+</div>
+
+<div class="step-progress">
+
+    <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-title">LPG Details</div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-title">Verification</div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-title">Scheme</div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-title">Payment</div>
+    </div>
+
+    <div class="step-item active">
+        <div class="step-circle">✓</div>
+        <div class="step-title">Complete</div>
+    </div>
+
+</div>
+
+<section class="success-card">
+
+    <div class="success-icon">✓</div>
+
+    <h1>Request Submitted Successfully</h1>
+
+    <p>
+        Your request and payment information have been submitted successfully.
+        Please keep your Request Number safe for future status checking.
+    </p>
+
+    <div class="request-box">
+
+        <div class="request-label">
+            YOUR REQUEST NUMBER
+        </div>
+
+        <div class="request-number" id="requestNumber">
+            Loading...
+        </div>
+
+    </div>
+
+</section>
+
+<section class="card">
+
+    <div class="card-title">
+        👤 Customer Details
+    </div>
+
+    <div class="customer-grid">
+
+        <div class="detail-box">
+            <div class="detail-label">User ID</div>
+            <div class="detail-value user-id-value" id="customerUserId">-</div>
+        </div>
+
+        <div class="detail-box">
+            <div class="detail-label">Full Name</div>
+            <div class="detail-value" id="customerName">Loading...</div>
+        </div>
+
+        <div class="detail-box">
+            <div class="detail-label">Mobile Number</div>
+            <div class="detail-value" id="customerMobile">-</div>
+        </div>
+
+        <div class="detail-box">
+            <div class="detail-label">Email</div>
+            <div class="detail-value" id="customerEmail">-</div>
+        </div>
+
+        <div class="detail-box request-date-box">
+            <div class="detail-label">Request Date</div>
+            <div class="detail-value request-date-value" id="requestDate">-</div>
+        </div>
+
+    </div>
+
+</section>
+
+<section class="card">
+
+    <div class="card-title">
+        🛢️ Request Details
+    </div>
+
+    <div class="request-grid">
+
+        <div class="request-detail">
+            <div class="detail-label">Cylinder Quantity</div>
+            <div class="detail-value" id="requestQuantity">1</div>
+        </div>
+
+        <div class="request-detail">
+            <div class="detail-label">Cylinder Amount</div>
+            <div class="detail-value" id="requestAmount">₹0.00</div>
+        </div>
+
+        <div class="request-detail request-detail-full">
+            <div class="detail-label">LPG Agency</div>
+            <div class="detail-value" id="agencyName">-</div>
+        </div>
+
+    </div>
+
+</section>
+
+<section class="status-card">
+
+    <div class="status-top">
+
+        <div class="card-title">
+            📋 Request Process Status
+        </div>
+
+        <div class="status-current" id="currentStatus">
+            PAYMENT PENDING
+        </div>
+
+    </div>
+
+    <div class="status-line active" id="statusPayment">
+
+        <div class="status-dot">₹</div>
+
+        <div class="status-content">
+
+            <div class="status-title">
+                Payment Verification
+            </div>
+
+            <div class="status-description" id="paymentDescription">
+                Your payment is waiting for EGC verification.
+            </div>
+
+        </div>
+
+        <div class="status-badge" id="paymentStatusBadge">
+            PENDING
+        </div>
+
+    </div>
+
+    <div class="status-line" id="statusApproval">
+
+        <div class="status-dot">2</div>
+
+        <div class="status-content">
+
+            <div class="status-title">
+                Owner Approval
+            </div>
+
+            <div class="status-description">
+                Your request will be approved after payment verification.
+            </div>
+
+        </div>
+
+        <div class="status-badge" id="approvalStatusBadge">
+            WAITING
+        </div>
+
+    </div>
+
+    <div class="status-line" id="statusAgency">
+
+        <div class="status-dot">3</div>
+
+        <div class="status-content">
+
+            <div class="status-title">
+                Agency Processing
+            </div>
+
+            <div class="status-description">
+                The approved request will be sent to the selected LPG agency.
+            </div>
+
+        </div>
+
+        <div class="status-badge" id="agencyStatusBadge">
+            WAITING
+        </div>
+
+    </div>
+
+    <div class="status-line" id="statusDelivery">
+
+        <div class="status-dot">4</div>
+
+        <div class="status-content">
+
+            <div class="status-title">
+                Cylinder Delivery
+            </div>
+
+            <div class="status-description">
+                Your cylinder will be delivered after agency processing.
+            </div>
+
+        </div>
+
+        <div class="status-badge" id="deliveryStatusBadge">
+            WAITING
+        </div>
+
+    </div>
+
+    <div class="status-line" id="statusCompleted">
+
+        <div class="status-dot">✓</div>
+
+        <div class="status-content">
+
+            <div class="status-title">
+                Completed
+            </div>
+
+            <div class="status-description">
+                Your EGC cylinder request process has been completed.
+            </div>
+
+        </div>
+
+        <div class="status-badge" id="completedStatusBadge">
+            WAITING
+        </div>
+
+    </div>
+
+</section>
+
+<section class="payment-summary">
+
+    <div class="card-title">
+        💳 Payment Summary
+    </div>
+
+    <div class="summary-row">
+        <span class="summary-label">Cylinder Amount</span>
+        <span class="summary-value" id="cylinderAmount">₹0.00</span>
+    </div>
+
+    <div class="summary-row">
+        <span class="summary-label">Initial Payment</span>
+        <span class="summary-value" id="initialPayment">₹0.00</span>
+    </div>
+
+    <div class="summary-row">
+        <span class="summary-label">Remaining Amount</span>
+        <span class="summary-value" id="remainingAmount">₹0.00</span>
+    </div>
+
+    <div class="summary-row">
+        <span class="summary-label">Payment Method</span>
+        <span class="summary-value" id="paymentMethod">UPI</span>
+    </div>
+
+    <div class="summary-row highlight">
+        <span class="summary-label">Paid Now</span>
+        <span class="summary-value" id="paidNow">₹0.00</span>
+    </div>
+
+</section>
+
+<section class="slip-card">
+
+    <div class="slip-header">
+
+        <div class="slip-brand">
+
+            <img
+                src="assets/EGC - Emergency Gas Cylinder logo.png"
+                class="slip-logo"
+                alt="EGC"
+                onerror="this.style.display='none';"
+            >
+
+            <div>
+
+                <div class="slip-title">
+                    Payment Receipt
+                </div>
+
+                <div class="slip-subtitle">
+                    Emergency Gas Cylinder
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="slip-status" id="slipStatus">
+            PAYMENT PENDING
+        </div>
+
+    </div>
+
+    <div class="slip-request">
+
+        <div class="slip-request-label">
+            YOUR REQUEST NUMBER
+        </div>
+
+        <div class="slip-request-number" id="slipRequestNumber">
+            -
+        </div>
+
+    </div>
+
+    <div class="slip-section-title">
+        Customer Information
+    </div>
+
+    <table class="slip-table">
+
+        <tr>
+            <td>Full Name</td>
+            <td id="slipName">-</td>
+        </tr>
+
+        <tr>
+            <td>Mobile Number</td>
+            <td id="slipMobile">-</td>
+        </tr>
+
+        <tr>
+            <td>Email</td>
+            <td id="slipEmail">-</td>
+        </tr>
+
+        <tr>
+            <td>User ID</td>
+            <td id="slipUserId">-</td>
+        </tr>
+
+    </table>
+
+    <div class="slip-section-title">
+        Request & Payment
+    </div>
+
+    <table class="slip-table">
+
+        <tr>
+            <td>Request Date</td>
+            <td id="slipDate">-</td>
+        </tr>
+
+        <tr>
+            <td>Cylinder Quantity</td>
+            <td id="slipQuantity">1</td>
+        </tr>
+
+        <tr>
+            <td>Cylinder Amount</td>
+            <td id="slipCylinderAmount">₹0.00</td>
+        </tr>
+
+        <tr>
+            <td>Initial Payment</td>
+            <td id="slipInitialPayment">₹0.00</td>
+        </tr>
+
+        <tr>
+            <td>Payment Method</td>
+            <td id="slipPaymentMethod">UPI</td>
+        </tr>
+
+        <tr>
+            <td>Payment Status</td>
+            <td id="slipPaymentState">PENDING</td>
+        </tr>
+
+    </table>
+
+    <div class="slip-total">
+
+        <span>
+            PAID NOW
+        </span>
+
+        <span id="slipPaidNow">
+            ₹0.00
+        </span>
+
+    </div>
+
+    <div class="slip-note" id="slipNote">
+
+        This receipt confirms that your request and payment information
+        has been submitted to EGC. Final approval depends on payment
+        verification and owner approval.
+
+    </div>
+
+    <button
+        type="button"
+        class="print-btn"
+        id="printSlipBtn">
+        🖨️ PRINT / SAVE PAYMENT SLIP
+    </button>
+
+</section>
+
+<div class="info-box">
+
+    <strong>Important:</strong>
+
+    Your request is not automatically approved after payment submission.
+
+    <br><br>
+
+    First, EGC will verify your payment. After payment verification,
+    the owner will approve or reject your request. Once approved,
+    the request will move to the selected LPG agency for processing
+    and delivery.
+
+    <br><br>
+
+    <strong>
+        Keep your Request Number and payment slip safe.
+    </strong>
+
+</div>
+
+<div class="actions">
+
+    <button
+        type="button"
+        class="action-btn home-btn"
+        id="homeBtn">
+        ← HOME
+    </button>
+
+    <button
+        type="button"
+        class="action-btn dashboard-btn"
+        id="dashboardBtn">
+        VIEW MY REQUEST →
+    </button>
+
+    <button
+        type="button"
+        class="action-btn refresh-btn"
+        id="refreshStatusBtn">
+        ↻ REFRESH STATUS
+    </button>
+
+</div>
+
+</main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+let currentUser = null;
+let currentProfile = null;
+let currentRequest = null;
+let currentPayment = null;
+
+let paymentData = null;
+let lpgDetails = null;
+
+let requestNumber = "";
+let isRefreshing = false;
+
+
+/* =========================================================
+   ELEMENT
+========================================================= */
+
+function el(id){
+    return document.getElementById(id);
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+const message = el("message");
+
+function showMessage(text,type){
+
+    if(!message) return;
+
+    message.className =
+        "message " + type;
+
+    message.textContent =
+        text;
+}
+
+function clearMessage(){
+
+    if(!message) return;
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+}
+
+
+/* =========================================================
+   LOCAL JSON
+========================================================= */
+
+function readLocalJson(key){
+
+    try{
+
+        const value =
+            localStorage.getItem(key);
+
+        if(!value){
+            return null;
+        }
+
+        return JSON.parse(value);
+
+    }catch(error){
+
+        console.warn(
+            "Local JSON error:",
+            key,
+            error
+        );
+
+        return null;
+    }
+}
+
+
+paymentData =
+    readLocalJson("egc_payment_data");
+
+lpgDetails =
+    readLocalJson("egc_lpg_details");
+
+
+/* =========================================================
+   LOGIN DATA
+========================================================= */
+
+function getLoginData(){
+
+    const data =
+        readLocalJson(
+            "egc_customer_login"
+        );
+
+    if(!data){
+        return null;
+    }
+
+    if(data.loggedIn === false){
+        return null;
+    }
+
+    return data;
+}
+
+
+/* =========================================================
+   CUSTOMER
+========================================================= */
+
+async function loadCustomer(){
+
+    const loginData =
+        getLoginData();
+
+    if(!loginData){
+
+        showMessage(
+            "Customer login information was not found. Please login again.",
+            "error"
+        );
+
+        return false;
+    }
+
+
+    currentUser = {
+
+        id:
+            loginData.user_id ||
+            loginData.user?.id ||
+            loginData.profile?.id ||
+            loginData.customer?.id ||
+            "",
+
+        email:
+            loginData.email ||
+            loginData.user?.email ||
+            loginData.profile?.email ||
+            loginData.customer?.email ||
+            "",
+
+        mobile:
+            loginData.mobile ||
+            loginData.user?.mobile ||
+            loginData.profile?.mobile ||
+            loginData.customer?.mobile ||
+            "",
+
+        full_name:
+            loginData.full_name ||
+            loginData.user?.full_name ||
+            loginData.profile?.full_name ||
+            loginData.customer?.full_name ||
+            ""
+    };
+
+
+    currentProfile =
+        loginData.profile ||
+        loginData.customer ||
+        loginData.user ||
+        null;
+
+
+    /*
+       If user ID is available,
+       get the latest profile directly.
+    */
+
+    if(currentUser.id){
+
+        const result =
+            await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq(
+                    "id",
+                    currentUser.id
+                )
+                .maybeSingle();
+
+
+        if(
+            !result.error &&
+            result.data
+        ){
+
+            currentProfile =
+                result.data;
+
+            currentUser.full_name =
+                result.data.full_name ||
+                currentUser.full_name;
+
+            currentUser.email =
+                result.data.email ||
+                currentUser.email;
+
+            currentUser.mobile =
+                result.data.mobile ||
+                currentUser.mobile;
+        }
+    }
+
+
+    displayCustomer();
+
+    return true;
+}
+
+
+/* =========================================================
+   DISPLAY CUSTOMER
+========================================================= */
+
+function displayCustomer(){
+
+    const name =
+        currentUser?.full_name ||
+        "EGC Customer";
+
+    const email =
+        currentUser?.email ||
+        "-";
+
+    const mobile =
+        currentUser?.mobile ||
+        "-";
+
+    const userId =
+        currentUser?.id ||
+        "-";
+
+
+    if(el("customerName"))
+        el("customerName").textContent = name;
+
+    if(el("customerMobile"))
+        el("customerMobile").textContent = mobile;
+
+    if(el("customerEmail"))
+        el("customerEmail").textContent = email;
+
+    if(el("customerUserId"))
+        el("customerUserId").textContent = userId;
+
+
+    if(el("slipName"))
+        el("slipName").textContent = name;
+
+    if(el("slipMobile"))
+        el("slipMobile").textContent = mobile;
+
+    if(el("slipEmail"))
+        el("slipEmail").textContent = email;
+
+    if(el("slipUserId"))
+        el("slipUserId").textContent = userId;
+}
+
+
+/* =========================================================
+   REQUEST NUMBER
+========================================================= */
+
+function createLocalRequestNumber(){
+
+    const localRequest =
+        readLocalJson(
+            "egc_request_data"
+        );
+
+
+    if(
+        localRequest &&
+        localRequest.request_number
+    ){
+
+        return String(
+            localRequest.request_number
+        );
+    }
+
+
+    const oldNumber =
+        localStorage.getItem(
+            "egc_request_number"
+        );
+
+
+    if(oldNumber){
+        return oldNumber;
+    }
+
+
+    const now =
+        new Date();
+
+
+    const year =
+        now.getFullYear();
+
+    const month =
+        String(
+            now.getMonth() + 1
+        ).padStart(2,"0");
+
+    const day =
+        String(
+            now.getDate()
+        ).padStart(2,"0");
+
+    const time =
+        String(
+            now.getHours()
+        ).padStart(2,"0") +
+
+        String(
+            now.getMinutes()
+        ).padStart(2,"0") +
+
+        String(
+            now.getSeconds()
+        ).padStart(2,"0");
+
+
+    const random =
+        Math.floor(
+            1000 +
+            Math.random() * 9000
+        );
+
+
+    const value =
+        "EGC-" +
+        year +
+        month +
+        day +
+        "-" +
+        time +
+        "-" +
+        random;
+
+
+    localStorage.setItem(
+        "egc_request_number",
+        value
+    );
+
+
+    return value;
+}
+
+
+function updateRequestNumber(value){
+
+    if(!value){
+        return;
+    }
+
+
+    requestNumber =
+        String(value);
+
+
+    localStorage.setItem(
+        "egc_request_number",
+        requestNumber
+    );
+
+
+    if(el("requestNumber"))
+        el("requestNumber").textContent =
+            requestNumber;
+
+
+    if(el("slipRequestNumber"))
+        el("slipRequestNumber").textContent =
+            requestNumber;
+}
+
+
+/* =========================================================
+   LOAD REQUEST
+========================================================= */
+
+async function loadRequest(){
+
+    if(
+        !currentUser ||
+        !currentUser.id
+    ){
+
+        return false;
+    }
+
+
+    const localRequest =
+        readLocalJson(
+            "egc_request_data"
+        );
+
+
+    let query =
+        supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            )
+            .limit(20);
+
+
+    const result =
+        await query;
+
+
+    if(result.error){
+
+        console.warn(
+            "Request load error:",
+            result.error.message
+        );
+
+        displayLocalRequest();
+
+        return false;
+    }
+
+
+    const requests =
+        result.data || [];
+
+
+    let found = null;
+
+
+    /* Exact local ID */
+
+    if(
+        localRequest &&
+        localRequest.id
+    ){
+
+        found =
+            requests.find(
+                function(item){
+
+                    return (
+                        item.id &&
+                        String(item.id) ===
+                        String(localRequest.id)
+                    );
+                }
+            );
+    }
+
+
+    /* Exact request number */
+
+    if(
+        !found &&
+        localRequest &&
+        localRequest.request_number
+    ){
+
+        found =
+            requests.find(
+                function(item){
+
+                    return (
+                        item.request_number &&
+                        String(item.request_number) ===
+                        String(localRequest.request_number)
+                    );
+                }
+            );
+    }
+
+
+    /* Existing request number */
+
+    if(
+        !found &&
+        requestNumber
+    ){
+
+        found =
+            requests.find(
+                function(item){
+
+                    return (
+                        item.request_number &&
+                        String(item.request_number) ===
+                        String(requestNumber)
+                    );
+                }
+            );
+    }
+
+
+    /* Latest request */
+
+    if(
+        !found &&
+        requests.length
+    ){
+
+        found =
+            requests[0];
+    }
+
+
+    currentRequest =
+        found || null;
+
+
+    if(currentRequest){
+
+        if(
+            currentRequest.request_number
+        ){
+
+            updateRequestNumber(
+                currentRequest.request_number
+            );
+        }
+
+
+        displayRequestDetails();
+
+        updateStatus();
+
+        return true;
+    }
+
+
+    displayLocalRequest();
+
+    return false;
+}
+
+
+/* =========================================================
+   REQUEST DETAILS
+========================================================= */
+
+function displayRequestDetails(){
+
+    const item =
+        currentRequest || {};
+
+
+    const quantity =
+        Number(
+            item.quantity ||
+            item.cylinder_quantity ||
+            1
+        );
+
+
+    const amount =
+        Number(
+            item.total_amount ??
+            item.cylinder_amount ??
+            item.amount ??
+            0
+        );
+
+
+    const agency =
+        item.agency_name ||
+        item.agency ||
+        item.selected_agency ||
+        item.agency_id ||
+        "-";
+
+
+    const date =
+        item.created_at ||
+        item.submitted_at ||
+        item.request_date ||
+        new Date().toISOString();
+
+
+    if(el("requestQuantity"))
+        el("requestQuantity").textContent =
+            quantity;
+
+
+    if(el("requestAmount"))
+        el("requestAmount").textContent =
+            "₹" + formatMoney(amount);
+
+
+    if(el("agencyName"))
+        el("agencyName").textContent =
+            agency;
+
+
+    if(el("requestDate"))
+        el("requestDate").textContent =
+            formatDate(date);
+
+
+    if(el("slipDate"))
+        el("slipDate").textContent =
+            formatDate(date);
+
+
+    if(el("slipQuantity"))
+        el("slipQuantity").textContent =
+            quantity;
+
+
+    if(el("slipCylinderAmount"))
+        el("slipCylinderAmount").textContent =
+            "₹" + formatMoney(amount);
+}
+
+
+/* =========================================================
+   LOCAL REQUEST
+========================================================= */
+
+function displayLocalRequest(){
+
+    const localRequest =
+        readLocalJson(
+            "egc_request_data"
+        );
+
+
+    if(!localRequest){
+        return;
+    }
+
+
+    if(
+        localRequest.request_number
+    ){
+
+        updateRequestNumber(
+            localRequest.request_number
+        );
+    }
+
+
+    if(el("requestDate"))
+        el("requestDate").textContent =
+            formatDate(
+                localRequest.submitted_at ||
+                localRequest.created_at
+            );
+
+
+    if(el("requestQuantity"))
+        el("requestQuantity").textContent =
+            Number(
+                localRequest.quantity ||
+                localRequest.cylinder_quantity ||
+                1
+            );
+
+
+    if(el("requestAmount"))
+        el("requestAmount").textContent =
+            "₹" +
+            formatMoney(
+                localRequest.total_amount ||
+                localRequest.cylinder_amount ||
+                localRequest.amount
+            );
+
+
+    if(el("agencyName"))
+        el("agencyName").textContent =
+            localRequest.agency_name ||
+            localRequest.agency ||
+            "-";
+
+
+    if(el("slipDate"))
+        el("slipDate").textContent =
+            formatDate(
+                localRequest.submitted_at ||
+                localRequest.created_at
+            );
+
+
+    if(el("slipQuantity"))
+        el("slipQuantity").textContent =
+            Number(
+                localRequest.quantity ||
+                localRequest.cylinder_quantity ||
+                1
+            );
+
+
+    if(el("slipCylinderAmount"))
+        el("slipCylinderAmount").textContent =
+            "₹" +
+            formatMoney(
+                localRequest.total_amount ||
+                localRequest.cylinder_amount ||
+                localRequest.amount
+            );
+}
+
+
+/* =========================================================
+   LOAD PAYMENT
+========================================================= */
+
+async function loadPayment(){
+
+    currentPayment = null;
+
+
+    if(
+        !currentUser ||
+        !currentUser.id
+    ){
+
+        displayPaymentData();
+
+        return false;
+    }
+
+
+    let result =
+        await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .order(
+                "payment_date",
+                {
+                    ascending:false
+                }
+            )
+            .limit(50);
+
+
+    if(result.error){
+
+        console.warn(
+            "Payment load error:",
+            result.error.message
+        );
+
+        displayPaymentData();
+
+        return false;
+    }
+
+
+    const payments =
+        result.data || [];
+
+
+    if(payments.length){
+
+        if(currentRequest){
+
+            currentPayment =
+                payments.find(
+                    function(item){
+
+                        return (
+                            currentRequest.id &&
+                            item.request_id &&
+                            String(item.request_id) ===
+                            String(currentRequest.id)
+                        );
+                    }
+                ) || null;
+        }
+
+
+        if(!currentPayment){
+
+            currentPayment =
+                payments[0];
+        }
+    }
+
+
+    displayPaymentData();
+
+    return true;
+}
+
+
+/* =========================================================
+   PAYMENT DISPLAY
+========================================================= */
+
+function displayPaymentData(){
+
+    const local =
+        paymentData || {};
+
+    const request =
+        currentRequest || {};
+
+
+    const cylinderAmount =
+        Number(
+            (
+                currentPayment &&
+                (
+                    currentPayment.cylinder_amount ??
+                    currentPayment.total_amount ??
+                    currentPayment.request_amount ??
+                    currentPayment.amount
+                )
+            ) ??
+            request.total_amount ??
+            request.cylinder_amount ??
+            request.amount ??
+            local.cylinder_amount ??
+            local.total_amount ??
+            0
+        );
+
+
+    const paid =
+        Number(
+            (
+                currentPayment &&
+                (
+                    currentPayment.payment_amount ??
+                    currentPayment.amount_paid ??
+                    currentPayment.paid_amount ??
+                    currentPayment.paid_now ??
+                    currentPayment.amount
+                )
+            ) ??
+            local.initial_payment ??
+            local.payment_amount ??
+            local.amount_paid ??
+            0
+        );
+
+
+    const remaining =
+        Math.max(
+            0,
+            cylinderAmount - paid
+        );
+
+
+    const method =
+        (
+            currentPayment &&
+            (
+                currentPayment.payment_method ||
+                currentPayment.method
+            )
+        ) ||
+        local.payment_method ||
+        "UPI";
+
+
+    const status =
+        getPaymentStatus();
+
+
+    if(el("cylinderAmount"))
+        el("cylinderAmount").textContent =
+            "₹" + formatMoney(cylinderAmount);
+
+
+    if(el("initialPayment"))
+        el("initialPayment").textContent =
+            "₹" + formatMoney(paid);
+
+
+    if(el("remainingAmount"))
+        el("remainingAmount").textContent =
+            "₹" + formatMoney(remaining);
+
+
+    if(el("paymentMethod"))
+        el("paymentMethod").textContent =
+            method;
+
+
+    if(el("paidNow"))
+        el("paidNow").textContent =
+            "₹" + formatMoney(paid);
+
+
+    if(el("slipInitialPayment"))
+        el("slipInitialPayment").textContent =
+            "₹" + formatMoney(paid);
+
+
+    if(el("slipPaymentMethod"))
+        el("slipPaymentMethod").textContent =
+            method;
+
+
+    if(el("slipPaidNow"))
+        el("slipPaidNow").textContent =
+            "₹" + formatMoney(paid);
+
+
+    if(el("slipPaymentState"))
+        el("slipPaymentState").textContent =
+            paymentStatusText(status);
+
+
+    updateSlipPaymentStatus();
+}
+
+
+/* =========================================================
+   PAYMENT STATUS
+========================================================= */
+
+function getPaymentStatus(){
+
+    return normalizeStatus(
+
+        (
+            currentPayment &&
+            (
+                currentPayment.payment_status ||
+                currentPayment.status
+            )
+        ) ||
+
+        (
+            currentRequest &&
+            (
+                currentRequest.payment_status ||
+                currentRequest.payment_status_text
+            )
+        ) ||
+
+        "payment_submitted"
+    );
+}
+
+
+function paymentStatusText(status){
+
+    if(
+        status === "paid" ||
+        status === "success" ||
+        status === "successful" ||
+        status === "verified" ||
+        status === "approved" ||
+        status === "completed"
+    ){
+
+        return "VERIFIED";
+    }
+
+
+    if(
+        status === "rejected" ||
+        status === "failed" ||
+        status === "cancelled" ||
+        status === "cancel"
+    ){
+
+        return "REJECTED";
+    }
+
+
+    return "PENDING";
+}
+
+
+/* =========================================================
+   SLIP STATUS
+========================================================= */
+
+function updateSlipPaymentStatus(){
+
+    const status =
+        getPaymentStatus();
+
+    const element =
+        el("slipStatus");
+
+    const stateElement =
+        el("slipPaymentState");
+
+    const note =
+        el("slipNote");
+
+
+    if(!element){
+        return;
+    }
+
+
+    element.className =
+        "slip-status";
+
+
+    if(
+        status === "paid" ||
+        status === "success" ||
+        status === "successful" ||
+        status === "verified" ||
+        status === "approved" ||
+        status === "completed"
+    ){
+
+        element.textContent =
+            "PAYMENT VERIFIED";
+
+        element.style.background =
+            "#eafaf1";
+
+        element.style.color =
+            "#168c50";
+
+
+        if(stateElement)
+            stateElement.textContent =
+                "VERIFIED";
+
+
+        if(note)
+            note.textContent =
+                "Your payment has been verified by EGC. Keep this receipt safe for your records.";
+
+        return;
+    }
+
+
+    if(
+        status === "rejected" ||
+        status === "failed" ||
+        status === "cancelled" ||
+        status === "cancel"
+    ){
+
+        element.textContent =
+            "PAYMENT REJECTED";
+
+        element.style.background =
+            "#fff0f0";
+
+        element.style.color =
+            "#c62828";
+
+
+        if(stateElement)
+            stateElement.textContent =
+                "REJECTED";
+
+
+        if(note)
+            note.textContent =
+                "Your payment was rejected. Please contact EGC support before making another payment.";
+
+        return;
+    }
+
+
+    element.textContent =
+        "PAYMENT PENDING";
+
+    element.style.background =
+        "#fff5d9";
+
+    element.style.color =
+        "#86651b";
+
+
+    if(stateElement)
+        stateElement.textContent =
+            "PENDING";
+
+
+    if(note)
+        note.textContent =
+            "This receipt confirms that your request and payment information has been submitted to EGC. Final approval depends on payment verification and owner approval.";
+}
+
+
+/* =========================================================
+   NORMALIZE
+========================================================= */
+
+function normalizeStatus(value){
+
+    return String(
+        value || ""
+    )
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g,"_");
+}
+
+
+/* =========================================================
+   REQUEST STATUS
+========================================================= */
+
+function updateStatus(){
+
+    if(!currentRequest){
+
+        updateSlipPaymentStatus();
+
+        return;
+    }
+
+
+    const item =
+        currentRequest;
+
+
+    const requestStatus =
+        normalizeStatus(
+            item.status ||
+            item.request_status
+        );
+
+
+    const paymentStatus =
+        getPaymentStatus();
+
+
+    const approvalStatus =
+        normalizeStatus(
+            item.owner_approval ||
+            item.approval_status ||
+            item.owner_status
+        );
+
+
+    const agencyStatus =
+        normalizeStatus(
+            item.agency_status ||
+            item.processing_status
+        );
+
+
+    const deliveryStatus =
+        normalizeStatus(
+            item.delivery_status
+        );
+
+
+    const completed =
+        requestStatus === "completed" ||
+        deliveryStatus === "completed" ||
+        deliveryStatus === "delivered";
+
+
+    const rejected =
+        requestStatus === "rejected" ||
+        requestStatus === "cancelled" ||
+        paymentStatus === "rejected" ||
+        paymentStatus === "failed" ||
+        approvalStatus === "rejected";
+
+
+    let currentText =
+        "PAYMENT PENDING";
+
+
+    if(rejected){
+
+        currentText =
+            "REJECTED";
+
+    }else if(completed){
+
+        currentText =
+            "COMPLETED";
+
+    }else if(
+        deliveryStatus === "out_for_delivery" ||
+        deliveryStatus === "in_delivery"
+    ){
+
+        currentText =
+            "OUT FOR DELIVERY";
+
+    }else if(
+        agencyStatus === "processing" ||
+        agencyStatus === "accepted" ||
+        requestStatus === "processing"
+    ){
+
+        currentText =
+            "AGENCY PROCESSING";
+
+    }else if(
+        approvalStatus === "approved" ||
+        requestStatus === "approved"
+    ){
+
+        currentText =
+            "APPROVED";
+
+    }else if(
+        paymentStatus === "paid" ||
+        paymentStatus === "success" ||
+        paymentStatus === "successful" ||
+        paymentStatus === "verified"
+    ){
+
+        currentText =
+            "PAYMENT VERIFIED";
+    }
+
+
+    const current =
+        el("currentStatus");
+
+
+    if(current){
+
+        current.textContent =
+            currentText;
+
+        current.className =
+            "status-current";
+
+
+        if(
+            currentText === "APPROVED" ||
+            currentText === "COMPLETED" ||
+            currentText === "PAYMENT VERIFIED"
+        ){
+
+            current.classList.add(
+                "approved"
+            );
+        }
+
+
+        if(
+            currentText === "REJECTED"
+        ){
+
+            current.classList.add(
+                "rejected"
+            );
+        }
+    }
+
+
+    updateStatusLine(
+        "statusPayment",
+        "paymentStatusBadge",
+        paymentStatus,
+        1,
+        rejected
+    );
+
+
+    updateStatusLine(
+        "statusApproval",
+        "approvalStatusBadge",
+        approvalStatus,
+        2,
+        rejected
+    );
+
+
+    updateStatusLine(
+        "statusAgency",
+        "agencyStatusBadge",
+        agencyStatus,
+        3,
+        rejected
+    );
+
+
+    updateStatusLine(
+        "statusDelivery",
+        "deliveryStatusBadge",
+        deliveryStatus,
+        4,
+        rejected
+    );
+
+
+    updateStatusLine(
+        "statusCompleted",
+        "completedStatusBadge",
+        completed ? "completed" : "",
+        5,
+        rejected
+    );
+
+
+    updatePaymentDescription(
+        paymentStatus
+    );
+
+
+    updateSlipPaymentStatus();
+}
+
+
+/* =========================================================
+   STATUS LINE
+========================================================= */
+
+function updateStatusLine(
+    lineId,
+    badgeId,
+    status,
+    step,
+    rejected
+){
+
+    const line =
+        el(lineId);
+
+    const badge =
+        el(badgeId);
+
+
+    if(!line || !badge){
+        return;
+    }
+
+
+    line.classList.remove(
+        "done",
+        "active"
+    );
+
+
+    const value =
+        normalizeStatus(status);
+
+
+    if(
+        rejected &&
+        step > 1
+    ){
+
+        badge.textContent =
+            "STOPPED";
+
+        return;
+    }
+
+
+    if(
+        value === "completed" ||
+        value === "approved" ||
+        value === "paid" ||
+        value === "verified" ||
+        value === "success" ||
+        value === "successful" ||
+        value === "delivered" ||
+        value === "accepted"
+    ){
+
+        line.classList.add(
+            "done"
+        );
+
+        badge.textContent =
+            "COMPLETED";
+
+        return;
+    }
+
+
+    if(
+        value === "pending" ||
+        value === "payment_submitted" ||
+        value === "submitted" ||
+        value === "processing" ||
+        value === "in_progress" ||
+        value === "out_for_delivery" ||
+        value === "in_delivery"
+    ){
+
+        line.classList.add(
+            "active"
+        );
+
+        badge.textContent =
+            "IN PROGRESS";
+
+        return;
+    }
+
+
+    if(step === 1){
+
+        line.classList.add(
+            "active"
+        );
+
+        badge.textContent =
+            "PENDING";
+
+        return;
+    }
+
+
+    badge.textContent =
+        "WAITING";
+}
+
+
+/* =========================================================
+   PAYMENT DESCRIPTION
+========================================================= */
+
+function updatePaymentDescription(status){
+
+    const element =
+        el("paymentDescription");
+
+
+    if(!element){
+        return;
+    }
+
+
+    if(
+        status === "paid" ||
+        status === "success" ||
+        status === "successful" ||
+        status === "verified" ||
+        status === "approved"
+    ){
+
+        element.textContent =
+            "Your payment has been verified by EGC.";
+
+        return;
+    }
+
+
+    if(
+        status === "rejected" ||
+        status === "failed"
+    ){
+
+        element.textContent =
+            "Your payment was rejected. Please contact EGC support.";
+
+        return;
+    }
+
+
+    element.textContent =
+        "Your payment is waiting for EGC verification.";
+}
+
+
+/* =========================================================
+   SAVE LOCAL REQUEST
+========================================================= */
+
+function saveLocalRequest(){
+
+    const old =
+        readLocalJson(
+            "egc_request_data"
+        ) || {};
+
+
+    const data = {
+
+        ...old,
+
+        request_number:
+            currentRequest?.request_number ||
+            requestNumber ||
+            old.request_number ||
+            null,
+
+        id:
+            currentRequest?.id ||
+            old.id ||
+            null,
+
+        user_id:
+            currentUser?.id ||
+            old.user_id ||
+            null,
+
+        full_name:
+            currentUser?.full_name ||
+            old.full_name ||
+            "",
+
+        mobile:
+            currentUser?.mobile ||
+            old.mobile ||
+            "",
+
+        email:
+            currentUser?.email ||
+            old.email ||
+            "",
+
+        submitted_at:
+            currentRequest?.created_at ||
+            old.submitted_at ||
+            new Date().toISOString()
+    };
+
+
+    localStorage.setItem(
+        "egc_request_data",
+        JSON.stringify(data)
+    );
+}
+
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function goHome(){
+
+    window.location.href =
+        "index.html";
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function goDashboard(){
+
+    window.location.href =
+        "my-request.html";
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+function printPaymentSlip(){
+
+    window.print();
+}
+
+
+/* =========================================================
+   FORMAT MONEY
+========================================================= */
+
+function formatMoney(value){
+
+    const number =
+        Number(value || 0);
+
+
+    return number.toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+        }
+    );
+}
+
+
+/* =========================================================
+   FORMAT DATE
+========================================================= */
+
+function formatDate(value){
+
+    if(!value){
+        return "-";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if(
+        isNaN(
+            date.getTime()
+        )
+    ){
+
+        return "-";
+    }
+
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+}
+
+
+/* =========================================================
+   REFRESH
+========================================================= */
+
+async function refreshStatus(){
+
+    if(isRefreshing){
+        return;
+    }
+
+
+    isRefreshing =
+        true;
+
+
+    const button =
+        el("refreshStatusBtn");
+
+
+    try{
+
+        if(button){
+
+            button.disabled =
+                true;
+
+            button.classList.add(
+                "loading"
+            );
+
+            button.innerHTML =
+                "↻ REFRESHING...";
+        }
+
+
+        clearMessage();
+
+
+        await loadCustomer();
+
+        await loadRequest();
+
+        await loadPayment();
+
+
+        if(currentRequest){
+
+            displayRequestDetails();
+
+            updateStatus();
+        }
+
+
+        displayPaymentData();
+
+        saveLocalRequest();
+
+
+        showMessage(
+            "✓ Request and payment status updated successfully.",
+            "success"
+        );
+
+
+        setTimeout(
+            clearMessage,
+            3000
+        );
+
+
+    }catch(error){
+
+        console.error(
+            "Refresh error:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to refresh status right now. Please try again.",
+            "error"
+        );
+
+    }finally{
+
+        if(button){
+
+            button.disabled =
+                false;
+
+            button.classList.remove(
+                "loading"
+            );
+
+            button.innerHTML =
+                "↻ REFRESH STATUS";
+        }
+
+
+        isRefreshing =
+            false;
+    }
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+function setupButtons(){
+
+    const backBtn =
+        el("backBtn");
+
+
+    if(backBtn){
+
+        backBtn.addEventListener(
+            "click",
+            function(){
+
+                if(
+                    window.history.length > 1
+                ){
+
+                    window.history.back();
+
+                }else{
+
+                    window.location.href =
+                        "payment.html";
+                }
+            }
+        );
+    }
+
+
+    const homeBtn =
+        el("homeBtn");
+
+
+    if(homeBtn){
+
+        homeBtn.addEventListener(
+            "click",
+            goHome
+        );
+    }
+
+
+    const dashboardBtn =
+        el("dashboardBtn");
+
+
+    if(dashboardBtn){
+
+        dashboardBtn.addEventListener(
+            "click",
+            goDashboard
+        );
+    }
+
+
+    const refreshBtn =
+        el("refreshStatusBtn");
+
+
+    if(refreshBtn){
+
+        refreshBtn.addEventListener(
+            "click",
+            refreshStatus
+        );
+    }
+
+
+    const printBtn =
+        el("printSlipBtn");
+
+
+    if(printBtn){
+
+        printBtn.addEventListener(
+            "click",
+            printPaymentSlip
+        );
+    }
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+async function initializePage(){
+
+    try{
+
+        clearMessage();
+
+        setupButtons();
+
+
+        requestNumber =
+            createLocalRequestNumber();
+
+
+        updateRequestNumber(
+            requestNumber
+        );
+
+
+        const customerLoaded =
+            await loadCustomer();
+
+
+        if(!customerLoaded){
+
+            setTimeout(
+                function(){
+
+                    window.location.href =
+                        "login.html";
+
+                },
+                1500
+            );
+
+            return;
+        }
+
+
+        await loadRequest();
+
+        await loadPayment();
+
+
+        if(currentRequest){
+
+            displayRequestDetails();
+
+            updateStatus();
+        }
+
+
+        displayPaymentData();
+
+        saveLocalRequest();
+
+
+    }catch(error){
+
+        console.error(
+            "Complete page error:",
+            error
+        );
+
+
+        showMessage(
+            "Some request details could not be loaded. Please refresh the page.",
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   AUTO REFRESH
+========================================================= */
+
+let autoRefreshRunning =
+    false;
+
+
+setInterval(
+    async function(){
+
+        if(
+            document.visibilityState !==
+            "visible"
+        ){
+
+            return;
+        }
+
+
+        if(
+            isRefreshing ||
+            autoRefreshRunning
+        ){
+
+            return;
+        }
+
+
+        autoRefreshRunning =
+            true;
+
+
+        try{
+
+            await loadRequest();
+
+            await loadPayment();
+
+
+            if(currentRequest){
+
+                displayRequestDetails();
+
+                updateStatus();
+            }
+
+
+            displayPaymentData();
+
+
+        }catch(error){
+
+            console.warn(
+                "Auto refresh:",
+                error
+            );
+
+        }finally{
+
+            autoRefreshRunning =
+                false;
+        }
+
+    },
+    30000
+);
+
+
+/* =========================================================
+   VISIBILITY REFRESH
+========================================================= */
+
+let wasHidden =
+    false;
+
+
+document.addEventListener(
+    "visibilitychange",
+    async function(){
+
+        if(
+            document.visibilityState ===
+            "hidden"
+        ){
+
+            wasHidden =
+                true;
+
+            return;
+        }
+
+
+        if(
+            document.visibilityState ===
+            "visible" &&
+            wasHidden
+        ){
+
+            wasHidden =
+                false;
+
+
+            if(!isRefreshing){
+
+                try{
+
+                    await loadRequest();
+
+                    await loadPayment();
+
+
+                    if(currentRequest){
+
+                        displayRequestDetails();
+
+                        updateStatus();
+                    }
+
+
+                    displayPaymentData();
+
+
+                }catch(error){
+
+                    console.warn(
+                        "Visibility refresh:",
+                        error
+                    );
+                }
+            }
+        }
+    }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+if(
+    document.readyState ===
+    "loading"
+){
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializePage
+    );
+
+}else{
+
+    initializePage();
+}
+
+</script>
+
+</body>
+</html>

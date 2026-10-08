@@ -1,0 +1,3120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Agency Login</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#06477f;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.35),transparent 30%),
+        radial-gradient(circle at 92% 10%,rgba(180,220,255,.42),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.38),transparent 40%),
+        #eef7fc;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+button,
+input{
+    font-family:inherit;
+}
+
+.page{
+    width:100%;
+    max-width:470px;
+}
+
+.login-card{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce8f1;
+    border-radius:25px;
+    padding:30px;
+    box-shadow:0 20px 65px rgba(30,75,110,.13);
+}
+
+.logo-wrap{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.logo{
+    width:230px;
+    max-width:80%;
+    height:auto;
+    object-fit:contain;
+}
+
+.heading{
+    text-align:center;
+}
+
+.heading h1{
+    font-size:27px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.heading p{
+    margin-top:6px;
+    font-size:13px;
+    color:#8196a8;
+}
+
+.form{
+    margin-top:25px;
+}
+
+.field{
+    margin-bottom:16px;
+}
+
+.label{
+    display:block;
+    margin-bottom:7px;
+    font-size:12px;
+    font-weight:800;
+    color:#496a82;
+}
+
+.input-wrap{
+    position:relative;
+}
+
+.input{
+    width:100%;
+    height:48px;
+    border:1px solid #d7e3eb;
+    border-radius:12px;
+    outline:none;
+    padding:0 14px;
+    font-size:14px;
+    color:#31566f;
+    background:#fbfdff;
+    transition:.2s;
+}
+
+.input.password-input{
+    padding-right:48px;
+}
+
+.input:focus{
+    border-color:#72b4df;
+    box-shadow:0 0 0 4px rgba(65,150,215,.08);
+    background:#fff;
+}
+
+.show-password{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:9px;
+    background:#eef7ff;
+    color:#0871c3;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.login-btn{
+    width:100%;
+    height:49px;
+    border:0;
+    border-radius:13px;
+    background:linear-gradient(135deg,#0871c3,#07599d);
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 8px 20px rgba(8,113,195,.20);
+    transition:.2s;
+}
+
+.login-btn:hover{
+    transform:translateY(-1px);
+}
+
+.login-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.forgot{
+    text-align:right;
+    margin:-5px 0 17px;
+}
+
+.forgot button{
+    border:0;
+    background:transparent;
+    color:#0871c3;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.forgot button:hover{
+    text-decoration:underline;
+}
+
+.activate-link{
+    display:block;
+    width:100%;
+    margin-top:14px;
+    height:46px;
+    border:1px solid #cfe4f3;
+    border-radius:12px;
+    background:#f1f9ff;
+    color:#0871c3;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.activate-link:hover{
+    background:#e4f4ff;
+    border-color:#abd4ed;
+}
+
+.activate-note{
+    text-align:center;
+    margin-top:9px;
+    color:#91a1ae;
+    font-size:10px;
+    line-height:1.5;
+}
+
+.message{
+    display:none;
+    margin-top:15px;
+    padding:11px 13px;
+    border-radius:11px;
+    font-size:12px;
+    line-height:1.5;
+}
+
+.message.show{
+    display:block;
+}
+
+.message.success{
+    background:#eaf9ef;
+    border:1px solid #ccebd5;
+    color:#18763a;
+}
+
+.message.error{
+    background:#fff0f0;
+    border:1px solid #f1cccc;
+    color:#bd3030;
+}
+
+.developer-link{
+    display:block;
+    width:max-content;
+    margin:22px auto 0;
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.developer-link:hover{
+    color:#0871c3;
+    text-decoration:underline;
+}
+
+.footer{
+    text-align:center;
+    margin-top:16px;
+    color:#91a1ae;
+    font-size:10px;
+}
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(4,30,50,.52);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:9999;
+    backdrop-filter:blur(4px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:390px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:22px;
+    padding:25px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    position:relative;
+}
+
+.close-btn{
+    position:absolute;
+    right:14px;
+    top:14px;
+    width:34px;
+    height:34px;
+    border:0;
+    border-radius:10px;
+    background:#eef4f8;
+    color:#527087;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.modal-heading{
+    text-align:center;
+    color:#06477f;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:2px;
+    margin-bottom:15px;
+}
+
+.developer-photo-wrap{
+    text-align:center;
+}
+
+.developer-photo{
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    object-fit:cover;
+    border:4px solid #e7f2fa;
+    background:#eef7ff;
+}
+
+.developer-name{
+    text-align:center;
+    color:#06477f;
+    font-size:21px;
+    font-weight:800;
+    margin-top:13px;
+}
+
+.developer-role{
+    text-align:center;
+    color:#8799a9;
+    font-size:12px;
+    margin-top:4px;
+}
+
+.socials{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:20px;
+}
+
+.social{
+    text-decoration:none;
+    padding:9px 12px;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:11px;
+    font-weight:800;
+}
+
+.social:hover{
+    background:#e0f1fc;
+}
+
+.forgot-card{
+    max-width:410px;
+}
+
+.forgot-title{
+    color:#06477f;
+    font-size:20px;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.forgot-text{
+    color:#8799a9;
+    font-size:12px;
+    line-height:1.5;
+    margin-bottom:18px;
+}
+
+.activate-card{
+    max-width:420px;
+}
+
+.activate-title{
+    color:#06477f;
+    font-size:21px;
+    font-weight:800;
+    margin-bottom:6px;
+    padding-right:35px;
+}
+
+.activate-text{
+    color:#8799a9;
+    font-size:12px;
+    line-height:1.5;
+    margin-bottom:18px;
+}
+
+.activation-step{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:17px;
+    padding:11px 12px;
+    border-radius:11px;
+    background:#f3f9fd;
+    border:1px solid #e0edf5;
+}
+
+.activation-step-number{
+    width:23px;
+    height:23px;
+    min-width:23px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#0871c3;
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+}
+
+.activation-step-text{
+    color:#587187;
+    font-size:11px;
+    line-height:1.5;
+}
+
+.activation-form{
+    margin-top:5px;
+}
+
+.activation-form .field{
+    margin-bottom:14px;
+}
+
+.activation-btn{
+    width:100%;
+    height:46px;
+    border:0;
+    border-radius:11px;
+    background:linear-gradient(135deg,#0871c3,#07599d);
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.activation-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+.activation-success{
+    display:none;
+    text-align:center;
+    padding:15px;
+    border-radius:12px;
+    background:#eaf9ef;
+    border:1px solid #ccebd5;
+    color:#18763a;
+    font-size:12px;
+    line-height:1.6;
+}
+
+.activation-success.show{
+    display:block;
+}
+
+.modal-actions{
+    display:flex;
+    gap:9px;
+    margin-top:15px;
+}
+
+.modal-btn{
+    flex:1;
+    height:43px;
+    border:0;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.primary-btn{
+    background:#0871c3;
+    color:#fff;
+}
+
+@media(max-width:500px){
+
+    body{
+        padding:14px;
+    }
+
+    .login-card{
+        padding:23px 18px;
+        border-radius:20px;
+    }
+
+    .logo{
+        width:205px;
+    }
+
+    .heading h1{
+        font-size:23px;
+    }
+
+    .heading p{
+        font-size:12px;
+    }
+
+    .modal-card{
+        padding:22px 18px;
+    }
+}
+
+@media(max-width:360px){
+
+    .login-card{
+        padding:20px 15px;
+    }
+
+    .logo{
+        width:185px;
+    }
+
+    .heading h1{
+        font-size:21px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+<div class="login-card">
+
+    <div class="logo-wrap">
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+    </div>
+
+    <div class="heading">
+
+        <h1>Agency Login</h1>
+
+        <p>
+            Login to manage your LPG agency
+        </p>
+
+    </div>
+
+    <form class="form" id="loginForm">
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="loginIdentity"
+            >
+                Agency Email / Agency Code
+            </label>
+
+            <input
+                type="text"
+                id="loginIdentity"
+                class="input"
+                placeholder="Enter agency email or agency code"
+                autocomplete="username"
+                required
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="loginPassword"
+            >
+                Password
+            </label>
+
+            <div class="input-wrap">
+
+                <input
+                    type="password"
+                    id="loginPassword"
+                    class="input password-input"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="show-password"
+                    id="showPassword"
+                    aria-label="Show password"
+                >
+                    👁
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="forgot">
+
+            <button
+                type="button"
+                id="forgotBtn"
+            >
+                Forgot Password?
+            </button>
+
+        </div>
+
+        <button
+            type="submit"
+            class="login-btn"
+            id="loginBtn"
+        >
+            Login to Agency Panel
+        </button>
+
+        <button
+            type="button"
+            class="activate-link"
+            id="activateBtn"
+        >
+            🔐 Activate Agency Account
+        </button>
+
+        <div class="activate-note">
+            New agency? Activate your agency ID and create your login password.
+        </div>
+
+        <div
+            class="message"
+            id="loginMessage"
+        ></div>
+
+    </form>
+
+    <button
+        type="button"
+        class="developer-link"
+        id="developerBtn"
+    >
+        About Developer
+    </button>
+
+</div>
+
+<div class="footer">
+    Powered by EGC • Secure Agency Access
+</div>
+
+</div>
+
+
+<!-- DEVELOPER MODAL -->
+
+<div
+    class="modal"
+    id="developerModal"
+>
+
+<div class="modal-card">
+
+    <button
+        type="button"
+        class="close-btn"
+        id="developerClose"
+    >
+        ×
+    </button>
+
+    <div class="modal-heading">
+        APP DEVELOPER
+    </div>
+
+    <div class="developer-photo-wrap">
+
+        <img
+            src="assets/developer-photo.jpg"
+            class="developer-photo"
+            alt="Developer"
+            onerror="this.src='assets/EGC - Emergency Gas Cylinder logo.png';"
+        >
+
+    </div>
+
+    <div class="developer-name">
+        Developer Name
+    </div>
+
+    <div class="developer-role">
+        App Developer
+    </div>
+
+    <div class="socials">
+
+        <a
+            href="#"
+            class="social"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Instagram
+        </a>
+
+        <a
+            href="#"
+            class="social"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            LinkedIn
+        </a>
+
+        <a
+            href="#"
+            class="social"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Portfolio
+        </a>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- FORGOT PASSWORD MODAL -->
+
+<div
+    class="modal"
+    id="forgotModal"
+>
+
+<div class="modal-card forgot-card">
+
+    <button
+        type="button"
+        class="close-btn"
+        id="forgotClose"
+    >
+        ×
+    </button>
+
+    <div class="forgot-title">
+        Reset Agency Password
+    </div>
+
+    <div class="forgot-text">
+        Enter your registered agency email. A password reset link will be sent to that email.
+    </div>
+
+    <input
+        type="email"
+        id="resetEmail"
+        class="input"
+        placeholder="Agency email"
+        autocomplete="email"
+    >
+
+    <div
+        class="message"
+        id="resetMessage"
+    ></div>
+
+    <div class="modal-actions">
+
+        <button
+            type="button"
+            class="modal-btn cancel-btn"
+            id="forgotCancel"
+        >
+            Cancel
+        </button>
+
+        <button
+            type="button"
+            class="modal-btn primary-btn"
+            id="resetBtn"
+        >
+            Send Reset Link
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- ACTIVATE AGENCY MODAL -->
+
+<div
+    class="modal"
+    id="activateModal"
+>
+
+<div class="modal-card activate-card">
+
+    <button
+        type="button"
+        class="close-btn"
+        id="activateClose"
+    >
+        ×
+    </button>
+
+    <div class="activate-title">
+        Activate Agency Account
+    </div>
+
+    <div class="activate-text">
+        Use the Agency Code and registered mobile number provided by EGC administrator to activate your agency account and create your login password.
+    </div>
+
+    <div class="activation-step">
+
+        <div class="activation-step-number">
+            1
+        </div>
+
+        <div class="activation-step-text">
+            Enter your Agency Code and registered mobile number.
+        </div>
+
+    </div>
+
+    <div class="activation-step">
+
+        <div class="activation-step-number">
+            2
+        </div>
+
+        <div class="activation-step-text">
+            Your agency details will be verified from the EGC agency record.
+        </div>
+
+    </div>
+
+    <div class="activation-step">
+
+        <div class="activation-step-number">
+            3
+        </div>
+
+        <div class="activation-step-text">
+            Create your password and activate your agency login.
+        </div>
+
+    </div>
+
+    <form
+        class="activation-form"
+        id="activationForm"
+    >
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="activationCode"
+            >
+                Agency Code
+            </label>
+
+            <input
+                type="text"
+                id="activationCode"
+                class="input"
+                placeholder="Enter agency code"
+                autocomplete="off"
+                required
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="activationMobile"
+            >
+                Registered Mobile Number
+            </label>
+
+            <input
+                type="tel"
+                id="activationMobile"
+                class="input"
+                placeholder="Enter registered mobile number"
+                inputmode="numeric"
+                autocomplete="tel"
+                required
+            >
+
+        </div>
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="activationPassword"
+            >
+                Create Password
+            </label>
+
+            <div class="input-wrap">
+
+                <input
+                    type="password"
+                    id="activationPassword"
+                    class="input password-input"
+                    placeholder="Create your password"
+                    autocomplete="new-password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="show-password"
+                    id="showActivationPassword"
+                    aria-label="Show password"
+                >
+                    👁
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="field">
+
+            <label
+                class="label"
+                for="activationConfirmPassword"
+            >
+                Confirm Password
+            </label>
+
+            <div class="input-wrap">
+
+                <input
+                    type="password"
+                    id="activationConfirmPassword"
+                    class="input password-input"
+                    placeholder="Confirm your password"
+                    autocomplete="new-password"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="show-password"
+                    id="showActivationConfirmPassword"
+                    aria-label="Show password"
+                >
+                    👁
+                </button>
+
+            </div>
+
+        </div>
+
+        <button
+            type="submit"
+            class="activation-btn"
+            id="activationSubmit"
+        >
+            Verify & Activate Agency
+        </button>
+
+        <div
+            class="message"
+            id="activationMessage"
+        ></div>
+
+        <div
+            class="activation-success"
+            id="activationSuccess"
+        >
+            <strong>Agency Activated Successfully!</strong>
+            <br><br>
+            Your agency login password has been created.
+            <br>
+            You can now login using your Agency Code or registered email.
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                type="button"
+                class="modal-btn cancel-btn"
+                id="activationCancel"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const loginForm =
+    document.getElementById("loginForm");
+
+const loginIdentity =
+    document.getElementById("loginIdentity");
+
+const loginPassword =
+    document.getElementById("loginPassword");
+
+const loginBtn =
+    document.getElementById("loginBtn");
+
+const loginMessage =
+    document.getElementById("loginMessage");
+
+const showPassword =
+    document.getElementById("showPassword");
+
+const activateBtn =
+    document.getElementById("activateBtn");
+
+const activateModal =
+    document.getElementById("activateModal");
+
+const activateClose =
+    document.getElementById("activateClose");
+
+const activationCancel =
+    document.getElementById("activationCancel");
+
+const activationForm =
+    document.getElementById("activationForm");
+
+const activationCode =
+    document.getElementById("activationCode");
+
+const activationMobile =
+    document.getElementById("activationMobile");
+
+const activationPassword =
+    document.getElementById("activationPassword");
+
+const activationConfirmPassword =
+    document.getElementById("activationConfirmPassword");
+
+const activationSubmit =
+    document.getElementById("activationSubmit");
+
+const activationMessage =
+    document.getElementById("activationMessage");
+
+const activationSuccess =
+    document.getElementById("activationSuccess");
+
+const showActivationPassword =
+    document.getElementById("showActivationPassword");
+
+const showActivationConfirmPassword =
+    document.getElementById(
+        "showActivationConfirmPassword"
+    );
+
+const developerBtn =
+    document.getElementById("developerBtn");
+
+const developerModal =
+    document.getElementById("developerModal");
+
+const developerClose =
+    document.getElementById("developerClose");
+
+const forgotBtn =
+    document.getElementById("forgotBtn");
+
+const forgotModal =
+    document.getElementById("forgotModal");
+
+const forgotClose =
+    document.getElementById("forgotClose");
+
+const forgotCancel =
+    document.getElementById("forgotCancel");
+
+const resetEmail =
+    document.getElementById("resetEmail");
+
+const resetBtn =
+    document.getElementById("resetBtn");
+
+const resetMessage =
+    document.getElementById("resetMessage");
+
+
+/* =========================================================
+   MESSAGE HELPER
+========================================================= */
+
+function showMessage(
+    element,
+    type,
+    text
+){
+
+    if(!element){
+        return;
+    }
+
+    element.className =
+        "message show " + type;
+
+    element.textContent =
+        text;
+}
+
+
+/* =========================================================
+   MOBILE NORMALIZER
+   ACTUAL DATABASE COLUMN = mobile_number
+========================================================= */
+
+function normalizeMobile(value){
+
+    return String(value || "")
+        .replace(/\D/g,"")
+        .slice(-10);
+
+}
+
+
+/* =========================================================
+   AGENCY CODE NORMALIZER
+========================================================= */
+
+function normalizeAgencyCode(value){
+
+    return String(value || "")
+        .trim()
+        .toUpperCase();
+
+}
+
+
+/* =========================================================
+   EMAIL NORMALIZER
+   ACTUAL DATABASE COLUMN = email
+========================================================= */
+
+function normalizeEmail(value){
+
+    return String(value || "")
+        .trim()
+        .toLowerCase();
+
+}
+
+
+/* =========================================================
+   SHOW / HIDE PASSWORD
+========================================================= */
+
+function setupPasswordToggle(
+    button,
+    input
+){
+
+    if(!button || !input){
+        return;
+    }
+
+    button.addEventListener(
+        "click",
+        function(){
+
+            if(input.type === "password"){
+
+                input.type = "text";
+                button.textContent = "🙈";
+
+            }else{
+
+                input.type = "password";
+                button.textContent = "👁";
+
+            }
+
+        }
+    );
+
+}
+
+setupPasswordToggle(
+    showPassword,
+    loginPassword
+);
+
+setupPasswordToggle(
+    showActivationPassword,
+    activationPassword
+);
+
+setupPasswordToggle(
+    showActivationConfirmPassword,
+    activationConfirmPassword
+);
+
+
+/* =========================================================
+   FIND AGENCY BY CODE
+   IMPORTANT:
+   ONLY ACTUAL COLUMNS ARE USED.
+
+   id
+   agency_name
+   agency_code
+   mobile_number
+   email
+   is_active
+   status
+   address
+   lpg_company
+   state
+   district
+   city
+========================================================= */
+
+async function getAgencyByCode(code){
+
+    const normalizedCode =
+        normalizeAgencyCode(code);
+
+    if(!normalizedCode){
+        return {
+            data:null,
+            error:null
+        };
+    }
+
+    const result =
+        await supabaseClient
+            .from("agencies")
+            .select(
+                "id,agency_name,agency_code,mobile_number,email,address,is_active,status,lpg_company,state,district,city"
+            )
+            .eq(
+                "agency_code",
+                normalizedCode
+            )
+            .maybeSingle();
+
+    return result;
+}
+
+
+/* =========================================================
+   SAVE AGENCY SESSION
+========================================================= */
+
+function saveAgencySession(agency){
+
+    if(!agency){
+        return;
+    }
+
+    sessionStorage.setItem(
+        "egc_agency_id",
+        agency.id || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_name",
+        agency.agency_name || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_code",
+        agency.agency_code || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_email",
+        agency.email || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_company",
+        agency.lpg_company || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_mobile",
+        agency.mobile_number || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_state",
+        agency.state || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_district",
+        agency.district || ""
+    );
+
+    sessionStorage.setItem(
+        "egc_agency_city",
+        agency.city || ""
+    );
+
+}
+
+
+/* =========================================================
+   LOGIN
+   SUPPORTS:
+
+   1. Agency Email + Password
+   2. Agency Code + Password
+
+   IMPORTANT:
+   agencies.email IS USED.
+   login_email IS NOT USED.
+========================================================= */
+
+if(loginForm){
+
+    loginForm.addEventListener(
+        "submit",
+        async function(event){
+
+            event.preventDefault();
+
+            const identity =
+                loginIdentity.value.trim();
+
+            const password =
+                loginPassword.value;
+
+            if(!identity || !password){
+
+                showMessage(
+                    loginMessage,
+                    "error",
+                    "Please enter agency email/code and password."
+                );
+
+                return;
+            }
+
+            loginBtn.disabled = true;
+
+            loginBtn.textContent =
+                "Checking agency...";
+
+            loginMessage.className =
+                "message";
+
+            let loginEmail = "";
+
+            let agencyFromCode = null;
+
+            try{
+
+                const looksLikeEmail =
+                    identity.includes("@");
+
+
+                /* =================================================
+                   STEP 1
+                   EMAIL LOGIN
+                ================================================= */
+
+                if(looksLikeEmail){
+
+                    loginEmail =
+                        normalizeEmail(identity);
+
+                    const {
+                        data: agencyByEmail,
+                        error: emailLookupError
+                    } =
+                        await supabaseClient
+                            .from("agencies")
+                            .select(
+                                "id,agency_name,agency_code,mobile_number,email,address,is_active,status,lpg_company,state,district,city"
+                            )
+                            .eq(
+                                "email",
+                                loginEmail
+                            )
+                            .maybeSingle();
+
+                    if(emailLookupError){
+
+                        console.error(
+                            "Agency email lookup error:",
+                            emailLookupError
+                        );
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "Unable to verify agency email. Please try again."
+                        );
+
+                        return;
+                    }
+
+                    if(!agencyByEmail){
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "No agency is registered with this email."
+                        );
+
+                        return;
+                    }
+
+                    agencyFromCode =
+                        agencyByEmail;
+
+                }
+
+
+                /* =================================================
+                   STEP 2
+                   AGENCY CODE LOGIN
+                ================================================= */
+
+                else{
+
+                    loginBtn.textContent =
+                        "Finding agency...";
+
+                    const {
+                        data: agencyByCode,
+                        error: codeError
+                    } =
+                        await getAgencyByCode(
+                            identity
+                        );
+
+                    if(codeError){
+
+                        console.error(
+                            "Agency code lookup error:",
+                            codeError
+                        );
+
+                        console.error(
+                            "Supabase error details:",
+                            {
+                                code:codeError.code,
+                                message:codeError.message,
+                                details:codeError.details,
+                                hint:codeError.hint
+                            }
+                        );
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "Unable to verify agency code. Please try again."
+                        );
+
+                        return;
+                    }
+
+                    if(!agencyByCode){
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "Invalid agency code."
+                        );
+
+                        return;
+                    }
+
+                    if(!agencyByCode.email){
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "No login email is assigned to this agency. Please contact EGC administrator."
+                        );
+
+                        return;
+                    }
+
+                    agencyFromCode =
+                        agencyByCode;
+
+                    loginEmail =
+                        normalizeEmail(
+                            agencyByCode.email
+                        );
+
+                }
+
+
+                /* =================================================
+                   STEP 3
+                   BASIC AGENCY STATUS
+                ================================================= */
+
+                if(!agencyFromCode){
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Agency record could not be found."
+                    );
+
+                    return;
+                }
+
+                const agencyStatus =
+                    String(
+                        agencyFromCode.status || ""
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                const agencyIsActive =
+                    agencyFromCode.is_active === true &&
+                    (
+                        agencyStatus === "active" ||
+                        agencyStatus === "approved"
+                    );
+
+                if(!agencyIsActive){
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "This agency account is currently inactive. Please contact EGC administrator."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 4
+                   SUPABASE AUTH LOGIN
+                ================================================= */
+
+                loginBtn.textContent =
+                    "Signing in...";
+
+                const {
+                    data:authData,
+                    error:authError
+                } =
+                    await supabaseClient
+                        .auth
+                        .signInWithPassword({
+                            email:loginEmail,
+                            password:password
+                        });
+
+                if(authError){
+
+                    console.error(
+                        "Agency Auth login error:",
+                        authError
+                    );
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Invalid agency email/code or password."
+                    );
+
+                    return;
+                }
+
+                if(
+                    !authData ||
+                    !authData.user
+                ){
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Unable to verify agency account."
+                    );
+
+                    return;
+                }
+
+                const userId =
+                    authData.user.id;
+
+
+                /* =================================================
+                   STEP 5
+                   VERIFY PROFILE
+                ================================================= */
+
+                loginBtn.textContent =
+                    "Verifying agency profile...";
+
+                const {
+                    data:profile,
+                    error:profileError
+                } =
+                    await supabaseClient
+                        .from("profiles")
+                        .select(
+                            "id,full_name,email,role,agency_id"
+                        )
+                        .eq(
+                            "id",
+                            userId
+                        )
+                        .maybeSingle();
+
+                if(profileError){
+
+                    console.error(
+                        "Profile verification error:",
+                        profileError
+                    );
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Unable to verify agency profile. Please contact administrator."
+                    );
+
+                    return;
+                }
+
+                if(!profile){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "No agency profile is linked with this account."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 6
+                   PROFILE ROLE
+                ================================================= */
+
+                const profileRole =
+                    String(
+                        profile.role || ""
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                if(
+                    profileRole &&
+                    profileRole !== "agency"
+                ){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "This account is not registered as an LPG agency."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 7
+                   PROFILE AGENCY ID
+                ================================================= */
+
+                if(!profile.agency_id){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "This agency account is not linked to an agency."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 8
+                   VERIFY ACTUAL AGENCY
+                ================================================= */
+
+                loginBtn.textContent =
+                    "Checking agency profile...";
+
+                const {
+                    data:agency,
+                    error:agencyError
+                } =
+                    await supabaseClient
+                        .from("agencies")
+                        .select(
+                            "id,agency_name,agency_code,mobile_number,email,address,is_active,status,lpg_company,state,district,city"
+                        )
+                        .eq(
+                            "id",
+                            profile.agency_id
+                        )
+                        .maybeSingle();
+
+                if(agencyError){
+
+                    console.error(
+                        "Agency verification error:",
+                        agencyError
+                    );
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Unable to verify LPG agency. Please try again."
+                    );
+
+                    return;
+                }
+
+                if(!agency){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "Agency record was not found."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 9
+                   AGENCY ACTIVE CHECK
+                ================================================= */
+
+                const finalStatus =
+                    String(
+                        agency.status || ""
+                    )
+                    .trim()
+                    .toLowerCase();
+
+                const finalIsActive =
+                    agency.is_active === true &&
+                    (
+                        finalStatus === "active" ||
+                        finalStatus === "approved"
+                    );
+
+                if(!finalIsActive){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "This LPG agency account is inactive."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 10
+                   EMAIL MATCH
+                ================================================= */
+
+                const databaseAgencyEmail =
+                    normalizeEmail(
+                        agency.email
+                    );
+
+                if(
+                    databaseAgencyEmail &&
+                    databaseAgencyEmail !== loginEmail
+                ){
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                    showMessage(
+                        loginMessage,
+                        "error",
+                        "This login is not assigned to this agency."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 11
+                   CODE MATCH
+                ================================================= */
+
+                if(agencyFromCode){
+
+                    if(
+                        String(agencyFromCode.id) !==
+                        String(agency.id)
+                    ){
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+                        showMessage(
+                            loginMessage,
+                            "error",
+                            "Agency code does not match this account."
+                        );
+
+                        return;
+                    }
+                }
+
+
+                /* =================================================
+                   STEP 12
+                   SAVE SESSION
+                ================================================= */
+
+                saveAgencySession(
+                    agency
+                );
+
+
+                /* =================================================
+                   SUCCESS
+                ================================================= */
+
+                showMessage(
+                    loginMessage,
+                    "success",
+                    "Login successful. Opening Agency Dashboard..."
+                );
+
+                loginBtn.textContent =
+                    "Login Successful";
+
+                setTimeout(
+                    function(){
+
+                        window.location.href =
+                            "agency-dashboard.html";
+
+                    },
+                    700
+                );
+
+            }
+            catch(error){
+
+                console.error(
+                    "Agency login error:",
+                    error
+                );
+
+                try{
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                }
+                catch(signOutError){
+
+                    console.error(
+                        "Sign out error:",
+                        signOutError
+                    );
+
+                }
+
+                showMessage(
+                    loginMessage,
+                    "error",
+                    "Unable to login. Please try again."
+                );
+
+            }
+            finally{
+
+                setTimeout(
+                    function(){
+
+                        if(loginBtn){
+
+                            loginBtn.disabled =
+                                false;
+
+                            loginBtn.textContent =
+                                "Login to Agency Panel";
+
+                        }
+
+                    },
+                    1000
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   OPEN ACTIVATION MODAL
+========================================================= */
+
+if(activateBtn){
+
+    activateBtn.addEventListener(
+        "click",
+        function(){
+
+            if(activationMessage){
+
+                activationMessage.className =
+                    "message";
+
+            }
+
+            if(activationSuccess){
+
+                activationSuccess.classList.remove(
+                    "show"
+                );
+
+            }
+
+            if(activationForm){
+
+                activationForm.reset();
+
+            }
+
+            if(activationSubmit){
+
+                activationSubmit.style.display =
+                    "";
+
+                activationSubmit.disabled =
+                    false;
+
+                activationSubmit.textContent =
+                    "Verify & Activate Agency";
+
+            }
+
+            activateModal.classList.add(
+                "show"
+            );
+
+            setTimeout(
+                function(){
+
+                    if(activationCode){
+
+                        activationCode.focus();
+
+                    }
+
+                },
+                100
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   AGENCY ACTIVATION
+========================================================= */
+
+if(activationForm){
+
+    activationForm.addEventListener(
+        "submit",
+        async function(event){
+
+            event.preventDefault();
+
+            const code =
+                normalizeAgencyCode(
+                    activationCode.value
+                );
+
+            const enteredMobile =
+                normalizeMobile(
+                    activationMobile.value
+                );
+
+            const password =
+                activationPassword.value;
+
+            const confirmPassword =
+                activationConfirmPassword.value;
+
+
+            /* =================================================
+               VALIDATION
+            ================================================= */
+
+            if(
+                !code ||
+                !enteredMobile ||
+                !password ||
+                !confirmPassword
+            ){
+
+                showMessage(
+                    activationMessage,
+                    "error",
+                    "Please complete all activation fields."
+                );
+
+                return;
+            }
+
+            if(
+                enteredMobile.length !== 10
+            ){
+
+                showMessage(
+                    activationMessage,
+                    "error",
+                    "Please enter a valid 10-digit registered mobile number."
+                );
+
+                return;
+            }
+
+            if(
+                password.length < 6
+            ){
+
+                showMessage(
+                    activationMessage,
+                    "error",
+                    "Password must contain at least 6 characters."
+                );
+
+                return;
+            }
+
+            if(
+                password !== confirmPassword
+            ){
+
+                showMessage(
+                    activationMessage,
+                    "error",
+                    "Passwords do not match."
+                );
+
+                return;
+            }
+
+
+            activationSubmit.disabled =
+                true;
+
+            activationSubmit.textContent =
+                "Verifying agency...";
+
+            activationMessage.className =
+                "message";
+
+            activationSuccess.classList.remove(
+                "show"
+            );
+
+
+            try{
+
+                /* =================================================
+                   STEP 1
+                   FIND AGENCY BY ACTUAL agency_code
+                ================================================= */
+
+                const {
+                    data:agency,
+                    error:agencyError
+                } =
+                    await getAgencyByCode(
+                        code
+                    );
+
+                if(agencyError){
+
+                    console.error(
+                        "Agency activation lookup error:",
+                        agencyError
+                    );
+
+                    console.error(
+                        "Supabase error details:",
+                        {
+                            code:agencyError.code,
+                            message:agencyError.message,
+                            details:agencyError.details,
+                            hint:agencyError.hint
+                        }
+                    );
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Unable to verify agency. Please try again."
+                    );
+
+                    return;
+                }
+
+                if(!agency){
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Invalid Agency Code. Please check the code provided by EGC."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 2
+                   CHECK MOBILE
+                ================================================= */
+
+                const databaseMobile =
+                    normalizeMobile(
+                        agency.mobile_number
+                    );
+
+                if(
+                    !databaseMobile ||
+                    databaseMobile !== enteredMobile
+                ){
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Registered mobile number does not match this agency."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 3
+                   CHECK EMAIL
+                ================================================= */
+
+                const agencyEmail =
+                    normalizeEmail(
+                        agency.email
+                    );
+
+                if(!agencyEmail){
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "No login email has been assigned to this agency. Please contact EGC administrator."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   IMPORTANT ACTIVATION LOGIC
+
+                   is_active may already be TRUE because admin
+                   has approved/created the agency.
+
+                   Therefore activation status is determined by
+                   login_password marker.
+
+                   NULL / blank = login not activated.
+                   AUTH_MANAGED = login already activated.
+
+                   We NEVER store the real password here.
+                ================================================= */
+
+                const loginMarker =
+                    String(
+                        agency.login_password || ""
+                    )
+                    .trim();
+
+                if(
+                    loginMarker &&
+                    loginMarker !== "null"
+                ){
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "This agency login is already activated. Please use Agency Login."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 4
+                   CREATE SUPABASE AUTH ACCOUNT
+                ================================================= */
+
+                activationSubmit.textContent =
+                    "Creating secure login...";
+
+                const {
+                    data:signUpData,
+                    error:signUpError
+                } =
+                    await supabaseClient
+                        .auth
+                        .signUp({
+                            email:agencyEmail,
+                            password:password
+                        });
+
+
+                if(signUpError){
+
+                    console.error(
+                        "Agency Auth signup error:",
+                        signUpError
+                    );
+
+                    const errorText =
+                        String(
+                            signUpError.message || ""
+                        )
+                        .toLowerCase();
+
+
+                    if(
+                        errorText.includes(
+                            "already registered"
+                        ) ||
+                        errorText.includes(
+                            "already exists"
+                        ) ||
+                        errorText.includes(
+                            "user already"
+                        )
+                    ){
+
+                        showMessage(
+                            activationMessage,
+                            "error",
+                            "This agency login already exists. Please use Agency Login or Forgot Password."
+                        );
+
+                    }
+                    else{
+
+                        showMessage(
+                            activationMessage,
+                            "error",
+                            signUpError.message ||
+                            "Unable to create agency login."
+                        );
+
+                    }
+
+                    return;
+                }
+
+
+                if(
+                    !signUpData ||
+                    !signUpData.user
+                ){
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Agency account could not be created."
+                    );
+
+                    return;
+                }
+
+
+                const userId =
+                    signUpData.user.id;
+
+
+                /* =================================================
+                   STEP 5
+                   CREATE / UPDATE PROFILE
+                ================================================= */
+
+                activationSubmit.textContent =
+                    "Linking agency profile...";
+
+
+                const {
+                    error:profileError
+                } =
+                    await supabaseClient
+                        .from("profiles")
+                        .upsert(
+                            {
+                                id:userId,
+
+                                full_name:
+                                    agency.owner_name ||
+                                    agency.agency_name ||
+                                    "Agency",
+
+                                email:
+                                    agencyEmail,
+
+                                role:
+                                    "agency",
+
+                                agency_id:
+                                    agency.id
+                            },
+                            {
+                                onConflict:"id"
+                            }
+                        );
+
+
+                if(profileError){
+
+                    console.error(
+                        "Agency profile creation error:",
+                        profileError
+                    );
+
+                    console.error(
+                        "Profile error details:",
+                        {
+                            code:profileError.code,
+                            message:profileError.message,
+                            details:profileError.details,
+                            hint:profileError.hint
+                        }
+                    );
+
+                    try{
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+                    }
+                    catch(error){
+
+                        console.error(
+                            "Sign out error:",
+                            error
+                        );
+
+                    }
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Agency login was created but the agency profile could not be linked. Please contact administrator."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 6
+                   MARK AGENCY LOGIN AS ACTIVATED
+
+                   IMPORTANT:
+                   Real password is NOT stored in agencies.
+                   Only a marker is stored.
+                ================================================= */
+
+                activationSubmit.textContent =
+                    "Activating agency...";
+
+
+                const {
+                    error:updateAgencyError
+                } =
+                    await supabaseClient
+                        .from("agencies")
+                        .update(
+                            {
+                                is_active:true,
+                                status:"active",
+                                login_password:"AUTH_MANAGED"
+                            }
+                        )
+                        .eq(
+                            "id",
+                            agency.id
+                        );
+
+
+                if(updateAgencyError){
+
+                    console.error(
+                        "Agency activation update error:",
+                        updateAgencyError
+                    );
+
+                    console.error(
+                        "Agency update details:",
+                        {
+                            code:updateAgencyError.code,
+                            message:updateAgencyError.message,
+                            details:updateAgencyError.details,
+                            hint:updateAgencyError.hint
+                        }
+                    );
+
+                    try{
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+                    }
+                    catch(error){
+
+                        console.error(
+                            "Sign out error:",
+                            error
+                        );
+
+                    }
+
+                    showMessage(
+                        activationMessage,
+                        "error",
+                        "Login account was created but agency activation could not be completed. Please contact administrator."
+                    );
+
+                    return;
+                }
+
+
+                /* =================================================
+                   STEP 7
+                   SAVE SESSION
+                ================================================= */
+
+                saveAgencySession(
+                    agency
+                );
+
+                sessionStorage.setItem(
+                    "egc_agency_email",
+                    agencyEmail
+                );
+
+
+                /* =================================================
+                   STEP 8
+                   SUCCESS
+                ================================================= */
+
+                activationMessage.className =
+                    "message";
+
+                activationSuccess.classList.add(
+                    "show"
+                );
+
+                activationSubmit.style.display =
+                    "none";
+
+
+                /* =================================================
+                   IF AUTH SESSION EXISTS
+                   OPEN DASHBOARD
+                ================================================= */
+
+                if(signUpData.session){
+
+                    setTimeout(
+                        function(){
+
+                            window.location.href =
+                                "agency-dashboard.html";
+
+                        },
+                        1800
+                    );
+
+                }
+                else{
+
+                    activationSuccess.innerHTML =
+                        "<strong>Agency Activated Successfully!</strong>" +
+                        "<br><br>" +
+                        "Your agency login has been created." +
+                        "<br>" +
+                        "Please complete email verification if required." +
+                        "<br><br>" +
+                        "You can now use Agency Login.";
+
+                }
+
+            }
+            catch(error){
+
+                console.error(
+                    "Agency activation error:",
+                    error
+                );
+
+                console.error(
+                    "Error details:",
+                    {
+                        message:error.message,
+                        stack:error.stack
+                    }
+                );
+
+                try{
+
+                    await supabaseClient
+                        .auth
+                        .signOut();
+
+                }
+                catch(signOutError){
+
+                    console.error(
+                        "Sign out error:",
+                        signOutError
+                    );
+
+                }
+
+                showMessage(
+                    activationMessage,
+                    "error",
+                    "Unable to activate agency account. Please try again."
+                );
+
+            }
+            finally{
+
+                if(
+                    activationSubmit.style.display !==
+                    "none"
+                ){
+
+                    activationSubmit.disabled =
+                        false;
+
+                    activationSubmit.textContent =
+                        "Verify & Activate Agency";
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   FORGOT PASSWORD
+========================================================= */
+
+if(forgotBtn){
+
+    forgotBtn.addEventListener(
+        "click",
+        async function(){
+
+            const identity =
+                loginIdentity.value.trim();
+
+            resetMessage.className =
+                "message";
+
+            resetEmail.value =
+                "";
+
+
+            /* =================================================
+               EMAIL ENTERED
+            ================================================= */
+
+            if(
+                identity &&
+                identity.includes("@")
+            ){
+
+                resetEmail.value =
+                    normalizeEmail(identity);
+
+            }
+
+
+            /* =================================================
+               AGENCY CODE ENTERED
+
+               ACTUAL COLUMN:
+               email
+
+               NOT login_email
+            ================================================= */
+
+            else if(identity){
+
+                try{
+
+                    const {
+                        data:agency,
+                        error
+                    } =
+                        await getAgencyByCode(
+                            identity
+                        );
+
+                    if(error){
+
+                        console.error(
+                            "Reset email lookup error:",
+                            error
+                        );
+
+                    }
+
+                    if(
+                        agency &&
+                        agency.email
+                    ){
+
+                        resetEmail.value =
+                            normalizeEmail(
+                                agency.email
+                            );
+
+                    }
+
+                }
+                catch(error){
+
+                    console.error(
+                        "Reset email lookup error:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            forgotModal.classList.add(
+                "show"
+            );
+
+            setTimeout(
+                function(){
+
+                    resetEmail.focus();
+
+                },
+                100
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SEND PASSWORD RESET LINK
+========================================================= */
+
+if(resetBtn){
+
+    resetBtn.addEventListener(
+        "click",
+        async function(){
+
+            const email =
+                normalizeEmail(
+                    resetEmail.value
+                );
+
+            if(!email){
+
+                showMessage(
+                    resetMessage,
+                    "error",
+                    "Please enter your registered agency email."
+                );
+
+                return;
+            }
+
+            resetBtn.disabled =
+                true;
+
+            resetBtn.textContent =
+                "Sending...";
+
+            resetMessage.className =
+                "message";
+
+            try{
+
+                const {
+                    error
+                } =
+                    await supabaseClient
+                        .auth
+                        .resetPasswordForEmail(
+                            email,
+                            {
+                                redirectTo:
+                                    window.location.origin +
+                                    "/agency-reset-password.html"
+                            }
+                        );
+
+                if(error){
+
+                    console.error(
+                        "Password reset error:",
+                        error
+                    );
+
+                    showMessage(
+                        resetMessage,
+                        "error",
+                        "Unable to send reset link. Please try again."
+                    );
+
+                    return;
+                }
+
+                showMessage(
+                    resetMessage,
+                    "success",
+                    "Password reset link has been sent to your email."
+                );
+
+            }
+            catch(error){
+
+                console.error(
+                    "Password reset error:",
+                    error
+                );
+
+                showMessage(
+                    resetMessage,
+                    "error",
+                    "Unable to send reset link. Please try again."
+                );
+
+            }
+            finally{
+
+                resetBtn.disabled =
+                    false;
+
+                resetBtn.textContent =
+                    "Send Reset Link";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   DEVELOPER MODAL
+========================================================= */
+
+if(
+    developerBtn &&
+    developerModal
+){
+
+    developerBtn.addEventListener(
+        "click",
+        function(){
+
+            developerModal.classList.add(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+if(
+    developerClose &&
+    developerModal
+){
+
+    developerClose.addEventListener(
+        "click",
+        function(){
+
+            developerModal.classList.remove(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   FORGOT MODAL CLOSE
+========================================================= */
+
+if(
+    forgotClose &&
+    forgotModal
+){
+
+    forgotClose.addEventListener(
+        "click",
+        function(){
+
+            forgotModal.classList.remove(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+if(
+    forgotCancel &&
+    forgotModal
+){
+
+    forgotCancel.addEventListener(
+        "click",
+        function(){
+
+            forgotModal.classList.remove(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   ACTIVATION MODAL CLOSE
+========================================================= */
+
+if(
+    activateClose &&
+    activateModal
+){
+
+    activateClose.addEventListener(
+        "click",
+        function(){
+
+            activateModal.classList.remove(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+if(
+    activationCancel &&
+    activateModal
+){
+
+    activationCancel.addEventListener(
+        "click",
+        function(){
+
+            activateModal.classList.remove(
+                "show"
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CLICK OUTSIDE MODALS
+========================================================= */
+
+if(developerModal){
+
+    developerModal.addEventListener(
+        "click",
+        function(event){
+
+            if(
+                event.target ===
+                developerModal
+            ){
+
+                developerModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+if(forgotModal){
+
+    forgotModal.addEventListener(
+        "click",
+        function(event){
+
+            if(
+                event.target ===
+                forgotModal
+            ){
+
+                forgotModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+if(activateModal){
+
+    activateModal.addEventListener(
+        "click",
+        function(event){
+
+            if(
+                event.target ===
+                activateModal
+            ){
+
+                activateModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   ESC KEY
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(
+            event.key ===
+            "Escape"
+        ){
+
+            if(developerModal){
+
+                developerModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+            if(forgotModal){
+
+                forgotModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+            if(activateModal){
+
+                activateModal.classList.remove(
+                    "show"
+                );
+
+            }
+
+        }
+
+    }
+);
+
+</script>
+
+</body>
+</html>

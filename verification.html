@@ -1,0 +1,3299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Verification</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#f3f8fc;
+    color:#073f73;
+    min-height:100vh;
+}
+
+.app{
+    width:100%;
+    min-height:100vh;
+    background:#fff;
+}
+
+/* HEADER */
+
+.header{
+    height:82px;
+    width:100%;
+    background:#fff;
+    border-bottom:1px solid #e4edf5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:sticky;
+    top:0;
+    z-index:50;
+}
+
+.header-left{
+    position:absolute;
+    left:28px;
+    display:flex;
+    align-items:center;
+}
+
+.back-btn{
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:29px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.egc-logo{
+    height:60px;
+    width:auto;
+    object-fit:contain;
+}
+
+/* MAIN */
+
+.main{
+    width:100%;
+    max-width:1350px;
+    margin:auto;
+    padding:38px 55px 70px;
+}
+
+.page-title{
+    text-align:center;
+    margin-bottom:35px;
+}
+
+.page-title h1{
+    font-size:34px;
+    font-weight:800;
+    color:#06447c;
+    margin-bottom:8px;
+}
+
+.page-title p{
+    font-size:17px;
+    color:#72899e;
+}
+
+/* STEPS */
+
+.steps{
+    width:100%;
+    max-width:900px;
+    margin:0 auto 42px;
+    display:flex;
+    align-items:flex-start;
+}
+
+.step-box{
+    flex:1;
+    display:flex;
+    align-items:center;
+}
+
+.step-box:last-child{
+    flex:0 0 auto;
+}
+
+.step{
+    min-width:88px;
+    text-align:center;
+}
+
+.step-circle{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    font-size:17px;
+    font-weight:800;
+    background:#fff;
+    border:3px solid #d0dfeb;
+    color:#8ba0b1;
+}
+
+.step.active .step-circle{
+    background:#0878d1;
+    border-color:#0878d1;
+    color:#fff;
+}
+
+.step.completed .step-circle{
+    background:#168c50;
+    border-color:#168c50;
+    color:#fff;
+}
+
+.step-name{
+    margin-top:8px;
+    font-size:13px;
+    font-weight:700;
+    color:#8b9baa;
+}
+
+.step.active .step-name{
+    color:#0872c7;
+}
+
+.step.completed .step-name{
+    color:#168c50;
+}
+
+.step-line{
+    flex:1;
+    height:3px;
+    background:#d6e2ec;
+    margin:22px 8px 0;
+}
+
+.step-line.completed{
+    background:#168c50;
+}
+
+/* CARD */
+
+.card{
+    width:100%;
+    max-width:1080px;
+    margin:0 auto 25px;
+    background:#fff;
+    border:1px solid #e0eaf2;
+    border-radius:22px;
+    padding:38px;
+    box-shadow:0 10px 40px rgba(7,65,105,.08);
+}
+
+.card-title{
+    font-size:27px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:7px;
+}
+
+.card-subtitle{
+    font-size:15px;
+    color:#71879a;
+    margin-bottom:28px;
+}
+
+/* PHOTO */
+
+.photo-main{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin-bottom:32px;
+}
+
+.photo-preview{
+    width:155px;
+    height:155px;
+    border-radius:50%;
+    background:#eef6fb;
+    border:5px solid #d7e9f5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    margin-bottom:15px;
+}
+
+.photo-preview img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:none;
+}
+
+.photo-placeholder{
+    font-size:58px;
+    color:#7b9bb1;
+}
+
+.photo-main-buttons{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+
+.small-camera-note{
+    margin-top:10px;
+    text-align:center;
+    color:#7a91a3;
+    font-size:12px;
+}
+
+/* DOCUMENT HEADING */
+
+.document-upload-heading{
+    margin-top:30px;
+    margin-bottom:18px;
+    padding-bottom:12px;
+    border-bottom:1px solid #e2edf5;
+}
+
+.document-upload-heading h3{
+    font-size:22px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:5px;
+}
+
+.document-upload-heading p{
+    font-size:14px;
+    color:#71879a;
+}
+
+/* GRID */
+
+.details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+.detail-item{
+    background:#fff;
+    border:1px solid #e2edf5;
+    border-radius:14px;
+    padding:16px;
+}
+
+.detail-label{
+    font-size:12px;
+    color:#7890a3;
+    margin-bottom:8px;
+    font-weight:700;
+    text-transform:uppercase;
+}
+
+.detail-input{
+    width:100%;
+    height:46px;
+    border:1px solid #cfdfea;
+    border-radius:10px;
+    outline:none;
+    padding:0 13px;
+    font-size:15px;
+    color:#164c72;
+    background:#fff;
+}
+
+.detail-input:focus{
+    border-color:#0878d1;
+    box-shadow:0 0 0 3px rgba(8,120,209,.08);
+}
+
+/* DOCUMENT */
+
+.document-card{
+    background:#f8fcff;
+    border:1px solid #dcecf6;
+    border-radius:16px;
+    padding:17px;
+    min-width:0;
+}
+
+.document-title{
+    font-size:16px;
+    font-weight:800;
+    color:#075a96;
+    margin-bottom:5px;
+}
+
+.document-subtitle{
+    font-size:12px;
+    color:#7b91a2;
+    margin-bottom:14px;
+}
+
+.document-preview{
+    width:100%;
+    height:155px;
+    background:#fff;
+    border:1px dashed #c8dce9;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    margin-bottom:12px;
+}
+
+.document-preview img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:none;
+}
+
+.document-empty{
+    text-align:center;
+    color:#8aa0b0;
+    font-size:13px;
+}
+
+.document-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+}
+
+.photo-btn{
+    height:45px;
+    border:1px solid #cfe1ed;
+    border-radius:10px;
+    background:#fff;
+    color:#075a96;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.photo-btn:hover{
+    background:#eaf5fc;
+}
+
+.remove-photo-btn{
+    display:none;
+    width:100%;
+    margin-top:8px;
+    height:40px;
+    border:1px solid #f0c5c5;
+    border-radius:10px;
+    background:#fff5f5;
+    color:#c52d2d;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.remove-photo-btn:hover{
+    background:#ffe9e9;
+}
+
+/* CONNECTION */
+
+.connection-card{
+    background:#f6fbff;
+    border:1px solid #d7e9f6;
+    border-radius:17px;
+    padding:24px;
+}
+
+.connection-title{
+    font-size:19px;
+    font-weight:800;
+    color:#075a96;
+    margin-bottom:18px;
+}
+
+.connection-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.detail-value{
+    font-size:16px;
+    color:#164c72;
+    font-weight:700;
+    min-height:20px;
+    line-height:1.4;
+    word-break:break-word;
+}
+
+/* VERIFY */
+
+.verify-box{
+    border:1px solid #d9e7f1;
+    border-radius:16px;
+    padding:22px;
+    margin-top:25px;
+}
+
+.verify-title{
+    font-size:18px;
+    font-weight:800;
+    color:#06477f;
+    margin-bottom:8px;
+}
+
+.verify-text{
+    font-size:14px;
+    color:#6d8497;
+    line-height:1.6;
+    margin-bottom:18px;
+}
+
+.checkbox-row{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    background:#f8fbfd;
+    border:1px solid #e0ebf3;
+    border-radius:12px;
+    padding:15px;
+    cursor:pointer;
+}
+
+.checkbox-row input{
+    width:20px;
+    height:20px;
+    margin-top:1px;
+    cursor:pointer;
+    accent-color:#0878d1;
+}
+
+.checkbox-text{
+    font-size:14px;
+    line-height:1.5;
+    color:#315873;
+    font-weight:600;
+}
+
+/* BUTTONS */
+
+.action{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    margin-top:30px;
+}
+
+.back-step-btn{
+    min-width:180px;
+    height:58px;
+    border:1px solid #d2e1ec;
+    border-radius:14px;
+    background:#fff;
+    color:#15547d;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.continue-btn{
+    min-width:250px;
+    height:58px;
+    border:0;
+    border-radius:14px;
+    background:#ffc21a;
+    color:#063d70;
+    font-size:17px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 7px 18px rgba(255,194,26,.24);
+}
+
+.continue-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+.message{
+    display:none;
+    margin-top:18px;
+    padding:14px 17px;
+    border-radius:12px;
+    font-size:14px;
+}
+
+.message.error{
+    display:block;
+    color:#bd2828;
+    background:#fff1f1;
+    border:1px solid #ffc9c9;
+}
+
+.message.success{
+    display:block;
+    color:#16833a;
+    background:#effcf3;
+    border:1px solid #bde8c9;
+}
+
+/* NO DETAILS */
+
+.no-details{
+    max-width:1080px;
+    margin:20px auto;
+    text-align:center;
+    padding:25px;
+    background:#fff8e8;
+    border:1px solid #ffe1a3;
+    border-radius:14px;
+    color:#805d12;
+}
+
+/* CAMERA */
+
+.camera-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.82);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:15px;
+}
+
+.camera-modal.show{
+    display:flex;
+}
+
+.camera-panel{
+    width:100%;
+    max-width:650px;
+    background:#111;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 20px 70px rgba(0,0,0,.5);
+}
+
+.camera-header{
+    height:58px;
+    padding:0 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:#fff;
+    background:#181818;
+}
+
+.camera-title{
+    font-size:16px;
+    font-weight:800;
+}
+
+.close-camera{
+    width:38px;
+    height:38px;
+    border:0;
+    border-radius:50%;
+    background:#292929;
+    color:#fff;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.camera-video-box{
+    width:100%;
+    background:#000;
+    position:relative;
+    aspect-ratio:4/3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+#cameraVideo{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+
+.camera-status{
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:12px;
+    padding:9px 12px;
+    border-radius:9px;
+    background:rgba(0,0,0,.6);
+    color:#fff;
+    font-size:12px;
+    text-align:center;
+}
+
+.camera-controls{
+    padding:15px;
+    display:grid;
+    grid-template-columns:1fr 1.3fr 1fr;
+    gap:10px;
+    background:#181818;
+}
+
+.camera-control-btn{
+    height:48px;
+    border:1px solid #444;
+    border-radius:11px;
+    background:#252525;
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.camera-control-btn.capture{
+    background:#0878d1;
+    border-color:#0878d1;
+}
+
+.camera-control-btn:hover{
+    filter:brightness(1.1);
+}
+
+.hidden-input{
+    display:none;
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+    }
+
+    .header-left{
+        left:14px;
+    }
+
+    .back-btn{
+        width:38px;
+        height:38px;
+        font-size:26px;
+    }
+
+    .egc-logo{
+        height:49px;
+    }
+
+    .main{
+        padding:24px 12px 40px;
+    }
+
+    .page-title{
+        margin-bottom:28px;
+    }
+
+    .page-title h1{
+        font-size:27px;
+    }
+
+    .page-title p{
+        font-size:14px;
+    }
+
+    .steps{
+        margin-bottom:25px;
+    }
+
+    .step{
+        min-width:50px;
+    }
+
+    .step-circle{
+        width:35px;
+        height:35px;
+        font-size:13px;
+    }
+
+    .step-name{
+        font-size:9px;
+    }
+
+    .step-line{
+        margin:17px 2px 0;
+    }
+
+    .card{
+        padding:21px 14px;
+        border-radius:17px;
+        margin-bottom:18px;
+    }
+
+    .card-title{
+        font-size:22px;
+    }
+
+    .card-subtitle{
+        font-size:14px;
+        margin-bottom:22px;
+    }
+
+    .photo-preview{
+        width:130px;
+        height:130px;
+    }
+
+    .photo-placeholder{
+        font-size:48px;
+    }
+
+    .photo-main-buttons{
+        width:100%;
+        max-width:330px;
+    }
+
+    .photo-main-buttons .photo-btn{
+        flex:1;
+    }
+
+    .details-grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .detail-item{
+        padding:12px 10px;
+        border-radius:11px;
+    }
+
+    .detail-label{
+        font-size:10px;
+        margin-bottom:6px;
+    }
+
+    .detail-input{
+        height:43px;
+        padding:0 9px;
+        font-size:13px;
+    }
+
+    .document-upload-heading{
+        margin-top:25px;
+        margin-bottom:14px;
+    }
+
+    .document-upload-heading h3{
+        font-size:19px;
+    }
+
+    .document-upload-heading p{
+        font-size:12px;
+    }
+
+    .document-card{
+        padding:12px;
+        border-radius:12px;
+    }
+
+    .document-title{
+        font-size:14px;
+    }
+
+    .document-subtitle{
+        font-size:10px;
+    }
+
+    .document-preview{
+        height:120px;
+    }
+
+    .document-buttons{
+        gap:6px;
+    }
+
+    .photo-btn{
+        height:42px;
+        font-size:11px;
+    }
+
+    .remove-photo-btn{
+        height:40px;
+        font-size:11px;
+    }
+
+    .connection-card{
+        padding:16px 12px;
+        border-radius:14px;
+    }
+
+    .connection-title{
+        font-size:17px;
+        margin-bottom:14px;
+    }
+
+    .connection-grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .connection-grid .detail-value{
+        font-size:13px;
+    }
+
+    .verify-box{
+        padding:16px;
+        border-radius:14px;
+    }
+
+    .verify-title{
+        font-size:17px;
+    }
+
+    .verify-text{
+        font-size:13px;
+    }
+
+    .checkbox-row{
+        padding:12px;
+        gap:9px;
+    }
+
+    .checkbox-text{
+        font-size:12px;
+    }
+
+    .action{
+        flex-direction:column-reverse;
+        align-items:stretch;
+    }
+
+    .continue-btn,
+    .back-step-btn{
+        width:100%;
+        min-width:0;
+    }
+
+    .camera-panel{
+        border-radius:15px;
+    }
+
+    .camera-controls{
+        grid-template-columns:1fr 1.2fr 1fr;
+        padding:10px;
+    }
+
+    .camera-control-btn{
+        font-size:11px;
+        height:45px;
+    }
+}
+
+@media(max-width:380px){
+
+    .main{
+        padding-left:9px;
+        padding-right:9px;
+    }
+
+    .card{
+        padding:18px 10px;
+    }
+
+    .details-grid,
+    .connection-grid{
+        gap:8px;
+    }
+
+    .detail-item{
+        padding:10px 8px;
+    }
+
+    .detail-label{
+        font-size:9px;
+    }
+
+    .detail-input{
+        font-size:12px;
+    }
+
+    .detail-value{
+        font-size:12px;
+    }
+
+    .document-preview{
+        height:105px;
+    }
+
+    .photo-btn{
+        font-size:10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+
+    <div class="header-left">
+        <button type="button" class="back-btn" id="backBtn">‹</button>
+    </div>
+
+    <img
+        src="assets/EGC - Emergency Gas Cylinder logo.png"
+        class="egc-logo"
+        alt="EGC"
+        onerror="this.style.display='none';"
+    >
+
+</header>
+
+<main class="main">
+
+<div class="page-title">
+    <h1>Verification</h1>
+    <p>Review your information before continuing</p>
+</div>
+
+<!-- PROGRESS -->
+
+<div class="steps">
+
+    <div class="step-box">
+
+        <div class="step completed">
+            <div class="step-circle">✓</div>
+            <div class="step-name">LPG Details</div>
+        </div>
+
+        <div class="step-line completed"></div>
+
+    </div>
+
+    <div class="step-box">
+
+        <div class="step active">
+            <div class="step-circle">2</div>
+            <div class="step-name">Verification</div>
+        </div>
+
+        <div class="step-line"></div>
+
+    </div>
+
+    <div class="step-box">
+
+        <div class="step">
+            <div class="step-circle">3</div>
+            <div class="step-name">Scheme</div>
+        </div>
+
+        <div class="step-line"></div>
+
+    </div>
+
+    <div class="step-box">
+
+        <div class="step">
+            <div class="step-circle">4</div>
+            <div class="step-name">Payment</div>
+        </div>
+
+        <div class="step-line"></div>
+
+    </div>
+
+    <div class="step-box">
+
+        <div class="step">
+            <div class="step-circle">5</div>
+            <div class="step-name">Complete</div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- PERSONAL DETAILS -->
+
+<section class="card">
+
+<h2 class="card-title">Personal Details</h2>
+
+<p class="card-subtitle">
+    Enter your personal information and upload the required documents.
+</p>
+
+<div class="photo-main">
+
+    <div class="photo-preview">
+
+        <div class="photo-placeholder" id="photoPlaceholder">
+            👤
+        </div>
+
+        <img id="profilePhoto" alt="Profile Photo">
+
+    </div>
+
+    <div class="photo-main-buttons">
+
+        <button type="button" class="photo-btn" id="profileCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="profileUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="profileRemoveBtn">
+        Remove Photo
+    </button>
+
+    <div class="small-camera-note">
+        Camera supports front/back switching.
+    </div>
+
+</div>
+
+<div class="details-grid">
+
+    <div class="detail-item">
+
+        <div class="detail-label">Full Name</div>
+
+        <input
+            type="text"
+            id="fullName"
+            class="detail-input"
+            placeholder="Enter Full Name"
+            autocomplete="name"
+        >
+
+    </div>
+
+    <div class="detail-item">
+
+        <div class="detail-label">Mobile</div>
+
+        <input
+            type="tel"
+            id="mobile"
+            class="detail-input"
+            placeholder="Enter Mobile"
+            inputmode="numeric"
+            maxlength="10"
+        >
+
+    </div>
+
+    <div class="detail-item">
+
+        <div class="detail-label">Email</div>
+
+        <input
+            type="email"
+            id="email"
+            class="detail-input"
+            placeholder="Enter Email"
+            autocomplete="email"
+        >
+
+    </div>
+
+    <div class="detail-item">
+
+        <div class="detail-label">Address</div>
+
+        <input
+            type="text"
+            id="address"
+            class="detail-input"
+            placeholder="Enter Address"
+            autocomplete="street-address"
+        >
+
+    </div>
+
+</div>
+
+<!-- DOCUMENTS -->
+
+<div class="document-upload-heading">
+
+    <h3>Document Upload</h3>
+
+    <p>
+        Upload clear photos of the required documents.
+        PAN Card is optional.
+    </p>
+
+</div>
+
+<div class="details-grid">
+
+<!-- PASSBOOK -->
+
+<div class="document-card">
+
+    <div class="document-title">
+        Gas Passbook
+    </div>
+
+    <div class="document-subtitle">
+        Upload a clear photo of your LPG passbook.
+    </div>
+
+    <div class="document-preview">
+
+        <div class="document-empty" id="passbookEmpty">
+            📖<br>No photo selected
+        </div>
+
+        <img id="passbookPhoto" alt="Gas Passbook">
+
+    </div>
+
+    <div class="document-buttons">
+
+        <button type="button" class="photo-btn" id="passbookCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="passbookUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="passbookRemoveBtn">
+        Remove Photo
+    </button>
+
+</div>
+
+<!-- PAN -->
+
+<div class="document-card">
+
+    <div class="document-title">
+        PAN Card
+        <span style="color:#888;font-size:11px;">(Optional)</span>
+    </div>
+
+    <div class="document-subtitle">
+        PAN card photo is optional.
+    </div>
+
+    <div class="document-preview">
+
+        <div class="document-empty" id="panEmpty">
+            🪪<br>No photo selected
+        </div>
+
+        <img id="panPhoto" alt="PAN Card">
+
+    </div>
+
+    <div class="document-buttons">
+
+        <button type="button" class="photo-btn" id="panCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="panUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="panRemoveBtn">
+        Remove Photo
+    </button>
+
+</div>
+
+<!-- AADHAAR FRONT -->
+
+<div class="document-card">
+
+    <div class="document-title">
+        Aadhaar Front
+    </div>
+
+    <div class="document-subtitle">
+        Front side of Aadhaar card.
+    </div>
+
+    <div class="document-preview">
+
+        <div class="document-empty" id="aadhaarFrontEmpty">
+            🪪<br>No photo selected
+        </div>
+
+        <img id="aadhaarFrontPhoto" alt="Aadhaar Front">
+
+    </div>
+
+    <div class="document-buttons">
+
+        <button type="button" class="photo-btn" id="aadhaarFrontCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="aadhaarFrontUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="aadhaarFrontRemoveBtn">
+        Remove Photo
+    </button>
+
+</div>
+
+<!-- AADHAAR BACK -->
+
+<div class="document-card">
+
+    <div class="document-title">
+        Aadhaar Back
+    </div>
+
+    <div class="document-subtitle">
+        Back side of Aadhaar card.
+    </div>
+
+    <div class="document-preview">
+
+        <div class="document-empty" id="aadhaarBackEmpty">
+            🪪<br>No photo selected
+        </div>
+
+        <img id="aadhaarBackPhoto" alt="Aadhaar Back">
+
+    </div>
+
+    <div class="document-buttons">
+
+        <button type="button" class="photo-btn" id="aadhaarBackCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="aadhaarBackUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="aadhaarBackRemoveBtn">
+        Remove Photo
+    </button>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- LPG CONNECTION -->
+
+<section class="card">
+
+<h2 class="card-title">LPG Connection</h2>
+
+<p class="card-subtitle">
+    These details are automatically taken from your saved LPG details.
+</p>
+
+<div class="connection-card">
+
+<div class="connection-title">
+    Your Saved LPG Connection
+</div>
+
+<div class="connection-grid">
+
+    <div class="detail-item">
+        <div class="detail-label">State</div>
+        <div class="detail-value" id="stateValue">-</div>
+    </div>
+
+    <div class="detail-item">
+        <div class="detail-label">District</div>
+        <div class="detail-value" id="districtValue">-</div>
+    </div>
+
+    <div class="detail-item">
+        <div class="detail-label">City</div>
+        <div class="detail-value" id="cityValue">-</div>
+    </div>
+
+    <div class="detail-item">
+        <div class="detail-label">LPG Company</div>
+        <div class="detail-value" id="companyValue">-</div>
+    </div>
+
+    <div class="detail-item">
+        <div class="detail-label">LPG Agency</div>
+        <div class="detail-value" id="agencyValue">-</div>
+    </div>
+
+    <div class="detail-item">
+        <div class="detail-label">Agency Code</div>
+        <div class="detail-value" id="agencyCodeValue">-</div>
+    </div>
+
+</div>
+
+</div>
+
+<div class="verify-box">
+
+<div class="verify-title">
+    Confirm Your Information
+</div>
+
+<div class="verify-text">
+    Please make sure your personal information, uploaded documents
+    and LPG connection details are correct before continuing.
+</div>
+
+<label class="checkbox-row">
+
+<input type="checkbox" id="confirmCheck">
+
+<span class="checkbox-text">
+    I confirm that the information and documents provided by me
+    are correct and belong to me.
+</span>
+
+</label>
+
+</div>
+
+<div id="message" class="message"></div>
+
+<div class="action">
+
+<button type="button" id="backStepBtn" class="back-step-btn">
+    ← BACK
+</button>
+
+<button type="button" id="continueBtn" class="continue-btn">
+    CONTINUE →
+</button>
+
+</div>
+
+</section>
+
+<!-- NO LPG DETAILS -->
+
+<div id="noDetailsBox" class="no-details" style="display:none;">
+
+    LPG details were not found.<br>
+    Please go back and complete your LPG details first.
+
+    <br><br>
+
+    <button type="button" id="goDetailsBtn" class="back-step-btn">
+        GO TO LPG DETAILS
+    </button>
+
+</div>
+
+</main>
+</div>
+
+<!-- CAMERA MODAL -->
+
+<div class="camera-modal" id="cameraModal">
+
+<div class="camera-panel">
+
+    <div class="camera-header">
+
+        <div class="camera-title" id="cameraTitle">
+            Camera
+        </div>
+
+        <button type="button" class="close-camera" id="closeCameraBtn">
+            ×
+        </button>
+
+    </div>
+
+    <div class="camera-video-box">
+
+        <video
+            id="cameraVideo"
+            autoplay
+            playsinline
+            muted
+        ></video>
+
+        <div class="camera-status" id="cameraStatus">
+            Starting camera...
+        </div>
+
+    </div>
+
+    <div class="camera-controls">
+
+        <button type="button" class="camera-control-btn" id="switchCameraBtn">
+            🔄 Switch
+        </button>
+
+        <button type="button" class="camera-control-btn capture" id="captureBtn">
+            ● Capture
+        </button>
+
+        <button type="button" class="camera-control-btn" id="cancelCameraBtn">
+            Cancel
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+<!-- FILE INPUTS -->
+
+<input type="file" id="profileUploadInput" class="hidden-input" accept="image/*">
+<input type="file" id="passbookUploadInput" class="hidden-input" accept="image/*">
+<input type="file" id="panUploadInput" class="hidden-input" accept="image/*">
+<input type="file" id="aadhaarFrontUploadInput" class="hidden-input" accept="image/*">
+<input type="file" id="aadhaarBackUploadInput" class="hidden-input" accept="image/*">
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+let egcSupabase = null;
+
+function initializeSupabase(){
+
+    try{
+
+        if(
+            !window.supabase ||
+            typeof window.supabase.createClient !== "function"
+        ){
+
+            console.error("Supabase CDN failed to load.");
+            return false;
+
+        }
+
+        egcSupabase =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_PUBLISHABLE_KEY
+            );
+
+        window.egcSupabase =
+            egcSupabase;
+
+        return true;
+
+    }catch(error){
+
+        console.error(
+            "Supabase initialization error:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
+const SUPABASE_READY =
+    initializeSupabase();
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const message =
+    document.getElementById("message");
+
+const confirmCheck =
+    document.getElementById("confirmCheck");
+
+const continueBtn =
+    document.getElementById("continueBtn");
+
+const fullNameInput =
+    document.getElementById("fullName");
+
+const mobileInput =
+    document.getElementById("mobile");
+
+const emailInput =
+    document.getElementById("email");
+
+const addressInput =
+    document.getElementById("address");
+
+
+/* =========================================================
+   STORAGE KEYS
+========================================================= */
+
+const imageKeys = {
+
+    profile:
+        "egc_verification_photo",
+
+    passbook:
+        "egc_passbook_photo",
+
+    pan:
+        "egc_pan_photo",
+
+    aadhaarFront:
+        "egc_aadhaar_front_photo",
+
+    aadhaarBack:
+        "egc_aadhaar_back_photo"
+
+};
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(text,type){
+
+    if(!message){
+        return;
+    }
+
+    message.className =
+        "message " + type;
+
+    message.textContent =
+        text;
+
+}
+
+function clearMessage(){
+
+    if(!message){
+        return;
+    }
+
+    message.className =
+        "message";
+
+    message.textContent =
+        "";
+
+}
+
+
+/* =========================================================
+   LPG DETAILS
+========================================================= */
+
+let savedLpgDetails = null;
+
+function loadLpgDetails(){
+
+    const saved =
+        localStorage.getItem(
+            "egc_lpg_details"
+        );
+
+    const noDetailsBox =
+        document.getElementById(
+            "noDetailsBox"
+        );
+
+    if(!saved){
+
+        if(noDetailsBox){
+            noDetailsBox.style.display = "block";
+        }
+
+        return false;
+
+    }
+
+    try{
+
+        savedLpgDetails =
+            JSON.parse(saved);
+
+    }catch(error){
+
+        console.error(
+            "LPG details parse error:",
+            error
+        );
+
+        if(noDetailsBox){
+            noDetailsBox.style.display = "block";
+        }
+
+        return false;
+
+    }
+
+    if(
+        !savedLpgDetails ||
+        !savedLpgDetails.state ||
+        !savedLpgDetails.district ||
+        !savedLpgDetails.city ||
+        !savedLpgDetails.company ||
+        !savedLpgDetails.agency_id
+    ){
+
+        if(noDetailsBox){
+            noDetailsBox.style.display = "block";
+        }
+
+        return false;
+
+    }
+
+    if(noDetailsBox){
+        noDetailsBox.style.display = "none";
+    }
+
+    document.getElementById("stateValue").textContent =
+        savedLpgDetails.state || "-";
+
+    document.getElementById("districtValue").textContent =
+        savedLpgDetails.district || "-";
+
+    document.getElementById("cityValue").textContent =
+        savedLpgDetails.city || "-";
+
+    document.getElementById("companyValue").textContent =
+        savedLpgDetails.company || "-";
+
+    document.getElementById("agencyValue").textContent =
+        savedLpgDetails.agency_name || "-";
+
+    document.getElementById("agencyCodeValue").textContent =
+        savedLpgDetails.agency_code || "-";
+
+    return true;
+
+}
+
+
+/* =========================================================
+   RESTORE PERSONAL DETAILS
+========================================================= */
+
+function restorePersonalDetails(){
+
+    try{
+
+        const saved =
+            localStorage.getItem(
+                "egc_verification_personal"
+            );
+
+        if(!saved){
+            return;
+        }
+
+        const personal =
+            JSON.parse(saved);
+
+        if(fullNameInput){
+            fullNameInput.value =
+                personal.full_name || "";
+        }
+
+        if(mobileInput){
+            mobileInput.value =
+                personal.mobile || "";
+        }
+
+        if(emailInput){
+            emailInput.value =
+                personal.email || "";
+        }
+
+        if(addressInput){
+            addressInput.value =
+                personal.address || "";
+        }
+
+    }catch(error){
+
+        console.error(
+            "Personal details restore error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CAMERA SYSTEM
+========================================================= */
+
+const cameraModal =
+    document.getElementById("cameraModal");
+
+const cameraVideo =
+    document.getElementById("cameraVideo");
+
+const cameraTitle =
+    document.getElementById("cameraTitle");
+
+const cameraStatus =
+    document.getElementById("cameraStatus");
+
+const closeCameraBtn =
+    document.getElementById("closeCameraBtn");
+
+const cancelCameraBtn =
+    document.getElementById("cancelCameraBtn");
+
+const captureBtn =
+    document.getElementById("captureBtn");
+
+const switchCameraBtn =
+    document.getElementById("switchCameraBtn");
+
+let cameraStream = null;
+
+let cameraFacingMode =
+    "environment";
+
+let currentCameraTarget =
+    null;
+
+
+/* =========================================================
+   OPEN CAMERA
+========================================================= */
+
+async function openRealCamera(
+    target,
+    title
+){
+
+    currentCameraTarget =
+        target;
+
+    if(cameraTitle){
+        cameraTitle.textContent =
+            title;
+    }
+
+    if(cameraModal){
+        cameraModal.classList.add("show");
+    }
+
+    if(cameraStatus){
+        cameraStatus.textContent =
+            "Starting camera...";
+    }
+
+    try{
+
+        if(
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ){
+            throw new Error(
+                "Camera API unavailable"
+            );
+        }
+
+        stopCameraStream();
+
+        cameraStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video:{
+                    facingMode:{
+                        ideal:
+                            cameraFacingMode
+                    },
+
+                    width:{
+                        ideal:1280
+                    },
+
+                    height:{
+                        ideal:720
+                    }
+
+                },
+
+                audio:false
+
+            });
+
+        if(cameraVideo){
+            cameraVideo.srcObject =
+                cameraStream;
+        }
+
+        if(cameraStatus){
+
+            cameraStatus.textContent =
+                cameraFacingMode === "environment"
+                ? "Back camera active"
+                : "Front camera active";
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "Camera error:",
+            error
+        );
+
+        if(cameraStatus){
+            cameraStatus.textContent =
+                "Camera could not be opened.";
+        }
+
+        showMessage(
+            "Camera permission is required. Please allow camera access in your browser.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   STOP CAMERA
+========================================================= */
+
+function stopCameraStream(){
+
+    if(cameraStream){
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                function(track){
+                    track.stop();
+                }
+            );
+
+        cameraStream =
+            null;
+
+    }
+
+    if(cameraVideo){
+        cameraVideo.srcObject =
+            null;
+    }
+
+}
+
+
+/* =========================================================
+   CLOSE CAMERA
+========================================================= */
+
+function closeCamera(){
+
+    stopCameraStream();
+
+    if(cameraModal){
+        cameraModal.classList.remove("show");
+    }
+
+    currentCameraTarget =
+        null;
+
+}
+
+
+/* =========================================================
+   SWITCH CAMERA
+========================================================= */
+
+if(switchCameraBtn){
+
+    switchCameraBtn.addEventListener(
+        "click",
+        async function(){
+
+            if(!currentCameraTarget){
+                return;
+            }
+
+            cameraFacingMode =
+                cameraFacingMode === "environment"
+                ? "user"
+                : "environment";
+
+            if(cameraStatus){
+                cameraStatus.textContent =
+                    "Switching camera...";
+            }
+
+            try{
+
+                stopCameraStream();
+
+                cameraStream =
+                    await navigator.mediaDevices.getUserMedia({
+
+                        video:{
+                            facingMode:{
+                                ideal:
+                                    cameraFacingMode
+                            },
+
+                            width:{
+                                ideal:1280
+                            },
+
+                            height:{
+                                ideal:720
+                            }
+
+                        },
+
+                        audio:false
+
+                    });
+
+                if(cameraVideo){
+                    cameraVideo.srcObject =
+                        cameraStream;
+                }
+
+                if(cameraStatus){
+
+                    cameraStatus.textContent =
+                        cameraFacingMode === "environment"
+                        ? "Back camera active"
+                        : "Front camera active";
+
+                }
+
+            }catch(error){
+
+                console.error(
+                    "Camera switch error:",
+                    error
+                );
+
+                if(cameraStatus){
+                    cameraStatus.textContent =
+                        "This device does not provide that camera.";
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   IMAGE COMPRESSION
+========================================================= */
+
+function compressImage(
+    imageData,
+    maxWidth = 900,
+    quality = 0.65
+){
+
+    return new Promise(
+        function(resolve){
+
+            const img =
+                new Image();
+
+            img.onload =
+                function(){
+
+                    let width =
+                        img.width;
+
+                    let height =
+                        img.height;
+
+                    if(width > maxWidth){
+
+                        const ratio =
+                            maxWidth / width;
+
+                        width =
+                            maxWidth;
+
+                        height =
+                            Math.round(
+                                height * ratio
+                            );
+
+                    }
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width =
+                        width;
+
+                    canvas.height =
+                        height;
+
+                    const context =
+                        canvas.getContext("2d");
+
+                    context.drawImage(
+                        img,
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                    resolve(
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            quality
+                        )
+                    );
+
+                };
+
+            img.onerror =
+                function(){
+                    resolve(imageData);
+                };
+
+            img.src =
+                imageData;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   PREVIEW CONFIG
+========================================================= */
+
+const previewConfig = {
+
+    profile:{
+        imageId:"profilePhoto",
+        emptyId:"photoPlaceholder",
+        removeId:"profileRemoveBtn"
+    },
+
+    passbook:{
+        imageId:"passbookPhoto",
+        emptyId:"passbookEmpty",
+        removeId:"passbookRemoveBtn"
+    },
+
+    pan:{
+        imageId:"panPhoto",
+        emptyId:"panEmpty",
+        removeId:"panRemoveBtn"
+    },
+
+    aadhaarFront:{
+        imageId:"aadhaarFrontPhoto",
+        emptyId:"aadhaarFrontEmpty",
+        removeId:"aadhaarFrontRemoveBtn"
+    },
+
+    aadhaarBack:{
+        imageId:"aadhaarBackPhoto",
+        emptyId:"aadhaarBackEmpty",
+        removeId:"aadhaarBackRemoveBtn"
+    }
+
+};
+
+
+/* =========================================================
+   SET PREVIEW
+========================================================= */
+
+function setPreviewImage(
+    target,
+    imageData
+){
+
+    const config =
+        previewConfig[target];
+
+    if(!config){
+        return;
+    }
+
+    const image =
+        document.getElementById(
+            config.imageId
+        );
+
+    const empty =
+        document.getElementById(
+            config.emptyId
+        );
+
+    const removeBtn =
+        document.getElementById(
+            config.removeId
+        );
+
+    if(!image){
+        return;
+    }
+
+    image.src =
+        imageData;
+
+    image.style.display =
+        "block";
+
+    if(empty){
+        empty.style.display =
+            "none";
+    }
+
+    if(removeBtn){
+        removeBtn.style.display =
+            "block";
+    }
+
+    try{
+
+        localStorage.setItem(
+            imageKeys[target],
+            imageData
+        );
+
+    }catch(error){
+
+        console.error(
+            "Photo storage error:",
+            error
+        );
+
+        showMessage(
+            "This photo is too large. Please choose a smaller photo.",
+            "error"
+        );
+
+        removePhoto(target);
+
+    }
+
+}
+
+
+/* =========================================================
+   REMOVE PHOTO
+========================================================= */
+
+function removePhoto(target){
+
+    const config =
+        previewConfig[target];
+
+    if(!config){
+        return;
+    }
+
+    const image =
+        document.getElementById(
+            config.imageId
+        );
+
+    const empty =
+        document.getElementById(
+            config.emptyId
+        );
+
+    const removeBtn =
+        document.getElementById(
+            config.removeId
+        );
+
+    if(image){
+
+        image.src = "";
+        image.style.display = "none";
+
+    }
+
+    if(empty){
+        empty.style.display = "block";
+    }
+
+    if(removeBtn){
+        removeBtn.style.display = "none";
+    }
+
+    localStorage.removeItem(
+        imageKeys[target]
+    );
+
+}
+
+
+/* =========================================================
+   CAPTURE
+========================================================= */
+
+if(captureBtn){
+
+    captureBtn.addEventListener(
+        "click",
+        async function(){
+
+            if(!cameraStream){
+                return;
+            }
+
+            const videoWidth =
+                cameraVideo.videoWidth;
+
+            const videoHeight =
+                cameraVideo.videoHeight;
+
+            if(
+                !videoWidth ||
+                !videoHeight
+            ){
+
+                showMessage(
+                    "Camera is still starting. Please wait.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+            const canvas =
+                document.createElement(
+                    "canvas"
+                );
+
+            canvas.width =
+                videoWidth;
+
+            canvas.height =
+                videoHeight;
+
+            const context =
+                canvas.getContext("2d");
+
+            context.drawImage(
+                cameraVideo,
+                0,
+                0,
+                videoWidth,
+                videoHeight
+            );
+
+            const rawImage =
+                canvas.toDataURL(
+                    "image/jpeg",
+                    0.85
+                );
+
+            captureBtn.disabled =
+                true;
+
+            captureBtn.textContent =
+                "Processing...";
+
+            try{
+
+                const compressedImage =
+                    await compressImage(
+                        rawImage,
+                        900,
+                        0.65
+                    );
+
+                if(currentCameraTarget){
+
+                    setPreviewImage(
+                        currentCameraTarget,
+                        compressedImage
+                    );
+
+                }
+
+            }catch(error){
+
+                console.error(error);
+
+                showMessage(
+                    "Unable to process this photo.",
+                    "error"
+                );
+
+            }
+
+            captureBtn.disabled =
+                false;
+
+            captureBtn.textContent =
+                "● Capture";
+
+            closeCamera();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CAMERA CLOSE
+========================================================= */
+
+if(closeCameraBtn){
+    closeCameraBtn.addEventListener(
+        "click",
+        closeCamera
+    );
+}
+
+if(cancelCameraBtn){
+    cancelCameraBtn.addEventListener(
+        "click",
+        closeCamera
+    );
+}
+
+
+/* =========================================================
+   CONNECT CAMERA BUTTON
+========================================================= */
+
+function connectCameraButton(
+    buttonId,
+    target,
+    title
+){
+
+    const button =
+        document.getElementById(
+            buttonId
+        );
+
+    if(button){
+
+        button.addEventListener(
+            "click",
+            function(){
+
+                openRealCamera(
+                    target,
+                    title
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CONNECT UPLOAD
+========================================================= */
+
+function connectUploadButton(
+    buttonId,
+    inputId
+){
+
+    const button =
+        document.getElementById(
+            buttonId
+        );
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+    if(
+        button &&
+        input
+    ){
+
+        button.addEventListener(
+            "click",
+            function(){
+                input.click();
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   UPLOAD HANDLER
+========================================================= */
+
+function handleUpload(
+    input,
+    target
+){
+
+    if(!input){
+        return;
+    }
+
+    input.addEventListener(
+        "change",
+        function(){
+
+            const file =
+                input.files &&
+                input.files[0];
+
+            if(!file){
+                return;
+            }
+
+            if(
+                !file.type ||
+                !file.type.startsWith("image/")
+            ){
+
+                showMessage(
+                    "Please select a valid image.",
+                    "error"
+                );
+
+                input.value = "";
+
+                return;
+
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload =
+                async function(event){
+
+                    try{
+
+                        const compressedImage =
+                            await compressImage(
+                                event.target.result,
+                                900,
+                                0.65
+                            );
+
+                        setPreviewImage(
+                            target,
+                            compressedImage
+                        );
+
+                    }catch(error){
+
+                        console.error(error);
+
+                        showMessage(
+                            "Unable to process this image.",
+                            "error"
+                        );
+
+                    }
+
+                };
+
+            reader.readAsDataURL(file);
+
+            input.value = "";
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CONNECT ALL BUTTONS
+========================================================= */
+
+connectCameraButton(
+    "profileCameraBtn",
+    "profile",
+    "Profile Photo"
+);
+
+connectUploadButton(
+    "profileUploadBtn",
+    "profileUploadInput"
+);
+
+connectCameraButton(
+    "passbookCameraBtn",
+    "passbook",
+    "Gas Passbook"
+);
+
+connectUploadButton(
+    "passbookUploadBtn",
+    "passbookUploadInput"
+);
+
+connectCameraButton(
+    "panCameraBtn",
+    "pan",
+    "PAN Card"
+);
+
+connectUploadButton(
+    "panUploadBtn",
+    "panUploadInput"
+);
+
+connectCameraButton(
+    "aadhaarFrontCameraBtn",
+    "aadhaarFront",
+    "Aadhaar Front"
+);
+
+connectUploadButton(
+    "aadhaarFrontUploadBtn",
+    "aadhaarFrontUploadInput"
+);
+
+connectCameraButton(
+    "aadhaarBackCameraBtn",
+    "aadhaarBack",
+    "Aadhaar Back"
+);
+
+connectUploadButton(
+    "aadhaarBackUploadBtn",
+    "aadhaarBackUploadInput"
+);
+
+
+/* =========================================================
+   FILE HANDLERS
+========================================================= */
+
+handleUpload(
+    document.getElementById("profileUploadInput"),
+    "profile"
+);
+
+handleUpload(
+    document.getElementById("passbookUploadInput"),
+    "passbook"
+);
+
+handleUpload(
+    document.getElementById("panUploadInput"),
+    "pan"
+);
+
+handleUpload(
+    document.getElementById("aadhaarFrontUploadInput"),
+    "aadhaarFront"
+);
+
+handleUpload(
+    document.getElementById("aadhaarBackUploadInput"),
+    "aadhaarBack"
+);
+
+
+/* =========================================================
+   REMOVE BUTTONS
+========================================================= */
+
+const removeButtons = {
+
+    profile:"profileRemoveBtn",
+    passbook:"passbookRemoveBtn",
+    pan:"panRemoveBtn",
+    aadhaarFront:"aadhaarFrontRemoveBtn",
+    aadhaarBack:"aadhaarBackRemoveBtn"
+
+};
+
+Object.keys(removeButtons).forEach(
+    function(target){
+
+        const button =
+            document.getElementById(
+                removeButtons[target]
+            );
+
+        if(button){
+
+            button.addEventListener(
+                "click",
+                function(){
+                    removePhoto(target);
+                }
+            );
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   RESTORE IMAGES
+========================================================= */
+
+function restoreImage(
+    key,
+    target
+){
+
+    try{
+
+        const imageData =
+            localStorage.getItem(key);
+
+        if(!imageData){
+            return;
+        }
+
+        const config =
+            previewConfig[target];
+
+        if(!config){
+            return;
+        }
+
+        const image =
+            document.getElementById(
+                config.imageId
+            );
+
+        const empty =
+            document.getElementById(
+                config.emptyId
+            );
+
+        const removeBtn =
+            document.getElementById(
+                config.removeId
+            );
+
+        if(image){
+
+            image.src =
+                imageData;
+
+            image.style.display =
+                "block";
+
+        }
+
+        if(empty){
+            empty.style.display =
+                "none";
+        }
+
+        if(removeBtn){
+            removeBtn.style.display =
+                "block";
+        }
+
+    }catch(error){
+
+        console.error(
+            "Image restore error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE CLEANUP
+========================================================= */
+
+if(mobileInput){
+
+    mobileInput.addEventListener(
+        "input",
+        function(){
+
+            this.value =
+                this.value
+                    .replace(/\D/g,"")
+                    .slice(0,10);
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   SAVE PERSONAL DETAILS
+========================================================= */
+
+function savePersonalDetails(){
+
+    const personalDetails = {
+
+        full_name:
+            fullNameInput.value.trim(),
+
+        mobile:
+            mobileInput.value.trim(),
+
+        email:
+            emailInput.value.trim(),
+
+        address:
+            addressInput.value.trim(),
+
+        documents:{
+
+            profile_photo:
+                !!localStorage.getItem(
+                    imageKeys.profile
+                ),
+
+            gas_passbook:
+                !!localStorage.getItem(
+                    imageKeys.passbook
+                ),
+
+            aadhaar_front:
+                !!localStorage.getItem(
+                    imageKeys.aadhaarFront
+                ),
+
+            aadhaar_back:
+                !!localStorage.getItem(
+                    imageKeys.aadhaarBack
+                ),
+
+            pan_card:
+                !!localStorage.getItem(
+                    imageKeys.pan
+                )
+
+        },
+
+        saved_at:
+            new Date().toISOString()
+
+    };
+
+    localStorage.setItem(
+        "egc_verification_personal",
+        JSON.stringify(personalDetails)
+    );
+
+    return personalDetails;
+
+}
+
+
+/* =========================================================
+   CONTINUE
+========================================================= */
+
+if(continueBtn){
+
+    continueBtn.addEventListener(
+        "click",
+        async function(){
+
+            clearMessage();
+
+            const fullName =
+                fullNameInput.value.trim();
+
+            const mobile =
+                mobileInput.value.trim();
+
+            const email =
+                emailInput.value.trim();
+
+            const address =
+                addressInput.value.trim();
+
+
+            /* NAME */
+
+            if(!fullName){
+
+                showMessage(
+                    "Please enter your Full Name.",
+                    "error"
+                );
+
+                fullNameInput.focus();
+
+                return;
+
+            }
+
+
+            /* MOBILE */
+
+            if(!mobile){
+
+                showMessage(
+                    "Please enter your Mobile Number.",
+                    "error"
+                );
+
+                mobileInput.focus();
+
+                return;
+
+            }
+
+            if(!/^\d{10}$/.test(mobile)){
+
+                showMessage(
+                    "Please enter a valid 10-digit Mobile Number.",
+                    "error"
+                );
+
+                mobileInput.focus();
+
+                return;
+
+            }
+
+
+            /* EMAIL */
+
+            if(!email){
+
+                showMessage(
+                    "Please enter your Email Address.",
+                    "error"
+                );
+
+                emailInput.focus();
+
+                return;
+
+            }
+
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
+                showMessage(
+                    "Please enter a valid Email Address.",
+                    "error"
+                );
+
+                emailInput.focus();
+
+                return;
+
+            }
+
+
+            /* ADDRESS */
+
+            if(!address){
+
+                showMessage(
+                    "Please enter your Address.",
+                    "error"
+                );
+
+                addressInput.focus();
+
+                return;
+
+            }
+
+
+            /* REQUIRED DOCUMENTS */
+
+            const requiredDocuments = [
+
+                {
+                    key:imageKeys.profile,
+                    message:"Please upload or capture your Profile Photo."
+                },
+
+                {
+                    key:imageKeys.passbook,
+                    message:"Please upload or capture your Gas Passbook photo."
+                },
+
+                {
+                    key:imageKeys.aadhaarFront,
+                    message:"Please upload or capture Aadhaar Front photo."
+                },
+
+                {
+                    key:imageKeys.aadhaarBack,
+                    message:"Please upload or capture Aadhaar Back photo."
+                }
+
+            ];
+
+
+            for(
+                const documentItem
+                of requiredDocuments
+            ){
+
+                if(
+                    !localStorage.getItem(
+                        documentItem.key
+                    )
+                ){
+
+                    showMessage(
+                        documentItem.message,
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+            }
+
+
+            /* CHECKBOX */
+
+            if(!confirmCheck.checked){
+
+                showMessage(
+                    "Please confirm that your information is correct.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            /* SAVE */
+
+            continueBtn.disabled =
+                true;
+
+            continueBtn.textContent =
+                "SAVING...";
+
+
+            try{
+
+                const personalDetails =
+                    savePersonalDetails();
+
+
+                const verificationData = {
+
+                    status:
+                        "verified",
+
+                    verified:
+                        true,
+
+                    verified_at:
+                        new Date().toISOString(),
+
+                    personal_details:
+                        personalDetails,
+
+                    lpg_details:
+                        savedLpgDetails,
+
+                    documents:{
+
+                        profile_photo:
+                            localStorage.getItem(
+                                imageKeys.profile
+                            ),
+
+                        gas_passbook:
+                            localStorage.getItem(
+                                imageKeys.passbook
+                            ),
+
+                        pan_card:
+                            localStorage.getItem(
+                                imageKeys.pan
+                            ),
+
+                        aadhaar_front:
+                            localStorage.getItem(
+                                imageKeys.aadhaarFront
+                            ),
+
+                        aadhaar_back:
+                            localStorage.getItem(
+                                imageKeys.aadhaarBack
+                            )
+
+                    },
+
+                    next_step:
+                        "scheme"
+
+                };
+
+
+                localStorage.setItem(
+                    "egc_lpg_verification",
+                    JSON.stringify(
+                        verificationData
+                    )
+                );
+
+
+                /* VERIFY SAVE */
+
+                const saved =
+                    localStorage.getItem(
+                        "egc_lpg_verification"
+                    );
+
+                if(!saved){
+
+                    throw new Error(
+                        "Verification data was not saved."
+                    );
+
+                }
+
+                JSON.parse(saved);
+
+
+                showMessage(
+                    "Verification completed successfully.",
+                    "success"
+                );
+
+
+                continueBtn.textContent =
+                    "SAVED ✓";
+
+
+                /* NEXT PAGE */
+
+                setTimeout(
+                    function(){
+
+                        window.location.replace(
+                            "scheme.html"
+                        );
+
+                    },
+                    700
+                );
+
+
+            }catch(error){
+
+                console.error(
+                    "Verification save error:",
+                    error
+                );
+
+                continueBtn.disabled =
+                    false;
+
+                continueBtn.textContent =
+                    "CONTINUE →";
+
+                showMessage(
+                    "Unable to save verification data. Please try again.",
+                    "error"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   BACK BUTTONS
+========================================================= */
+
+function goBackToLpgDetails(){
+
+    window.location.href =
+        "request-cylinder.html";
+
+}
+
+const backStepBtn =
+    document.getElementById(
+        "backStepBtn"
+    );
+
+if(backStepBtn){
+
+    backStepBtn.addEventListener(
+        "click",
+        goBackToLpgDetails
+    );
+
+}
+
+const goDetailsBtn =
+    document.getElementById(
+        "goDetailsBtn"
+    );
+
+if(goDetailsBtn){
+
+    goDetailsBtn.addEventListener(
+        "click",
+        goBackToLpgDetails
+    );
+
+}
+
+const backBtn =
+    document.getElementById(
+        "backBtn"
+    );
+
+if(backBtn){
+
+    backBtn.addEventListener(
+        "click",
+        goBackToLpgDetails
+    );
+
+}
+
+
+/* =========================================================
+   CAMERA CLEANUP
+========================================================= */
+
+window.addEventListener(
+    "beforeunload",
+    function(){
+        stopCameraStream();
+    }
+);
+
+
+/* =========================================================
+   PAGE START
+========================================================= */
+
+loadLpgDetails();
+
+restorePersonalDetails();
+
+restoreImage(
+    imageKeys.profile,
+    "profile"
+);
+
+restoreImage(
+    imageKeys.passbook,
+    "passbook"
+);
+
+restoreImage(
+    imageKeys.pan,
+    "pan"
+);
+
+restoreImage(
+    imageKeys.aadhaarFront,
+    "aadhaarFront"
+);
+
+restoreImage(
+    imageKeys.aadhaarBack,
+    "aadhaarBack"
+);
+
+
+/* =========================================================
+   CONSOLE
+========================================================= */
+
+console.log(
+    "EGC Verification page loaded."
+);
+
+console.log(
+    "Supabase ready:",
+    SUPABASE_READY
+);
+
+console.log(
+    "LPG details available:",
+    !!localStorage.getItem(
+        "egc_lpg_details"
+    )
+);
+
+console.log(
+    "Verification already saved:",
+    !!localStorage.getItem(
+        "egc_lpg_verification"
+    )
+);
+
+</script>
+
+</body>
+</html>

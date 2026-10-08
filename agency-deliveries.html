@@ -1,0 +1,4179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Agency Deliveries | EGC</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
+    color:#173f5f;
+    background:
+        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
+        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
+        #eef7fc;
+}
+
+button,
+input,
+select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:72px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dce8f1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    z-index:1000;
+    box-shadow:0 5px 20px rgba(25,70,100,.07);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:13px;
+}
+
+.menu-btn{
+    display:none;
+    width:40px;
+    height:40px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#0871c3;
+    font-size:22px;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+}
+
+.logo{
+    width:125px;
+    max-height:48px;
+    object-fit:contain;
+}
+
+.brand-text{
+    min-width:0;
+}
+
+.agency-title{
+    color:#06477f;
+    font-size:17px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.agency-subtitle{
+    color:#91a1ae;
+    font-size:11px;
+    margin-top:3px;
+    white-space:nowrap;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:42px;
+    height:42px;
+    border:1px solid #dce8f1;
+    border-radius:12px;
+    background:#fff;
+    color:#0871c3;
+    font-size:19px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.notification-btn:hover{
+    background:#edf7ff;
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53935;
+    color:#fff;
+    font-size:9px;
+    font-weight:900;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-count.show{
+    display:flex;
+}
+
+.notification-panel{
+    position:absolute;
+    top:52px;
+    right:0;
+    width:350px;
+    max-width:calc(100vw - 28px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:17px;
+    box-shadow:0 18px 55px rgba(20,70,100,.18);
+    overflow:hidden;
+    display:none;
+    z-index:5000;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 15px;
+    border-bottom:1px solid #edf2f5;
+}
+
+.notification-panel-title{
+    color:#06477f;
+    font-size:13px;
+    font-weight:900;
+}
+
+.notification-panel-count{
+    color:#0871c3;
+    font-size:9px;
+    font-weight:800;
+}
+
+.notification-list{
+    max-height:360px;
+    overflow-y:auto;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #edf2f5;
+    cursor:pointer;
+    transition:.2s;
+    background:#fff;
+}
+
+.notification-item:hover{
+    background:#f7fbfe;
+}
+
+.notification-item.unread{
+    background:#f2f9ff;
+}
+
+.notification-item-top{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+}
+
+.notification-item-icon{
+    width:32px;
+    min-width:32px;
+    height:32px;
+    border-radius:10px;
+    background:#eaf4ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+}
+
+.notification-item-content{
+    min-width:0;
+    flex:1;
+}
+
+.notification-item-title{
+    color:#31566f;
+    font-size:11px;
+    font-weight:900;
+    line-height:1.35;
+}
+
+.notification-item-message{
+    color:#718796;
+    font-size:10px;
+    line-height:1.45;
+    margin-top:3px;
+}
+
+.notification-item-time{
+    color:#a0adb6;
+    font-size:8px;
+    margin-top:5px;
+}
+
+.notification-seen{
+    margin-top:7px;
+    border:0;
+    background:#eaf4ff;
+    color:#0871c3;
+    border-radius:7px;
+    padding:5px 8px;
+    font-size:8px;
+    font-weight:900;
+}
+
+.notification-empty{
+    padding:30px 15px;
+    text-align:center;
+    color:#91a1ae;
+    font-size:10px;
+}
+
+.notification-panel-footer{
+    padding:10px 12px;
+    border-top:1px solid #edf2f5;
+    background:#fbfdff;
+}
+
+.view-all-notifications{
+    width:100%;
+    height:36px;
+    border:0;
+    border-radius:9px;
+    background:#edf7ff;
+    color:#0871c3;
+    font-size:10px;
+    font-weight:900;
+}
+
+.view-all-notifications:hover{
+    background:#dcefff;
+}
+
+
+/* =========================================================
+   SIDEBAR - MASTER REPORTS DESIGN
+========================================================= */
+
+.sidebar{
+    position:fixed;
+    top:72px;
+    left:0;
+    bottom:0;
+    width:235px;
+    background:#fff;
+    border-right:1px solid #dce8f1;
+    padding:22px 14px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-title{
+    color:#9aaab5;
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:1.2px;
+    padding:0 11px 12px;
+}
+
+.nav-btn{
+    width:100%;
+    height:43px;
+    border:0;
+    border-radius:11px;
+    background:transparent;
+    color:#5d788b;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px;
+    margin-bottom:5px;
+    font-size:12px;
+    font-weight:700;
+    text-align:left;
+    transition:.2s ease;
+    flex-shrink:0;
+    text-decoration:none;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+    background:#edf7ff;
+    color:#0871c3;
+}
+
+.nav-icon{
+    width:23px;
+    min-width:23px;
+    text-align:center;
+    font-size:16px;
+}
+
+.sidebar-bottom{
+    position:static;
+    width:100%;
+    height:1px;
+    flex:0 0 1px;
+    margin-top:auto;
+    margin-bottom:8px;
+    background:#edf2f5;
+}
+
+.logout-nav-btn{
+    position:static;
+    width:100%;
+    height:43px;
+    flex:0 0 43px;
+    margin-bottom:0;
+}
+
+.logout-nav-btn:hover{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    margin-left:235px;
+    padding:98px 25px 35px;
+}
+
+.container{
+    max-width:1500px;
+    margin:auto;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.welcome{
+    margin-bottom:20px;
+}
+
+.welcome h1{
+    color:#06477f;
+    font-size:27px;
+    font-weight:850;
+}
+
+.welcome p{
+    margin-top:6px;
+    color:#8295a3;
+    font-size:12px;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel{
+    background:#fff;
+    border:1px solid #dce8f1;
+    border-radius:18px;
+    margin-bottom:18px;
+    overflow:hidden;
+    box-shadow:0 7px 25px rgba(30,75,110,.04);
+}
+
+.panel-header{
+    padding:17px 18px;
+    border-bottom:1px solid #edf2f5;
+}
+
+.panel-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:850;
+}
+
+.panel-subtitle{
+    color:#91a1ae;
+    font-size:10px;
+    margin-top:5px;
+}
+
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+.search{
+    display:grid;
+    grid-template-columns:1fr 190px 130px;
+    gap:9px;
+    padding:14px 18px;
+    background:#fbfdff;
+    border-bottom:1px solid #edf2f5;
+}
+
+.search-input,
+.filter{
+    width:100%;
+    height:40px;
+    border:1px solid #d7e3eb;
+    border-radius:10px;
+    outline:none;
+    background:#fff;
+    color:#31566f;
+    padding:0 12px;
+    font-size:11px;
+}
+
+.search-input:focus,
+.filter:focus{
+    border-color:#72b4df;
+    box-shadow:0 0 0 3px rgba(65,150,215,.07);
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:1100px;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f7fafc;
+    color:#718796;
+    font-size:9px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    padding:12px 13px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    border-top:1px solid #edf2f5;
+    padding:12px 13px;
+    color:#496a82;
+    font-size:10px;
+    vertical-align:middle;
+}
+
+tr:hover td{
+    background:#fbfdff;
+}
+
+td strong{
+    color:#31566f;
+    font-size:11px;
+}
+
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 8px;
+    border-radius:20px;
+    font-size:8px;
+    font-weight:900;
+    white-space:nowrap;
+}
+
+.green{
+    background:#eaf8ef;
+    color:#24804a;
+}
+
+.yellow{
+    background:#fff7df;
+    color:#9b7310;
+}
+
+.red{
+    background:#fff0f0;
+    color:#c33232;
+}
+
+.blue{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty{
+    text-align:center;
+    padding:30px !important;
+    color:#91a1ae;
+}
+
+
+/* =========================================================
+   DELIVERY CONFIRMATION
+========================================================= */
+
+.delivery-box{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:190px;
+}
+
+.delivery-select{
+    width:100%;
+    height:36px;
+    border:1px solid #d7e3eb;
+    border-radius:8px;
+    background:#fff;
+    color:#31566f;
+    padding:0 8px;
+    font-size:10px;
+    outline:none;
+}
+
+.delivery-select:focus{
+    border-color:#72b4df;
+    box-shadow:0 0 0 3px rgba(65,150,215,.07);
+}
+
+.delivery-select:disabled{
+    background:#f5f8fa;
+    color:#8b9ca8;
+    cursor:not-allowed;
+}
+
+.delivery-confirmed{
+    background:#eaf8ef;
+    border:1px solid #d5efdf;
+    border-radius:9px;
+    padding:8px 9px;
+}
+
+.delivery-confirmed-title{
+    color:#24804a;
+    font-size:8px;
+    font-weight:900;
+}
+
+.delivery-confirmed-time{
+    color:#527087;
+    font-size:8px;
+    line-height:1.4;
+    margin-top:3px;
+}
+
+.delivery-not-confirmed{
+    color:#a0adb6;
+    font-size:8px;
+}
+
+.delivery-warning{
+    background:#fff7df;
+    border:1px solid #f3e5b8;
+    border-radius:9px;
+    padding:8px 9px;
+    color:#9b7310;
+    font-size:8px;
+    font-weight:800;
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:310px;
+    max-width:calc(100vw - 40px);
+    background:#fff;
+    border:1px solid #dce8f1;
+    color:#06477f;
+    border-radius:15px;
+    padding:14px 16px;
+    box-shadow:0 15px 45px rgba(20,70,100,.20);
+    transform:translateY(130px);
+    opacity:0;
+    transition:.3s;
+    z-index:9999;
+    font-size:11px;
+    font-weight:700;
+}
+
+.toast.show{
+    transform:translateY(0);
+    opacity:1;
+}
+
+
+/* =========================================================
+   LOGOUT MODAL
+========================================================= */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(4,30,50,.50);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:9998;
+    backdrop-filter:blur(4px);
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:390px;
+    background:#fff;
+    border-radius:20px;
+    padding:23px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    text-align:center;
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 13px;
+    border-radius:17px;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+.modal-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:850;
+}
+
+.modal-text{
+    color:#718796;
+    font-size:11px;
+    line-height:1.5;
+    margin-top:7px;
+}
+
+.modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:20px;
+}
+
+.modal-btn{
+    height:42px;
+    border:0;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.confirm-btn{
+    background:#c33232;
+    color:#fff;
+}
+
+.modal-btn:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+
+/* =========================================================
+   SCROLLBARS
+========================================================= */
+
+.sidebar::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+.table-wrap::-webkit-scrollbar{
+    height:7px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+.notification-list::-webkit-scrollbar{
+    width:5px;
+}
+
+.notification-list::-webkit-scrollbar-thumb{
+    background:#d8e7f0;
+    border-radius:10px;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media(max-width:1050px){
+
+    .search{
+        grid-template-columns:1fr 170px 130px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:800px){
+
+    .header{
+        padding:0 14px;
+    }
+
+    .header-left{
+        gap:10px;
+    }
+
+    .menu-btn{
+        display:block;
+    }
+
+    .brand{
+        gap:9px;
+    }
+
+    .logo{
+        width:100px;
+    }
+
+    .agency-title{
+        font-size:14px;
+    }
+
+    .agency-subtitle{
+        display:none;
+    }
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.25s;
+        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    }
+
+    .sidebar.open{
+        transform:translateX(0);
+    }
+
+    .main{
+        margin-left:0;
+        padding:91px 14px 30px;
+    }
+
+    .overlay{
+        position:fixed;
+        inset:72px 0 0 0;
+        background:rgba(0,0,0,.35);
+        z-index:850;
+        display:none;
+    }
+
+    .overlay.show{
+        display:block;
+    }
+
+    .search{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .search-input{
+        grid-column:1 / -1;
+    }
+
+    .notification-panel{
+        right:-5px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:520px){
+
+    .header{
+        height:65px;
+    }
+
+    .sidebar{
+        top:65px;
+        width:235px;
+        padding:20px 12px;
+    }
+
+    .overlay{
+        inset:65px 0 0 0;
+    }
+
+    .main{
+        padding-top:82px;
+    }
+
+    .logo{
+        width:90px;
+    }
+
+    .agency-title{
+        font-size:13px;
+    }
+
+    .welcome h1{
+        font-size:22px;
+    }
+
+    .search{
+        grid-template-columns:1fr 1fr;
+        gap:9px;
+        padding:14px;
+    }
+
+    .search-input{
+        grid-column:1 / -1;
+        width:100%;
+    }
+
+    .filter{
+        width:100%;
+        min-width:0;
+        height:40px;
+        font-size:10px;
+        padding:0 8px;
+    }
+
+    .panel{
+        border-radius:16px;
+    }
+
+    .panel-header{
+        padding:16px;
+    }
+
+    .panel-title{
+        font-size:13px;
+    }
+
+    .panel-subtitle{
+        font-size:9px;
+    }
+
+    .table-wrap{
+        overflow-x:auto;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        width:auto;
+        max-width:none;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:72px;
+        right:14px;
+        width:calc(100vw - 28px);
+        max-width:none;
+    }
+
+}
+
+
+/* =========================================================
+   EXTRA SMALL
+========================================================= */
+
+@media(max-width:360px){
+
+    .header{
+        padding:0 10px;
+    }
+
+    .logo{
+        width:82px;
+    }
+
+    .agency-title{
+        font-size:12px;
+    }
+
+    .main{
+        padding-left:10px;
+        padding-right:10px;
+    }
+
+    .search{
+        gap:7px;
+        padding:12px;
+    }
+
+    .filter{
+        font-size:9px;
+        padding:0 6px;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =======================================================
+     HEADER
+======================================================= -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+        >
+            ☰
+        </button>
+
+        <div class="brand">
+
+            <img
+                class="logo"
+                src="assets/EGC - Emergency Gas Cylinder logo.png"
+                alt="EGC"
+            >
+
+            <div class="brand-text">
+
+                <div
+                    class="agency-title"
+                    id="headerAgencyName"
+                >
+                    LPG Agency
+                </div>
+
+                <div class="agency-subtitle">
+                    Emergency Gas Cylinder Agency Panel
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                title="Notifications"
+            >
+
+                🔔
+
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-panel-header">
+
+                    <div class="notification-panel-title">
+                        Notifications
+                    </div>
+
+                    <div
+                        class="notification-panel-count"
+                        id="notificationPanelCount"
+                    >
+                        0 unread
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="notification-list"
+                    id="notificationList"
+                >
+
+                    <div class="notification-empty">
+                        Loading notifications...
+                    </div>
+
+                </div>
+
+
+                <div class="notification-panel-footer">
+
+                    <button
+                        class="view-all-notifications"
+                        id="viewAllNotifications"
+                    >
+                        View All Notifications
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =======================================================
+     SIDEBAR
+======================================================= -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <div class="sidebar-title">
+        AGENCY MANAGEMENT
+    </div>
+
+
+    <!-- 1. DASHBOARD -->
+
+    <a
+        class="nav-btn"
+        href="agency-dashboard.html"
+    >
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+    </a>
+
+
+    <!-- 2. CUSTOMERS -->
+
+    <a
+        class="nav-btn"
+        href="agency-customers.html"
+    >
+        <span class="nav-icon">👥</span>
+        <span>Customers</span>
+    </a>
+
+
+    <!-- 3. CYLINDER REQUESTS -->
+
+    <a
+        class="nav-btn"
+        href="agency-cylinder-requests.html"
+    >
+        <span class="nav-icon">🛢️</span>
+        <span>Cylinder Requests</span>
+    </a>
+
+
+    <!-- 4. REQUEST DETAILS -->
+
+    <a
+        class="nav-btn"
+        href="agency-request-details.html"
+    >
+        <span class="nav-icon">📋</span>
+        <span>Request Details</span>
+    </a>
+
+
+    <!-- 5. REQUEST PROCESSING -->
+
+    <a
+        class="nav-btn"
+        href="agency-processing.html"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Request Processing</span>
+    </a>
+
+
+    <!-- 6. PAYMENTS -->
+
+    <a
+        class="nav-btn"
+        href="agency-payments.html"
+    >
+        <span class="nav-icon">💳</span>
+        <span>Payments</span>
+    </a>
+
+
+    <!-- 7. REPAYMENTS -->
+
+    <a
+        class="nav-btn"
+        href="agency-repayments.html"
+    >
+        <span class="nav-icon">💰</span>
+        <span>Repayments</span>
+    </a>
+
+
+    <!-- 8. DELIVERIES - ACTIVE -->
+
+    <a
+        class="nav-btn active"
+        href="agency-deliveries.html"
+    >
+        <span class="nav-icon">🚚</span>
+        <span>Deliveries</span>
+    </a>
+
+
+    <!-- 9. PENDING / ON HOLD -->
+
+    <a
+        class="nav-btn"
+        href="agency-pending.html"
+    >
+        <span class="nav-icon">⏳</span>
+        <span>Pending / On Hold</span>
+    </a>
+
+
+    <!-- 10. REQUEST / PAYMENT SLIPS -->
+
+    <a
+        class="nav-btn"
+        href="agency-slips.html"
+    >
+        <span class="nav-icon">🧾</span>
+        <span>Request / Payment Slips</span>
+    </a>
+
+
+    <!-- 11. NOTIFICATIONS -->
+
+    <a
+        class="nav-btn"
+        href="agency-notifications.html"
+    >
+        <span class="nav-icon">🔔</span>
+        <span>Notifications</span>
+    </a>
+
+
+    <!-- 12. REPORTS -->
+
+    <a
+        class="nav-btn"
+        href="agency-reports.html"
+    >
+        <span class="nav-icon">📈</span>
+        <span>Reports</span>
+    </a>
+
+
+    <!-- 13. SETTINGS -->
+
+    <a
+        class="nav-btn"
+        href="agency-settings.html"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+    </a>
+
+
+    <!-- 14. ABOUT -->
+
+    <a
+        class="nav-btn"
+        href="agency-about.html"
+    >
+        <span class="nav-icon">ℹ️</span>
+        <span>About</span>
+    </a>
+
+
+    <div class="sidebar-bottom"></div>
+
+
+    <!-- 15. LOGOUT -->
+
+    <button
+        class="nav-btn logout-nav-btn"
+        id="logoutBtn"
+    >
+        <span class="nav-icon">🚪</span>
+        <span>Logout</span>
+    </button>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =======================================================
+     MAIN
+======================================================= -->
+
+<main class="main">
+
+    <div class="container">
+
+
+        <section class="welcome">
+
+            <h1>
+                🚚 Delivery Update / Confirmation
+            </h1>
+
+            <p>
+                Update cylinder delivery status and confirm the final delivery date and time.
+            </p>
+
+        </section>
+
+
+        <section class="panel">
+
+
+            <div class="panel-header">
+
+                <div class="panel-title">
+                    Delivery Update / Confirmation
+                </div>
+
+                <div class="panel-subtitle">
+                    Only Owner-approved cylinder requests are available for delivery processing.
+                </div>
+
+            </div>
+
+
+            <!-- FILTERS -->
+
+            <div class="search">
+
+                <input
+                    class="search-input"
+                    id="search"
+                    type="search"
+                    placeholder="Search customer, request number..."
+                >
+
+
+                <select
+                    class="filter"
+                    id="status"
+                >
+
+                    <option value="">
+                        All Delivery Status
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="processing">
+                        Processing
+                    </option>
+
+                    <option value="out_for_delivery">
+                        Out for Delivery
+                    </option>
+
+                    <option value="delivered">
+                        Delivered
+                    </option>
+
+                </select>
+
+
+                <select
+                    class="filter"
+                    id="month"
+                >
+
+                    <option value="">
+                        All Months
+                    </option>
+
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+
+                </select>
+
+            </div>
+
+
+            <!-- TABLE -->
+
+            <div class="table-wrap">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Request
+                            </th>
+
+                            <th>
+                                Customer
+                            </th>
+
+                            <th>
+                                Mobile
+                            </th>
+
+                            <th>
+                                Qty
+                            </th>
+
+                            <th>
+                                Delivery Status
+                            </th>
+
+                            <th>
+                                Request Date
+                            </th>
+
+                            <th>
+                                Delivery Update / Confirmation
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="tbody">
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty"
+                            >
+                                Loading delivery records...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<!-- =======================================================
+     LOGOUT MODAL
+======================================================= -->
+
+<div
+    class="modal"
+    id="logoutModal"
+>
+
+    <div class="modal-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="modal-title">
+            Logout?
+        </div>
+
+        <div class="modal-text">
+            Are you sure you want to logout from the EGC Agency Panel?
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                class="modal-btn cancel-btn"
+                id="cancelLogout"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="modal-btn confirm-btn"
+                id="confirmLogout"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     TOAST
+======================================================= -->
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+<script>
+
+
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+let currentUser = null;
+let agencyId = null;
+
+let rows = [];
+let customers = [];
+
+let notifications = [];
+
+let notificationChannel = null;
+let deliveryChannel = null;
+
+
+const $ = id =>
+    document.getElementById(id);
+
+
+/* =========================================================
+   ESCAPE
+   ========================================================= */
+
+function esc(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+/* =========================================================
+   STATUS FORMAT
+   ========================================================= */
+
+function formatStatus(value){
+
+    return String(value || "Pending")
+        .replace(/_/g," ")
+        .replace(/-/g," ")
+        .replace(/\b\w/g,char =>
+            char.toUpperCase()
+        );
+
+}
+
+
+/* =========================================================
+   BADGE
+   ========================================================= */
+
+function badge(value){
+
+    const status =
+        String(value || "pending")
+            .toLowerCase();
+
+    let color = "blue";
+
+
+    if([
+        "delivered",
+        "completed",
+        "approved",
+        "verified",
+        "paid"
+    ].includes(status)){
+
+        color = "green";
+
+    }
+
+
+    else if([
+        "pending",
+        "waiting"
+    ].includes(status)){
+
+        color = "yellow";
+
+    }
+
+
+    else if([
+        "processing",
+        "out_for_delivery",
+        "out-for-delivery"
+    ].includes(status)){
+
+        color = "blue";
+
+    }
+
+
+    else if([
+        "cancelled",
+        "failed",
+        "rejected"
+    ].includes(status)){
+
+        color = "red";
+
+    }
+
+
+    return `
+        <span class="badge ${color}">
+            ${esc(formatStatus(value || "Pending"))}
+        </span>
+    `;
+
+}
+
+
+/* =========================================================
+   DATE
+   ========================================================= */
+
+function date(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d =
+        new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return "—";
+    }
+
+    return d.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   DATE TIME
+   ========================================================= */
+
+function datetime(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const d =
+        new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return "—";
+    }
+
+    return d.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function toast(message){
+
+    const toastElement =
+        $("toast");
+
+    if(!toastElement){
+        return;
+    }
+
+    toastElement.textContent =
+        message || "Notification";
+
+    toastElement.classList.add("show");
+
+    clearTimeout(
+        window.egcToast
+    );
+
+    window.egcToast =
+        setTimeout(
+            () => {
+
+                toastElement
+                    .classList
+                    .remove("show");
+
+            },
+            3500
+        );
+
+}
+
+
+/* =========================================================
+   CUSTOMER
+   ========================================================= */
+
+function customerFor(row){
+
+    return customers.find(
+        customer =>
+            String(customer.id) ===
+            String(row.user_id)
+    ) || {};
+
+}
+
+
+/* =========================================================
+   OWNER APPROVAL
+   ========================================================= */
+
+function isOwnerApproved(row){
+
+    const paymentStatus =
+        String(
+            row.payment_status || ""
+        ).toLowerCase();
+
+    const requestStatus =
+        String(
+            row.status || ""
+        ).toLowerCase();
+
+
+    const rejected =
+        [
+            "rejected",
+            "cancelled"
+        ].includes(
+            paymentStatus
+        )
+        ||
+        [
+            "rejected",
+            "cancelled"
+        ].includes(
+            requestStatus
+        );
+
+
+    if(rejected){
+        return false;
+    }
+
+
+    if([
+        "approved",
+        "verified"
+    ].includes(paymentStatus)){
+
+        return true;
+
+    }
+
+
+    if(row.payment_verified_at){
+        return true;
+    }
+
+
+    if(requestStatus === "approved"){
+        return true;
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+   DELIVERY STATUS
+   ========================================================= */
+
+function deliveryStatus(row){
+
+    return String(
+        row.delivery_status ||
+        "pending"
+    ).toLowerCase();
+
+}
+
+
+/* =========================================================
+   DELIVERY CONTROL
+   ========================================================= */
+
+function deliveryControl(row){
+
+    const status =
+        deliveryStatus(row);
+
+
+    const disabled =
+        status === "delivered";
+
+
+    return `
+
+        <div class="delivery-box">
+
+
+            <select
+                class="delivery-select"
+                data-delivery-id="${esc(row.id)}"
+                ${disabled ? "disabled" : ""}
+            >
+
+                <option
+                    value="pending"
+                    ${status === "pending" ? "selected" : ""}
+                >
+                    Pending
+                </option>
+
+
+                <option
+                    value="processing"
+                    ${status === "processing" ? "selected" : ""}
+                >
+                    Processing
+                </option>
+
+
+                <option
+                    value="out_for_delivery"
+                    ${
+                        [
+                            "out_for_delivery",
+                            "out-for-delivery"
+                        ].includes(status)
+                        ? "selected"
+                        : ""
+                    }
+                >
+                    Out for Delivery
+                </option>
+
+
+                <option
+                    value="delivered"
+                    ${status === "delivered" ? "selected" : ""}
+                >
+                    Delivered
+                </option>
+
+            </select>
+
+
+            ${
+                row.delivered_at
+                ?
+                `
+
+                    <div class="delivery-confirmed">
+
+                        <div class="delivery-confirmed-title">
+                            ✓ DELIVERY CONFIRMED
+                        </div>
+
+                        <div class="delivery-confirmed-time">
+                            Delivered on:
+                            ${esc(
+                                datetime(
+                                    row.delivered_at
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                `
+                :
+                `
+
+                    <div class="delivery-not-confirmed">
+                        Delivery date not saved yet.
+                    </div>
+
+                `
+            }
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   NOTIFICATION ICON
+   ========================================================= */
+
+function notificationIcon(type){
+
+    const t =
+        String(type || "general")
+            .toLowerCase();
+
+
+    if(t === "request"){
+        return "🛢️";
+    }
+
+    if(t === "payment"){
+        return "💳";
+    }
+
+    if(t === "approval"){
+        return "✅";
+    }
+
+    if(t === "delivery"){
+        return "🚚";
+    }
+
+    if(t === "completed"){
+        return "🎉";
+    }
+
+    if(t === "cancelled"){
+        return "❌";
+    }
+
+    if(t === "system"){
+        return "⚙️";
+    }
+
+
+    return "🔔";
+
+}
+
+
+/* =========================================================
+   NOTIFICATION TIME
+   ========================================================= */
+
+function notificationTime(value){
+
+    if(!value){
+        return "";
+    }
+
+    const d =
+        new Date(value);
+
+    if(Number.isNaN(d.getTime())){
+        return "";
+    }
+
+    return d.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+/* =========================================================
+   NOTIFICATION BADGE
+   ========================================================= */
+
+function updateNotificationBadge(){
+
+    const unread =
+        notifications.filter(
+            notification =>
+                !notification.is_read
+        ).length;
+
+
+    const badgeElement =
+        $("notificationCount");
+
+    const panelCount =
+        $("notificationPanelCount");
+
+
+    if(badgeElement){
+
+        if(unread > 0){
+
+            badgeElement.textContent =
+                unread > 99
+                ? "99+"
+                : unread;
+
+            badgeElement.classList.add(
+                "show"
+            );
+
+        }
+        else{
+
+            badgeElement.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+
+
+    if(panelCount){
+
+        panelCount.textContent =
+            `${unread} unread`;
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER NOTIFICATIONS
+   ========================================================= */
+
+function renderNotifications(){
+
+    updateNotificationBadge();
+
+
+    const list =
+        $("notificationList");
+
+
+    if(!list){
+        return;
+    }
+
+
+    if(!notifications.length){
+
+        list.innerHTML = `
+
+            <div class="notification-empty">
+                No new notifications.
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    list.innerHTML =
+        notifications
+            .slice(0,20)
+            .map(
+                notification => {
+
+                    const unread =
+                        !notification.is_read;
+
+
+                    return `
+
+                        <div
+                            class="notification-item ${unread ? "unread" : ""}"
+                            data-id="${esc(notification.id)}"
+                        >
+
+                            <div class="notification-item-top">
+
+                                <div class="notification-item-icon">
+                                    ${notificationIcon(
+                                        notification.notification_type
+                                    )}
+                                </div>
+
+
+                                <div class="notification-item-content">
+
+                                    <div class="notification-item-title">
+                                        ${esc(
+                                            notification.title ||
+                                            "Notification"
+                                        )}
+                                    </div>
+
+
+                                    <div class="notification-item-message">
+                                        ${esc(
+                                            notification.message ||
+                                            ""
+                                        )}
+                                    </div>
+
+
+                                    <div class="notification-item-time">
+                                        ${notificationTime(
+                                            notification.created_at
+                                        )}
+                                    </div>
+
+
+                                    ${
+                                        unread
+                                        ?
+                                        `
+
+                                            <button
+                                                class="notification-seen"
+                                                data-seen-id="${esc(notification.id)}"
+                                            >
+                                                ✓ Seen
+                                            </button>
+
+                                        `
+                                        :
+                                        ""
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   LOAD NOTIFICATIONS
+   ========================================================= */
+
+async function loadNotifications(){
+
+    if(!currentUser){
+        return;
+    }
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .select(
+                "id,user_id,title,message,notification_type,is_read,created_at"
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .eq(
+                "is_read",
+                false
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            )
+            .limit(50);
+
+
+    if(result.error){
+
+        console.error(
+            "Notification load error:",
+            result.error
+        );
+
+
+        if($("notificationList")){
+
+            $("notificationList").innerHTML = `
+
+                <div class="notification-empty">
+                    Unable to load notifications.
+                </div>
+
+            `;
+
+        }
+
+        return;
+
+    }
+
+
+    notifications =
+        result.data || [];
+
+
+    renderNotifications();
+
+}
+
+
+/* =========================================================
+   MARK NOTIFICATION READ
+   ========================================================= */
+
+async function markNotificationRead(id){
+
+    if(!id || !currentUser){
+        return;
+    }
+
+
+    const result =
+        await supabaseClient
+            .from("notifications")
+            .update({
+                is_read:true
+            })
+            .eq(
+                "id",
+                id
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            );
+
+
+    if(result.error){
+
+        toast(
+            result.error.message ||
+            "Unable to mark notification as read."
+        );
+
+        return;
+
+    }
+
+
+    notifications =
+        notifications.filter(
+            notification =>
+                String(notification.id) !==
+                String(id)
+        );
+
+
+    renderNotifications();
+
+}
+
+
+/* =========================================================
+   NOTIFICATION BUTTON
+   ========================================================= */
+
+if($("notificationBtn")){
+
+    $("notificationBtn")
+        .addEventListener(
+            "click",
+            async event => {
+
+                event.stopPropagation();
+
+
+                $("notificationPanel")
+                    .classList
+                    .toggle("show");
+
+
+                if(
+                    $("notificationPanel")
+                        .classList
+                        .contains("show")
+                ){
+
+                    await loadNotifications();
+
+                }
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   NOTIFICATION PANEL
+   ========================================================= */
+
+if($("notificationPanel")){
+
+    $("notificationPanel")
+        .addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   NOTIFICATION SEEN
+   ========================================================= */
+
+if($("notificationList")){
+
+    $("notificationList")
+        .addEventListener(
+            "click",
+            async event => {
+
+                const button =
+                    event.target.closest(
+                        "[data-seen-id]"
+                    );
+
+
+                if(!button){
+                    return;
+                }
+
+
+                const id =
+                    button.getAttribute(
+                        "data-seen-id"
+                    );
+
+
+                button.disabled = true;
+
+                button.textContent =
+                    "Reading...";
+
+
+                await markNotificationRead(id);
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   NOTIFICATION ITEM CLICK
+   ========================================================= */
+
+if($("notificationList")){
+
+    $("notificationList")
+        .addEventListener(
+            "click",
+            async event => {
+
+                if(
+                    event.target.closest(
+                        "[data-seen-id]"
+                    )
+                ){
+                    return;
+                }
+
+
+                const item =
+                    event.target.closest(
+                        ".notification-item"
+                    );
+
+
+                if(!item){
+                    return;
+                }
+
+
+                const id =
+                    item.getAttribute(
+                        "data-id"
+                    );
+
+
+                const notification =
+                    notifications.find(
+                        item =>
+                            String(item.id) ===
+                            String(id)
+                    );
+
+
+                if(
+                    notification &&
+                    !notification.is_read
+                ){
+
+                    await markNotificationRead(id);
+
+                }
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   CLOSE NOTIFICATION PANEL
+   ========================================================= */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        if(
+            !event.target.closest(
+                ".notification-wrap"
+            )
+        ){
+
+            if($("notificationPanel")){
+
+                $("notificationPanel")
+                    .classList
+                    .remove("show");
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   VIEW ALL NOTIFICATIONS
+   ========================================================= */
+
+if($("viewAllNotifications")){
+
+    $("viewAllNotifications").onclick =
+        () => {
+
+            location.href =
+                "agency-notifications.html";
+
+        };
+
+}
+
+
+/* =========================================================
+   BROWSER NOTIFICATION PERMISSION
+   ========================================================= */
+
+async function requestBrowserNotificationPermission(){
+
+    if(
+        !("Notification" in window)
+    ){
+        return;
+    }
+
+
+    if(
+        Notification.permission ===
+        "default"
+    ){
+
+        try{
+
+            await Notification.requestPermission();
+
+        }
+        catch(error){
+
+            console.log(
+                "Notification permission error:",
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   BROWSER NOTIFICATION
+   ========================================================= */
+
+function showBrowserNotification(notification){
+
+    if(
+        !("Notification" in window)
+    ){
+        return;
+    }
+
+
+    if(
+        Notification.permission !==
+        "granted"
+    ){
+        return;
+    }
+
+
+    try{
+
+        const browserNotification =
+            new Notification(
+                notification.title ||
+                "EGC Agency Notification",
+                {
+                    body:
+                        notification.message ||
+                        "You have a new notification.",
+
+                    icon:
+                        "assets/EGC - Emergency Gas Cylinder logo.png",
+
+                    tag:
+                        String(
+                            notification.id ||
+                            Date.now()
+                        )
+                }
+            );
+
+
+        browserNotification.onclick =
+            () => {
+
+                window.focus();
+
+
+                if($("notificationPanel")){
+
+                    $("notificationPanel")
+                        .classList
+                        .add("show");
+
+                }
+
+            };
+
+    }
+    catch(error){
+
+        console.log(
+            "Browser notification error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   REALTIME NOTIFICATIONS
+   ========================================================= */
+
+function subscribeNotifications(){
+
+    if(!currentUser){
+        return;
+    }
+
+
+    if(notificationChannel){
+
+        supabaseClient
+            .removeChannel(
+                notificationChannel
+            );
+
+    }
+
+
+    notificationChannel =
+        supabaseClient
+            .channel(
+                "agency-deliveries-notifications-" +
+                currentUser.id
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"INSERT",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "user_id=eq." +
+                        currentUser.id
+                },
+                payload => {
+
+                    const notification =
+                        payload.new;
+
+
+                    if(
+                        !notification ||
+                        String(notification.user_id) !==
+                        String(currentUser.id)
+                    ){
+                        return;
+                    }
+
+
+                    if(notification.is_read){
+                        return;
+                    }
+
+
+                    notifications.unshift(
+                        notification
+                    );
+
+
+                    notifications =
+                        notifications.slice(
+                            0,
+                            50
+                        );
+
+
+                    renderNotifications();
+
+
+                    showBrowserNotification(
+                        notification
+                    );
+
+
+                    toast(
+                        notification.title ||
+                        "New notification received."
+                    );
+
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"UPDATE",
+                    schema:"public",
+                    table:"notifications",
+                    filter:
+                        "user_id=eq." +
+                        currentUser.id
+                },
+                payload => {
+
+                    const updated =
+                        payload.new;
+
+
+                    const index =
+                        notifications.findIndex(
+                            notification =>
+                                String(notification.id) ===
+                                String(updated.id)
+                        );
+
+
+                    if(updated.is_read){
+
+                        if(index !== -1){
+
+                            notifications.splice(
+                                index,
+                                1
+                            );
+
+                        }
+
+                    }
+                    else{
+
+                        if(index !== -1){
+
+                            notifications[index] =
+                                updated;
+
+                        }
+                        else{
+
+                            notifications.unshift(
+                                updated
+                            );
+
+                        }
+
+                    }
+
+
+                    renderNotifications();
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "Agency notification realtime:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+
+/* =========================================================
+   REALTIME DELIVERY REQUESTS
+   ========================================================= */
+
+function subscribeDeliveryRealtime(){
+
+    if(!agencyId){
+        return;
+    }
+
+
+    if(deliveryChannel){
+
+        supabaseClient
+            .removeChannel(
+                deliveryChannel
+            );
+
+    }
+
+
+    deliveryChannel =
+        supabaseClient
+            .channel(
+                "agency-delivery-requests-" +
+                agencyId
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"INSERT",
+                    schema:"public",
+                    table:"cylinder_requests",
+                    filter:
+                        "agency_id=eq." +
+                        agencyId
+                },
+                async payload => {
+
+                    console.log(
+                        "New agency request:",
+                        payload.new
+                    );
+
+
+                    await load();
+
+
+                    toast(
+                        "New cylinder request received."
+                    );
+
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event:"UPDATE",
+                    schema:"public",
+                    table:"cylinder_requests",
+                    filter:
+                        "agency_id=eq." +
+                        agencyId
+                },
+                async payload => {
+
+                    console.log(
+                        "Agency request updated:",
+                        payload.new
+                    );
+
+
+                    await load();
+
+                }
+            )
+            .subscribe(
+                status => {
+
+                    console.log(
+                        "Agency delivery realtime:",
+                        status
+                    );
+
+                }
+            );
+
+}
+
+
+/* =========================================================
+   FIRST USER INTERACTION
+   ========================================================= */
+
+document.addEventListener(
+    "click",
+    () => {
+
+        if(
+            currentUser &&
+            "Notification" in window &&
+            Notification.permission ===
+            "default"
+        ){
+
+            requestBrowserNotificationPermission();
+
+        }
+
+    },
+    {
+        once:true
+    }
+);
+
+
+/* =========================================================
+   UPDATE DELIVERY STATUS
+   ========================================================= */
+
+async function updateDeliveryStatus(
+    requestId,
+    newStatus
+){
+
+    if(!requestId || !agencyId){
+        return false;
+    }
+
+
+    const request =
+        rows.find(
+            item =>
+                String(item.id) ===
+                String(requestId)
+        );
+
+
+    if(!request){
+
+        toast(
+            "Request not found."
+        );
+
+        return false;
+
+    }
+
+
+    /* SECURITY CHECK */
+
+    if(!isOwnerApproved(request)){
+
+        toast(
+            "This request is not Owner-approved."
+        );
+
+        await load();
+
+        return false;
+
+    }
+
+
+    const allowedStatuses = [
+        "pending",
+        "processing",
+        "out_for_delivery",
+        "delivered"
+    ];
+
+
+    if(
+        !allowedStatuses.includes(
+            newStatus
+        )
+    ){
+
+        toast(
+            "Invalid delivery status."
+        );
+
+        return false;
+
+    }
+
+
+    const previousStatus =
+        deliveryStatus(request);
+
+
+    if(
+        previousStatus ===
+        newStatus
+    ){
+
+        return true;
+
+    }
+
+
+    /* UPDATE DATA */
+
+    const updateData = {
+        delivery_status:
+            newStatus
+    };
+
+
+    /* PENDING */
+
+    if(newStatus === "pending"){
+
+        updateData.status =
+            "approved";
+
+        updateData.delivered_at =
+            null;
+
+    }
+
+
+    /* PROCESSING */
+
+    if(newStatus === "processing"){
+
+        updateData.status =
+            "processing";
+
+        updateData.delivered_at =
+            null;
+
+    }
+
+
+    /* OUT FOR DELIVERY */
+
+    if(
+        newStatus ===
+        "out_for_delivery"
+    ){
+
+        updateData.status =
+            "processing";
+
+        updateData.delivered_at =
+            null;
+
+    }
+
+
+    /* DELIVERED */
+
+    if(newStatus === "delivered"){
+
+        updateData.delivery_status =
+            "delivered";
+
+        updateData.status =
+            "completed";
+
+        updateData.delivered_at =
+            new Date().toISOString();
+
+    }
+
+
+    /* DATABASE UPDATE */
+
+    const result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update(updateData)
+            .eq(
+                "id",
+                request.id
+            )
+            .eq(
+                "agency_id",
+                agencyId
+            );
+
+
+    if(result.error){
+
+        console.error(
+            "Delivery update error:",
+            result.error
+        );
+
+
+        toast(
+            result.error.message ||
+            "Unable to update delivery."
+        );
+
+
+        await load();
+
+        return false;
+
+    }
+
+
+    /* LOCAL UPDATE */
+
+    const index =
+        rows.findIndex(
+            item =>
+                String(item.id) ===
+                String(request.id)
+        );
+
+
+    if(index !== -1){
+
+        rows[index] = {
+            ...rows[index],
+            ...updateData
+        };
+
+    }
+
+
+    render();
+
+
+    /* CUSTOMER NOTIFICATION */
+
+    if(request.user_id){
+
+        let title =
+            "Delivery Status Updated";
+
+        let message =
+            "Your cylinder delivery status has been updated.";
+
+
+        if(newStatus === "processing"){
+
+            title =
+                "Cylinder Processing Started";
+
+            message =
+                "Your cylinder request is now being processed by the agency.";
+
+        }
+
+
+        if(
+            newStatus ===
+            "out_for_delivery"
+        ){
+
+            title =
+                "Cylinder Out for Delivery";
+
+            message =
+                "Your cylinder is now out for delivery.";
+
+        }
+
+
+        if(newStatus === "delivered"){
+
+            title =
+                "Cylinder Delivered Successfully";
+
+            message =
+                "Your cylinder has been delivered successfully.";
+
+        }
+
+
+        if(newStatus === "pending"){
+
+            title =
+                "Delivery Pending";
+
+            message =
+                "Your cylinder delivery is currently pending.";
+
+        }
+
+
+        const notificationResult =
+            await supabaseClient
+                .from("notifications")
+                .insert({
+                    user_id:
+                        request.user_id,
+
+                    title:
+                        title,
+
+                    message:
+                        message,
+
+                    notification_type:
+                        "delivery",
+
+                    is_read:
+                        false
+                });
+
+
+        if(notificationResult.error){
+
+            console.warn(
+                "Customer notification error:",
+                notificationResult.error.message
+            );
+
+        }
+
+    }
+
+
+    /* SUCCESS */
+
+    if(newStatus === "delivered"){
+
+        toast(
+            "Delivery confirmed. Date and time saved successfully."
+        );
+
+    }
+    else{
+
+        toast(
+            `Delivery status updated to ${formatStatus(newStatus)}.`
+        );
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =========================================================
+   DELIVERY SELECT EVENT
+   ========================================================= */
+
+if($("tbody")){
+
+    $("tbody")
+        .addEventListener(
+            "change",
+            async event => {
+
+                const select =
+                    event.target.closest(
+                        ".delivery-select"
+                    );
+
+
+                if(!select){
+                    return;
+                }
+
+
+                const requestId =
+                    select.getAttribute(
+                        "data-delivery-id"
+                    );
+
+
+                const newStatus =
+                    select.value;
+
+
+                const oldRow =
+                    rows.find(
+                        item =>
+                            String(item.id) ===
+                            String(requestId)
+                    );
+
+
+                const oldStatus =
+                    oldRow
+                    ? deliveryStatus(oldRow)
+                    : "pending";
+
+
+                select.disabled = true;
+
+
+                const success =
+                    await updateDeliveryStatus(
+                        requestId,
+                        newStatus
+                    );
+
+
+                await load();
+
+
+                if(!success){
+
+                    console.log(
+                        "Delivery update failed. Previous status:",
+                        oldStatus
+                    );
+
+                }
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   LOAD DATA
+   ========================================================= */
+
+async function load(){
+
+    if(!$("tbody")){
+        return;
+    }
+
+
+    $("tbody").innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="7"
+                class="empty"
+            >
+                Loading delivery records...
+            </td>
+
+        </tr>
+
+    `;
+
+
+    const result =
+        await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "agency_id",
+                agencyId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending:false
+                }
+            );
+
+
+    if(result.error){
+
+        console.error(
+            "Delivery load error:",
+            result.error
+        );
+
+
+        $("tbody").innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    ${esc(
+                        result.error.message
+                    )}
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+
+    /*
+       Only Owner-approved requests
+       are allowed in deliveries.
+    */
+
+    rows =
+        (result.data || [])
+            .filter(
+                request =>
+                    isOwnerApproved(request)
+            );
+
+
+    /* CUSTOMER IDS */
+
+    const ids =
+        [
+            ...new Set(
+                rows
+                    .map(
+                        request =>
+                            request.user_id
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+    customers = [];
+
+
+    if(ids.length){
+
+        const customerResult =
+            await supabaseClient
+                .from("profiles")
+                .select(
+                    "id,full_name,mobile,email"
+                )
+                .in(
+                    "id",
+                    ids
+                );
+
+
+        if(!customerResult.error){
+
+            customers =
+                customerResult.data || [];
+
+        }
+        else{
+
+            console.warn(
+                "Customer load error:",
+                customerResult.error
+            );
+
+        }
+
+    }
+
+
+    render();
+
+}
+
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+
+function render(){
+
+    if(
+        !$("search") ||
+        !$("status") ||
+        !$("month") ||
+        !$("tbody")
+    ){
+        return;
+    }
+
+
+    const searchValue =
+        $("search")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    const statusValue =
+        $("status")
+            .value
+            .toLowerCase();
+
+
+    const monthValue =
+        $("month")
+            .value;
+
+
+    const data =
+        rows.filter(
+            row => {
+
+                const customer =
+                    customerFor(row);
+
+
+                const searchable =
+                    [
+
+                        row.request_number,
+                        row.id,
+                        row.user_id,
+
+                        customer.full_name,
+                        customer.mobile,
+                        customer.email,
+
+                        row.customer_name,
+                        row.mobile,
+                        row.email
+
+                    ]
+                    .join(" ")
+                    .toLowerCase();
+
+
+                const delivery =
+                    deliveryStatus(row);
+
+
+                const rawDate =
+                    row.created_at ||
+                    row.request_date;
+
+
+                const d =
+                    new Date(rawDate);
+
+
+                const monthMatch =
+                    !monthValue ||
+                    (
+                        !Number.isNaN(
+                            d.getTime()
+                        )
+                        &&
+                        String(
+                            d.getMonth()
+                        ) ===
+                        monthValue
+                    );
+
+
+                return (
+
+                    (
+                        !searchValue ||
+                        searchable.includes(
+                            searchValue
+                        )
+                    )
+
+                    &&
+
+                    (
+                        !statusValue ||
+                        delivery ===
+                        statusValue
+                    )
+
+                    &&
+
+                    monthMatch
+
+                );
+
+            }
+        );
+
+
+    if(!data.length){
+
+        $("tbody").innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="7"
+                    class="empty"
+                >
+                    No Owner-approved delivery records found.
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+
+    }
+
+
+    $("tbody").innerHTML =
+        data
+            .map(
+                row => {
+
+                    const customer =
+                        customerFor(row);
+
+
+                    return `
+
+                        <tr>
+
+
+                            <td>
+
+                                <strong>
+                                    ${esc(
+                                        row.request_number ||
+                                        "—"
+                                    )}
+                                </strong>
+
+
+                                <div style="
+                                    color:#9aaab5;
+                                    font-size:8px;
+                                    margin-top:3px;
+                                ">
+
+                                    ${esc(
+                                        row.id ||
+                                        "—"
+                                    )}
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                ${esc(
+                                    customer.full_name ||
+                                    row.customer_name ||
+                                    "Customer"
+                                )}
+
+                            </td>
+
+
+                            <td>
+
+                                ${esc(
+                                    customer.mobile ||
+                                    row.mobile ||
+                                    "—"
+                                )}
+
+                            </td>
+
+
+                            <td>
+
+                                ${esc(
+                                    row.quantity ||
+                                    0
+                                )}
+
+                                cylinder${
+                                    Number(
+                                        row.quantity ||
+                                        0
+                                    ) === 1
+                                    ? ""
+                                    : "s"
+                                }
+
+                            </td>
+
+
+                            <td>
+
+                                ${badge(
+                                    row.delivery_status ||
+                                    "pending"
+                                )}
+
+                            </td>
+
+
+                            <td>
+
+                                ${date(
+                                    row.created_at ||
+                                    row.request_date
+                                )}
+
+                            </td>
+
+
+                            <td>
+
+                                ${deliveryControl(row)}
+
+                            </td>
+
+
+                        </tr>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   FILTERS
+   ========================================================= */
+
+if($("search")){
+
+    $("search")
+        .addEventListener(
+            "input",
+            render
+        );
+
+}
+
+
+if($("status")){
+
+    $("status")
+        .addEventListener(
+            "change",
+            render
+        );
+
+}
+
+
+if($("month")){
+
+    $("month")
+        .addEventListener(
+            "change",
+            render
+        );
+
+}
+
+
+/* =========================================================
+   MOBILE MENU
+   ========================================================= */
+
+if($("menuBtn")){
+
+    $("menuBtn").onclick =
+        () => {
+
+            $("sidebar")
+                .classList
+                .toggle("open");
+
+
+            $("overlay")
+                .classList
+                .toggle("show");
+
+        };
+
+}
+
+
+if($("overlay")){
+
+    $("overlay").onclick =
+        () => {
+
+            $("sidebar")
+                .classList
+                .remove("open");
+
+
+            $("overlay")
+                .classList
+                .remove("show");
+
+        };
+
+}
+
+
+/* =========================================================
+   CLOSE SIDEBAR AFTER NAVIGATION
+   ========================================================= */
+
+document
+    .querySelectorAll(".nav-btn")
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    if(
+                        window.innerWidth <= 800
+                    ){
+
+                        if($("sidebar")){
+
+                            $("sidebar")
+                                .classList
+                                .remove("open");
+
+                        }
+
+
+                        if($("overlay")){
+
+                            $("overlay")
+                                .classList
+                                .remove("show");
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+if($("logoutBtn")){
+
+    $("logoutBtn").onclick =
+        () => {
+
+            $("logoutModal")
+                .classList
+                .add("show");
+
+        };
+
+}
+
+
+if($("cancelLogout")){
+
+    $("cancelLogout").onclick =
+        () => {
+
+            $("logoutModal")
+                .classList
+                .remove("show");
+
+        };
+
+}
+
+
+if($("logoutModal")){
+
+    $("logoutModal").onclick =
+        event => {
+
+            if(
+                event.target ===
+                $("logoutModal")
+            ){
+
+                $("logoutModal")
+                    .classList
+                    .remove("show");
+
+            }
+
+        };
+
+}
+
+
+if($("confirmLogout")){
+
+    $("confirmLogout").onclick =
+        async () => {
+
+            const button =
+                $("confirmLogout");
+
+
+            button.disabled = true;
+
+            button.textContent =
+                "Logging out...";
+
+
+            const {
+                error
+            } =
+            await supabaseClient
+                .auth
+                .signOut();
+
+
+            if(error){
+
+                button.disabled = false;
+
+                button.textContent =
+                    "Logout";
+
+
+                toast(
+                    error.message ||
+                    "Logout failed."
+                );
+
+                return;
+
+            }
+
+
+            location.replace(
+                "agency-login.html"
+            );
+
+        };
+
+}
+
+
+/* =========================================================
+   ESC KEY
+   ========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if(event.key === "Escape"){
+
+            if($("logoutModal")){
+
+                $("logoutModal")
+                    .classList
+                    .remove("show");
+
+            }
+
+
+            if($("sidebar")){
+
+                $("sidebar")
+                    .classList
+                    .remove("open");
+
+            }
+
+
+            if($("overlay")){
+
+                $("overlay")
+                    .classList
+                    .remove("show");
+
+            }
+
+
+            if($("notificationPanel")){
+
+                $("notificationPanel")
+                    .classList
+                    .remove("show");
+
+            }
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   AUTH STATE
+   ========================================================= */
+
+supabaseClient
+    .auth
+    .onAuthStateChange(
+        event => {
+
+            if(
+                event ===
+                "SIGNED_OUT"
+            ){
+
+                location.replace(
+                    "agency-login.html"
+                );
+
+            }
+
+        }
+    );
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+async function init(){
+
+    const {
+        data,
+        error
+    } =
+    await supabaseClient
+        .auth
+        .getUser();
+
+
+    if(
+        error ||
+        !data?.user
+    ){
+
+        location.replace(
+            "agency-login.html"
+        );
+
+        return;
+
+    }
+
+
+    currentUser =
+        data.user;
+
+
+    /* PROFILE */
+
+    const profileResult =
+        await supabaseClient
+            .from("profiles")
+            .select(
+                "agency_id,role"
+            )
+            .eq(
+                "id",
+                currentUser.id
+            )
+            .maybeSingle();
+
+
+    if(
+        profileResult.error ||
+        !profileResult.data?.agency_id
+    ){
+
+        console.error(
+            "Agency profile error:",
+            profileResult.error
+        );
+
+
+        toast(
+            "Agency profile not found."
+        );
+
+        return;
+
+    }
+
+
+    agencyId =
+        profileResult.data.agency_id;
+
+
+    /* AGENCY NAME */
+
+    const agencyResult =
+        await supabaseClient
+            .from("agencies")
+            .select(
+                "agency_name"
+            )
+            .eq(
+                "id",
+                agencyId
+            )
+            .maybeSingle();
+
+
+    if(
+        !agencyResult.error &&
+        agencyResult.data?.agency_name
+    ){
+
+        if($("headerAgencyName")){
+
+            $("headerAgencyName")
+                .textContent =
+                agencyResult.data.agency_name;
+
+        }
+
+    }
+
+
+    /* LOAD */
+
+    await load();
+
+    await loadNotifications();
+
+
+    /* REALTIME */
+
+    subscribeNotifications();
+
+    subscribeDeliveryRealtime();
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+init();
+
+</script>
+
+</body>
+
+</html>

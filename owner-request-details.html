@@ -1,0 +1,4037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Request Details</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #fff;
+}
+
+button,
+input,
+select,
+textarea{
+    font-family:inherit;
+}
+
+button{
+    -webkit-tap-highlight-color:transparent;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:19px;
+    position:relative;
+}
+
+.notification-btn:hover{
+    background:#e2f1fc;
+}
+
+.notification-count{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#d93636;
+    color:#fff;
+    border:2px solid #fff;
+    font-size:9px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.notification-panel{
+    position:absolute;
+    top:52px;
+    right:0;
+    width:330px;
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:15px;
+    box-shadow:0 18px 50px rgba(20,60,90,.18);
+    display:none;
+    overflow:hidden;
+    z-index:3000;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-head{
+    padding:14px 16px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notification-head-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:800;
+}
+
+.notification-head-count{
+    color:#0871c3;
+    font-size:10px;
+    font-weight:800;
+}
+
+.notification-item{
+    padding:13px 15px;
+    border-bottom:1px solid #f0f3f6;
+    display:flex;
+    gap:10px;
+    cursor:pointer;
+}
+
+.notification-item:hover{
+    background:#f8fbfd;
+}
+
+.notification-item:last-child{
+    border-bottom:0;
+}
+
+.notification-icon{
+    width:34px;
+    height:34px;
+    flex-shrink:0;
+    border-radius:10px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:15px;
+}
+
+.notification-content{
+    min-width:0;
+}
+
+.notification-title{
+    color:#315671;
+    font-size:11px;
+    font-weight:800;
+}
+
+.notification-text{
+    color:#8194a5;
+    font-size:10px;
+    line-height:1.4;
+    margin-top:3px;
+}
+
+.notification-time{
+    color:#a1adb7;
+    font-size:9px;
+    margin-top:4px;
+}
+
+.notification-empty{
+    padding:25px 15px;
+    text-align:center;
+    color:#91a1af;
+    font-size:11px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* =========================================================
+   MASTER SIDEBAR
+========================================================= */
+
+.sidebar{
+    width:245px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,245,245,.98) 0%,
+            rgba(242,248,255,.98) 52%,
+            rgba(255,255,255,.98) 100%
+        );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    scrollbar-width:thin;
+}
+
+.sidebar::-webkit-scrollbar{
+    width:5px;
+}
+
+.sidebar::-webkit-scrollbar-thumb{
+    background:#cbdce8;
+    border-radius:10px;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:12px;
+    font-weight:800;
+    padding:0 13px 10px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:11px 14px;
+    border-radius:11px;
+    margin-bottom:4px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.2s;
+    flex-shrink:0;
+}
+
+.nav-btn:hover{
+    background:#e5f2fc;
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-flex;
+    width:25px;
+    align-items:center;
+    justify-content:flex-start;
+    font-size:16px;
+    vertical-align:middle;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.overlay{
+    display:none;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+}
+
+.page-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    margin-bottom:22px;
+}
+
+.page-title h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.page-title p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+.back-btn{
+    border:1px solid #dce6ef;
+    background:#fff;
+    color:#0871c3;
+    min-height:42px;
+    padding:0 15px;
+    border-radius:11px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.back-btn:hover{
+    background:#eef7ff;
+}
+
+/* =========================================================
+   REQUEST HEADER
+========================================================= */
+
+.request-header{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ef;
+    border-radius:18px;
+    padding:20px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    margin-bottom:18px;
+}
+
+.request-header-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+}
+
+.request-number{
+    font-size:21px;
+    color:#0871c3;
+    font-weight:800;
+}
+
+.request-date{
+    color:#8a9baa;
+    font-size:12px;
+    margin-top:5px;
+}
+
+.status-wrap{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:90px;
+    padding:7px 11px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.badge-green{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.badge-yellow{
+    background:#fff7df;
+    color:#a36b00;
+}
+
+.badge-blue{
+    background:#edf6ff;
+    color:#086db7;
+}
+
+.badge-red{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.badge-gray{
+    background:#f0f3f5;
+    color:#617687;
+}
+
+/* =========================================================
+   GRID / CARDS
+========================================================= */
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-bottom:18px;
+}
+
+.card{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ef;
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+}
+
+.card-header{
+    padding:17px 19px;
+    border-bottom:1px solid #edf2f6;
+}
+
+.card-title{
+    color:#06477f;
+    font-size:16px;
+    font-weight:800;
+}
+
+.card-subtitle{
+    color:#8a9baa;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.card-body{
+    padding:18px;
+}
+
+.user-profile{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    margin-bottom:18px;
+}
+
+.user-photo{
+    width:62px;
+    height:62px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #e3edf5;
+    background:#eef7ff;
+    flex-shrink:0;
+}
+
+.user-fallback{
+    width:62px;
+    height:62px;
+    border-radius:50%;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:25px;
+    flex-shrink:0;
+}
+
+.user-name{
+    color:#315671;
+    font-size:17px;
+    font-weight:800;
+}
+
+.user-contact{
+    color:#8799a9;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.detail{
+    background:#f7fafc;
+    border:1px solid #e5edf3;
+    border-radius:11px;
+    padding:11px;
+}
+
+.detail.full{
+    grid-column:1/-1;
+}
+
+.detail-label{
+    color:#8b9ba8;
+    font-size:9px;
+    text-transform:uppercase;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.detail-value{
+    color:#31566f;
+    font-size:12px;
+    font-weight:700;
+    word-break:break-word;
+}
+
+.money{
+    color:#0871c3;
+    font-size:14px;
+    font-weight:800;
+}
+
+/* =========================================================
+   APPROVAL
+========================================================= */
+
+.approval-box{
+    background:linear-gradient(135deg,#f3fbff,#fff7f7);
+    border:1px solid #dceaf3;
+    border-radius:14px;
+    padding:16px;
+}
+
+.approval-title{
+    color:#06477f;
+    font-size:14px;
+    font-weight:800;
+    margin-bottom:5px;
+}
+
+.approval-description{
+    color:#8194a5;
+    font-size:11px;
+    line-height:1.5;
+    margin-bottom:12px;
+}
+
+.approval-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-top:1px solid #e4edf3;
+}
+
+.approval-label{
+    color:#7990a1;
+    font-size:11px;
+    font-weight:700;
+}
+
+.approval-value{
+    color:#31566f;
+    font-size:11px;
+    font-weight:800;
+    text-align:right;
+}
+
+/* =========================================================
+   ACTION CARD
+========================================================= */
+
+.action-card{
+    margin-bottom:18px;
+}
+
+.action-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+}
+
+.action-btn{
+    min-height:44px;
+    border:0;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.approve-btn{
+    background:#1b9d55;
+    color:#fff;
+}
+
+.reject-btn{
+    background:#d93636;
+    color:#fff;
+}
+
+.edit-btn{
+    background:#0878d1;
+    color:#fff;
+}
+
+.action-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+
+.timeline{
+    position:relative;
+}
+
+.timeline-item{
+    display:flex;
+    gap:12px;
+    position:relative;
+    padding-bottom:17px;
+}
+
+.timeline-item:last-child{
+    padding-bottom:0;
+}
+
+.timeline-dot{
+    width:11px;
+    height:11px;
+    border-radius:50%;
+    background:#b8c8d5;
+    margin-top:4px;
+    flex-shrink:0;
+    position:relative;
+    z-index:2;
+}
+
+.timeline-item.active .timeline-dot{
+    background:#0878d1;
+    box-shadow:0 0 0 4px #e7f4fd;
+}
+
+.timeline-item.completed .timeline-dot{
+    background:#1b9d55;
+    box-shadow:0 0 0 4px #e8f8ef;
+}
+
+.timeline-item.rejected .timeline-dot{
+    background:#d93636;
+    box-shadow:0 0 0 4px #fff0f0;
+}
+
+.timeline-item:not(:last-child) .timeline-dot:after{
+    content:"";
+    position:absolute;
+    top:11px;
+    left:4px;
+    width:2px;
+    height:45px;
+    background:#dce7ee;
+}
+
+.timeline-title{
+    color:#31566f;
+    font-size:12px;
+    font-weight:800;
+}
+
+.timeline-text{
+    color:#8a9baa;
+    font-size:10px;
+    margin-top:3px;
+    line-height:1.5;
+}
+
+/* =========================================================
+   LOADING / ERROR
+========================================================= */
+
+.loading{
+    text-align:center;
+    padding:60px 20px;
+    color:#7890a3;
+    font-size:13px;
+}
+
+.error-box{
+    background:#fff0f0;
+    border:1px solid #f0caca;
+    border-radius:14px;
+    padding:20px;
+    color:#b52d2d;
+    text-align:center;
+}
+
+.error-box strong{
+    display:block;
+    margin-bottom:5px;
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:99999;
+    min-width:290px;
+    max-width:390px;
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:14px;
+    box-shadow:0 15px 45px rgba(20,60,90,.18);
+    padding:15px;
+    display:none;
+}
+
+.toast.show{
+    display:block;
+    animation:toastIn .2s ease;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:13px;
+    font-weight:800;
+}
+
+.toast-text{
+    color:#7890a3;
+    font-size:11px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+@keyframes toastIn{
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* =========================================================
+   EDIT MODAL
+========================================================= */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,58,.45);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-card{
+    width:100%;
+    max-width:550px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:20px;
+    padding:24px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+
+.modal-title{
+    font-size:19px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.modal-subtitle{
+    color:#8a9baa;
+    font-size:12px;
+    margin-bottom:18px;
+}
+
+.form-label{
+    display:block;
+    font-size:11px;
+    color:#637f94;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.form-control{
+    width:100%;
+    min-height:43px;
+    border:1px solid #dce6ef;
+    border-radius:10px;
+    padding:10px 12px;
+    outline:none;
+    color:#31566f;
+    background:#fbfdff;
+}
+
+.form-control:focus{
+    border-color:#8fc3ea;
+    box-shadow:0 0 0 3px rgba(65,150,215,.08);
+}
+
+textarea.form-control{
+    min-height:90px;
+    resize:vertical;
+}
+
+.modal-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:18px;
+}
+
+.modal-btn{
+    min-height:44px;
+    border:0;
+    border-radius:10px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.cancel-btn{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.save-btn{
+    background:#0878d1;
+    color:#fff;
+}
+
+/* =========================================================
+   LOGOUT MODAL
+========================================================= */
+
+.logout-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:50000;
+    background:rgba(5,35,58,.48);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-card{
+    width:100%;
+    max-width:420px;
+    background:#fff;
+    border-radius:20px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 25px 80px rgba(0,0,0,.25);
+    animation:logoutIn .18s ease;
+}
+
+@keyframes logoutIn{
+    from{
+        opacity:0;
+        transform:scale(.96) translateY(8px);
+    }
+    to{
+        opacity:1;
+        transform:scale(1) translateY(0);
+    }
+}
+
+.logout-icon{
+    width:60px;
+    height:60px;
+    margin:0 auto 15px;
+    border-radius:50%;
+    background:#fff1f1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:20px;
+    font-weight:800;
+}
+
+.logout-text{
+    color:#8194a5;
+    font-size:13px;
+    line-height:1.6;
+    margin:9px 0 21px;
+}
+
+.logout-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.logout-cancel,
+.logout-confirm{
+    height:45px;
+    border:0;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#d93636;
+    color:#fff;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:900px){
+
+    .grid{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:760px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .notification-btn{
+        width:40px;
+        height:40px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:62px;
+        right:12px;
+        left:12px;
+        width:auto;
+    }
+
+    .layout{
+        display:block;
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:2000;
+        transition:.25s ease;
+        overflow-y:auto;
+        padding:20px 15px 25px;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:1500;
+    }
+
+    .main{
+        padding:20px 14px 40px;
+    }
+
+    .page-top{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .page-title h1{
+        font-size:23px;
+    }
+
+    .page-title p{
+        font-size:12px;
+        line-height:1.5;
+    }
+
+    .back-btn{
+        width:100%;
+    }
+
+    .request-header{
+        padding:16px;
+    }
+
+    .request-header-top{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .status-wrap{
+        justify-content:flex-start;
+    }
+
+    .request-number{
+        font-size:18px;
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr;
+    }
+
+    .detail.full{
+        grid-column:auto;
+    }
+
+    .action-buttons{
+        grid-template-columns:1fr;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        bottom:14px;
+        min-width:0;
+        max-width:none;
+    }
+
+    .modal{
+        padding:14px;
+    }
+
+    .modal-card{
+        padding:20px 18px;
+    }
+
+    .logout-modal{
+        padding:14px;
+    }
+
+    .logout-card{
+        padding:24px 18px;
+    }
+}
+
+@media(max-width:520px){
+
+    .main{
+        padding-left:10px;
+        padding-right:10px;
+    }
+
+    .logout-actions{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-height:700px) and (min-width:761px){
+
+    .sidebar{
+        padding-top:15px;
+        padding-bottom:15px;
+    }
+
+    .nav-btn{
+        padding-top:9px;
+        padding-bottom:9px;
+        margin-bottom:2px;
+    }
+
+    .sidebar-title{
+        padding-bottom:7px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="Open menu"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <!-- NOTIFICATION -->
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+                aria-label="Notifications"
+            >
+                🔔
+
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >
+                    0
+                </span>
+            </button>
+
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-head">
+
+                    <div class="notification-head-title">
+                        Notifications
+                    </div>
+
+                    <div
+                        class="notification-head-count"
+                        id="notificationHeadCount"
+                    >
+                        0 New
+                    </div>
+
+                </div>
+
+
+                <div id="notificationList">
+
+                    <div class="notification-empty">
+                        No new notifications
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- OWNER BADGE -->
+
+        <div class="owner-badge">
+
+            <span class="owner-dot"></span>
+
+            Owner
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     LAYOUT
+===================================================== -->
+
+<div class="layout">
+
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <!-- MANAGEMENT -->
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="pending-approvals"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+    <!-- OWNER PAGES -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:22px;"
+    >
+        Owner Pages
+    </div>
+
+
+    <button
+        class="nav-btn active"
+        data-page="request-details"
+        type="button"
+    >
+        <span class="nav-icon">📄</span>
+        Request Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payment-details"
+        type="button"
+    >
+        <span class="nav-icon">💳</span>
+        Payment Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agency-details"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        Agency Details
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="deliveries"
+        type="button"
+    >
+        <span class="nav-icon">🚚</span>
+        Deliveries
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="repayments"
+        type="button"
+    >
+        <span class="nav-icon">💰</span>
+        Repayments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="notifications"
+        type="button"
+    >
+        <span class="nav-icon">🔔</span>
+        Notifications
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="slips"
+        type="button"
+    >
+        <span class="nav-icon">🧾</span>
+        Slips
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="profile"
+        type="button"
+    >
+        <span class="nav-icon">👤</span>
+        Profile
+    </button>
+
+
+    <!-- SYSTEM -->
+
+    <div
+        class="sidebar-title"
+        style="margin-top:22px;"
+    >
+        System
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="settings"
+        type="button"
+    >
+        <span class="nav-icon">⚙</span>
+        Settings
+    </button>
+
+
+    <!-- LOGOUT -->
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- MOBILE OVERLAY -->
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="main">
+
+    <div class="page-top">
+
+        <div class="page-title">
+
+            <h1>
+                Request Details
+            </h1>
+
+            <p>
+                Complete details and status of the selected LPG cylinder request.
+            </p>
+
+        </div>
+
+
+        <button
+            class="back-btn"
+            id="backBtn"
+            type="button"
+        >
+            ← Back to Requests
+        </button>
+
+    </div>
+
+
+    <div id="pageContent">
+
+        <div class="loading">
+            Loading request details...
+        </div>
+
+    </div>
+
+</main>
+
+</div>
+
+
+<!-- =====================================================
+     EDIT MODAL
+===================================================== -->
+
+<div
+    class="modal"
+    id="editModal"
+>
+
+    <div class="modal-card">
+
+        <div class="modal-title">
+            Update Request
+        </div>
+
+        <div class="modal-subtitle">
+            Update owner approval and request status.
+        </div>
+
+
+        <label class="form-label">
+            Owner Approval
+        </label>
+
+        <select
+            id="editApproval"
+            class="form-control"
+        >
+
+            <option value="pending">
+                Pending
+            </option>
+
+            <option value="approved">
+                Approved
+            </option>
+
+            <option value="rejected">
+                Rejected
+            </option>
+
+        </select>
+
+
+        <div style="height:12px;"></div>
+
+
+        <label class="form-label">
+            Request Status
+        </label>
+
+        <select
+            id="editStatus"
+            class="form-control"
+        >
+
+            <option value="Pending">
+                Pending
+            </option>
+
+            <option value="Processing">
+                Processing
+            </option>
+
+            <option value="Completed">
+                Completed
+            </option>
+
+            <option value="Cancelled">
+                Cancelled
+            </option>
+
+        </select>
+
+
+        <div style="height:12px;"></div>
+
+
+        <label class="form-label">
+            Owner Note / Rejection Reason
+        </label>
+
+        <textarea
+            id="editNote"
+            class="form-control"
+            placeholder="Write owner note or rejection reason..."
+        ></textarea>
+
+
+        <div class="modal-actions">
+
+            <button
+                type="button"
+                class="modal-btn cancel-btn"
+                id="editCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="modal-btn save-btn"
+                id="editSave"
+            >
+                Save Changes
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     LOGOUT CONFIRMATION
+===================================================== -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-card">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout?
+        </div>
+
+        <div class="logout-text">
+            Are you sure you want to logout from the Owner Panel?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                type="button"
+                class="logout-cancel"
+                id="logoutCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="logout-confirm"
+                id="logoutConfirm"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    >
+        Notification
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+    "https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+const pageContent =
+    document.getElementById("pageContent");
+
+const menuBtn =
+    document.getElementById("menuBtn");
+
+const sidebar =
+    document.getElementById("sidebar");
+
+const overlay =
+    document.getElementById("overlay");
+
+const logoutBtn =
+    document.getElementById("logoutBtn");
+
+const backBtn =
+    document.getElementById("backBtn");
+
+const editModal =
+    document.getElementById("editModal");
+
+const editApproval =
+    document.getElementById("editApproval");
+
+const editStatus =
+    document.getElementById("editStatus");
+
+const editNote =
+    document.getElementById("editNote");
+
+const editCancel =
+    document.getElementById("editCancel");
+
+const editSave =
+    document.getElementById("editSave");
+
+const toast =
+    document.getElementById("toast");
+
+const toastTitle =
+    document.getElementById("toastTitle");
+
+const toastText =
+    document.getElementById("toastText");
+
+
+let currentOwnerId = null;
+let currentRequest = null;
+
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+function showToast(title,text){
+
+    toastTitle.textContent =
+        title || "Notification";
+
+    toastText.textContent =
+        text || "";
+
+    toast.classList.add("show");
+
+    clearTimeout(
+        window.egcToastTimer
+    );
+
+    window.egcToastTimer =
+        setTimeout(
+            function(){
+
+                toast.classList.remove("show");
+
+            },
+            4500
+        );
+
+}
+
+
+function formatDate(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const date =
+        new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+        return "—";
+    }
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+function formatDateTime(value){
+
+    if(!value){
+        return "—";
+    }
+
+    const date =
+        new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+        return "—";
+    }
+
+    return date.toLocaleString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric",
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}
+
+
+function formatMoney(value){
+
+    const number =
+        Number(value);
+
+    if(
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        Number.isNaN(number)
+    ){
+        return "₹0.00";
+    }
+
+    return "₹" +
+        number.toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+}
+
+
+function normalizeApproval(value){
+
+    const v =
+        String(value || "pending")
+            .trim()
+            .toLowerCase();
+
+    if(v === "approved"){
+        return "approved";
+    }
+
+    if(v === "rejected"){
+        return "rejected";
+    }
+
+    return "pending";
+
+}
+
+
+function approvalLabel(value){
+
+    const approval =
+        normalizeApproval(value);
+
+    if(approval === "approved"){
+        return "Approved";
+    }
+
+    if(approval === "rejected"){
+        return "Rejected";
+    }
+
+    return "Pending";
+
+}
+
+
+function badgeClass(value){
+
+    const v =
+        String(value || "")
+            .toLowerCase();
+
+    if(
+        v.includes("approved") ||
+        v === "paid" ||
+        v === "completed" ||
+        v === "delivered" ||
+        v === "accepted"
+    ){
+        return "badge-green";
+    }
+
+    if(
+        v.includes("pending") ||
+        v === "waiting" ||
+        v === "preparing"
+    ){
+        return "badge-yellow";
+    }
+
+    if(
+        v.includes("processing") ||
+        v.includes("out for")
+    ){
+        return "badge-blue";
+    }
+
+    if(
+        v.includes("rejected") ||
+        v.includes("failed") ||
+        v.includes("cancelled")
+    ){
+        return "badge-red";
+    }
+
+    return "badge-gray";
+
+}
+
+
+function badgeHtml(value){
+
+    if(
+        value === null ||
+        value === undefined ||
+        value === ""
+    ){
+        return `
+            <span class="badge badge-gray">
+                Not Set
+            </span>
+        `;
+    }
+
+    return `
+        <span class="badge ${badgeClass(value)}">
+            ${escapeHtml(displayText(value))}
+        </span>
+    `;
+
+}
+
+
+function displayText(value){
+
+    const text =
+        String(value || "");
+
+    if(!text){
+        return "Not Set";
+    }
+
+    return text
+        .split(" ")
+        .map(
+            word =>
+                word.charAt(0).toUpperCase() +
+                word.slice(1).toLowerCase()
+        )
+        .join(" ");
+
+}
+
+
+function getRequestId(){
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    return (
+        params.get("id") ||
+        params.get("request_id") ||
+        params.get("requestId") ||
+        ""
+    );
+
+}
+
+
+function goToRequests(){
+
+    window.location.href =
+        "owner-requests.html";
+
+}
+
+
+function openPage(page){
+
+    const pages = {
+
+        dashboard:"owner-dashboard.html",
+
+        users:"owner-users.html",
+
+        agencies:"owner-agencies.html",
+
+        companies:"owner-companies.html",
+
+        requests:"owner-requests.html",
+
+        payments:"owner-payments.html",
+
+        reports:"owner-reports.html",
+
+        settings:"owner-settings.html"
+
+    };
+
+    if(pages[page]){
+
+        window.location.href =
+            pages[page];
+
+    }
+
+}
+
+
+document
+    .querySelectorAll("[data-page]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            function(){
+
+                openPage(
+                    this.dataset.page
+                );
+
+            }
+        );
+
+    });
+
+
+menuBtn.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.toggle("open");
+
+        overlay.classList.toggle("show");
+
+    }
+);
+
+
+overlay.addEventListener(
+    "click",
+    function(){
+
+        sidebar.classList.remove("open");
+
+        overlay.classList.remove("show");
+
+    }
+);
+
+
+backBtn.addEventListener(
+    "click",
+    goToRequests
+);
+
+
+async function getCurrentOwner(){
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient.auth.getUser();
+
+        if(error){
+
+            console.error(
+                "Owner session error:",
+                error
+            );
+
+            return null;
+
+        }
+
+        if(data && data.user){
+
+            currentOwnerId =
+                data.user.id;
+
+            return data.user;
+
+        }
+
+        return null;
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        return null;
+
+    }
+
+}
+
+
+async function requireOwner(){
+
+    const owner =
+        await getCurrentOwner();
+
+    if(!owner){
+
+        showToast(
+            "Owner Login Required",
+            "Please login to the EGC Owner Panel."
+        );
+
+        setTimeout(
+            function(){
+
+                window.location.replace(
+                    "owner-login.html"
+                );
+
+            },
+            1000
+        );
+
+        return null;
+
+    }
+
+    return owner;
+
+}
+
+
+async function loadRequest(){
+
+    const requestId =
+        getRequestId();
+
+    if(!requestId){
+
+        pageContent.innerHTML = `
+            <div class="error-box">
+                <strong>Request ID Missing</strong>
+                Please open this page from the Cylinder Requests page.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    pageContent.innerHTML = `
+        <div class="loading">
+            Loading request details...
+        </div>
+    `;
+
+
+    try{
+
+        const {
+            data,
+            error
+        } =
+        await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq(
+                "id",
+                requestId
+            )
+            .maybeSingle();
+
+
+        if(error){
+
+            console.error(
+                "Request details error:",
+                error
+            );
+
+            pageContent.innerHTML = `
+                <div class="error-box">
+                    <strong>Unable to Load Request</strong>
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        if(!data){
+
+            pageContent.innerHTML = `
+                <div class="error-box">
+                    <strong>Request Not Found</strong>
+                    This cylinder request does not exist or is no longer available.
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        currentRequest =
+            data;
+
+
+        await attachRelatedData();
+
+        renderDetails();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        pageContent.innerHTML = `
+            <div class="error-box">
+                <strong>Something Went Wrong</strong>
+                Unable to load request details.
+            </div>
+        `;
+
+    }
+
+}
+
+
+async function attachRelatedData(){
+
+    if(!currentRequest){
+        return;
+    }
+
+
+    let profile = {};
+    let agency = {};
+
+
+    if(currentRequest.user_id){
+
+        try{
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq(
+                    "id",
+                    currentRequest.user_id
+                )
+                .maybeSingle();
+
+            if(!error && data){
+
+                profile =
+                    data;
+
+            }
+
+        }
+        catch(error){
+
+            console.warn(
+                "Profile loading error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    if(currentRequest.agency_id){
+
+        try{
+
+            const {
+                data,
+                error
+            } =
+            await supabaseClient
+                .from("agencies")
+                .select("*")
+                .eq(
+                    "id",
+                    currentRequest.agency_id
+                )
+                .maybeSingle();
+
+            if(!error && data){
+
+                agency =
+                    data;
+
+            }
+
+        }
+        catch(error){
+
+            console.warn(
+                "Agency loading error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    currentRequest.profile =
+        profile;
+
+    currentRequest.agency =
+        agency;
+
+}
+
+
+function getUserName(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.full_name ||
+        p.name ||
+        p.username ||
+        p.display_name ||
+        "User"
+    );
+
+}
+
+
+function getUserId(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.user_code ||
+        currentRequest.user_code ||
+        currentRequest.user_id ||
+        "—"
+    );
+
+}
+
+
+function getMobile(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.phone ||
+        p.mobile ||
+        p.mobile_number ||
+        p.phone_number ||
+        currentRequest.mobile ||
+        currentRequest.phone ||
+        "—"
+    );
+
+}
+
+
+function getEmail(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.email ||
+        currentRequest.email ||
+        "—"
+    );
+
+}
+
+
+function getAadhaar(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.aadhar_card_number ||
+        p.aadhaar_card_number ||
+        p.aadhaar ||
+        p.aadhar ||
+        currentRequest.aadhaar ||
+        currentRequest.aadhar ||
+        "—"
+    );
+
+}
+
+
+function getPan(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.pan_card_number ||
+        p.pancard ||
+        p.pan ||
+        currentRequest.pan ||
+        "—"
+    );
+
+}
+
+
+function getPhoto(){
+
+    const p =
+        currentRequest.profile || {};
+
+    return (
+        p.photo_url ||
+        p.avatar_url ||
+        p.profile_photo ||
+        p.photo ||
+        p.image_url ||
+        p.profile_image ||
+        currentRequest.profile_photo ||
+        currentRequest.photo_url ||
+        ""
+    );
+
+}
+
+
+function getAgencyName(){
+
+    const a =
+        currentRequest.agency || {};
+
+    return (
+        a.agency_name ||
+        a.name ||
+        a.agency ||
+        currentRequest.agency_name ||
+        "Agency"
+    );
+
+}
+
+
+function getCompanyName(){
+
+    const a =
+        currentRequest.agency || {};
+
+    return (
+        a.lpg_company ||
+        a.company_name ||
+        a.company ||
+        currentRequest.lpg_company ||
+        currentRequest.company_name ||
+        "LPG"
+    );
+
+}
+
+
+function getCity(){
+
+    const p =
+        currentRequest.profile || {};
+
+    const a =
+        currentRequest.agency || {};
+
+    return (
+        currentRequest.city ||
+        p.city ||
+        a.city ||
+        extractCity(
+            currentRequest.address
+        ) ||
+        "—"
+    );
+
+}
+
+
+function extractCity(address){
+
+    if(!address){
+        return "";
+    }
+
+    const parts =
+        String(address)
+            .split(",");
+
+    return (
+        parts[parts.length - 2] ||
+        parts[parts.length - 1] ||
+        ""
+    ).trim();
+
+}
+
+
+function renderDetails(){
+
+    const r =
+        currentRequest;
+
+    const photo =
+        getPhoto();
+
+    const approval =
+        normalizeApproval(
+            r.owner_approval
+        );
+
+    const status =
+        r.status ||
+        "Pending";
+
+
+    let photoHtml;
+
+    if(photo){
+
+        photoHtml = `
+            <img
+                src="${escapeHtml(photo)}"
+                class="user-photo"
+                alt="User"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+            >
+
+            <div
+                class="user-fallback"
+                style="display:none;"
+            >
+                👤
+            </div>
+        `;
+
+    }
+    else{
+
+        photoHtml = `
+            <div class="user-fallback">
+                👤
+            </div>
+        `;
+
+    }
+
+
+    pageContent.innerHTML = `
+
+        <section class="request-header">
+
+            <div class="request-header-top">
+
+                <div>
+
+                    <div class="request-number">
+                        ${escapeHtml(
+                            r.request_number ||
+                            r.id ||
+                            "Cylinder Request"
+                        )}
+                    </div>
+
+                    <div class="request-date">
+                        Requested on
+                        ${escapeHtml(
+                            formatDateTime(r.created_at)
+                        )}
+                    </div>
+
+                </div>
+
+                <div class="status-wrap">
+
+                    ${badgeHtml(status)}
+
+                    ${badgeHtml(
+                        approval
+                    )}
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="grid">
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div class="card-title">
+                        User Information
+                    </div>
+
+                    <div class="card-subtitle">
+                        Registered customer details
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="user-profile">
+
+                        ${photoHtml}
+
+                        <div>
+
+                            <div class="user-name">
+                                ${escapeHtml(
+                                    getUserName()
+                                )}
+                            </div>
+
+                            <div class="user-contact">
+                                ${escapeHtml(
+                                    getEmail()
+                                )}
+                            </div>
+
+                            <div class="user-contact">
+                                ${escapeHtml(
+                                    getMobile()
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="detail-grid">
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                User ID
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getUserId()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Mobile
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getMobile()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Email
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getEmail()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                City
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getCity()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Aadhaar
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getAadhaar()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                PAN
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getPan()
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div class="card-title">
+                        LPG Details
+                    </div>
+
+                    <div class="card-subtitle">
+                        Cylinder and selected agency information
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="detail-grid">
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                LPG Company
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getCompanyName()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                LPG Agency
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getAgencyName()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Quantity
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    r.quantity ?? 0
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                City
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    getCity()
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail full">
+
+                            <div class="detail-label">
+                                Address
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    r.address ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail full">
+
+                            <div class="detail-label">
+                                LPG / Cylinder Information
+                            </div>
+
+                            <div class="detail-value">
+                                ${escapeHtml(
+                                    r.lpg_details ||
+                                    r.cylinder_details ||
+                                    r.scheme ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card action-card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    Owner Actions
+                </div>
+
+                <div class="card-subtitle">
+                    Owner approval controls for this request
+                </div>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="approval-box">
+
+                    <div class="approval-title">
+                        Owner Approval
+                    </div>
+
+                    <div class="approval-description">
+                        Approval changes the request flow for the User and selected LPG Agency.
+                    </div>
+
+                    <div class="approval-row">
+
+                        <div class="approval-label">
+                            Current Approval
+                        </div>
+
+                        <div class="approval-value">
+                            ${badgeHtml(
+                                approval
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="approval-row">
+
+                        <div class="approval-label">
+                            Approved By
+                        </div>
+
+                        <div class="approval-value">
+                            ${escapeHtml(
+                                r.approved_by ||
+                                "—"
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="approval-row">
+
+                        <div class="approval-label">
+                            Approved At
+                        </div>
+
+                        <div class="approval-value">
+                            ${escapeHtml(
+                                formatDateTime(
+                                    r.approved_at
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="approval-row">
+
+                        <div class="approval-label">
+                            Rejection Reason
+                        </div>
+
+                        <div class="approval-value">
+                            ${escapeHtml(
+                                r.rejection_reason ||
+                                "—"
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div style="height:14px;"></div>
+
+                <div class="action-buttons">
+
+                    <button
+                        type="button"
+                        class="action-btn approve-btn"
+                        id="approveBtn"
+                        ${approval === "approved" ? "disabled" : ""}
+                    >
+                        ✅ Approve Request
+                    </button>
+
+                    <button
+                        type="button"
+                        class="action-btn reject-btn"
+                        id="rejectBtn"
+                        ${approval === "rejected" ? "disabled" : ""}
+                    >
+                        ❌ Reject Request
+                    </button>
+
+                    <button
+                        type="button"
+                        class="action-btn edit-btn"
+                        id="editBtn"
+                    >
+                        ✏️ Update Details
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="grid">
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div class="card-title">
+                        Financial Details
+                    </div>
+
+                    <div class="card-subtitle">
+                        Request amount and payment information
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="detail-grid">
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Total Amount
+                            </div>
+
+                            <div class="detail-value money">
+                                ${formatMoney(
+                                    r.total_amount
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Extra Charge
+                            </div>
+
+                            <div class="detail-value money">
+                                ${formatMoney(
+                                    r.extra_charge
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Payment Status
+                            </div>
+
+                            <div class="detail-value">
+                                ${badgeHtml(
+                                    r.payment_status
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Initial Payment
+                            </div>
+
+                            <div class="detail-value money">
+                                ${formatMoney(
+                                    r.initial_payment ||
+                                    r.advance_amount ||
+                                    200
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <div class="card-title">
+                        Agency & Delivery
+                    </div>
+
+                    <div class="card-subtitle">
+                        Current operational status
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="detail-grid">
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Agency Status
+                            </div>
+
+                            <div class="detail-value">
+                                ${badgeHtml(
+                                    r.agency_status
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Delivery Status
+                            </div>
+
+                            <div class="detail-value">
+                                ${badgeHtml(
+                                    r.delivery_status
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                User Status
+                            </div>
+
+                            <div class="detail-value">
+                                ${badgeHtml(
+                                    r.user_status
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="detail">
+
+                            <div class="detail-label">
+                                Request Status
+                            </div>
+
+                            <div class="detail-value">
+                                ${badgeHtml(
+                                    r.status
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="card">
+
+            <div class="card-header">
+
+                <div class="card-title">
+                    Request Timeline
+                </div>
+
+                <div class="card-subtitle">
+                    Important request events
+                </div>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="timeline">
+
+                    <div class="timeline-item completed">
+
+                        <div class="timeline-dot"></div>
+
+                        <div>
+
+                            <div class="timeline-title">
+                                Request Created
+                            </div>
+
+                            <div class="timeline-text">
+                                ${escapeHtml(
+                                    formatDateTime(
+                                        r.created_at
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="timeline-item ${
+                        approval === "approved"
+                            ? "completed"
+                            : approval === "rejected"
+                                ? "rejected"
+                                : "active"
+                    }">
+
+                        <div class="timeline-dot"></div>
+
+                        <div>
+
+                            <div class="timeline-title">
+                                Owner Decision
+                            </div>
+
+                            <div class="timeline-text">
+                                ${escapeHtml(
+                                    approvalLabel(
+                                        approval
+                                    )
+                                )}
+
+                                ${
+                                    r.approved_at
+                                        ? " • " +
+                                          escapeHtml(
+                                              formatDateTime(
+                                                  r.approved_at
+                                              )
+                                          )
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="timeline-item ${
+                        String(r.agency_status || "")
+                            .toLowerCase() === "completed"
+                            ? "completed"
+                            : String(r.agency_status || "")
+                                .toLowerCase() === "rejected"
+                                    ? "rejected"
+                                    : "active"
+                    }">
+
+                        <div class="timeline-dot"></div>
+
+                        <div>
+
+                            <div class="timeline-title">
+                                Agency Processing
+                            </div>
+
+                            <div class="timeline-text">
+                                ${escapeHtml(
+                                    displayText(
+                                        r.agency_status ||
+                                        "Waiting"
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="timeline-item ${
+                        String(r.delivery_status || "")
+                            .toLowerCase() === "delivered"
+                            ? "completed"
+                            : String(r.delivery_status || "")
+                                .toLowerCase() === "cancelled"
+                                    ? "rejected"
+                                    : "active"
+                    }">
+
+                        <div class="timeline-dot"></div>
+
+                        <div>
+
+                            <div class="timeline-title">
+                                Cylinder Delivery
+                            </div>
+
+                            <div class="timeline-text">
+                                ${escapeHtml(
+                                    displayText(
+                                        r.delivery_status ||
+                                        "Pending"
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    `;
+
+
+    document
+        .getElementById("approveBtn")
+        .addEventListener(
+            "click",
+            approveRequest
+        );
+
+
+    document
+        .getElementById("rejectBtn")
+        .addEventListener(
+            "click",
+            rejectRequest
+        );
+
+
+    document
+        .getElementById("editBtn")
+        .addEventListener(
+            "click",
+            openEditModal
+        );
+
+}
+
+
+async function approveRequest(){
+
+    if(!currentRequest){
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            "Kya aap is cylinder request ko APPROVE karna chahte hain?"
+        );
+
+
+    if(!confirmed){
+        return;
+    }
+
+
+    const owner =
+        await requireOwner();
+
+    if(!owner){
+        return;
+    }
+
+
+    try{
+
+        const now =
+            new Date().toISOString();
+
+
+        const updateData = {
+
+            owner_approval:
+                "approved",
+
+            approved_by:
+                owner.id,
+
+            approved_at:
+                now,
+
+            owner_rejected_at:
+                null,
+
+            rejection_reason:
+                null,
+
+            status:
+                "Processing",
+
+            agency_status:
+                "waiting",
+
+            user_status:
+                "approved",
+
+            updated_at:
+                now
+
+        };
+
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update(updateData)
+            .eq(
+                "id",
+                currentRequest.id
+            );
+
+
+        if(error){
+
+            showToast(
+                "Approval Failed",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        showToast(
+            "Request Approved",
+            "Request approved successfully."
+        );
+
+
+        await loadRequest();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showToast(
+            "Approval Failed",
+            "Unable to approve request."
+        );
+
+    }
+
+}
+
+
+async function rejectRequest(){
+
+    if(!currentRequest){
+        return;
+    }
+
+
+    const reason =
+        prompt(
+            "Rejection reason likhiye:"
+        );
+
+
+    if(reason === null){
+        return;
+    }
+
+
+    const owner =
+        await requireOwner();
+
+    if(!owner){
+        return;
+    }
+
+
+    try{
+
+        const now =
+            new Date().toISOString();
+
+        const cleanReason =
+            String(reason || "")
+                .trim();
+
+
+        const updateData = {
+
+            owner_approval:
+                "rejected",
+
+            approved_by:
+                null,
+
+            approved_at:
+                null,
+
+            owner_rejected_at:
+                now,
+
+            rejection_reason:
+                cleanReason || null,
+
+            owner_note:
+                cleanReason || null,
+
+            status:
+                "Cancelled",
+
+            user_status:
+                "rejected",
+
+            updated_at:
+                now
+
+        };
+
+
+        const {
+            error
+        } =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update(updateData)
+            .eq(
+                "id",
+                currentRequest.id
+            );
+
+
+        if(error){
+
+            showToast(
+                "Rejection Failed",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        showToast(
+            "Request Rejected",
+            "Cylinder request rejected successfully."
+        );
+
+
+        await loadRequest();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showToast(
+            "Rejection Failed",
+            "Unable to reject request."
+        );
+
+    }
+
+}
+
+
+function openEditModal(){
+
+    if(!currentRequest){
+        return;
+    }
+
+
+    editApproval.value =
+        normalizeApproval(
+            currentRequest.owner_approval
+        );
+
+
+    editStatus.value =
+        currentRequest.status ||
+        "Pending";
+
+
+    editNote.value =
+        currentRequest.owner_note ||
+        currentRequest.rejection_reason ||
+        "";
+
+
+    editModal.classList.add(
+        "show"
+    );
+
+}
+
+
+editCancel.addEventListener(
+    "click",
+    function(){
+
+        editModal.classList.remove(
+            "show"
+        );
+
+    }
+);
+
+
+editModal.addEventListener(
+    "click",
+    function(event){
+
+        if(event.target === editModal){
+
+            editModal.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+editSave.addEventListener(
+    "click",
+    async function(){
+
+        if(!currentRequest){
+            return;
+        }
+
+
+        const owner =
+            await requireOwner();
+
+        if(!owner){
+            return;
+        }
+
+
+        editSave.disabled =
+            true;
+
+        editSave.textContent =
+            "Saving...";
+
+
+        try{
+
+            const newApproval =
+                normalizeApproval(
+                    editApproval.value
+                );
+
+
+            const now =
+                new Date().toISOString();
+
+
+            const updateData = {
+
+                owner_approval:
+                    newApproval,
+
+                status:
+                    editStatus.value,
+
+                owner_note:
+                    editNote.value.trim() ||
+                    null,
+
+                updated_at:
+                    now
+
+            };
+
+
+            if(newApproval === "approved"){
+
+                updateData.approved_by =
+                    owner.id;
+
+                updateData.approved_at =
+                    now;
+
+                updateData.owner_rejected_at =
+                    null;
+
+                updateData.rejection_reason =
+                    null;
+
+                updateData.status =
+                    "Processing";
+
+                updateData.agency_status =
+                    "waiting";
+
+                updateData.user_status =
+                    "approved";
+
+            }
+
+
+            else if(newApproval === "rejected"){
+
+                updateData.approved_by =
+                    null;
+
+                updateData.approved_at =
+                    null;
+
+                updateData.owner_rejected_at =
+                    now;
+
+                updateData.rejection_reason =
+                    editNote.value.trim() ||
+                    null;
+
+                updateData.status =
+                    "Cancelled";
+
+                updateData.user_status =
+                    "rejected";
+
+            }
+
+
+            else{
+
+                updateData.approved_by =
+                    null;
+
+                updateData.approved_at =
+                    null;
+
+                updateData.owner_rejected_at =
+                    null;
+
+                updateData.rejection_reason =
+                    null;
+
+                updateData.user_status =
+                    "pending";
+
+            }
+
+
+            const {
+                error
+            } =
+            await supabaseClient
+                .from("cylinder_requests")
+                .update(updateData)
+                .eq(
+                    "id",
+                    currentRequest.id
+                );
+
+
+            if(error){
+
+                showToast(
+                    "Update Failed",
+                    error.message
+                );
+
+                return;
+
+            }
+
+
+            editModal.classList.remove(
+                "show"
+            );
+
+
+            showToast(
+                "Request Updated",
+                "Request details updated successfully."
+            );
+
+
+            await loadRequest();
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Update Failed",
+                error.message ||
+                "Unable to update request."
+            );
+
+        }
+        finally{
+
+            editSave.disabled =
+                false;
+
+            editSave.textContent =
+                "Save Changes";
+
+        }
+
+    }
+);
+
+
+logoutBtn.addEventListener(
+    "click",
+    async function(){
+
+        const confirmed =
+            confirm(
+                "Kya aap EGC Owner Panel se logout karna chahte hain?"
+            );
+
+
+        if(!confirmed){
+            return;
+        }
+
+
+        try{
+
+            await supabaseClient.auth.signOut();
+
+            window.location.replace(
+                "owner-login.html"
+            );
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            showToast(
+                "Logout Failed",
+                "Please try again."
+            );
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        if(event.key === "Escape"){
+
+            editModal.classList.remove(
+                "show"
+            );
+
+        }
+
+    }
+);
+
+
+async function init(){
+
+    const owner =
+        await requireOwner();
+
+    if(!owner){
+        return;
+    }
+
+
+    await loadRequest();
+
+}
+
+
+init();
+
+</script>
+
+</body>
+</html>

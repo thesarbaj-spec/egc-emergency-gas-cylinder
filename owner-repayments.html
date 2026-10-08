@@ -1,0 +1,3954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Owner Repayments</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    color:#073f73;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        #fff;
+}
+
+button,
+input,
+select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header{
+    height:78px;
+    background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 28px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    backdrop-filter:blur(12px);
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.menu-btn{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:12px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:22px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.logo{
+    height:57px;
+    width:auto;
+    object-fit:contain;
+}
+
+.owner-title{
+    font-size:20px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.owner-subtitle{
+    font-size:12px;
+    color:#8094a6;
+    margin-top:3px;
+}
+
+.header-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.notification-wrap{
+    position:relative;
+}
+
+.notification-btn{
+    width:43px;
+    height:43px;
+    border:1px solid #dfe9f1;
+    border-radius:12px;
+    background:#fff;
+    color:#075ca5;
+    font-size:19px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.notification-count{
+    position:absolute;
+    top:-5px;
+    right:-5px;
+    min-width:18px;
+    height:18px;
+    padding:0 5px;
+    border-radius:20px;
+    background:#e53e3e;
+    color:#fff;
+    font-size:9px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #fff;
+}
+
+.notification-panel{
+    position:absolute;
+    right:0;
+    top:53px;
+    width:310px;
+    background:#fff;
+    border:1px solid #dfe8ef;
+    border-radius:15px;
+    box-shadow:0 15px 45px rgba(30,70,100,.16);
+    display:none;
+    overflow:hidden;
+}
+
+.notification-panel.show{
+    display:block;
+}
+
+.notification-panel-header{
+    padding:15px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.notification-panel-title{
+    font-size:14px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.notification-panel-link{
+    font-size:10px;
+    color:#0871c3;
+    font-weight:700;
+}
+
+.notification-empty{
+    padding:25px 15px;
+    text-align:center;
+    color:#8799a9;
+    font-size:11px;
+}
+
+.owner-badge{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#eef8ff;
+    padding:9px 14px;
+    border-radius:12px;
+    color:#075ca5;
+    font-size:14px;
+    font-weight:700;
+}
+
+.owner-dot{
+    width:9px;
+    height:9px;
+    background:#20a45a;
+    border-radius:50%;
+}
+
+/* =========================
+   LAYOUT
+========================= */
+
+.layout{
+    display:flex;
+    min-height:calc(100vh - 78px);
+}
+
+/* =========================
+   MASTER SIDEBAR
+========================= */
+
+.sidebar{
+    width:245px;
+    background:linear-gradient(
+        180deg,
+        rgba(255,245,245,.98) 0%,
+        rgba(242,248,255,.98) 52%,
+        rgba(255,255,255,.98) 100%
+    );
+    border-right:1px solid #e1e9f0;
+    padding:25px 15px;
+    flex-shrink:0;
+    box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar-title{
+    color:#7990a4;
+    font-size:13px;
+    font-weight:800;
+    padding:0 13px 12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+}
+
+.sidebar-section{
+    margin-top:25px;
+}
+
+.nav-btn{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:#496a82;
+    padding:13px 14px;
+    border-radius:11px;
+    margin-bottom:5px;
+    text-align:left;
+    font-size:14px;
+    font-weight:700;
+    transition:.2s;
+    white-space:nowrap;
+}
+
+.nav-btn:hover{
+    background:#e5f2fc;
+    color:#075ca5;
+}
+
+.nav-btn.active{
+    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color:#075ca5;
+    box-shadow:0 4px 12px rgba(60,120,170,.08);
+}
+
+.nav-icon{
+    display:inline-flex;
+    width:25px;
+    min-width:25px;
+    font-size:17px;
+    align-items:center;
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+    padding-top:12px;
+}
+
+.sidebar-logout{
+    color:#c72e2e;
+    background:rgba(255,241,241,.7);
+}
+
+.sidebar-logout:hover{
+    background:#ffe3e3;
+    color:#b92727;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main{
+    flex:1;
+    padding:30px;
+    min-width:0;
+    max-width:1500px;
+}
+
+.welcome{
+    margin-bottom:22px;
+}
+
+.welcome h1{
+    font-size:28px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:6px;
+}
+
+.welcome p{
+    color:#7890a3;
+    font-size:14px;
+}
+
+/* =========================
+   SUMMARY CARDS
+========================= */
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-bottom:20px;
+}
+
+.stat-card{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ef;
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    position:relative;
+    overflow:hidden;
+}
+
+.stat-card::after{
+    content:"";
+    position:absolute;
+    width:70px;
+    height:70px;
+    right:-25px;
+    bottom:-30px;
+    border-radius:50%;
+    background:#eef7ff;
+}
+
+.stat-icon{
+    width:39px;
+    height:39px;
+    border-radius:11px;
+    background:#eef7ff;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    margin-bottom:12px;
+}
+
+.stat-value{
+    font-size:24px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.stat-label{
+    font-size:10px;
+    font-weight:800;
+    color:#8296a7;
+    margin-top:5px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+}
+
+/* =========================
+   PANEL
+========================= */
+
+.panel{
+    background:rgba(255,255,255,.96);
+    border:1px solid #dce6ef;
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+    margin-bottom:20px;
+}
+
+.panel-header{
+    padding:20px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+}
+
+.panel-title{
+    color:#06477f;
+    font-size:18px;
+    font-weight:800;
+}
+
+.panel-subtitle{
+    color:#8799a9;
+    font-size:11px;
+    margin-top:5px;
+}
+
+.refresh-btn{
+    height:40px;
+    padding:0 15px;
+    border:0;
+    border-radius:10px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:12px;
+    font-weight:800;
+}
+
+.refresh-btn:hover{
+    background:#e0f0fb;
+}
+
+/* =========================
+   FILTERS
+========================= */
+
+.filters{
+    padding:16px 20px;
+    display:grid;
+    grid-template-columns:1fr 180px 150px;
+    gap:10px;
+    border-bottom:1px solid #edf2f6;
+}
+
+.search-box,
+.filter-select{
+    height:43px;
+    border:1px solid #dce6ef;
+    border-radius:10px;
+    background:#fbfdff;
+    color:#31566f;
+    outline:none;
+    padding:0 13px;
+    font-size:12px;
+}
+
+.search-box:focus,
+.filter-select:focus{
+    border-color:#8fc3ea;
+    box-shadow:0 0 0 3px rgba(65,150,215,.08);
+}
+
+.clear-btn{
+    height:43px;
+    border:0;
+    border-radius:10px;
+    background:#eef4f8;
+    color:#527087;
+    font-size:12px;
+    font-weight:800;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    min-width:1250px;
+    border-collapse:collapse;
+}
+
+thead{
+    background:#f7fafc;
+}
+
+th{
+    padding:13px 14px;
+    text-align:left;
+    color:#668197;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    white-space:nowrap;
+    border-bottom:1px solid #e7eef3;
+}
+
+td{
+    padding:14px;
+    border-bottom:1px solid #edf2f6;
+    color:#496a82;
+    font-size:11px;
+    vertical-align:middle;
+}
+
+tbody tr:hover{
+    background:#fbfdff;
+}
+
+.customer-cell{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:170px;
+}
+
+.customer-avatar{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    background:#eef7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    flex-shrink:0;
+}
+
+.customer-name{
+    color:#315671;
+    font-size:11px;
+    font-weight:800;
+}
+
+.customer-mobile{
+    color:#8a9baa;
+    font-size:9px;
+    margin-top:3px;
+}
+
+.amount{
+    color:#06477f;
+    font-weight:800;
+}
+
+.remaining{
+    color:#c06a00;
+    font-weight:800;
+}
+
+.extra{
+    color:#b34c4c;
+    font-weight:800;
+}
+
+.paid{
+    color:#18803d;
+    font-weight:800;
+}
+
+.status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:9px;
+    font-weight:800;
+    white-space:nowrap;
+}
+
+.status.pending{
+    background:#fff6df;
+    color:#a66a00;
+}
+
+.status.paid{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.partial{
+    background:#eef7ff;
+    color:#075ca5;
+}
+
+.status.failed{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.status.completed{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.status.processing{
+    background:#eef7ff;
+    color:#075ca5;
+}
+
+.action-btn{
+    height:34px;
+    padding:0 11px;
+    border:0;
+    border-radius:9px;
+    background:#eef7ff;
+    color:#075ca5;
+    font-size:10px;
+    font-weight:800;
+}
+
+.action-btn:hover{
+    background:#dfeffc;
+}
+
+.loading-row,
+.empty-row{
+    text-align:center;
+    padding:35px !important;
+    color:#8799a9;
+}
+
+/* =========================
+   PAGINATION
+========================= */
+
+.pagination{
+    padding:15px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+
+.pagination-info{
+    color:#8799a9;
+    font-size:10px;
+}
+
+.pagination-buttons{
+    display:flex;
+    gap:6px;
+}
+
+.page-btn{
+    min-width:32px;
+    height:32px;
+    border:1px solid #dce6ef;
+    background:#fff;
+    color:#527087;
+    border-radius:8px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.page-btn.active{
+    background:#0871c3;
+    border-color:#0871c3;
+    color:#fff;
+}
+
+/* =========================
+   REPAYMENT TRACKING CARD
+========================= */
+
+.tracking-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    padding:20px;
+}
+
+.tracking-box{
+    border:1px solid #e2ebf1;
+    border-radius:15px;
+    padding:18px;
+    background:#fbfdff;
+}
+
+.tracking-title{
+    font-size:14px;
+    color:#06477f;
+    font-weight:800;
+    margin-bottom:15px;
+}
+
+.tracking-row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:10px 0;
+    border-bottom:1px solid #edf2f6;
+}
+
+.tracking-row:last-child{
+    border-bottom:0;
+}
+
+.tracking-label{
+    color:#7b90a1;
+    font-size:11px;
+}
+
+.tracking-value{
+    color:#315671;
+    font-size:11px;
+    font-weight:800;
+    text-align:right;
+}
+
+.progress-wrap{
+    margin-top:18px;
+}
+
+.progress-head{
+    display:flex;
+    justify-content:space-between;
+    color:#6e8497;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:7px;
+}
+
+.progress{
+    height:9px;
+    background:#e7eef3;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:0;
+    background:linear-gradient(90deg,#0871c3,#20a45a);
+    border-radius:20px;
+    transition:.3s;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,55,.42);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9998;
+    padding:20px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-box{
+    width:100%;
+    max-width:700px;
+    max-height:90vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:20px;
+    border:1px solid #dce6ef;
+    box-shadow:0 25px 70px rgba(15,50,75,.25);
+}
+
+.modal-header{
+    padding:19px 20px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+}
+
+.modal-title{
+    color:#06477f;
+    font-size:18px;
+    font-weight:800;
+}
+
+.modal-subtitle{
+    color:#8799a9;
+    font-size:11px;
+    margin-top:4px;
+}
+
+.modal-close{
+    width:35px;
+    height:35px;
+    border:0;
+    border-radius:9px;
+    background:#eef4f8;
+    color:#527087;
+    font-size:17px;
+}
+
+.modal-body{
+    padding:20px;
+}
+
+.detail-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.detail-item{
+    padding:12px;
+    background:#f8fbfd;
+    border:1px solid #e7eef3;
+    border-radius:11px;
+}
+
+.detail-label{
+    color:#8799a9;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.detail-value{
+    color:#315671;
+    font-size:12px;
+    font-weight:800;
+    margin-top:5px;
+    word-break:break-word;
+}
+
+.modal-footer{
+    padding:15px 20px;
+    border-top:1px solid #edf2f6;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+}
+
+.close-btn{
+    height:40px;
+    padding:0 17px;
+    border:0;
+    border-radius:10px;
+    background:#eef4f8;
+    color:#527087;
+    font-size:12px;
+    font-weight:800;
+}
+
+/* =========================
+   LOGOUT MODAL
+========================= */
+
+.logout-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(5,35,55,.42);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+}
+
+.logout-modal.show{
+    display:flex;
+}
+
+.logout-box{
+    width:100%;
+    max-width:390px;
+    background:#fff;
+    border-radius:20px;
+    border:1px solid #dce6ef;
+    box-shadow:0 25px 70px rgba(15,50,75,.25);
+    padding:25px;
+    text-align:center;
+}
+
+.logout-icon{
+    width:58px;
+    height:58px;
+    margin:0 auto 14px;
+    border-radius:16px;
+    background:#fff0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+}
+
+.logout-title{
+    color:#06477f;
+    font-size:19px;
+    font-weight:800;
+}
+
+.logout-text{
+    color:#8094a6;
+    font-size:12px;
+    line-height:1.6;
+    margin-top:7px;
+}
+
+.logout-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+}
+
+.logout-actions button{
+    flex:1;
+    height:43px;
+    border:0;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.logout-cancel{
+    background:#eef4f8;
+    color:#527087;
+}
+
+.logout-confirm{
+    background:#c72e2e;
+    color:#fff;
+}
+
+/* =========================
+   TOAST
+========================= */
+
+.toast{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:10000;
+    min-width:290px;
+    max-width:390px;
+    background:#fff;
+    border:1px solid #dce6ef;
+    border-radius:14px;
+    box-shadow:0 15px 45px rgba(20,60,90,.18);
+    padding:15px;
+    display:none;
+}
+
+.toast.show{
+    display:block;
+}
+
+.toast-title{
+    color:#06477f;
+    font-size:13px;
+    font-weight:800;
+}
+
+.toast-text{
+    color:#7890a3;
+    font-size:11px;
+    margin-top:4px;
+    line-height:1.5;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+.overlay{
+    display:none;
+}
+
+@media(max-width:1050px){
+
+    .stats-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .tracking-grid{
+        grid-template-columns:1fr;
+    }
+
+    .main{
+        padding:25px;
+    }
+}
+
+@media(max-width:800px){
+
+    .header{
+        height:70px;
+        padding:0 14px;
+    }
+
+    .menu-btn{
+        display:flex;
+    }
+
+    .logo{
+        height:48px;
+    }
+
+    .owner-title,
+    .owner-subtitle,
+    .owner-badge{
+        display:none;
+    }
+
+    .header-right{
+        margin-left:auto;
+    }
+
+    .notification-btn{
+        width:40px;
+        height:40px;
+    }
+
+    .notification-panel{
+        position:fixed;
+        top:62px;
+        right:12px;
+        left:12px;
+        width:auto;
+    }
+
+    .layout{
+        display:block;
+        min-height:calc(100vh - 70px);
+    }
+
+    .sidebar{
+        position:fixed;
+        top:70px;
+        left:-260px;
+        width:245px;
+        height:calc(100vh - 70px);
+        z-index:200;
+        transition:left .25s ease;
+        overflow-y:auto;
+    }
+
+    .sidebar.open{
+        left:0;
+    }
+
+    .overlay.show{
+        display:block;
+        position:fixed;
+        inset:70px 0 0 0;
+        background:rgba(0,0,0,.25);
+        z-index:150;
+    }
+
+    .main{
+        width:100%;
+        padding:20px 14px 40px;
+    }
+
+    .welcome h1{
+        font-size:23px;
+    }
+
+    .welcome p{
+        font-size:12px;
+    }
+
+    .stats-grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+    }
+
+    .stat-card{
+        padding:14px;
+    }
+
+    .stat-value{
+        font-size:20px;
+    }
+
+    .panel-header{
+        padding:17px;
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .filters{
+        grid-template-columns:1fr;
+        padding:14px;
+    }
+
+    .tracking-grid{
+        padding:14px;
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr;
+    }
+
+    .pagination{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .toast{
+        left:14px;
+        right:14px;
+        bottom:14px;
+        min-width:0;
+    }
+}
+
+@media(max-width:520px){
+
+    .stats-grid{
+        grid-template-columns:1fr;
+    }
+
+    .stat-card{
+        display:flex;
+        align-items:center;
+        gap:13px;
+    }
+
+    .stat-icon{
+        margin:0;
+        flex-shrink:0;
+    }
+
+    .stat-value{
+        font-size:19px;
+    }
+
+    .modal-box{
+        max-height:94vh;
+    }
+
+    .logout-actions{
+        flex-direction:column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="header">
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menuBtn"
+            type="button"
+        >
+            ☰
+        </button>
+
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
+        >
+
+        <div>
+
+            <div class="owner-title">
+                Owner Dashboard
+            </div>
+
+            <div class="owner-subtitle">
+                Emergency Gas Cylinder Management
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <div class="notification-wrap">
+
+            <button
+                class="notification-btn"
+                id="notificationBtn"
+                type="button"
+            >
+                🔔
+
+                <span
+                    class="notification-count"
+                    id="notificationCount"
+                >
+                    0
+                </span>
+
+            </button>
+
+
+            <div
+                class="notification-panel"
+                id="notificationPanel"
+            >
+
+                <div class="notification-panel-header">
+
+                    <div class="notification-panel-title">
+                        Notifications
+                    </div>
+
+                    <div class="notification-panel-link">
+                        View All
+                    </div>
+
+                </div>
+
+
+                <div class="notification-empty">
+                    No new notifications
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="owner-badge">
+
+            <span class="owner-dot"></span>
+
+            Owner
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     LAYOUT
+===================================================== -->
+
+<div class="layout">
+
+
+<!-- =====================================================
+     MASTER SIDEBAR
+===================================================== -->
+
+<aside
+    class="sidebar"
+    id="sidebar"
+>
+
+    <div class="sidebar-title">
+        Management
+    </div>
+
+
+    <button
+        class="nav-btn"
+        data-page="dashboard"
+        type="button"
+    >
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="users"
+        type="button"
+    >
+        <span class="nav-icon">👥</span>
+        Users
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="agencies"
+        type="button"
+    >
+        <span class="nav-icon">🏪</span>
+        LPG Agencies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="companies"
+        type="button"
+    >
+        <span class="nav-icon">🏢</span>
+        LPG Companies
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="pending-approvals"
+        type="button"
+    >
+        <span class="nav-icon">⏳</span>
+        Pending Approvals
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="requests"
+        type="button"
+    >
+        <span class="nav-icon">🛢</span>
+        Cylinder Requests
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="payments"
+        type="button"
+    >
+        <span class="nav-icon">₹</span>
+        Payments
+    </button>
+
+
+    <button
+        class="nav-btn"
+        data-page="reports"
+        type="button"
+    >
+        <span class="nav-icon">▤</span>
+        Reports
+    </button>
+
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            Owner Pages
+        </div>
+
+
+        <button
+            class="nav-btn"
+            data-page="request-details"
+            type="button"
+        >
+            <span class="nav-icon">📄</span>
+            Request Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="payment-details"
+            type="button"
+        >
+            <span class="nav-icon">💳</span>
+            Payment Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="agency-details"
+            type="button"
+        >
+            <span class="nav-icon">🏪</span>
+            Agency Details
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="deliveries"
+            type="button"
+        >
+            <span class="nav-icon">🚚</span>
+            Deliveries
+        </button>
+
+
+        <button
+            class="nav-btn active"
+            data-page="repayments"
+            type="button"
+        >
+            <span class="nav-icon">💰</span>
+            Repayments
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="notifications"
+            type="button"
+        >
+            <span class="nav-icon">🔔</span>
+            Notifications
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="slips"
+            type="button"
+        >
+            <span class="nav-icon">🧾</span>
+            Slips
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="profile"
+            type="button"
+        >
+            <span class="nav-icon">👤</span>
+            Profile
+        </button>
+
+    </div>
+
+
+    <div class="sidebar-section">
+
+        <div class="sidebar-title">
+            System
+        </div>
+
+
+        <button
+            class="nav-btn"
+            data-page="settings"
+            type="button"
+        >
+            <span class="nav-icon">⚙</span>
+            Settings
+        </button>
+
+    </div>
+
+
+    <div class="sidebar-bottom">
+
+        <button
+            class="nav-btn sidebar-logout"
+            id="logoutBtn"
+            type="button"
+        >
+            <span class="nav-icon">🚪</span>
+            Logout
+        </button>
+
+    </div>
+
+</aside>
+
+
+<div
+    class="overlay"
+    id="overlay"
+></div>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="main">
+
+    <div class="welcome">
+
+        <h1>
+            Repayments
+        </h1>
+
+        <p>
+            Track remaining amount, extra charges and customer repayment status.
+        </p>
+
+    </div>
+
+
+    <!-- =================================================
+         SUMMARY
+    ================================================== -->
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ₹
+            </div>
+
+            <div>
+
+                <div
+                    class="stat-value"
+                    id="totalOutstanding"
+                >
+                    ₹0
+                </div>
+
+                <div class="stat-label">
+                    Total Outstanding
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ⚡
+            </div>
+
+            <div>
+
+                <div
+                    class="stat-value"
+                    id="totalExtraCharge"
+                >
+                    ₹0
+                </div>
+
+                <div class="stat-label">
+                    Extra Charges
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                💰
+            </div>
+
+            <div>
+
+                <div
+                    class="stat-value"
+                    id="totalPayable"
+                >
+                    ₹0
+                </div>
+
+                <div class="stat-label">
+                    Total Payable
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <div>
+
+                <div
+                    class="stat-value"
+                    id="totalRepaid"
+                >
+                    ₹0
+                </div>
+
+                <div class="stat-label">
+                    Total Repaid
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         REPAYMENT TRACKING
+    ================================================== -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <div class="panel-title">
+                    Repayment Tracking
+                </div>
+
+                <div class="panel-subtitle">
+                    Remaining amount and extra charge overview.
+                </div>
+
+            </div>
+
+
+            <button
+                class="refresh-btn"
+                id="refreshBtn"
+                type="button"
+            >
+                ↻ Refresh
+            </button>
+
+        </div>
+
+
+        <div class="tracking-grid">
+
+            <div class="tracking-box">
+
+                <div class="tracking-title">
+                    Payment Summary
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Cylinder Amount
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="trackingCylinder"
+                    >
+                        ₹0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Initial / Paid Amount
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="trackingPaid"
+                    >
+                        ₹0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Remaining Amount
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="trackingRemaining"
+                    >
+                        ₹0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Extra Charge
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="trackingExtra"
+                    >
+                        ₹0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Total Payable
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="trackingPayable"
+                    >
+                        ₹0
+                    </span>
+
+                </div>
+
+
+                <div class="progress-wrap">
+
+                    <div class="progress-head">
+
+                        <span>
+                            Repayment Progress
+                        </span>
+
+                        <span id="progressPercent">
+                            0%
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar"
+                            id="progressBar"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="tracking-box">
+
+                <div class="tracking-title">
+                    Repayment Status
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Customers with Balance
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="customersBalance"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Pending Repayments
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="pendingRepayments"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Completed Repayments
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="completedRepayments"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="tracking-row">
+
+                    <span class="tracking-label">
+                        Last Repayment
+                    </span>
+
+                    <span
+                        class="tracking-value"
+                        id="lastRepayment"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         REPAYMENT RECORDS
+    ================================================== -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <div class="panel-title">
+                    Repayment Records
+                </div>
+
+                <div class="panel-subtitle">
+                    View and track all customer repayment records.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="filters">
+
+            <input
+                type="text"
+                class="search-box"
+                id="searchInput"
+                placeholder="🔎 Search customer, request ID, repayment ID, mobile..."
+            >
+
+
+            <select
+                class="filter-select"
+                id="statusFilter"
+            >
+
+                <option value="all">
+                    All Repayment Status
+                </option>
+
+                <option value="pending">
+                    Pending
+                </option>
+
+                <option value="partial">
+                    Partial
+                </option>
+
+                <option value="paid">
+                    Paid
+                </option>
+
+                <option value="failed">
+                    Failed
+                </option>
+
+            </select>
+
+
+            <button
+                class="clear-btn"
+                id="clearSearch"
+                type="button"
+            >
+                Clear
+            </button>
+
+        </div>
+
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Request ID
+                        </th>
+
+                        <th>
+                            Cylinder Amount
+                        </th>
+
+                        <th>
+                            Paid Amount
+                        </th>
+
+                        <th>
+                            Remaining
+                        </th>
+
+                        <th>
+                            Extra Charge
+                        </th>
+
+                        <th>
+                            Total Payable
+                        </th>
+
+                        <th>
+                            Repayment
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Last Payment
+                        </th>
+
+                        <th>
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="repaymentTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="11"
+                            class="loading-row"
+                        >
+                            Loading repayment records...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="pagination">
+
+            <div
+                class="pagination-info"
+                id="paginationInfo"
+            >
+                Showing 0 repayments
+            </div>
+
+
+            <div
+                class="pagination-buttons"
+                id="paginationButtons"
+            ></div>
+
+        </div>
+
+    </section>
+
+</main>
+
+</div>
+
+
+<!-- =====================================================
+     REPAYMENT DETAIL MODAL
+===================================================== -->
+
+<div
+    class="modal"
+    id="repaymentModal"
+>
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <div>
+
+                <div
+                    class="modal-title"
+                    id="modalTitle"
+                >
+                    Repayment Details
+                </div>
+
+                <div
+                    class="modal-subtitle"
+                    id="modalSubtitle"
+                >
+                    Customer repayment information
+                </div>
+
+            </div>
+
+
+            <button
+                class="modal-close"
+                id="modalClose"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Customer
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dCustomer"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Mobile
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dMobile"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Request ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dRequest"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Repayment ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dRepayment"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Cylinder Amount
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dCylinder"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Initial / Previous Paid
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dPaid"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Remaining Amount
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dRemaining"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Extra Charge
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dExtra"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Total Payable
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dPayable"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Repayment Amount
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dRepaymentAmount"
+                    >
+                        ₹0
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Payment Method
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dMethod"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Transaction ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dTransaction"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Payment Date
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dDate"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Status
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="dStatus"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                class="close-btn"
+                id="modalCloseBtn"
+                type="button"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     LOGOUT MODAL
+===================================================== -->
+
+<div
+    class="logout-modal"
+    id="logoutModal"
+>
+
+    <div class="logout-box">
+
+        <div class="logout-icon">
+            🚪
+        </div>
+
+        <div class="logout-title">
+            Logout Owner Panel?
+        </div>
+
+        <div class="logout-text">
+            Are you sure you want to logout from the EGC Owner Panel?
+        </div>
+
+        <div class="logout-actions">
+
+            <button
+                class="logout-cancel"
+                id="logoutCancel"
+                type="button"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="logout-confirm"
+                id="logoutConfirm"
+                type="button"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
+
+<div
+    class="toast"
+    id="toast"
+>
+
+    <div
+        class="toast-title"
+        id="toastTitle"
+    >
+        Notification
+    </div>
+
+    <div
+        class="toast-text"
+        id="toastText"
+    >
+        —
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   SUPABASE CONFIG
+=====================================================
+
+   Apne existing project ka URL + publishable/anon key
+   yahan use karein.
+===================================================== */
+
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+
+/* =====================================================
+   GLOBAL DATA
+===================================================== */
+
+let repaymentRecords = [];
+let filteredRecords = [];
+
+let currentPage = 1;
+const rowsPerPage = 10;
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+
+const notificationBtn =
+    document.getElementById("notificationBtn");
+
+const notificationPanel =
+    document.getElementById("notificationPanel");
+
+const searchInput =
+    document.getElementById("searchInput");
+
+const statusFilter =
+    document.getElementById("statusFilter");
+
+const clearSearch =
+    document.getElementById("clearSearch");
+
+const refreshBtn =
+    document.getElementById("refreshBtn");
+
+const repaymentTableBody =
+    document.getElementById("repaymentTableBody");
+
+const paginationInfo =
+    document.getElementById("paginationInfo");
+
+const paginationButtons =
+    document.getElementById("paginationButtons");
+
+const repaymentModal =
+    document.getElementById("repaymentModal");
+
+const logoutModal =
+    document.getElementById("logoutModal");
+
+
+/* =====================================================
+   MOBILE SIDEBAR
+===================================================== */
+
+menuBtn.addEventListener("click", () => {
+
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("show");
+
+});
+
+
+overlay.addEventListener("click", closeSidebar);
+
+
+function closeSidebar(){
+
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
+
+}
+
+
+/* =====================================================
+   NOTIFICATION
+===================================================== */
+
+notificationBtn.addEventListener("click", (event) => {
+
+    event.stopPropagation();
+
+    notificationPanel.classList.toggle("show");
+
+});
+
+
+document.addEventListener("click", (event) => {
+
+    if(
+        !notificationPanel.contains(event.target) &&
+        event.target !== notificationBtn
+    ){
+
+        notificationPanel.classList.remove("show");
+
+    }
+
+});
+
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+document.querySelectorAll(".nav-btn[data-page]").forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+        const page = btn.dataset.page;
+
+        const routes = {
+
+            dashboard: "owner-dashboard.html",
+            users: "owner-users.html",
+            agencies: "owner-agencies.html",
+            companies: "owner-companies.html",
+            "pending-approvals": "owner-pending-approvals.html",
+            requests: "owner-requests.html",
+            payments: "owner-payments.html",
+            reports: "owner-reports.html",
+
+            "request-details":
+                "owner-request-details.html",
+
+            "payment-details":
+                "owner-payment-details.html",
+
+            "agency-details":
+                "owner-agency-details.html",
+
+            deliveries:
+                "owner-deliveries.html",
+
+            repayments:
+                "owner-repayments.html",
+
+            notifications:
+                "owner-notifications.html",
+
+            slips:
+                "owner-slips.html",
+
+            profile:
+                "owner-profile.html",
+
+            settings:
+                "owner-settings.html"
+
+        };
+
+
+        if(routes[page]){
+
+            window.location.href = routes[page];
+
+        }
+
+    });
+
+});
+
+
+/* =====================================================
+   FORMAT MONEY
+===================================================== */
+
+function money(value){
+
+    const number = Number(value) || 0;
+
+    return "₹" + number.toLocaleString(
+        "en-IN",
+        {
+            maximumFractionDigits:2
+        }
+    );
+
+}
+
+
+/* =====================================================
+   FORMAT DATE
+===================================================== */
+
+function formatDate(value){
+
+    if(!value){
+
+        return "—";
+
+    }
+
+    const date = new Date(value);
+
+    if(Number.isNaN(date.getTime())){
+
+        return String(value);
+
+    }
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day:"2-digit",
+            month:"short",
+            year:"numeric"
+        }
+    );
+
+}
+
+
+/* =====================================================
+   SAFE NUMBER
+===================================================== */
+
+function num(value){
+
+    const n = Number(value);
+
+    return Number.isFinite(n) ? n : 0;
+
+}
+
+
+/* =====================================================
+   FIELD HELPER
+===================================================== */
+
+function getField(row, names, fallback = null){
+
+    for(const name of names){
+
+        if(
+            row &&
+            row[name] !== undefined &&
+            row[name] !== null &&
+            row[name] !== ""
+        ){
+
+            return row[name];
+
+        }
+
+    }
+
+    return fallback;
+
+}
+
+
+/* =====================================================
+   NORMALIZE REPAYMENT RECORD
+===================================================== */
+
+function normalizeRecord(row){
+
+    const cylinderAmount = num(
+        getField(
+            row,
+            [
+                "cylinder_amount",
+                "amount",
+                "request_amount",
+                "total_amount"
+            ],
+            0
+        )
+    );
+
+
+    const initialPaid = num(
+        getField(
+            row,
+            [
+                "initial_payment",
+                "initial_paid",
+                "paid_amount",
+                "total_paid"
+            ],
+            0
+        )
+    );
+
+
+    const extraCharge = num(
+        getField(
+            row,
+            [
+                "extra_charge",
+                "extra_charges",
+                "late_charge"
+            ],
+            0
+        )
+    );
+
+
+    const repaymentAmount = num(
+        getField(
+            row,
+            [
+                "repayment_amount",
+                "amount_paid",
+                "payment_amount"
+            ],
+            0
+        )
+    );
+
+
+    let totalPaid =
+        initialPaid + repaymentAmount;
+
+
+    if(
+        totalPaid === 0 &&
+        getField(row,["total_paid"],null) !== null
+    ){
+
+        totalPaid = num(
+            getField(row,["total_paid"],0)
+        );
+
+    }
+
+
+    const remainingBase = Math.max(
+        cylinderAmount - totalPaid,
+        0
+    );
+
+
+    const totalPayable =
+        Math.max(
+            cylinderAmount + extraCharge,
+            0
+        );
+
+
+    const remainingPayable =
+        Math.max(
+            totalPayable - totalPaid,
+            0
+        );
+
+
+    let status = String(
+        getField(
+            row,
+            [
+                "repayment_status",
+                "status",
+                "payment_status"
+            ],
+            ""
+        )
+    ).toLowerCase();
+
+
+    if(!status){
+
+        if(remainingPayable <= 0){
+
+            status = "paid";
+
+        }else if(totalPaid > 0){
+
+            status = "partial";
+
+        }else{
+
+            status = "pending";
+
+        }
+
+    }
+
+
+    const name = getField(
+        row,
+        [
+            "full_name",
+            "customer_name",
+            "user_name",
+            "name"
+        ],
+        "Customer"
+    );
+
+
+    const mobile = getField(
+        row,
+        [
+            "mobile",
+            "phone",
+            "customer_mobile"
+        ],
+        "—"
+    );
+
+
+    const requestId = getField(
+        row,
+        [
+            "request_number",
+            "request_id",
+            "cylinder_request_id"
+        ],
+        "—"
+    );
+
+
+    const repaymentId = getField(
+        row,
+        [
+            "repayment_id",
+            "payment_id",
+            "id"
+        ],
+        "—"
+    );
+
+
+    const lastPaymentDate = getField(
+        row,
+        [
+            "repayment_date",
+            "payment_date",
+            "created_at",
+            "updated_at"
+        ],
+        null
+    );
+
+
+    return {
+
+        raw:row,
+
+        id:getField(row,["id"],null),
+
+        name,
+
+        mobile,
+
+        requestId,
+
+        repaymentId,
+
+        cylinderAmount,
+
+        initialPaid,
+
+        totalPaid,
+
+        extraCharge,
+
+        repaymentAmount,
+
+        remainingBase,
+
+        totalPayable,
+
+        remainingPayable,
+
+        status,
+
+        paymentMethod:getField(
+            row,
+            [
+                "payment_method",
+                "method"
+            ],
+            "—"
+        ),
+
+        transactionId:getField(
+            row,
+            [
+                "transaction_id",
+                "transaction_reference",
+                "payment_reference"
+            ],
+            "—"
+        ),
+
+        lastPaymentDate
+
+    };
+
+}
+
+
+/* =====================================================
+   LOAD DATA
+===================================================== */
+
+async function loadRepayments(){
+
+    repaymentTableBody.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="11"
+                class="loading-row"
+            >
+                Loading repayment records...
+            </td>
+
+        </tr>
+
+    `;
+
+
+    /*
+       IMPORTANT:
+
+       This page first tries the "repayments" table.
+
+       If your repayment table has a different name,
+       change only the table name below.
+    */
+
+    const result = await supabaseClient
+        .from("repayments")
+        .select("*")
+        .order("created_at",{ascending:false});
+
+
+    if(result.error){
+
+        console.error(
+            "Repayment loading error:",
+            result.error
+        );
+
+
+        repaymentRecords = [];
+
+
+        repaymentTableBody.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="11"
+                    class="empty-row"
+                >
+                    No repayment records found.
+                    <br><br>
+                    Check your Supabase repayments table and RLS policies.
+                </td>
+
+            </tr>
+
+        `;
+
+
+        updateSummary([]);
+
+        return;
+
+    }
+
+
+    repaymentRecords = (result.data || [])
+        .map(normalizeRecord);
+
+
+    applyFilters();
+
+}
+
+
+/* =====================================================
+   FILTER
+===================================================== */
+
+function applyFilters(){
+
+    const search =
+        searchInput.value
+            .trim()
+            .toLowerCase();
+
+
+    const status =
+        statusFilter.value;
+
+
+    filteredRecords =
+        repaymentRecords.filter(record => {
+
+            const searchable = [
+
+                record.name,
+                record.mobile,
+                record.requestId,
+                record.repaymentId,
+                record.transactionId
+
+            ]
+            .join(" ")
+            .toLowerCase();
+
+
+            const searchMatch =
+                !search ||
+                searchable.includes(search);
+
+
+            const statusMatch =
+                status === "all" ||
+                record.status === status;
+
+
+            return searchMatch && statusMatch;
+
+        });
+
+
+    currentPage = 1;
+
+    renderTable();
+
+}
+
+
+/* =====================================================
+   RENDER TABLE
+===================================================== */
+
+function renderTable(){
+
+    const start =
+        (currentPage - 1) * rowsPerPage;
+
+
+    const end =
+        start + rowsPerPage;
+
+
+    const rows =
+        filteredRecords.slice(
+            start,
+            end
+        );
+
+
+    if(!rows.length){
+
+        repaymentTableBody.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="11"
+                    class="empty-row"
+                >
+                    No repayment records found.
+                </td>
+
+            </tr>
+
+        `;
+
+    }else{
+
+        repaymentTableBody.innerHTML =
+            rows.map(record => {
+
+                return `
+
+                <tr>
+
+                    <td>
+
+                        <div class="customer-cell">
+
+                            <div class="customer-avatar">
+                                👤
+                            </div>
+
+                            <div>
+
+                                <div class="customer-name">
+                                    ${escapeHtml(record.name)}
+                                </div>
+
+                                <div class="customer-mobile">
+                                    ${escapeHtml(record.mobile)}
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(record.requestId)}
+                    </td>
+
+
+                    <td class="amount">
+                        ${money(record.cylinderAmount)}
+                    </td>
+
+
+                    <td class="paid">
+                        ${money(record.totalPaid)}
+                    </td>
+
+
+                    <td class="remaining">
+                        ${money(record.remainingPayable)}
+                    </td>
+
+
+                    <td class="extra">
+                        ${money(record.extraCharge)}
+                    </td>
+
+
+                    <td class="amount">
+                        ${money(record.totalPayable)}
+                    </td>
+
+
+                    <td class="paid">
+                        ${money(record.repaymentAmount)}
+                    </td>
+
+
+                    <td>
+
+                        <span class="status ${statusClass(record.status)}">
+                            ${prettyStatus(record.status)}
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        ${formatDate(record.lastPaymentDate)}
+                    </td>
+
+
+                    <td>
+
+                        <button
+                            class="action-btn"
+                            type="button"
+                            onclick="openRepaymentDetails('${escapeAttr(record.repaymentId)}')"
+                        >
+                            View Details
+                        </button>
+
+                    </td>
+
+                </tr>
+
+                `;
+
+            }).join("");
+
+    }
+
+
+    renderPagination();
+
+}
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+function statusClass(status){
+
+    const value =
+        String(status || "")
+            .toLowerCase();
+
+
+    if(
+        value === "paid" ||
+        value === "completed"
+    ){
+
+        return "paid";
+
+    }
+
+
+    if(value === "partial"){
+
+        return "partial";
+
+    }
+
+
+    if(
+        value === "failed" ||
+        value === "cancelled"
+    ){
+
+        return "failed";
+
+    }
+
+
+    return "pending";
+
+}
+
+
+function prettyStatus(status){
+
+    if(!status){
+
+        return "Pending";
+
+    }
+
+
+    return String(status)
+        .replace(/_/g," ")
+        .replace(/\b\w/g,c => c.toUpperCase());
+
+}
+
+
+/* =====================================================
+   PAGINATION
+===================================================== */
+
+function renderPagination(){
+
+    const total =
+        filteredRecords.length;
+
+
+    const totalPages =
+        Math.max(
+            Math.ceil(total / rowsPerPage),
+            1
+        );
+
+
+    paginationInfo.textContent =
+        total
+        ? `Showing ${
+            Math.min(
+                ((currentPage - 1) * rowsPerPage) + 1,
+                total
+            )
+        }–${
+            Math.min(
+                currentPage * rowsPerPage,
+                total
+            )
+        } of ${total} repayments`
+        : "Showing 0 repayments";
+
+
+    paginationButtons.innerHTML = "";
+
+
+    for(
+        let i = 1;
+        i <= totalPages;
+        i++
+    ){
+
+        const button =
+            document.createElement("button");
+
+
+        button.className =
+            "page-btn" +
+            (
+                i === currentPage
+                    ? " active"
+                    : ""
+            );
+
+
+        button.textContent = i;
+
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                currentPage = i;
+
+                renderTable();
+
+                window.scrollTo({
+                    top:0,
+                    behavior:"smooth"
+                });
+
+            }
+        );
+
+
+        paginationButtons.appendChild(button);
+
+    }
+
+}
+
+
+/* =====================================================
+   SUMMARY
+===================================================== */
+
+function updateSummary(records){
+
+    let totalOutstanding = 0;
+    let totalExtra = 0;
+    let totalPayable = 0;
+    let totalRepaid = 0;
+
+    let balanceCustomers = 0;
+    let pending = 0;
+    let completed = 0;
+
+    let lastDate = null;
+
+
+    records.forEach(record => {
+
+        totalOutstanding +=
+            record.remainingPayable;
+
+        totalExtra +=
+            record.extraCharge;
+
+        totalPayable +=
+            record.totalPayable;
+
+        totalRepaid +=
+            record.totalPaid;
+
+
+        if(record.remainingPayable > 0){
+
+            balanceCustomers++;
+
+        }
+
+
+        if(
+            record.status === "paid" ||
+            record.status === "completed"
+        ){
+
+            completed++;
+
+        }else{
+
+            pending++;
+
+        }
+
+
+        if(record.lastPaymentDate){
+
+            const date =
+                new Date(record.lastPaymentDate);
+
+
+            if(
+                !lastDate ||
+                date > lastDate
+            ){
+
+                lastDate = date;
+
+            }
+
+        }
+
+    });
+
+
+    document.getElementById(
+        "totalOutstanding"
+    ).textContent =
+        money(totalOutstanding);
+
+
+    document.getElementById(
+        "totalExtraCharge"
+    ).textContent =
+        money(totalExtra);
+
+
+    document.getElementById(
+        "totalPayable"
+    ).textContent =
+        money(totalPayable);
+
+
+    document.getElementById(
+        "totalRepaid"
+    ).textContent =
+        money(totalRepaid);
+
+
+    document.getElementById(
+        "customersBalance"
+    ).textContent =
+        balanceCustomers;
+
+
+    document.getElementById(
+        "pendingRepayments"
+    ).textContent =
+        pending;
+
+
+    document.getElementById(
+        "completedRepayments"
+    ).textContent =
+        completed;
+
+
+    document.getElementById(
+        "lastRepayment"
+    ).textContent =
+        lastDate
+            ? formatDate(lastDate)
+            : "—";
+
+
+    /*
+       Overall tracking card.
+       It uses the first available record as a quick
+       repayment example/overview.
+    */
+
+    const first =
+        records.length
+            ? records[0]
+            : null;
+
+
+    if(first){
+
+        document.getElementById(
+            "trackingCylinder"
+        ).textContent =
+            money(first.cylinderAmount);
+
+
+        document.getElementById(
+            "trackingPaid"
+        ).textContent =
+            money(first.totalPaid);
+
+
+        document.getElementById(
+            "trackingRemaining"
+        ).textContent =
+            money(first.remainingPayable);
+
+
+        document.getElementById(
+            "trackingExtra"
+        ).textContent =
+            money(first.extraCharge);
+
+
+        document.getElementById(
+            "trackingPayable"
+        ).textContent =
+            money(first.totalPayable);
+
+
+        const percentage =
+            first.totalPayable > 0
+                ? Math.min(
+                    100,
+                    Math.round(
+                        (
+                            first.totalPaid /
+                            first.totalPayable
+                        ) * 100
+                    )
+                )
+                : 0;
+
+
+        document.getElementById(
+            "progressPercent"
+        ).textContent =
+            percentage + "%";
+
+
+        document.getElementById(
+            "progressBar"
+        ).style.width =
+            percentage + "%";
+
+    }else{
+
+        [
+            "trackingCylinder",
+            "trackingPaid",
+            "trackingRemaining",
+            "trackingExtra",
+            "trackingPayable"
+        ].forEach(id => {
+
+            document.getElementById(id)
+                .textContent = "₹0";
+
+        });
+
+
+        document.getElementById(
+            "progressPercent"
+        ).textContent = "0%";
+
+
+        document.getElementById(
+            "progressBar"
+        ).style.width = "0%";
+
+    }
+
+}
+
+
+/* =====================================================
+   DETAIL MODAL
+===================================================== */
+
+window.openRepaymentDetails =
+    function(repaymentId){
+
+        const record =
+            repaymentRecords.find(
+                item =>
+                    String(item.repaymentId) ===
+                    String(repaymentId)
+            );
+
+
+        if(!record){
+
+            showToast(
+                "Repayment",
+                "Repayment record not found."
+            );
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "modalTitle"
+        ).textContent =
+            record.name || "Repayment Details";
+
+
+        document.getElementById(
+            "modalSubtitle"
+        ).textContent =
+            "Complete repayment tracking information";
+
+
+        document.getElementById(
+            "dCustomer"
+        ).textContent =
+            record.name;
+
+
+        document.getElementById(
+            "dMobile"
+        ).textContent =
+            record.mobile;
+
+
+        document.getElementById(
+            "dRequest"
+        ).textContent =
+            record.requestId;
+
+
+        document.getElementById(
+            "dRepayment"
+        ).textContent =
+            record.repaymentId;
+
+
+        document.getElementById(
+            "dCylinder"
+        ).textContent =
+            money(record.cylinderAmount);
+
+
+        document.getElementById(
+            "dPaid"
+        ).textContent =
+            money(record.totalPaid);
+
+
+        document.getElementById(
+            "dRemaining"
+        ).textContent =
+            money(record.remainingPayable);
+
+
+        document.getElementById(
+            "dExtra"
+        ).textContent =
+            money(record.extraCharge);
+
+
+        document.getElementById(
+            "dPayable"
+        ).textContent =
+            money(record.totalPayable);
+
+
+        document.getElementById(
+            "dRepaymentAmount"
+        ).textContent =
+            money(record.repaymentAmount);
+
+
+        document.getElementById(
+            "dMethod"
+        ).textContent =
+            record.paymentMethod;
+
+
+        document.getElementById(
+            "dTransaction"
+        ).textContent =
+            record.transactionId;
+
+
+        document.getElementById(
+            "dDate"
+        ).textContent =
+            formatDate(record.lastPaymentDate);
+
+
+        document.getElementById(
+            "dStatus"
+        ).textContent =
+            prettyStatus(record.status);
+
+
+        repaymentModal.classList.add("show");
+
+    };
+
+
+function closeRepaymentModal(){
+
+    repaymentModal.classList.remove("show");
+
+}
+
+
+document.getElementById(
+    "modalClose"
+).addEventListener(
+    "click",
+    closeRepaymentModal
+);
+
+
+document.getElementById(
+    "modalCloseBtn"
+).addEventListener(
+    "click",
+    closeRepaymentModal
+);
+
+
+repaymentModal.addEventListener(
+    "click",
+    event => {
+
+        if(event.target === repaymentModal){
+
+            closeRepaymentModal();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   SEARCH / FILTER
+===================================================== */
+
+searchInput.addEventListener(
+    "input",
+    applyFilters
+);
+
+
+statusFilter.addEventListener(
+    "change",
+    applyFilters
+);
+
+
+clearSearch.addEventListener(
+    "click",
+    () => {
+
+        searchInput.value = "";
+
+        statusFilter.value = "all";
+
+        applyFilters();
+
+    }
+);
+
+
+refreshBtn.addEventListener(
+    "click",
+    async () => {
+
+        refreshBtn.textContent =
+            "↻ Loading...";
+
+        await loadRepayments();
+
+        refreshBtn.textContent =
+            "↻ Refresh";
+
+    }
+);
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+document.getElementById(
+    "logoutBtn"
+).addEventListener(
+    "click",
+    () => {
+
+        logoutModal.classList.add("show");
+
+    }
+);
+
+
+document.getElementById(
+    "logoutBtnBottom"
+)?.addEventListener(
+    "click",
+    () => {
+
+        logoutModal.classList.add("show");
+
+    }
+);
+
+
+document.getElementById(
+    "logoutCancel"
+).addEventListener(
+    "click",
+    () => {
+
+        logoutModal.classList.remove("show");
+
+    }
+);
+
+
+document.getElementById(
+    "logoutConfirm"
+).addEventListener(
+    "click",
+    async () => {
+
+        const {
+            error
+        } = await supabaseClient.auth.signOut();
+
+
+        if(error){
+
+            showToast(
+                "Logout Failed",
+                error.message
+            );
+
+            return;
+
+        }
+
+
+        window.location.href =
+            "login.html";
+
+    }
+);
+
+
+logoutModal.addEventListener(
+    "click",
+    event => {
+
+        if(event.target === logoutModal){
+
+            logoutModal.classList.remove("show");
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+let toastTimer = null;
+
+
+function showToast(title,text){
+
+    const toast =
+        document.getElementById("toast");
+
+
+    document.getElementById(
+        "toastTitle"
+    ).textContent =
+        title;
+
+
+    document.getElementById(
+        "toastText"
+    ).textContent =
+        text;
+
+
+    toast.classList.add("show");
+
+
+    clearTimeout(toastTimer);
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove("show");
+
+            },
+            3500
+        );
+
+}
+
+
+/* =====================================================
+   HTML ESCAPE
+===================================================== */
+
+function escapeHtml(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+function escapeAttr(value){
+
+    return String(value ?? "")
+        .replace(/\\/g,"\\\\")
+        .replace(/'/g,"\\'");
+
+}
+
+
+/* =====================================================
+   AUTH CHECK
+===================================================== */
+
+async function checkOwnerSession(){
+
+    const {
+        data,
+        error
+    } = await supabaseClient.auth.getUser();
+
+
+    if(error || !data?.user){
+
+        /*
+           If your project has a separate owner login page,
+           change this filename accordingly.
+        */
+
+        window.location.href =
+            "login.html";
+
+        return false;
+
+    }
+
+
+    return true;
+
+}
+
+
+/* =====================================================
+   INITIALIZE
+===================================================== */
+
+(async function(){
+
+    const authenticated =
+        await checkOwnerSession();
+
+
+    if(!authenticated){
+
+        return;
+
+    }
+
+
+    await loadRepayments();
+
+})();
+
+</script>
+
+</body>
+</html>

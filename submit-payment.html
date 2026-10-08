@@ -1,0 +1,3570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EGC - Submit Payment</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:#eef7fc;
+  color:#003e81;
+  min-height:100vh;
+}
+
+button,
+input,
+textarea,
+select{
+  font-family:Arial,sans-serif;
+}
+
+button{
+  cursor:pointer;
+}
+
+.topbar{
+  height:72px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 35px;
+  box-shadow:0 3px 15px rgba(0,62,129,.08);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:115px;
+  height:48px;
+  object-fit:contain;
+}
+
+.brand-text{
+  font-size:13px;
+  color:#70859a;
+}
+
+.profile-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.profile-photo{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#dfeef8;
+  border:2px solid #e1edf5;
+}
+
+.profile-name{
+  font-weight:800;
+  color:#003e81;
+  font-size:14px;
+}
+
+.profile-email{
+  color:#8295a6;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 72px);
+}
+
+.sidebar{
+  width:235px;
+  background:#fff;
+  border-right:1px solid #e1edf5;
+  padding:25px 14px;
+  position:fixed;
+  left:0;
+  top:72px;
+  bottom:0;
+}
+
+.nav-title{
+  font-size:11px;
+  color:#94a5b5;
+  font-weight:800;
+  padding:8px 13px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+.nav-btn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#58738d;
+  padding:13px 14px;
+  border-radius:11px;
+  text-align:left;
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+  background:#eaf5fc;
+  color:#0754a9;
+}
+
+.logout{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:20px;
+  color:#d33b3b;
+}
+
+.main{
+  margin-left:235px;
+  width:calc(100% - 235px);
+  padding:30px;
+  max-width:1200px;
+}
+
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  margin-bottom:25px;
+}
+
+.page-title h1{
+  font-size:28px;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.page-title p{
+  color:#71869a;
+  font-size:14px;
+}
+
+.back-btn{
+  border:1px solid #d5e4ee;
+  background:#fff;
+  color:#0754a9;
+  height:43px;
+  padding:0 17px;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.error-box{
+  display:none;
+  background:#fff0f0;
+  border:1px solid #ffd0d0;
+  color:#c62828;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.success-box{
+  display:none;
+  background:#e8f8f0;
+  border:1px solid #bcebd1;
+  color:#087848;
+  padding:15px;
+  border-radius:13px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.box{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:20px;
+  padding:24px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+  margin-bottom:20px;
+}
+
+.box-title{
+  font-size:18px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:18px;
+}
+
+.request-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+}
+
+.request-number{
+  font-size:17px;
+  font-weight:900;
+  color:#0754a9;
+}
+
+.request-date{
+  font-size:11px;
+  color:#8999a8;
+  margin-top:6px;
+}
+
+.approved-badge{
+  background:#e5f8ef;
+  color:#087848;
+  padding:7px 11px;
+  border-radius:20px;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.payment-type-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+.type-card{
+  border:2px solid #dceaf3;
+  border-radius:16px;
+  padding:18px;
+  background:#fbfdff;
+}
+
+.type-card.active{
+  border-color:#0871c3;
+  background:#f1f9ff;
+}
+
+.type-title{
+  font-size:14px;
+  font-weight:900;
+  color:#0754a9;
+}
+
+.type-description{
+  color:#71869a;
+  font-size:12px;
+  line-height:1.5;
+  margin-top:7px;
+}
+
+.amount-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+
+.amount-card{
+  background:#f5fbff;
+  border:1px solid #dceef9;
+  border-radius:15px;
+  padding:18px;
+}
+
+.amount-label{
+  color:#7d91a2;
+  font-size:11px;
+  font-weight:700;
+  margin-bottom:7px;
+}
+
+.amount-value{
+  font-size:23px;
+  color:#003e81;
+  font-weight:900;
+}
+
+.amount-value.orange{
+  color:#d88400;
+}
+
+.amount-value.green{
+  color:#087848;
+}
+
+.payable-box{
+  background:linear-gradient(135deg,#003e81,#0871c3);
+  border-radius:18px;
+  padding:22px;
+  color:#fff;
+  margin-top:18px;
+}
+
+.payable-label{
+  font-size:12px;
+  opacity:.82;
+  font-weight:700;
+}
+
+.payable-value{
+  font-size:34px;
+  font-weight:900;
+  margin-top:5px;
+}
+
+.payable-note{
+  font-size:11px;
+  opacity:.85;
+  margin-top:7px;
+}
+
+.days-box{
+  margin-top:15px;
+  background:#fff8e5;
+  border:1px solid #f4df9f;
+  color:#806700;
+  border-radius:14px;
+  padding:14px;
+  font-size:12px;
+  line-height:1.5;
+}
+
+.qr-area{
+  text-align:center;
+}
+
+.qr-image{
+  width:240px;
+  height:240px;
+  object-fit:contain;
+  border-radius:16px;
+  border:1px solid #dce8ef;
+  padding:10px;
+  background:#fff;
+  box-shadow:0 8px 25px rgba(0,62,129,.08);
+}
+
+.qr-title{
+  font-size:17px;
+  font-weight:900;
+  color:#003e81;
+  margin-top:15px;
+}
+
+.qr-subtitle{
+  color:#7b8fa1;
+  font-size:12px;
+  margin-top:6px;
+}
+
+.form-group{
+  margin-bottom:18px;
+}
+
+.form-label{
+  display:block;
+  color:#315d7f;
+  font-size:12px;
+  font-weight:900;
+  margin-bottom:7px;
+}
+
+.form-input,
+.form-textarea{
+  width:100%;
+  border:1px solid #d7e5ed;
+  background:#fbfdff;
+  border-radius:12px;
+  min-height:46px;
+  padding:12px 13px;
+  color:#174e7e;
+  font-size:13px;
+  outline:none;
+}
+
+.form-input:focus,
+.form-textarea:focus{
+  border-color:#0871c3;
+  box-shadow:0 0 0 3px rgba(8,113,195,.08);
+}
+
+.form-textarea{
+  min-height:90px;
+  resize:vertical;
+}
+
+.file-input{
+  width:100%;
+  border:1px dashed #b9d2e3;
+  background:#f8fcff;
+  border-radius:13px;
+  padding:13px;
+  color:#58738d;
+  font-size:12px;
+}
+
+.file-help{
+  font-size:11px;
+  color:#8a9aaa;
+  margin-top:6px;
+}
+
+.preview{
+  display:none;
+  margin-top:12px;
+  max-width:180px;
+  max-height:180px;
+  border-radius:12px;
+  border:1px solid #dce8ef;
+  object-fit:cover;
+}
+
+.submit-area{
+  margin-top:22px;
+}
+
+.submit-btn{
+  width:100%;
+  height:50px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(90deg,#0871c3,#0754a9);
+  color:#fff;
+  font-size:14px;
+  font-weight:900;
+  box-shadow:0 7px 18px rgba(8,113,195,.20);
+}
+
+.submit-btn:hover{
+  filter:brightness(.98);
+}
+
+.submit-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.security-note{
+  margin-top:13px;
+  text-align:center;
+  color:#8a9aaa;
+  font-size:11px;
+  line-height:1.5;
+}
+
+.status-box{
+  display:none;
+  background:#f5fbff;
+  border:1px solid #dceef9;
+  border-radius:15px;
+  padding:17px;
+}
+
+.status-row{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:9px 0;
+  border-bottom:1px solid #e6f0f5;
+  font-size:12px;
+}
+
+.status-row:last-child{
+  border-bottom:0;
+}
+
+.status-label{
+  color:#7b8fa1;
+}
+
+.status-value{
+  color:#174e7e;
+  font-weight:900;
+  text-align:right;
+}
+
+.status-value.pending{
+  color:#a36b00;
+}
+
+.status-value.approved{
+  color:#087848;
+}
+
+.status-value.rejected{
+  color:#c62828;
+}
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  z-index:10001;
+  background:#003e81;
+  color:#fff;
+  padding:13px 18px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(10px);
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.mobile-nav{
+  display:none;
+}
+
+/* LOGOUT */
+
+.logout-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,20,40,.55);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.logout-overlay.show{
+  display:flex;
+}
+
+.logout-popup{
+  width:100%;
+  max-width:390px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 25px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  text-align:center;
+}
+
+.logout-icon{
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#fff0f0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 16px;
+  font-size:28px;
+}
+
+.logout-title{
+  font-size:21px;
+  font-weight:900;
+  color:#173f62;
+  margin-bottom:10px;
+}
+
+.logout-subtitle{
+  font-size:13px;
+  color:#7c8d9c;
+  line-height:1.5;
+  margin-bottom:23px;
+}
+
+.logout-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn{
+  height:48px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.logout-cancel-btn{
+  background:#fff;
+  color:#31526d;
+  border:1px solid #d7e2ea;
+}
+
+.logout-confirm-btn{
+  background:#e53935;
+  color:#fff;
+  border:1px solid #e53935;
+}
+
+@media(max-width:850px){
+
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:20px 15px 90px;
+  }
+
+  .topbar{
+    height:65px;
+    padding:0 15px;
+  }
+
+  .brand img{
+    width:100px;
+  }
+
+  .brand-text{
+    display:none;
+  }
+
+  .profile-email{
+    display:none;
+  }
+
+  .profile-photo{
+    width:38px;
+    height:38px;
+  }
+
+  .page-header{
+    align-items:flex-start;
+  }
+
+  .page-title h1{
+    font-size:23px;
+  }
+
+  .page-title p{
+    font-size:12px;
+  }
+
+  .box{
+    padding:18px;
+    border-radius:17px;
+  }
+
+  .payment-type-grid{
+    grid-template-columns:1fr;
+  }
+
+  .amount-grid{
+    grid-template-columns:1fr;
+  }
+
+  .mobile-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:67px;
+    background:#fff;
+    border-top:1px solid #dce8ef;
+    z-index:100;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -5px 20px rgba(0,62,129,.08);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .mobile-nav button span{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+
+  .mobile-nav button.active{
+    color:#0754a9;
+  }
+
+  .toast{
+    left:15px;
+    right:15px;
+    bottom:80px;
+    text-align:center;
+  }
+}
+
+@media(max-width:450px){
+
+  .request-head{
+    flex-direction:column;
+  }
+
+  .qr-image{
+    width:210px;
+    height:210px;
+  }
+
+  .payable-value{
+    font-size:29px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <img
+      src="assets/EGC - Emergency Gas Cylinder logo.png"
+      alt="EGC"
+    >
+
+    <div class="brand-text">
+      Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+  <div class="profile-mini">
+
+    <div>
+
+      <div
+        class="profile-name"
+        id="topName">
+        Loading...
+      </div>
+
+      <div
+        class="profile-email"
+        id="topEmail">
+        Loading...
+      </div>
+
+    </div>
+
+    <img
+      id="topPhoto"
+      class="profile-photo"
+      src=""
+      alt="Profile"
+    >
+
+  </div>
+
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">
+    MENU
+  </div>
+
+  <button
+    class="nav-btn"
+    onclick="goDashboard()">
+    🏠 &nbsp; Dashboard
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="requestCylinder()">
+    🛢️ &nbsp; Request Cylinder
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goRequests()">
+    📋 &nbsp; My Requests
+  </button>
+
+  <button
+    class="nav-btn active"
+    onclick="goPayments()">
+    💰 &nbsp; Payments
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goNotifications()">
+    🔔 &nbsp; Notifications
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goProfile()">
+    👤 &nbsp; Profile
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goSettings()">
+    ⚙️ &nbsp; Settings
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goHelpSupport()">
+    ❓ &nbsp; Help & Support
+  </button>
+
+  <button
+    class="nav-btn logout"
+    onclick="openLogoutPopup()">
+    🚪 &nbsp; Logout
+  </button>
+
+</aside>
+
+<main class="main">
+
+  <div
+    id="errorBox"
+    class="error-box">
+  </div>
+
+  <div
+    id="successBox"
+    class="success-box">
+  </div>
+
+  <section class="page-header">
+
+    <div class="page-title">
+
+      <h1>
+        Submit Payment
+      </h1>
+
+      <p>
+        Complete your EGC payment securely
+      </p>
+
+    </div>
+
+    <button
+      class="back-btn"
+      onclick="goPayments()">
+      ← Payments
+    </button>
+
+  </section>
+
+
+  <!-- REQUEST -->
+
+  <div class="box">
+
+    <div class="box-title">
+      📋 Request Details
+    </div>
+
+    <div class="request-head">
+
+      <div>
+
+        <div
+          class="request-number"
+          id="requestNumber">
+          Loading...
+        </div>
+
+        <div
+          class="request-date"
+          id="requestDate">
+          —
+        </div>
+
+      </div>
+
+      <div
+        id="approvalBadge"
+        class="approved-badge">
+        Approved
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAYMENT TYPE -->
+
+  <div class="box">
+
+    <div class="box-title">
+      💳 Payment Type
+    </div>
+
+    <div class="payment-type-grid">
+
+      <div
+        id="initialTypeCard"
+        class="type-card">
+
+        <div class="type-title">
+          Initial Payment
+        </div>
+
+        <div class="type-description">
+          Initial EGC payment required before agency processing.
+          Standard initial payment is ₹200.
+        </div>
+
+      </div>
+
+      <div
+        id="repaymentTypeCard"
+        class="type-card">
+
+        <div class="type-title">
+          Repayment
+        </div>
+
+        <div class="type-description">
+          Remaining amount plus applicable extra charge after cylinder delivery.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- AMOUNT -->
+
+  <div class="box">
+
+    <div class="box-title">
+      💰 Payment Amount
+    </div>
+
+    <div class="amount-grid">
+
+      <div class="amount-card">
+
+        <div class="amount-label">
+          Request Amount
+        </div>
+
+        <div
+          class="amount-value"
+          id="requestAmount">
+          ₹0.00
+        </div>
+
+      </div>
+
+      <div class="amount-card">
+
+        <div class="amount-label">
+          Already Paid
+        </div>
+
+        <div
+          class="amount-value green"
+          id="alreadyPaid">
+          ₹0.00
+        </div>
+
+      </div>
+
+      <div class="amount-card">
+
+        <div class="amount-label">
+          Remaining
+        </div>
+
+        <div
+          class="amount-value orange"
+          id="remainingAmount">
+          ₹0.00
+        </div>
+
+      </div>
+
+    </div>
+
+    <div
+      id="repaymentDaysBox"
+      class="days-box"
+      style="display:none;">
+    </div>
+
+    <div class="payable-box">
+
+      <div class="payable-label">
+        TOTAL PAYABLE NOW
+      </div>
+
+      <div
+        class="payable-value"
+        id="payableAmount">
+        ₹200.00
+      </div>
+
+      <div
+        class="payable-note"
+        id="payableNote">
+        Initial EGC payment
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- QR -->
+
+  <div class="box">
+
+    <div class="box-title">
+      📲 Scan & Pay
+    </div>
+
+    <div class="qr-area">
+
+      <img
+        class="qr-image"
+        src="qr.jpg"
+        alt="EGC Payment QR">
+
+      <div class="qr-title">
+        Scan QR to Pay
+      </div>
+
+      <div class="qr-subtitle">
+        Pay exactly the amount shown above.
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAYMENT FORM -->
+
+  <div class="box">
+
+    <div class="box-title">
+      🧾 Payment Details
+    </div>
+
+    <form id="paymentForm">
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Payment Method
+        </label>
+
+        <select
+          id="paymentMethod"
+          class="form-input"
+          required>
+
+          <option value="">
+            Select payment method
+          </option>
+
+          <option value="UPI">
+            UPI
+          </option>
+
+          <option value="QR">
+            QR Payment
+          </option>
+
+          <option value="Bank Transfer">
+            Bank Transfer
+          </option>
+
+          <option value="Other">
+            Other
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Transaction ID / UTR
+        </label>
+
+        <input
+          type="text"
+          id="transactionId"
+          class="form-input"
+          placeholder="Enter transaction ID / UTR"
+          maxlength="120"
+          required>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Payment Screenshot
+        </label>
+
+        <input
+          type="file"
+          id="paymentScreenshot"
+          class="file-input"
+          accept="image/jpeg,image/png,image/webp"
+          required>
+
+        <div class="file-help">
+          Upload a clear screenshot of your successful payment.
+          Maximum file size: 5 MB.
+        </div>
+
+        <img
+          id="screenshotPreview"
+          class="preview"
+          alt="Payment screenshot preview">
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Note (Optional)
+        </label>
+
+        <textarea
+          id="paymentNote"
+          class="form-textarea"
+          placeholder="Any additional payment note..."></textarea>
+
+      </div>
+
+
+      <div class="submit-area">
+
+        <button
+          type="submit"
+          id="submitPaymentBtn"
+          class="submit-btn">
+          SUBMIT PAYMENT
+        </button>
+
+      </div>
+
+      <div class="security-note">
+        Your payment will remain pending until it is verified and approved by EGC Owner.
+      </div>
+
+    </form>
+
+  </div>
+
+
+  <!-- STATUS -->
+
+  <div
+    class="box"
+    id="existingPaymentBox"
+    style="display:none;">
+
+    <div class="box-title">
+      🔎 Payment Status
+    </div>
+
+    <div
+      id="existingPaymentStatus"
+      class="status-box">
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+
+<nav class="mobile-nav">
+
+<button onclick="goDashboard()">
+  <span>🏠</span>
+  Home
+</button>
+
+<button onclick="goRequests()">
+  <span>📋</span>
+  Requests
+</button>
+
+<button onclick="requestCylinder()">
+  <span>➕</span>
+  Request
+</button>
+
+<button
+  class="active"
+  onclick="goPayments()">
+  <span>💰</span>
+  Payments
+</button>
+
+<button onclick="goProfile()">
+  <span>👤</span>
+  Profile
+</button>
+
+</nav>
+
+
+<!-- LOGOUT -->
+
+<div
+  class="logout-overlay"
+  id="logoutOverlay"
+  onclick="closeLogoutPopup(event)">
+
+  <div
+    class="logout-popup"
+    onclick="event.stopPropagation()">
+
+    <div class="logout-icon">
+      🚪
+    </div>
+
+    <div class="logout-title">
+      Are you sure Logout?
+    </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+
+<script>
+
+/* =========================================================
+   SUPABASE
+========================================================= */
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+/*
+ IMPORTANT:
+
+ Create/use a Supabase Storage bucket named:
+
+ payment-screenshots
+
+ If your existing bucket has another name,
+ change only the value below.
+*/
+
+const PAYMENT_SCREENSHOT_BUCKET =
+"payment-screenshots";
+
+const INITIAL_PAYMENT_AMOUNT =
+200;
+
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+let currentUser = null;
+let currentProfile = null;
+let currentRequest = null;
+let currentPayment = null;
+let allPayments = [];
+let paymentType = "initial";
+let payableAmount = 200;
+let extraCharge = 0;
+let pendingDays = 0;
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+function formatMoney(value){
+
+  const number =
+    Number(value || 0);
+
+  return number.toLocaleString(
+    "en-IN",
+    {
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    }
+  );
+
+}
+
+
+function formatDateTime(value){
+
+  if(!value){
+    return "—";
+  }
+
+  const d =
+    new Date(value);
+
+  if(Number.isNaN(d.getTime())){
+    return "—";
+  }
+
+  return d.toLocaleString(
+    "en-IN",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric",
+      hour:"2-digit",
+      minute:"2-digit"
+    }
+  );
+
+}
+
+
+function showError(message){
+
+  const box =
+    $("errorBox");
+
+  box.textContent =
+    message ||
+    "Something went wrong.";
+
+  box.style.display =
+    "block";
+
+  $("successBox").style.display =
+    "none";
+
+}
+
+
+function showSuccess(message){
+
+  const box =
+    $("successBox");
+
+  box.textContent =
+    message ||
+    "Payment submitted successfully.";
+
+  box.style.display =
+    "block";
+
+  $("errorBox").style.display =
+    "none";
+
+}
+
+
+function clearMessages(){
+
+  $("errorBox").style.display =
+    "none";
+
+  $("successBox").style.display =
+    "none";
+
+}
+
+
+let toastTimer = null;
+
+function toast(message){
+
+  const el =
+    $("toast");
+
+  el.textContent =
+    message ||
+    "";
+
+  el.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer =
+    setTimeout(
+      function(){
+        el.classList.remove("show");
+      },
+      3000
+    );
+
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+async function loadProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .maybeSingle();
+
+  if(result.error){
+
+    console.warn(
+      "Profile load error:",
+      result.error
+    );
+
+    return;
+  }
+
+  if(!result.data){
+    return;
+  }
+
+  currentProfile =
+    result.data;
+
+  const name =
+    result.data.full_name ||
+    "EGC Customer";
+
+  const email =
+    result.data.email ||
+    currentUser.email ||
+    "";
+
+  $("topName").textContent =
+    name;
+
+  $("topEmail").textContent =
+    email;
+
+  if(result.data.profile_photo){
+
+    $("topPhoto").src =
+      result.data.profile_photo;
+
+  }else{
+
+    $("topPhoto").src =
+      "https://ui-avatars.com/api/?name=" +
+      encodeURIComponent(name) +
+      "&background=eaf5fc&color=0754a9";
+
+  }
+
+}
+
+
+/* =========================================================
+   GET REQUEST ID
+========================================================= */
+
+function getRequestId(){
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  return (
+    params.get("request_id") ||
+    params.get("request") ||
+    null
+  );
+
+}
+
+
+function getPaymentId(){
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  return (
+    params.get("payment_id") ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   LOAD REQUEST
+========================================================= */
+
+async function loadRequest(){
+
+  const requestId =
+    getRequestId();
+
+  const paymentId =
+    getPaymentId();
+
+
+  /*
+    If payment_id exists,
+    first find the payment and then request.
+  */
+
+  if(paymentId){
+
+    const paymentResult =
+      await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq(
+          "id",
+          paymentId
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        )
+        .maybeSingle();
+
+    if(paymentResult.error){
+
+      throw paymentResult.error;
+
+    }
+
+    if(!paymentResult.data){
+
+      throw new Error(
+        "Payment record not found."
+      );
+
+    }
+
+    currentPayment =
+      paymentResult.data;
+
+    const linkedRequestId =
+      paymentResult.data.request_id;
+
+    const requestResult =
+      await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq(
+          "id",
+          linkedRequestId
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        )
+        .maybeSingle();
+
+    if(requestResult.error){
+
+      throw requestResult.error;
+
+    }
+
+    if(!requestResult.data){
+
+      throw new Error(
+        "Linked cylinder request not found."
+      );
+
+    }
+
+    currentRequest =
+      requestResult.data;
+
+    return;
+  }
+
+
+  if(!requestId){
+
+    throw new Error(
+      "Request information is missing."
+    );
+
+  }
+
+
+  const result =
+    await supabaseClient
+      .from("cylinder_requests")
+      .select("*")
+      .eq(
+        "id",
+        requestId
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .maybeSingle();
+
+
+  if(result.error){
+
+    throw result.error;
+
+  }
+
+
+  if(!result.data){
+
+    throw new Error(
+      "Cylinder request not found."
+    );
+
+  }
+
+
+  currentRequest =
+    result.data;
+
+}
+
+
+/* =========================================================
+   REQUEST APPROVAL CHECK
+========================================================= */
+
+function isOwnerApproved(request){
+
+  if(!request){
+    return false;
+  }
+
+  const values = [
+
+    request.owner_approval,
+
+    request.owner_approval_status,
+
+    request.owner_status,
+
+    request.approval_status,
+
+    request.request_status,
+
+    request.status
+
+  ];
+
+
+  for(
+    const value of values
+  ){
+
+    if(
+      value === null ||
+      value === undefined
+    ){
+      continue;
+    }
+
+    const status =
+      String(value)
+        .toLowerCase()
+        .trim();
+
+
+    if(
+      [
+        "approved",
+        "owner_approved",
+        "approved_payment",
+        "payment_required"
+      ].includes(status)
+    ){
+
+      return true;
+
+    }
+
+  }
+
+
+  /*
+    If explicit approval field is boolean.
+  */
+
+  if(
+    request.owner_approval === true ||
+    request.owner_approved === true
+  ){
+
+    return true;
+
+  }
+
+
+  return false;
+
+}
+
+
+/* =========================================================
+   LOAD PAYMENTS
+========================================================= */
+
+async function loadAllPayments(){
+
+  if(!currentRequest?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("payments")
+      .select("*")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .eq(
+        "request_id",
+        currentRequest.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      );
+
+
+  if(result.error){
+
+    throw result.error;
+
+  }
+
+
+  allPayments =
+    result.data || [];
+
+}
+
+
+/* =========================================================
+   PAYMENT STATUS HELPERS
+========================================================= */
+
+function isApprovedPayment(payment){
+
+  if(!payment){
+    return false;
+  }
+
+  const paymentStatus =
+    String(
+      payment.payment_status ||
+      ""
+    ).toLowerCase();
+
+  const verificationStatus =
+    String(
+      payment.verification_status ||
+      ""
+    ).toLowerCase();
+
+
+  return (
+    paymentStatus === "paid" &&
+    [
+      "approved",
+      "verified",
+      "success",
+      "completed"
+    ].includes(
+      verificationStatus
+    )
+  );
+
+}
+
+
+/* =========================================================
+   CALCULATE PAID
+========================================================= */
+
+function calculatePaidAmount(){
+
+  let paid = 0;
+
+  allPayments.forEach(
+    function(payment){
+
+      if(
+        isApprovedPayment(payment)
+      ){
+
+        paid +=
+          Number(
+            payment.payment_amount || 0
+          );
+
+      }
+
+    }
+  );
+
+  return paid;
+
+}
+
+
+/* =========================================================
+   DELIVERY DATE
+========================================================= */
+
+function getDeliveryDate(){
+
+  if(!currentRequest){
+    return null;
+  }
+
+
+  return (
+    currentRequest.delivery_date ||
+    currentRequest.cylinder_delivery_date ||
+    currentRequest.delivered_at ||
+    currentRequest.delivery_at ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   DAY COUNT
+========================================================= */
+
+function calculatePendingDays(){
+
+  const deliveryDate =
+    getDeliveryDate();
+
+
+  if(!deliveryDate){
+
+    return 0;
+
+  }
+
+
+  const start =
+    new Date(
+      deliveryDate
+    );
+
+  if(
+    Number.isNaN(
+      start.getTime()
+    )
+  ){
+
+    return 0;
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  const diff =
+    now.getTime() -
+    start.getTime();
+
+
+  const days =
+    Math.floor(
+      diff /
+      (
+        1000 *
+        60 *
+        60 *
+        24
+      )
+    );
+
+
+  return Math.max(
+    0,
+    days
+  );
+
+}
+
+
+/* =========================================================
+   EXTRA CHARGE
+========================================================= */
+
+function calculateExtraCharge(days){
+
+  /*
+    Locked EGC rules:
+
+    1-10   = ₹35
+    11-15  = ₹40
+    16-45  = ₹50
+    46+    = ₹100
+  */
+
+  if(days <= 0){
+    return 0;
+  }
+
+  if(days <= 10){
+    return 35;
+  }
+
+  if(days <= 15){
+    return 40;
+  }
+
+  if(days <= 45){
+    return 50;
+  }
+
+  return 100;
+
+}
+
+
+/* =========================================================
+   REQUEST AMOUNT
+========================================================= */
+
+function getRequestAmount(){
+
+  if(!currentRequest){
+    return 0;
+  }
+
+  return Number(
+    currentRequest.total_amount ||
+    currentRequest.request_amount ||
+    currentRequest.cylinder_amount ||
+    currentRequest.total ||
+    0
+  );
+
+}
+
+
+/* =========================================================
+   DETERMINE PAYMENT TYPE
+========================================================= */
+
+function determinePaymentType(){
+
+  /*
+    Existing payment_id means the payment
+    record already exists.
+
+    Read notes to determine type when possible.
+  */
+
+  if(currentPayment){
+
+    const notes =
+      String(
+        currentPayment.notes ||
+        ""
+      ).toLowerCase();
+
+    if(
+      notes.includes("repayment")
+    ){
+
+      return "repayment";
+
+    }
+
+    if(
+      notes.includes("initial")
+    ){
+
+      return "initial";
+
+    }
+
+  }
+
+
+  /*
+    If cylinder has already been delivered,
+    repayment mode is used.
+  */
+
+  if(getDeliveryDate()){
+
+    return "repayment";
+
+  }
+
+
+  return "initial";
+
+}
+
+
+/* =========================================================
+   CALCULATE PAYABLE
+========================================================= */
+
+function calculatePayable(){
+
+  const requestAmount =
+    getRequestAmount();
+
+  const paidAmount =
+    calculatePaidAmount();
+
+
+  pendingDays =
+    calculatePendingDays();
+
+
+  extraCharge =
+    calculateExtraCharge(
+      pendingDays
+    );
+
+
+  if(
+    paymentType === "repayment"
+  ){
+
+    const remaining =
+      Math.max(
+        0,
+        requestAmount -
+        paidAmount
+      );
+
+
+    payableAmount =
+      Math.max(
+        0,
+        remaining +
+        extraCharge
+      );
+
+  }else{
+
+    /*
+      Initial payment is fixed at ₹200.
+      Never trust a frontend amount supplied by URL.
+    */
+
+    payableAmount =
+      INITIAL_PAYMENT_AMOUNT;
+
+  }
+
+
+  renderAmount();
+
+}
+
+
+/* =========================================================
+   RENDER REQUEST
+========================================================= */
+
+function renderRequest(){
+
+  if(!currentRequest){
+    return;
+  }
+
+
+  $("requestNumber").textContent =
+    currentRequest.request_number ||
+    (
+      "EGC Request #" +
+      String(
+        currentRequest.id
+      ).substring(
+        0,
+        8
+      )
+    );
+
+
+  $("requestDate").textContent =
+    "Submitted: " +
+    formatDateTime(
+      currentRequest.created_at
+    );
+
+
+  const approved =
+    isOwnerApproved(
+      currentRequest
+    );
+
+
+  $("approvalBadge").textContent =
+    approved
+    ? "Owner Approved"
+    : "Approval Pending";
+
+
+  $("approvalBadge").style.background =
+    approved
+    ? "#e5f8ef"
+    : "#fff3d0";
+
+
+  $("approvalBadge").style.color =
+    approved
+    ? "#087848"
+    : "#a36b00";
+
+}
+
+
+/* =========================================================
+   RENDER AMOUNT
+========================================================= */
+
+function renderAmount(){
+
+  const requestAmount =
+    getRequestAmount();
+
+  const paidAmount =
+    calculatePaidAmount();
+
+  const remaining =
+    Math.max(
+      0,
+      requestAmount -
+      paidAmount
+    );
+
+
+  $("requestAmount").textContent =
+    "₹" +
+    formatMoney(
+      requestAmount
+    );
+
+
+  $("alreadyPaid").textContent =
+    "₹" +
+    formatMoney(
+      paidAmount
+    );
+
+
+  $("remainingAmount").textContent =
+    "₹" +
+    formatMoney(
+      remaining
+    );
+
+
+  $("payableAmount").textContent =
+    "₹" +
+    formatMoney(
+      payableAmount
+    );
+
+
+  if(
+    paymentType === "initial"
+  ){
+
+    $("payableNote").textContent =
+      "Initial EGC payment";
+
+    $("repaymentDaysBox").style.display =
+      "none";
+
+  }else{
+
+    $("payableNote").textContent =
+      "Remaining amount + applicable extra charge";
+
+    const deliveryDate =
+      getDeliveryDate();
+
+
+    if(deliveryDate){
+
+      $("repaymentDaysBox").style.display =
+        "block";
+
+
+      $("repaymentDaysBox").innerHTML =
+
+        "<strong>Repayment calculation</strong><br>" +
+
+        "Cylinder delivered: " +
+        escapeHtml(
+          formatDateTime(
+            deliveryDate
+          )
+        ) +
+
+        "<br>" +
+
+        "Days pending: " +
+        escapeHtml(
+          String(
+            pendingDays
+          )
+        ) +
+
+        " days<br>" +
+
+        "Remaining amount: ₹" +
+        formatMoney(
+          remaining
+        ) +
+
+        "<br>" +
+
+        "Extra charge: ₹" +
+        formatMoney(
+          extraCharge
+        );
+
+    }
+
+  }
+
+
+  if(
+    paymentType === "initial"
+  ){
+
+    $("initialTypeCard")
+      .classList
+      .add("active");
+
+    $("repaymentTypeCard")
+      .classList
+      .remove("active");
+
+  }else{
+
+    $("repaymentTypeCard")
+      .classList
+      .add("active");
+
+    $("initialTypeCard")
+      .classList
+      .remove("active");
+
+  }
+
+}
+
+
+/* =========================================================
+   EXISTING PAYMENT STATUS
+========================================================= */
+
+function renderExistingPayment(){
+
+  if(!currentPayment){
+
+    $("existingPaymentBox")
+      .style.display =
+      "none";
+
+    return;
+
+  }
+
+
+  const box =
+    $("existingPaymentStatus");
+
+
+  $("existingPaymentBox")
+    .style.display =
+    "block";
+
+
+  const status =
+    String(
+      currentPayment.verification_status ||
+      "pending"
+    ).toLowerCase();
+
+
+  let className =
+    "pending";
+
+
+  if(
+    [
+      "approved",
+      "verified",
+      "success",
+      "completed"
+    ].includes(status)
+  ){
+
+    className =
+      "approved";
+
+  }
+
+
+  if(
+    [
+      "rejected",
+      "failed"
+    ].includes(status)
+  ){
+
+    className =
+      "rejected";
+
+  }
+
+
+  box.style.display =
+    "block";
+
+
+  box.innerHTML =
+
+    '<div class="status-row">' +
+
+      '<span class="status-label">' +
+        'Payment Amount' +
+      '</span>' +
+
+      '<span class="status-value">' +
+        '₹' +
+        formatMoney(
+          currentPayment.payment_amount
+        ) +
+      '</span>' +
+
+    '</div>' +
+
+    '<div class="status-row">' +
+
+      '<span class="status-label">' +
+        'Transaction ID' +
+      '</span>' +
+
+      '<span class="status-value">' +
+        escapeHtml(
+          currentPayment.transaction_id ||
+          "—"
+        ) +
+      '</span>' +
+
+    '</div>' +
+
+    '<div class="status-row">' +
+
+      '<span class="status-label">' +
+        'Verification' +
+      '</span>' +
+
+      '<span class="status-value ' +
+        className +
+      '">' +
+
+        escapeHtml(
+          currentPayment.verification_status ||
+          "Pending"
+        ) +
+
+      '</span>' +
+
+    '</div>' +
+
+    (
+      currentPayment.owner_rejection_reason
+      ?
+
+      '<div class="status-row">' +
+
+        '<span class="status-label">' +
+          'Rejection Reason' +
+        '</span>' +
+
+        '<span class="status-value rejected">' +
+
+          escapeHtml(
+            currentPayment.owner_rejection_reason
+          ) +
+
+        '</span>' +
+
+      '</div>'
+
+      :
+
+      ""
+
+    );
+
+}
+
+
+/* =========================================================
+   SCREENSHOT PREVIEW
+========================================================= */
+
+$("paymentScreenshot")
+  .addEventListener(
+    "change",
+    function(){
+
+      const file =
+        this.files?.[0];
+
+      if(!file){
+
+        $("screenshotPreview")
+          .style.display =
+          "none";
+
+        return;
+
+      }
+
+
+      if(
+        file.size >
+        5 * 1024 * 1024
+      ){
+
+        showError(
+          "Screenshot must be 5 MB or smaller."
+        );
+
+        this.value =
+          "";
+
+        return;
+
+      }
+
+
+      if(
+        !file.type.startsWith(
+          "image/"
+        )
+      ){
+
+        showError(
+          "Please select an image screenshot."
+        );
+
+        this.value =
+          "";
+
+        return;
+
+      }
+
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        function(event){
+
+          $("screenshotPreview").src =
+            event.target.result;
+
+          $("screenshotPreview")
+            .style.display =
+            "block";
+
+        };
+
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   UPLOAD SCREENSHOT
+========================================================= */
+
+async function uploadScreenshot(file){
+
+  if(!file){
+
+    throw new Error(
+      "Payment screenshot is required."
+    );
+
+  }
+
+
+  const extension =
+    (
+      file.name
+      .split(".")
+      .pop() ||
+      "jpg"
+    )
+    .toLowerCase();
+
+
+  const safeUser =
+    String(
+      currentUser.id
+    )
+    .replace(
+      /[^a-zA-Z0-9_-]/g,
+      ""
+    );
+
+
+  const safeRequest =
+    String(
+      currentRequest.id
+    )
+    .replace(
+      /[^a-zA-Z0-9_-]/g,
+      ""
+    );
+
+
+  const filePath =
+    safeUser +
+    "/" +
+    safeRequest +
+    "/" +
+    Date.now() +
+    "-" +
+    Math.random()
+      .toString(36)
+      .substring(2,8) +
+    "." +
+    extension;
+
+
+  const uploadResult =
+    await supabaseClient
+      .storage
+      .from(
+        PAYMENT_SCREENSHOT_BUCKET
+      )
+      .upload(
+        filePath,
+        file,
+        {
+          cacheControl:"3600",
+          upsert:false,
+          contentType:file.type
+        }
+      );
+
+
+  if(uploadResult.error){
+
+    throw new Error(
+      "Payment screenshot upload failed: " +
+      uploadResult.error.message
+    );
+
+  }
+
+
+  const publicResult =
+    supabaseClient
+      .storage
+      .from(
+        PAYMENT_SCREENSHOT_BUCKET
+      )
+      .getPublicUrl(
+        filePath
+      );
+
+
+  return (
+    publicResult?.data?.publicUrl ||
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   BUILD PAYMENT NOTES
+========================================================= */
+
+function buildPaymentNotes(){
+
+  const userNote =
+    $("paymentNote")
+      .value
+      .trim();
+
+
+  const metadata = {
+
+    payment_type:
+      paymentType,
+
+    pending_days:
+      paymentType === "repayment"
+      ? pendingDays
+      : 0,
+
+    extra_charge:
+      paymentType === "repayment"
+      ? extraCharge
+      : 0,
+
+    delivery_date:
+      getDeliveryDate(),
+
+    calculated_payable:
+      payableAmount,
+
+    user_note:
+      userNote || null
+
+  };
+
+
+  return JSON.stringify(
+    metadata
+  );
+
+}
+
+
+/* =========================================================
+   CREATE NOTIFICATIONS
+========================================================= */
+
+async function notifyOwnerAndAgency(payment){
+
+  /*
+    Notification table may have additional columns
+    in your project. These common columns are used.
+  */
+
+  const title =
+    paymentType === "initial"
+    ? "New Initial Payment Submitted"
+    : "New Repayment Submitted";
+
+
+  const message =
+    paymentType === "initial"
+
+    ?
+
+    (
+      "User submitted the initial payment of ₹" +
+      formatMoney(
+        payableAmount
+      ) +
+      ". Transaction ID: " +
+      (
+        payment.transaction_id ||
+        "—"
+      )
+    )
+
+    :
+
+    (
+      "User submitted a repayment of ₹" +
+      formatMoney(
+        payableAmount
+      ) +
+      ". Transaction ID: " +
+      (
+        payment.transaction_id ||
+        "—"
+      )
+    );
+
+
+  /*
+    First try to notify the current user.
+    Owner/agency notification systems can consume
+    the payment record using request_id/payment id.
+  */
+
+  try{
+
+    await supabaseClient
+      .from("notifications")
+      .insert({
+
+        user_id:
+          currentUser.id,
+
+        title:
+          title,
+
+        message:
+          message,
+
+        notification_type:
+          "payment_submitted",
+
+        is_read:
+          false
+
+      });
+
+  }catch(error){
+
+    console.warn(
+      "User notification insert warning:",
+      error
+    );
+
+  }
+
+
+  /*
+    Owner and Agency notifications should be created
+    from the secure owner/agency backend trigger or
+    owner dashboard workflow.
+
+    We intentionally do not put a fixed owner UUID
+    or agency UUID in frontend code.
+  */
+
+}
+
+
+/* =========================================================
+   SUBMIT PAYMENT
+========================================================= */
+
+async function submitPayment(event){
+
+  event.preventDefault();
+
+  clearMessages();
+
+
+  if(
+    !currentUser?.id ||
+    !currentRequest?.id
+  ){
+
+    showError(
+      "Payment request information is missing."
+    );
+
+    return;
+
+  }
+
+
+  const button =
+    $("submitPaymentBtn");
+
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "SUBMITTING PAYMENT...";
+
+
+  try{
+
+    /*
+      Recalculate everything immediately before submit.
+      This prevents URL amount manipulation.
+    */
+
+    await loadAllPayments();
+
+    paymentType =
+      determinePaymentType();
+
+    calculatePayable();
+
+
+    if(
+      payableAmount <= 0
+    ){
+
+      throw new Error(
+        "There is no payable amount for this request."
+      );
+
+    }
+
+
+    const paymentMethod =
+      $("paymentMethod")
+        .value
+        .trim();
+
+
+    const transactionId =
+      $("transactionId")
+        .value
+        .trim();
+
+
+    const screenshot =
+      $("paymentScreenshot")
+        .files?.[0];
+
+
+    if(!paymentMethod){
+
+      throw new Error(
+        "Please select a payment method."
+      );
+
+    }
+
+
+    if(!transactionId){
+
+      throw new Error(
+        "Please enter the transaction ID / UTR."
+      );
+
+    }
+
+
+    if(!screenshot){
+
+      throw new Error(
+        "Payment screenshot is required."
+      );
+
+    }
+
+
+    if(
+      screenshot.size >
+      5 * 1024 * 1024
+    ){
+
+      throw new Error(
+        "Payment screenshot must be 5 MB or smaller."
+      );
+
+    }
+
+
+    /*
+      Initial payment:
+      only allow after owner approval.
+    */
+
+    if(
+      paymentType === "initial" &&
+      !isOwnerApproved(
+        currentRequest
+      )
+    ){
+
+      throw new Error(
+        "This request is still waiting for Owner approval."
+      );
+
+    }
+
+
+    /*
+      Repayment:
+      cylinder must have a delivery date.
+    */
+
+    if(
+      paymentType === "repayment" &&
+      !getDeliveryDate()
+    ){
+
+      throw new Error(
+        "Repayment can start after the cylinder delivery date is recorded."
+      );
+
+    }
+
+
+    /*
+      Upload screenshot first.
+    */
+
+    button.textContent =
+      "UPLOADING SCREENSHOT...";
+
+
+    const screenshotUrl =
+      await uploadScreenshot(
+        screenshot
+      );
+
+
+    if(!screenshotUrl){
+
+      throw new Error(
+        "Could not create screenshot URL."
+      );
+
+    }
+
+
+    /*
+      Save payment record.
+
+      payment_status:
+      pending
+
+      verification_status:
+      pending
+
+      Owner will later approve it.
+    */
+
+    button.textContent =
+      "SAVING PAYMENT...";
+
+
+    const paymentData = {
+
+      user_id:
+        currentUser.id,
+
+      request_id:
+        currentRequest.id,
+
+      payment_amount:
+        Number(
+          payableAmount
+        ),
+
+      payment_status:
+        "pending",
+
+      payment_date:
+        new Date()
+          .toISOString(),
+
+      /*
+        Screenshot URL is stored here because
+        current payments table has no dedicated
+        screenshot column.
+      */
+
+      payment_reference:
+        screenshotUrl,
+
+      notes:
+        buildPaymentNotes(),
+
+      verification_status:
+        "pending",
+
+      payment_method:
+        paymentMethod,
+
+      transaction_id:
+        transactionId
+
+    };
+
+
+    /*
+      If a payment record already exists from
+      payments.html, update it instead of creating
+      duplicate payment.
+    */
+
+    let result;
+
+
+    if(currentPayment){
+
+      result =
+        await supabaseClient
+          .from("payments")
+          .update(
+            paymentData
+          )
+          .eq(
+            "id",
+            currentPayment.id
+          )
+          .eq(
+            "user_id",
+            currentUser.id
+          )
+          .select("*")
+          .single();
+
+    }else{
+
+      result =
+        await supabaseClient
+          .from("payments")
+          .insert(
+            paymentData
+          )
+          .select("*")
+          .single();
+
+    }
+
+
+    if(result.error){
+
+      throw result.error;
+
+    }
+
+
+    currentPayment =
+      result.data;
+
+
+    /*
+      Notification.
+    */
+
+    await notifyOwnerAndAgency(
+      currentPayment
+    );
+
+
+    showSuccess(
+      paymentType === "initial"
+
+      ?
+
+      "Initial payment submitted successfully. Owner verification is pending."
+
+      :
+
+      "Repayment submitted successfully. Owner verification is pending."
+    );
+
+
+    $("paymentForm")
+      .reset();
+
+
+    $("screenshotPreview")
+      .style.display =
+      "none";
+
+
+    renderExistingPayment();
+
+
+    button.textContent =
+      "PAYMENT SUBMITTED";
+
+
+    toast(
+      "Payment submitted successfully."
+    );
+
+
+    /*
+      After a short delay return to Payments.
+    */
+
+    setTimeout(
+      function(){
+
+        window.location.href =
+          "payments.html";
+
+      },
+      2200
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "Submit payment error:",
+      error
+    );
+
+
+    showError(
+      error.message ||
+      "Unable to submit payment."
+    );
+
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "SUBMIT PAYMENT";
+
+  }
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function goDashboard(){
+
+  window.location.href =
+    "dashboard.html";
+
+}
+
+
+function requestCylinder(){
+
+  window.location.href =
+    "request-cylinder.html";
+
+}
+
+
+function goRequests(){
+
+  window.location.href =
+    "my-requests.html";
+
+}
+
+
+function goPayments(){
+
+  window.location.href =
+    "payments.html";
+
+}
+
+
+function goNotifications(){
+
+  window.location.href =
+    "notifications.html";
+
+}
+
+
+function goProfile(){
+
+  window.location.href =
+    "profile.html";
+
+}
+
+
+function goSettings(){
+
+  window.location.href =
+    "settings.html";
+
+}
+
+
+function goHelpSupport(){
+
+  window.location.href =
+    "help-support.html";
+
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function openLogoutPopup(){
+
+  $("logoutOverlay")
+    .classList
+    .add("show");
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+
+function closeLogoutPopup(event){
+
+  if(
+    event &&
+    event.target &&
+    event.target.id !==
+    "logoutOverlay"
+  ){
+
+    return;
+
+  }
+
+
+  $("logoutOverlay")
+    .classList
+    .remove("show");
+
+  document.body.style.overflow =
+    "";
+
+}
+
+
+async function confirmLogout(){
+
+  const button =
+    $("confirmLogoutBtn");
+
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Logging out...";
+
+
+  const result =
+    await supabaseClient
+      .auth
+      .signOut();
+
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Logout";
+
+    toast(
+      result.error.message ||
+      "Logout failed."
+    );
+
+    return;
+
+  }
+
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+
+/* =========================================================
+   ESC
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(
+      event.key ===
+      "Escape"
+    ){
+
+      closeLogoutPopup();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTH STATE
+========================================================= */
+
+supabaseClient
+  .auth
+  .onAuthStateChange(
+    function(event){
+
+      if(
+        event ===
+        "SIGNED_OUT"
+      ){
+
+        window.location.replace(
+          "login.html"
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+async function initializePage(){
+
+  try{
+
+    clearMessages();
+
+
+    const authResult =
+      await supabaseClient
+        .auth
+        .getUser();
+
+
+    if(
+      authResult.error ||
+      !authResult.data?.user
+    ){
+
+      window.location.replace(
+        "login.html"
+      );
+
+      return;
+
+    }
+
+
+    currentUser =
+      authResult.data.user;
+
+
+    await loadProfile();
+
+
+    await loadRequest();
+
+
+    paymentType =
+      determinePaymentType();
+
+
+    await loadAllPayments();
+
+
+    calculatePayable();
+
+
+    renderRequest();
+
+
+    renderExistingPayment();
+
+
+    /*
+      If an existing payment is already submitted
+      and pending/approved, don't allow accidental
+      duplicate submission.
+    */
+
+    if(currentPayment){
+
+      const verification =
+        String(
+          currentPayment.verification_status ||
+          ""
+        ).toLowerCase();
+
+
+      if(
+        [
+          "pending",
+          "approved",
+          "verified"
+        ].includes(
+          verification
+        )
+      ){
+
+        $("submitPaymentBtn")
+          .disabled =
+          true;
+
+        $("submitPaymentBtn")
+          .textContent =
+          "PAYMENT ALREADY SUBMITTED";
+
+      }
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "Submit payment page error:",
+      error
+    );
+
+
+    showError(
+      error.message ||
+      "Unable to load payment page."
+    );
+
+  }
+
+}
+
+
+$("paymentForm")
+  .addEventListener(
+    "submit",
+    submitPayment
+  );
+
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initializePage
+);
+
+</script>
+
+</body>
+</html>

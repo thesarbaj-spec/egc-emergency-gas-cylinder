@@ -1,0 +1,2374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGC - Notifications</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  background:#eef7fc;
+  color:#003e81;
+  min-height:100vh;
+}
+
+button{
+  font-family:Arial,sans-serif;
+  cursor:pointer;
+}
+
+button:disabled{
+  cursor:not-allowed;
+}
+
+.topbar{
+  height:72px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 35px;
+  box-shadow:0 3px 15px rgba(0,62,129,.08);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:115px;
+  height:48px;
+  object-fit:contain;
+}
+
+.brand-text{
+  font-size:13px;
+  color:#70859a;
+}
+
+.profile-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.profile-photo{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#dfeef8;
+  border:2px solid #e1edf5;
+}
+
+.profile-name{
+  font-weight:800;
+  color:#003e81;
+  font-size:14px;
+}
+
+.profile-email{
+  color:#8295a6;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 72px);
+}
+
+.sidebar{
+  width:235px;
+  background:#fff;
+  border-right:1px solid #e1edf5;
+  padding:25px 14px;
+  position:fixed;
+  left:0;
+  top:72px;
+  bottom:0;
+  z-index:40;
+}
+
+.nav-title{
+  font-size:11px;
+  color:#94a5b5;
+  font-weight:800;
+  padding:8px 13px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+.nav-btn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#58738d;
+  padding:13px 14px;
+  border-radius:11px;
+  text-align:left;
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:5px;
+  transition:.15s;
+}
+
+.nav-btn:hover,
+.nav-btn.active{
+  background:#eaf5fc;
+  color:#0754a9;
+}
+
+.logout{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:20px;
+  color:#d33b3b;
+}
+
+.logout:hover{
+  background:#fff0f0;
+  color:#c62828;
+}
+
+.main{
+  margin-left:235px;
+  width:calc(100% - 235px);
+  padding:30px;
+}
+
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+  gap:20px;
+}
+
+.page-header h1{
+  font-size:28px;
+  color:#003e81;
+  margin-bottom:7px;
+}
+
+.page-header p{
+  color:#71869a;
+  font-size:14px;
+}
+
+.header-actions{
+  display:flex;
+  gap:10px;
+}
+
+.header-btn{
+  border:0;
+  min-height:44px;
+  padding:0 17px;
+  border-radius:12px;
+  background:#fff;
+  color:#0754a9;
+  font-weight:800;
+  box-shadow:0 5px 18px rgba(0,62,129,.08);
+  transition:.15s;
+}
+
+.header-btn:hover{
+  background:#eaf5fc;
+}
+
+.header-btn.danger{
+  color:#c62828;
+}
+
+.header-btn.danger:hover{
+  background:#fff0f0;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:17px;
+  margin-bottom:20px;
+}
+
+.stat-card{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:18px;
+  padding:20px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+}
+
+.stat-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:13px;
+}
+
+.stat-label{
+  color:#7b8fa1;
+  font-size:13px;
+  font-weight:700;
+}
+
+.stat-icon{
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  background:#eaf5fc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
+
+.stat-number{
+  font-size:27px;
+  font-weight:900;
+  color:#003e81;
+}
+
+.box{
+  background:#fff;
+  border:1px solid #e2edf4;
+  border-radius:20px;
+  padding:23px;
+  box-shadow:0 7px 22px rgba(0,62,129,.06);
+}
+
+.box-title{
+  font-size:18px;
+  font-weight:900;
+  color:#003e81;
+  margin-bottom:18px;
+}
+
+.filter-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+
+.filter-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.filter-btn{
+  border:1px solid #dce8ef;
+  background:#fff;
+  color:#668095;
+  border-radius:10px;
+  padding:9px 13px;
+  font-size:12px;
+  font-weight:800;
+  transition:.15s;
+}
+
+.filter-btn:hover,
+.filter-btn.active{
+  background:#eaf5fc;
+  border-color:#cce5f5;
+  color:#0754a9;
+}
+
+.mark-all-btn{
+  border:0;
+  background:#0754a9;
+  color:#fff;
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:12px;
+  font-weight:900;
+  transition:.15s;
+}
+
+.mark-all-btn:hover{
+  background:#00488f;
+}
+
+.mark-all-btn:disabled{
+  opacity:.55;
+}
+
+.notifications-list{
+  display:flex;
+  flex-direction:column;
+}
+
+.notification{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  padding:17px 5px;
+  border-bottom:1px solid #edf3f7;
+  position:relative;
+}
+
+.notification:last-child{
+  border-bottom:0;
+}
+
+.notification.unread{
+  background:#f7fbff;
+  border-radius:13px;
+  padding-left:12px;
+  padding-right:12px;
+  margin-bottom:7px;
+  border:1px solid #e4f1fa;
+}
+
+.notification-icon{
+  width:45px;
+  min-width:45px;
+  height:45px;
+  border-radius:13px;
+  background:#eaf5fc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:21px;
+}
+
+.notification-content{
+  flex:1;
+  min-width:0;
+}
+
+.notification-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.notification-title{
+  font-size:14px;
+  font-weight:900;
+  color:#164f82;
+  word-break:break-word;
+}
+
+.notification-message{
+  color:#49677f;
+  font-size:13px;
+  margin-top:5px;
+  line-height:1.5;
+  word-break:break-word;
+}
+
+.notification-date{
+  font-size:10px;
+  color:#91a0ad;
+  margin-top:7px;
+}
+
+.unread-dot{
+  width:8px;
+  height:8px;
+  min-width:8px;
+  border-radius:50%;
+  background:#0872d5;
+}
+
+.notification-actions{
+  display:flex;
+  gap:7px;
+  margin-top:10px;
+}
+
+.read-btn{
+  border:0;
+  background:#eaf5fc;
+  color:#0754a9;
+  border-radius:8px;
+  padding:6px 9px;
+  font-size:10px;
+  font-weight:900;
+}
+
+.read-btn:hover{
+  background:#dceef9;
+}
+
+.read-btn:disabled{
+  opacity:.6;
+}
+
+.read-label{
+  font-size:10px;
+  color:#0a8a55;
+  font-weight:800;
+  padding-top:6px;
+}
+
+.empty{
+  text-align:center;
+  padding:45px 15px;
+  color:#8a9aaa;
+  font-size:13px;
+}
+
+.empty-icon{
+  font-size:42px;
+  margin-bottom:10px;
+}
+
+.loading{
+  text-align:center;
+  padding:45px 15px;
+  color:#71869a;
+  font-size:13px;
+}
+
+.error-box{
+  display:none;
+  background:#fff0f0;
+  border:1px solid #ffd0d0;
+  color:#c62828;
+  padding:13px;
+  border-radius:12px;
+  margin-bottom:18px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.mobile-nav{
+  display:none;
+}
+
+.toast{
+  position:fixed;
+  right:25px;
+  bottom:25px;
+  z-index:10001;
+  background:#003e81;
+  color:#fff;
+  padding:13px 18px;
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-size:13px;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(10px);
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.logout-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,20,40,.55);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.logout-overlay.show{
+  display:flex;
+}
+
+.logout-popup{
+  width:100%;
+  max-width:390px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 25px 24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  text-align:center;
+  animation:logoutPopupIn .18s ease-out;
+}
+
+@keyframes logoutPopupIn{
+  from{
+    opacity:0;
+    transform:scale(.94) translateY(8px);
+  }
+  to{
+    opacity:1;
+    transform:scale(1) translateY(0);
+  }
+}
+
+.logout-icon{
+  width:58px;
+  height:58px;
+  border-radius:17px;
+  background:#fff0f0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto 16px;
+  font-size:28px;
+}
+
+.logout-title{
+  font-size:21px;
+  font-weight:900;
+  color:#173f62;
+  margin-bottom:10px;
+}
+
+.logout-subtitle{
+  font-size:13px;
+  color:#7c8d9c;
+  line-height:1.5;
+  margin-bottom:23px;
+}
+
+.logout-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn{
+  height:48px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:900;
+  transition:.15s;
+}
+
+.logout-cancel-btn{
+  background:#fff;
+  color:#31526d;
+  border:1px solid #d7e2ea;
+}
+
+.logout-cancel-btn:hover{
+  background:#f5f8fa;
+}
+
+.logout-confirm-btn{
+  background:#e53935;
+  color:#fff;
+  border:1px solid #e53935;
+}
+
+.logout-confirm-btn:hover{
+  background:#c62828;
+  border-color:#c62828;
+}
+
+.logout-confirm-btn:disabled{
+  opacity:.65;
+}
+
+@media(max-width:900px){
+
+  .stats{
+    grid-template-columns:repeat(3,1fr);
+  }
+
+}
+
+@media(max-width:800px){
+
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:20px 15px 90px;
+  }
+
+  .topbar{
+    height:65px;
+    padding:0 15px;
+  }
+
+  .layout{
+    min-height:calc(100vh - 65px);
+  }
+
+  .brand img{
+    width:100px;
+  }
+
+  .brand-text{
+    display:none;
+  }
+
+  .profile-email{
+    display:none;
+  }
+
+  .profile-photo{
+    width:38px;
+    height:38px;
+  }
+
+  .page-header{
+    align-items:flex-start;
+  }
+
+  .page-header h1{
+    font-size:23px;
+  }
+
+  .page-header p{
+    font-size:12px;
+    line-height:1.5;
+  }
+
+  .header-actions{
+    display:none;
+  }
+
+  .stats{
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+
+  .stat-card{
+    padding:14px 11px;
+  }
+
+  .stat-label{
+    font-size:10px;
+  }
+
+  .stat-number{
+    font-size:21px;
+  }
+
+  .stat-icon{
+    width:32px;
+    height:32px;
+    font-size:16px;
+  }
+
+  .box{
+    padding:18px;
+    border-radius:17px;
+  }
+
+  .box-title{
+    font-size:17px;
+  }
+
+  .filter-row{
+    align-items:stretch;
+  }
+
+  .filter-buttons{
+    width:100%;
+  }
+
+  .filter-btn{
+    flex:1;
+  }
+
+  .mark-all-btn{
+    width:100%;
+  }
+
+  .notification{
+    gap:11px;
+  }
+
+  .notification-icon{
+    width:40px;
+    min-width:40px;
+    height:40px;
+    font-size:18px;
+  }
+
+  .notification-title{
+    font-size:13px;
+  }
+
+  .notification-message{
+    font-size:12px;
+  }
+
+  .notification-date{
+    font-size:9px;
+  }
+
+  .mobile-nav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:67px;
+    background:#fff;
+    border-top:1px solid #dce8ef;
+    z-index:100;
+    justify-content:space-around;
+    align-items:center;
+    box-shadow:0 -5px 20px rgba(0,62,129,.08);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#7890a3;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .mobile-nav button span{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+
+  .mobile-nav button.active{
+    color:#0754a9;
+  }
+
+  .logout-popup{
+    max-width:350px;
+    padding:25px 20px 21px;
+  }
+
+  .logout-title{
+    font-size:20px;
+  }
+
+  .toast{
+    left:15px;
+    right:15px;
+    bottom:80px;
+    text-align:center;
+  }
+
+}
+
+@media(max-width:450px){
+
+  .stats{
+    gap:8px;
+  }
+
+  .stat-card{
+    padding:13px 8px;
+  }
+
+  .stat-number{
+    font-size:19px;
+  }
+
+  .stat-label{
+    font-size:9px;
+  }
+
+  .stat-icon{
+    width:30px;
+    height:30px;
+    font-size:15px;
+  }
+
+  .notification.unread{
+    padding-left:9px;
+    padding-right:9px;
+  }
+
+  .notification-icon{
+    width:37px;
+    min-width:37px;
+    height:37px;
+    font-size:16px;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+
+    <img
+      src="assets/EGC - Emergency Gas Cylinder logo.png"
+      alt="EGC"
+      onerror="this.style.display='none'"
+    >
+
+    <div class="brand-text">
+      Emergency Gas Cylinder
+    </div>
+
+  </div>
+
+  <div class="profile-mini">
+
+    <div>
+
+      <div
+        class="profile-name"
+        id="topName">
+        Loading...
+      </div>
+
+      <div
+        class="profile-email"
+        id="topEmail">
+        Loading...
+      </div>
+
+    </div>
+
+    <img
+      id="topPhoto"
+      class="profile-photo"
+      src=""
+      alt="Profile"
+    >
+
+  </div>
+
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">
+    MENU
+  </div>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('dashboard.html')">
+    🏠 &nbsp; Dashboard
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('request-cylinder.html')">
+    🛢️ &nbsp; Request Cylinder
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('my-requests.html')">
+    📋 &nbsp; My Requests
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('payments.html')">
+    💰 &nbsp; Payments
+  </button>
+
+  <button
+    class="nav-btn active"
+    onclick="goPage('notifications.html')">
+    🔔 &nbsp; Notifications
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('profile.html')">
+    👤 &nbsp; Profile
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('setting.html')">
+    ⚙️ &nbsp; Settings
+  </button>
+
+  <button
+    class="nav-btn"
+    onclick="goPage('help-support.html')">
+    ❓ &nbsp; Help & Support
+  </button>
+
+  <button
+    class="nav-btn logout"
+    onclick="openLogoutPopup()">
+    🚪 &nbsp; Logout
+  </button>
+
+</aside>
+
+<main class="main">
+
+  <div
+    id="errorBox"
+    class="error-box">
+  </div>
+
+  <section class="page-header">
+
+    <div>
+
+      <h1>
+        Notifications
+      </h1>
+
+      <p>
+        Stay updated about your EGC requests, payments and deliveries.
+      </p>
+
+    </div>
+
+    <div class="header-actions">
+
+      <button
+        class="header-btn"
+        onclick="goPage('dashboard.html')">
+        🏠 Dashboard
+      </button>
+
+      <button
+        class="header-btn danger"
+        onclick="openLogoutPopup()">
+        🚪 Logout
+      </button>
+
+    </div>
+
+  </section>
+
+  <section class="stats">
+
+    <div class="stat-card">
+
+      <div class="stat-top">
+
+        <div class="stat-label">
+          Total
+        </div>
+
+        <div class="stat-icon">
+          🔔
+        </div>
+
+      </div>
+
+      <div
+        class="stat-number"
+        id="totalNotifications">
+        0
+      </div>
+
+    </div>
+
+    <div class="stat-card">
+
+      <div class="stat-top">
+
+        <div class="stat-label">
+          Unread
+        </div>
+
+        <div class="stat-icon">
+          🔵
+        </div>
+
+      </div>
+
+      <div
+        class="stat-number"
+        id="unreadNotifications">
+        0
+      </div>
+
+    </div>
+
+    <div class="stat-card">
+
+      <div class="stat-top">
+
+        <div class="stat-label">
+          Read
+        </div>
+
+        <div class="stat-icon">
+          ✅
+        </div>
+
+      </div>
+
+      <div
+        class="stat-number"
+        id="readNotifications">
+        0
+      </div>
+
+    </div>
+
+  </section>
+
+  <div class="box">
+
+    <div class="box-title">
+      🔔 Your Notifications
+    </div>
+
+    <div class="filter-row">
+
+      <div class="filter-buttons">
+
+        <button
+          class="filter-btn active"
+          id="filterAll"
+          onclick="setFilter('all')">
+          All
+        </button>
+
+        <button
+          class="filter-btn"
+          id="filterUnread"
+          onclick="setFilter('unread')">
+          Unread
+        </button>
+
+        <button
+          class="filter-btn"
+          id="filterRead"
+          onclick="setFilter('read')">
+          Read
+        </button>
+
+      </div>
+
+      <button
+        class="mark-all-btn"
+        id="markAllBtn"
+        onclick="markAllAsRead()">
+        ✓ Mark All as Read
+      </button>
+
+    </div>
+
+    <div
+      id="notificationsList"
+      class="notifications-list">
+
+      <div class="loading">
+        Loading notifications...
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+<nav class="mobile-nav">
+
+  <button
+    onclick="goPage('dashboard.html')">
+    <span>🏠</span>
+    Home
+  </button>
+
+  <button
+    onclick="goPage('my-requests.html')">
+    <span>📋</span>
+    Requests
+  </button>
+
+  <button
+    onclick="goPage('request-cylinder.html')">
+    <span>➕</span>
+    Request
+  </button>
+
+  <button
+    onclick="goPage('payments.html')">
+    <span>💰</span>
+    Payments
+  </button>
+
+  <button
+    class="active"
+    onclick="goPage('notifications.html')">
+    <span>🔔</span>
+    Alerts
+  </button>
+
+</nav>
+
+<div
+  class="logout-overlay"
+  id="logoutOverlay"
+  onclick="closeLogoutPopup(event)">
+
+  <div
+    class="logout-popup"
+    onclick="event.stopPropagation()">
+
+    <div class="logout-icon">
+      🚪
+    </div>
+
+    <div class="logout-title">
+      Are you sure Logout?
+    </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()">
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+<script>
+
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const supabaseClient =
+window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+let currentUser = null;
+let currentProfile = null;
+let notifications = [];
+let currentFilter = "all";
+let realtimeChannel = null;
+let toastTimer = null;
+
+function $(id){
+  return document.getElementById(id);
+}
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+function formatDateTime(value){
+
+  if(!value){
+    return "—";
+  }
+
+  const d = new Date(value);
+
+  if(Number.isNaN(d.getTime())){
+    return "—";
+  }
+
+  return d.toLocaleString(
+    "en-IN",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric",
+      hour:"2-digit",
+      minute:"2-digit"
+    }
+  );
+
+}
+
+function showError(message){
+
+  const box = $("errorBox");
+
+  box.textContent =
+    message ||
+    "Something went wrong.";
+
+  box.style.display =
+    "block";
+
+}
+
+function clearError(){
+
+  $("errorBox").style.display =
+    "none";
+
+}
+
+function toast(message){
+
+  const el = $("toast");
+
+  el.textContent =
+    message || "";
+
+  el.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer =
+    setTimeout(
+      function(){
+        el.classList.remove("show");
+      },
+      3000
+    );
+
+}
+
+/* =========================
+   PAGE NAVIGATION
+========================= */
+
+function goPage(page){
+
+  if(!page){
+    return;
+  }
+
+  window.location.href =
+    page;
+
+}
+
+/* =========================
+   PROFILE
+========================= */
+
+async function loadProfile(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const result =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .maybeSingle();
+
+  if(result.error){
+
+    console.warn(
+      "Profile load error:",
+      result.error
+    );
+
+    $("topName").textContent =
+      "EGC Customer";
+
+    $("topEmail").textContent =
+      currentUser.email || "";
+
+    setDefaultProfilePhoto(
+      "EGC Customer"
+    );
+
+    return;
+
+  }
+
+  if(!result.data){
+
+    $("topName").textContent =
+      "EGC Customer";
+
+    $("topEmail").textContent =
+      currentUser.email || "";
+
+    setDefaultProfilePhoto(
+      "EGC Customer"
+    );
+
+    return;
+
+  }
+
+  currentProfile =
+    result.data;
+
+  const name =
+    result.data.full_name ||
+    "EGC Customer";
+
+  const email =
+    result.data.email ||
+    currentUser.email ||
+    "";
+
+  $("topName").textContent =
+    name;
+
+  $("topEmail").textContent =
+    email;
+
+  if(result.data.profile_photo){
+
+    $("topPhoto").src =
+      result.data.profile_photo;
+
+  }else{
+
+    setDefaultProfilePhoto(name);
+
+  }
+
+}
+
+function setDefaultProfilePhoto(name){
+
+  $("topPhoto").src =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name || "EGC") +
+    "&background=eaf5fc&color=0754a9&bold=true";
+
+}
+
+/* =========================
+   NOTIFICATION ICON
+========================= */
+
+function notificationIcon(type){
+
+  const value =
+    String(
+      type ||
+      "general"
+    ).toLowerCase();
+
+  if(value === "request")
+    return "🛢️";
+
+  if(value === "payment")
+    return "💳";
+
+  if(value === "approval")
+    return "✅";
+
+  if(value === "approved")
+    return "✅";
+
+  if(value === "completed")
+    return "🎉";
+
+  if(value === "cancelled")
+    return "❌";
+
+  if(value === "canceled")
+    return "❌";
+
+  if(value === "delivery")
+    return "🚚";
+
+  if(value === "processing")
+    return "⚙️";
+
+  if(value === "rejected")
+    return "❌";
+
+  if(value === "system")
+    return "⚙️";
+
+  return "🔔";
+
+}
+
+/* =========================
+   LOAD NOTIFICATIONS
+========================= */
+
+async function loadNotifications(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  $("notificationsList").innerHTML =
+    '<div class="loading">Loading notifications...</div>';
+
+  const result =
+    await supabaseClient
+      .from("notifications")
+      .select(
+        "id,user_id,title,message,notification_type,is_read,created_at"
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      )
+      .limit(100);
+
+  if(result.error){
+
+    console.error(
+      "Notifications load error:",
+      result.error
+    );
+
+    $("notificationsList").innerHTML =
+      '<div class="empty">' +
+      '<div class="empty-icon">⚠️</div>' +
+      'Unable to load notifications.' +
+      '</div>';
+
+    showError(
+      result.error.message ||
+      "Unable to load notifications."
+    );
+
+    updateStats();
+
+    return;
+
+  }
+
+  clearError();
+
+  notifications =
+    result.data || [];
+
+  updateStats();
+  renderNotifications();
+
+}
+
+/* =========================
+   STATS
+========================= */
+
+function updateStats(){
+
+  const total =
+    notifications.length;
+
+  const unread =
+    notifications.filter(
+      function(item){
+        return !item.is_read;
+      }
+    ).length;
+
+  const read =
+    total - unread;
+
+  $("totalNotifications").textContent =
+    total;
+
+  $("unreadNotifications").textContent =
+    unread;
+
+  $("readNotifications").textContent =
+    read;
+
+  $("markAllBtn").disabled =
+    unread === 0;
+
+}
+
+/* =========================
+   FILTER
+========================= */
+
+function setFilter(filter){
+
+  currentFilter =
+    filter;
+
+  document
+    .querySelectorAll(".filter-btn")
+    .forEach(
+      function(button){
+        button.classList.remove("active");
+      }
+    );
+
+  if(filter === "all"){
+    $("filterAll")
+      .classList
+      .add("active");
+  }
+
+  if(filter === "unread"){
+    $("filterUnread")
+      .classList
+      .add("active");
+  }
+
+  if(filter === "read"){
+    $("filterRead")
+      .classList
+      .add("active");
+  }
+
+  renderNotifications();
+
+}
+
+function getFilteredNotifications(){
+
+  if(currentFilter === "unread"){
+
+    return notifications.filter(
+      function(item){
+        return !item.is_read;
+      }
+    );
+
+  }
+
+  if(currentFilter === "read"){
+
+    return notifications.filter(
+      function(item){
+        return item.is_read;
+      }
+    );
+
+  }
+
+  return notifications;
+
+}
+
+/* =========================
+   RENDER
+========================= */
+
+function renderNotifications(){
+
+  const list =
+    $("notificationsList");
+
+  const filtered =
+    getFilteredNotifications();
+
+  if(!filtered.length){
+
+    let message =
+      "No notifications yet.";
+
+    if(currentFilter === "unread"){
+      message =
+        "You have no unread notifications.";
+    }
+
+    if(currentFilter === "read"){
+      message =
+        "You have no read notifications.";
+    }
+
+    list.innerHTML =
+      '<div class="empty">' +
+        '<div class="empty-icon">🔔</div>' +
+        escapeHtml(message) +
+      '</div>';
+
+    return;
+
+  }
+
+  list.innerHTML =
+    filtered
+      .map(
+        function(item){
+
+          const unread =
+            !item.is_read;
+
+          return `
+            <div
+              class="notification ${unread ? "unread" : ""}"
+              data-notification-id="${escapeHtml(item.id)}">
+
+              <div class="notification-icon">
+                ${notificationIcon(item.notification_type)}
+              </div>
+
+              <div class="notification-content">
+
+                <div class="notification-top">
+
+                  <div class="notification-title">
+                    ${escapeHtml(
+                      item.title ||
+                      "Notification"
+                    )}
+                  </div>
+
+                  ${
+                    unread
+                    ?
+                    `
+                      <div
+                        class="unread-dot"
+                        title="Unread">
+                      </div>
+                    `
+                    :
+                    ""
+                  }
+
+                </div>
+
+                <div class="notification-message">
+                  ${escapeHtml(
+                    item.message ||
+                    ""
+                  )}
+                </div>
+
+                <div class="notification-date">
+                  ${formatDateTime(
+                    item.created_at
+                  )}
+                </div>
+
+                <div class="notification-actions">
+
+                  ${
+                    unread
+                    ?
+                    `
+                      <button
+                        class="read-btn"
+                        data-read-id="${escapeHtml(item.id)}">
+                        ✓ Mark as read
+                      </button>
+                    `
+                    :
+                    `
+                      <span class="read-label">
+                        ✓ Read
+                      </span>
+                    `
+                  }
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+/* =========================
+   MARK ONE READ
+========================= */
+
+async function markNotificationRead(id){
+
+  if(
+    !id ||
+    !currentUser?.id
+  ){
+    return false;
+  }
+
+  const result =
+    await supabaseClient
+      .from("notifications")
+      .update({
+        is_read:true
+      })
+      .eq(
+        "id",
+        id
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      );
+
+  if(result.error){
+
+    console.error(
+      "Mark notification read error:",
+      result.error
+    );
+
+    toast(
+      result.error.message ||
+      "Unable to mark notification as read."
+    );
+
+    return false;
+
+  }
+
+  const item =
+    notifications.find(
+      function(notification){
+        return String(
+          notification.id
+        ) === String(id);
+      }
+    );
+
+  if(item){
+    item.is_read = true;
+  }
+
+  updateStats();
+  renderNotifications();
+
+  return true;
+
+}
+
+/* =========================
+   MARK ALL READ
+========================= */
+
+async function markAllAsRead(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  const unread =
+    notifications.filter(
+      function(item){
+        return !item.is_read;
+      }
+    );
+
+  if(!unread.length){
+
+    toast(
+      "All notifications are already read."
+    );
+
+    return;
+
+  }
+
+  const button =
+    $("markAllBtn");
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Marking...";
+
+  const result =
+    await supabaseClient
+      .from("notifications")
+      .update({
+        is_read:true
+      })
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .eq(
+        "is_read",
+        false
+      );
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "✓ Mark All as Read";
+
+    toast(
+      result.error.message ||
+      "Unable to mark notifications as read."
+    );
+
+    return;
+
+  }
+
+  notifications =
+    notifications.map(
+      function(item){
+
+        return {
+          ...item,
+          is_read:true
+        };
+
+      }
+    );
+
+  updateStats();
+  renderNotifications();
+
+  button.textContent =
+    "✓ Mark All as Read";
+
+  toast(
+    "All notifications marked as read."
+  );
+
+}
+
+/* =========================
+   READ BUTTON
+========================= */
+
+$("notificationsList")
+  .addEventListener(
+    "click",
+    async function(event){
+
+      const button =
+        event.target.closest(
+          "[data-read-id]"
+        );
+
+      if(!button){
+        return;
+      }
+
+      const id =
+        button.getAttribute(
+          "data-read-id"
+        );
+
+      if(!id){
+        return;
+      }
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        "Reading...";
+
+      await markNotificationRead(id);
+
+    }
+  );
+
+/* =========================
+   REALTIME
+========================= */
+
+function subscribeRealtime(){
+
+  if(!currentUser?.id){
+    return;
+  }
+
+  if(realtimeChannel){
+
+    supabaseClient.removeChannel(
+      realtimeChannel
+    );
+
+    realtimeChannel =
+      null;
+
+  }
+
+  realtimeChannel =
+    supabaseClient
+      .channel(
+        "customer-notifications-" +
+        currentUser.id
+      )
+
+      .on(
+        "postgres_changes",
+        {
+          event:"INSERT",
+          schema:"public",
+          table:"notifications",
+          filter:
+            "user_id=eq." +
+            currentUser.id
+        },
+        function(payload){
+
+          const item =
+            payload.new;
+
+          if(!item){
+            return;
+          }
+
+          const exists =
+            notifications.some(
+              function(oldItem){
+                return String(
+                  oldItem.id
+                ) === String(item.id);
+              }
+            );
+
+          if(exists){
+            return;
+          }
+
+          notifications.unshift(item);
+
+          notifications =
+            notifications.slice(
+              0,
+              100
+            );
+
+          updateStats();
+          renderNotifications();
+
+          showBrowserNotification(item);
+
+          toast(
+            item.title ||
+            "New notification"
+          );
+
+        }
+      )
+
+      .on(
+        "postgres_changes",
+        {
+          event:"UPDATE",
+          schema:"public",
+          table:"notifications",
+          filter:
+            "user_id=eq." +
+            currentUser.id
+        },
+        function(payload){
+
+          const updated =
+            payload.new;
+
+          if(!updated){
+            return;
+          }
+
+          const index =
+            notifications.findIndex(
+              function(item){
+                return String(
+                  item.id
+                ) ===
+                String(updated.id);
+              }
+            );
+
+          if(index !== -1){
+
+            notifications[index] =
+              updated;
+
+          }else{
+
+            notifications.unshift(
+              updated
+            );
+
+          }
+
+          updateStats();
+          renderNotifications();
+
+        }
+      )
+
+      .subscribe(
+        function(status){
+
+          console.log(
+            "Customer notifications realtime:",
+            status
+          );
+
+        }
+      );
+
+}
+
+/* =========================
+   BROWSER NOTIFICATION
+========================= */
+
+async function requestBrowserNotificationPermission(){
+
+  if(!("Notification" in window)){
+    return;
+  }
+
+  if(
+    Notification.permission !==
+    "default"
+  ){
+    return;
+  }
+
+  try{
+
+    await Notification.requestPermission();
+
+  }catch(error){
+
+    console.warn(
+      "Notification permission error:",
+      error
+    );
+
+  }
+
+}
+
+function showBrowserNotification(item){
+
+  if(!("Notification" in window)){
+    return;
+  }
+
+  if(
+    Notification.permission !==
+    "granted"
+  ){
+    return;
+  }
+
+  try{
+
+    const notification =
+      new Notification(
+        item.title ||
+        "EGC Notification",
+        {
+          body:
+            item.message ||
+            "You have a new notification.",
+          icon:
+            "assets/EGC - Emergency Gas Cylinder logo.png",
+          tag:
+            String(
+              item.id ||
+              Date.now()
+            )
+        }
+      );
+
+    notification.onclick =
+      function(){
+
+        window.focus();
+
+      };
+
+  }catch(error){
+
+    console.warn(
+      "Browser notification error:",
+      error
+    );
+
+  }
+
+}
+
+/* =========================
+   LOGOUT
+========================= */
+
+function openLogoutPopup(){
+
+  $("logoutOverlay")
+    .classList
+    .add("show");
+
+  document.body.style.overflow =
+    "hidden";
+
+}
+
+function closeLogoutPopup(event){
+
+  if(
+    event &&
+    event.target &&
+    event.target.id !==
+    "logoutOverlay"
+  ){
+    return;
+  }
+
+  $("logoutOverlay")
+    .classList
+    .remove("show");
+
+  document.body.style.overflow =
+    "";
+
+}
+
+async function confirmLogout(){
+
+  const button =
+    $("confirmLogoutBtn");
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Logging out...";
+
+  const result =
+    await supabaseClient
+      .auth
+      .signOut();
+
+  if(result.error){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Logout";
+
+    toast(
+      result.error.message ||
+      "Logout failed."
+    );
+
+    return;
+
+  }
+
+  if(realtimeChannel){
+
+    await supabaseClient
+      .removeChannel(
+        realtimeChannel
+      );
+
+    realtimeChannel =
+      null;
+
+  }
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
+
+/* =========================
+   AUTH STATE
+========================= */
+
+supabaseClient
+  .auth
+  .onAuthStateChange(
+    function(event){
+
+      if(
+        event ===
+        "SIGNED_OUT"
+      ){
+
+        if(realtimeChannel){
+
+          supabaseClient
+            .removeChannel(
+              realtimeChannel
+            );
+
+          realtimeChannel =
+            null;
+
+        }
+
+        window.location.replace(
+          "login.html"
+        );
+
+      }
+
+    }
+  );
+
+/* =========================
+   ESC KEY
+========================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(
+      event.key ===
+      "Escape"
+    ){
+
+      closeLogoutPopup();
+
+    }
+
+  }
+);
+
+/* =========================
+   NOTIFICATION PERMISSION
+========================= */
+
+document.addEventListener(
+  "click",
+  function(){
+
+    if(
+      currentUser &&
+      "Notification" in window &&
+      Notification.permission ===
+      "default"
+    ){
+
+      requestBrowserNotificationPermission();
+
+    }
+
+  },
+  {
+    once:true
+  }
+);
+
+/* =========================
+   INITIALIZE
+========================= */
+
+async function initializePage(){
+
+  try{
+
+    clearError();
+
+    const authResult =
+      await supabaseClient
+        .auth
+        .getUser();
+
+    if(
+      authResult.error ||
+      !authResult.data?.user
+    ){
+
+      window.location.replace(
+        "login.html"
+      );
+
+      return;
+
+    }
+
+    currentUser =
+      authResult.data.user;
+
+    await loadProfile();
+
+    await loadNotifications();
+
+    subscribeRealtime();
+
+  }catch(error){
+
+    console.error(
+      "Notifications page initialization error:",
+      error
+    );
+
+    showError(
+      error.message ||
+      "Unable to load notifications."
+    );
+
+  }
+
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initializePage
+);
+
+</script>
+
+</body>
+</html>
