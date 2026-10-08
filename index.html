@@ -12,6 +12,12 @@
       box-sizing:border-box;
     }
 
+    html,
+    body{
+      width:100%;
+      min-height:100%;
+    }
+
     body{
       font-family:Arial, sans-serif;
       background:#eef7fc;
@@ -25,11 +31,10 @@
       background:#eef7fc;
     }
 
-    /* ================= HEADER ================= */
+    /* ================= HERO ================= */
 
     .hero{
       width:100%;
-      min-height:100vh;
       position:relative;
       overflow:hidden;
       background:
@@ -49,13 +54,17 @@
       z-index:3;
     }
 
+    /* ================= LOGO ================= */
+
     .logo{
       width:min(450px,85vw);
       max-height:230px;
       object-fit:contain;
       display:block;
-      margin:0 auto 0px;
+      margin:0 auto;
     }
+
+    /* ================= TITLE ================= */
 
     .finance-title{
       width:min(820px,88vw);
@@ -71,8 +80,11 @@
       font-size:clamp(20px,2.4vw,31px);
       font-weight:800;
       line-height:1.2;
+      text-align:center;
       box-shadow:0 10px 24px rgba(247,185,0,.18);
     }
+
+    /* ================= DESCRIPTION ================= */
 
     .description{
       max-width:850px;
@@ -82,6 +94,8 @@
       line-height:1.45;
       font-weight:700;
     }
+
+    /* ================= DIVIDER ================= */
 
     .divider{
       display:flex;
@@ -106,7 +120,7 @@
       background:#0063c7;
     }
 
-    /* ================= CYLINDER ================= */
+    /* ================= CYLINDER AREA ================= */
 
     .visual-area{
       width:min(800px,90vw);
@@ -116,6 +130,7 @@
       justify-content:center;
       align-items:flex-end;
       z-index:2;
+      flex-shrink:0;
     }
 
     .rings{
@@ -149,6 +164,8 @@
       top:20px;
     }
 
+    /* ================= CYLINDER IMAGE ================= */
+
     .cylinder{
       position:absolute;
       bottom:0;
@@ -156,8 +173,10 @@
       transform:translateX(-50%);
       width:755px;
       height:450px;
+      max-width:none;
       object-fit:contain;
       z-index:3;
+      pointer-events:none;
     }
 
     .shield{
@@ -167,7 +186,14 @@
       right:calc(50% - 205px);
       bottom:55px;
       background:#0872d5;
-      clip-path:polygon(50% 0%,92% 16%,86% 78%,50% 100%,14% 78%,8% 16%);
+      clip-path:polygon(
+        50% 0%,
+        92% 16%,
+        86% 78%,
+        50% 100%,
+        14% 78%,
+        8% 16%
+      );
       z-index:4;
       display:flex;
       align-items:center;
@@ -183,7 +209,7 @@
     .bottom-section{
       width:100%;
       min-height:360px;
-      margin-top:-1px;
+      margin-top:0;
       position:relative;
       background:linear-gradient(180deg,#0754a9,#003e81);
       color:white;
@@ -214,6 +240,8 @@
       border-radius:50% 50% 0 0 / 100% 100% 0 0;
       z-index:-1;
     }
+
+    /* ================= FEATURES ================= */
 
     .features{
       width:min(1050px,100%);
@@ -265,6 +293,8 @@
       color:#fff;
     }
 
+    /* ================= POWERED ================= */
+
     .powered{
       display:flex;
       justify-content:center;
@@ -280,6 +310,8 @@
       height:2px;
       background:white;
     }
+
+    /* ================= GET STARTED ================= */
 
     .get-started{
       display:block;
@@ -326,12 +358,13 @@
       }
 
       .visual-area{
+        width:100%;
         height:330px;
       }
 
       .cylinder{
-        width:180px;
-        height:250px;
+        width:420px;
+        height:330px;
       }
 
       .rings{
@@ -375,36 +408,44 @@
     @media(max-width:500px){
 
       .hero{
-        min-height:auto;
+        min-height:0;
       }
 
       .top-content{
-        padding:24px 15px 0;
+        width:100%;
+        padding:22px 12px 0;
       }
 
+      /* MOBILE LOGO */
       .logo{
-        width:50vw;
-        max-height:150px;
-        margin-bottom:1px;
+        width:72vw;
+        max-width:350px;
+        height:auto;
+        max-height:130px;
+        margin:0 auto 4px;
       }
 
+      /* MOBILE TITLE */
       .finance-title{
         width:92vw;
         min-height:60px;
-        padding:10px 16px;
+        padding:10px 14px;
         border-radius:35px;
         font-size:19px;
+        line-height:1.2;
       }
 
+      /* MOBILE DESCRIPTION */
       .description{
-        width:92vw;
-        margin-top:32px;
+        width:94vw;
+        margin:32px auto 0;
         font-size:20px;
-        line-height:1.4;
+        line-height:1.42;
       }
 
+      /* MOBILE DIVIDER */
       .divider{
-        margin:18px auto 10px;
+        margin:18px auto 5px;
       }
 
       .divider span{
@@ -412,9 +453,27 @@
         height:6px;
       }
 
+      /* MOBILE CYLINDER AREA */
       .visual-area{
         width:100%;
-        height:330px;
+        height:315px;
+        margin-top:0;
+        overflow:visible;
+      }
+
+      /*
+        IMPORTANT:
+        Cylinder image अब visual-area के अंदर है,
+        इसलिए absolute positioning सही रहेगी।
+      */
+      .cylinder{
+        width:430px;
+        height:315px;
+        max-width:none;
+        bottom:0;
+        left:50%;
+        transform:translateX(-50%);
+        object-fit:contain;
       }
 
       .rings{
@@ -422,12 +481,6 @@
         height:280px;
         bottom:0;
         transform:translateX(-50%) scale(.72);
-      }
-
-      .cylinder{
-        width:450px;
-        height:350px;
-        bottom:0;
       }
 
       .shield{
@@ -438,14 +491,28 @@
         font-size:32px;
       }
 
+      /* ================= MOBILE BOTTOM ================= */
+
       .bottom-section{
         min-height:350px;
-        padding:65px 12px 30px;
+        padding:65px 10px 30px;
+        margin-top:0;
+      }
+
+      .bottom-section:before{
+        top:-35px;
+        height:70px;
+      }
+
+      .bottom-section:after{
+        top:-28px;
+        height:55px;
       }
 
       .features{
+        width:100%;
         grid-template-columns:repeat(4,1fr);
-        gap:4px;
+        gap:3px;
       }
 
       .feature-icon{
@@ -457,8 +524,10 @@
 
       .feature h3{
         font-size:12px;
+        line-height:1.25;
       }
 
+      /* POWERED */
       .powered{
         gap:10px;
         margin-top:35px;
@@ -469,6 +538,7 @@
         width:55px;
       }
 
+      /* BUTTON */
       .get-started{
         width:88%;
         margin-top:25px;
@@ -477,14 +547,43 @@
       }
     }
 
-    @media(max-width:360px){
+    /* ================= SMALL MOBILE ================= */
 
-      .description{
-        font-size:18px;
+    @media(max-width:380px){
+
+      .top-content{
+        padding-left:10px;
+        padding-right:10px;
+      }
+
+      .logo{
+        width:74vw;
+        max-height:120px;
       }
 
       .finance-title{
+        width:94vw;
         font-size:17px;
+        min-height:56px;
+      }
+
+      .description{
+        width:95vw;
+        font-size:18px;
+        margin-top:28px;
+      }
+
+      .divider{
+        margin-top:16px;
+      }
+
+      .visual-area{
+        height:285px;
+      }
+
+      .cylinder{
+        width:390px;
+        height:285px;
       }
 
       .feature-icon{
@@ -496,6 +595,55 @@
       .feature h3{
         font-size:10px;
       }
+
+      .powered{
+        font-size:15px;
+      }
+
+      .powered-line{
+        width:45px;
+      }
+
+      .get-started{
+        width:90%;
+        font-size:15px;
+      }
+    }
+
+    /* ================= VERY SMALL MOBILE ================= */
+
+    @media(max-width:340px){
+
+      .logo{
+        width:76vw;
+      }
+
+      .finance-title{
+        font-size:16px;
+      }
+
+      .description{
+        font-size:17px;
+      }
+
+      .visual-area{
+        height:265px;
+      }
+
+      .cylinder{
+        width:360px;
+        height:265px;
+      }
+
+      .feature-icon{
+        width:51px;
+        height:51px;
+        font-size:21px;
+      }
+
+      .feature h3{
+        font-size:9px;
+      }
     }
   </style>
 </head>
@@ -504,27 +652,32 @@
 
   <div class="app">
 
+    <!-- ================= HERO ================= -->
+
     <section class="hero">
 
       <div class="top-content">
 
-        <!-- APNA LOGO LINK YAHAN DALO -->
+        <!-- EGC LOGO -->
         <img
           class="logo"
           src="assets/EGC - Emergency Gas Cylinder logo.png"
           alt="EGC - Emergency Gas Cylinder"
         >
 
+        <!-- TITLE -->
         <div class="finance-title">
           Short-Term Emergency LPG Finance
         </div>
 
+        <!-- DESCRIPTION -->
         <div class="description">
           अचानक गैस खत्म होने पर,<br>
           अधिकृत वित्तीय व्यवस्था के माध्यम से<br>
           LPG Cylinder लेने में सहायता।
         </div>
 
+        <!-- DIVIDER -->
         <div class="divider">
           <span class="yellow"></span>
           <span class="blue"></span>
@@ -532,10 +685,12 @@
 
       </div>
 
-      <div class="visual-area">
-        </div>
 
-        <!-- APNI LPG CYLINDER IMAGE KA LINK YAHAN DALO -->
+      <!-- ================= CYLINDER ================= -->
+
+      <div class="visual-area">
+
+        <!-- LPG CYLINDER IMAGE -->
         <img
           class="cylinder"
           src="assets/Cylinder logo.png"
@@ -546,39 +701,69 @@
 
     </section>
 
+
+    <!-- ================= BOTTOM SECTION ================= -->
+
     <section class="bottom-section">
+
+      <!-- FEATURES -->
 
       <div class="features">
 
         <div class="feature">
           <div class="feature-icon">ϟ</div>
-          <h3>Quick<br>Finance</h3>
+          <h3>
+            Quick<br>
+            Finance
+          </h3>
         </div>
 
         <div class="feature">
           <div class="feature-icon">✓</div>
-          <h3>Secure<br>&amp; Trusted</h3>
+          <h3>
+            Secure<br>
+            &amp; Trusted
+          </h3>
         </div>
 
         <div class="feature">
           <div class="feature-icon">▤</div>
-          <h3>Simple<br>Process</h3>
+          <h3>
+            Simple<br>
+            Process
+          </h3>
         </div>
 
         <div class="feature">
           <div class="feature-icon">₹</div>
-          <h3>Easy<br>Repayment</h3>
+          <h3>
+            Easy<br>
+            Repayment
+          </h3>
         </div>
 
       </div>
 
+
+      <!-- POWERED BY -->
+
       <div class="powered">
         <span class="powered-line"></span>
-        <span>Powered by EGC</span>
+
+        <span>
+          Powered by EGC
+        </span>
+
         <span class="powered-line"></span>
       </div>
 
-      <button class="get-started" onclick="window.location.href='login.html'">
+
+      <!-- GET STARTED -->
+
+      <button
+        class="get-started"
+        onclick="window.location.href='login.html'"
+      >
         GET STARTED →
       </button>
 
