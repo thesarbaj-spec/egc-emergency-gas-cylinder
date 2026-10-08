@@ -1165,7 +1165,7 @@ const repaymentCharges = {
    MESSAGE
 ========================================================= */
 
-function showMessage(text,type){
+function showMessage(text, type){
 
     message.className =
         "message " + type;
@@ -1393,6 +1393,8 @@ function findAgencyId(obj){
 
 /* =========================================================
    SELECTED AGENCY
+   FIXED:
+   egc_lpg_details IS NOW INCLUDED
 ========================================================= */
 
 function getSelectedAgency(){
@@ -1406,6 +1408,89 @@ function getSelectedAgency(){
         allData
     );
 
+
+    /*
+       IMPORTANT
+
+       LPG Details page saves the selected agency here:
+
+       egc_lpg_details = {
+           company,
+           state,
+           district,
+           city,
+           agency_id,
+           agency_name,
+           agency_code
+       }
+
+       Therefore this must be checked first.
+    */
+
+    const lpgDetails =
+        allData["egc_lpg_details"];
+
+
+    if(
+        lpgDetails &&
+        typeof lpgDetails === "object"
+    ){
+
+        const lpgAgencyId =
+            findAgencyId(lpgDetails);
+
+
+        if(lpgAgencyId){
+
+            console.log(
+                "Agency found from egc_lpg_details:",
+                lpgAgencyId
+            );
+
+
+            return {
+
+                id:
+                    lpgAgencyId,
+
+                agency_name:
+                    lpgDetails.agency_name ||
+                    lpgDetails.agencyName ||
+                    "",
+
+                agency_code:
+                    lpgDetails.agency_code ||
+                    lpgDetails.agencyCode ||
+                    "",
+
+                lpg_company:
+                    lpgDetails.company ||
+                    lpgDetails.lpg_company ||
+                    lpgDetails.lpgCompany ||
+                    "",
+
+                state:
+                    lpgDetails.state ||
+                    "",
+
+                district:
+                    lpgDetails.district ||
+                    "",
+
+                city:
+                    lpgDetails.city ||
+                    ""
+
+            };
+
+        }
+
+    }
+
+
+    /* =====================================================
+       OTHER DIRECT AGENCY STORAGE
+    ===================================================== */
 
     const priorityKeys = [
 
@@ -1443,7 +1528,8 @@ function getSelectedAgency(){
 
                 return {
 
-                    id:id,
+                    id:
+                        id,
 
                     agency_name:
                         obj.agency_name ||
@@ -1460,6 +1546,19 @@ function getSelectedAgency(){
                     lpg_company:
                         obj.lpg_company ||
                         obj.lpgCompany ||
+                        obj.company ||
+                        "",
+
+                    state:
+                        obj.state ||
+                        "",
+
+                    district:
+                        obj.district ||
+                        "",
+
+                    city:
+                        obj.city ||
                         ""
 
                 };
@@ -1470,6 +1569,10 @@ function getSelectedAgency(){
 
     }
 
+
+    /* =====================================================
+       REQUEST / VERIFICATION DATA
+    ===================================================== */
 
     const requestKeys = [
 
@@ -1517,7 +1620,8 @@ function getSelectedAgency(){
 
                 return {
 
-                    id:id,
+                    id:
+                        id,
 
                     agency_name:
                         obj.agency_name ||
@@ -1536,7 +1640,23 @@ function getSelectedAgency(){
                     lpg_company:
                         obj.lpg_company ||
                         obj.lpgCompany ||
+                        obj.company ||
                         agencyObject.lpg_company ||
+                        "",
+
+                    state:
+                        obj.state ||
+                        agencyObject.state ||
+                        "",
+
+                    district:
+                        obj.district ||
+                        agencyObject.district ||
+                        "",
+
+                    city:
+                        obj.city ||
+                        agencyObject.city ||
                         ""
 
                 };
@@ -1546,6 +1666,11 @@ function getSelectedAgency(){
         }
 
     }
+
+
+    console.warn(
+        "No selected agency found in localStorage."
+    );
 
 
     return null;
@@ -1565,8 +1690,8 @@ function getLpgCompany(){
 
     const keys = [
 
-        "egc_request_data",
         "egc_lpg_details",
+        "egc_request_data",
         "egc_cylinder_request",
         "egc_verification_data",
         "lpgDetails"
@@ -1727,7 +1852,7 @@ async function checkExistingRequest(userId){
         .order(
             "created_at",
             {
-                ascending:false
+                ascending: false
             }
         )
         .limit(50);
@@ -1894,19 +2019,19 @@ async function getProfile(userId){
 
 async function getVerifiedAgency(){
 
-    const agency =
+    const detectedAgency =
         getSelectedAgency();
 
 
     console.log(
         "Selected agency detected:",
-        agency
+        detectedAgency
     );
 
 
     if(
-        !agency ||
-        !agency.id
+        !detectedAgency ||
+        !detectedAgency.id
     ){
 
         throw new Error(
@@ -1916,13 +2041,17 @@ async function getVerifiedAgency(){
     }
 
 
+    /*
+       Verify the exact UUID against Supabase.
+    */
+
     const result =
         await supabaseClient
         .from("agencies")
         .select("*")
         .eq(
             "id",
-            agency.id
+            detectedAgency.id
         )
         .maybeSingle();
 
@@ -1957,6 +2086,27 @@ async function getVerifiedAgency(){
 
     if(
         selectedAgency.is_active === false
+    ){
+
+        throw new Error(
+            "The selected agency is currently inactive."
+        );
+
+    }
+
+
+    /*
+       Additional status check.
+
+       If status exists and is not active,
+       don't allow the request.
+    */
+
+    if(
+        selectedAgency.status &&
+        String(
+            selectedAgency.status
+        ).toLowerCase() !== "active"
     ){
 
         throw new Error(
@@ -2144,8 +2294,7 @@ async function submitRequest(){
     /*
        OPTIONAL AGREEMENT FIELD
 
-       Only add it if your table already has
-       agreement_accepted.
+       Only add if the column exists.
     */
 
     /*
@@ -2270,7 +2419,6 @@ async function submitRequest(){
 
     /*
        ALSO KEEP A SIMPLE REQUEST REFERENCE
-       FOR OTHER EGC PAGES.
     */
 
     localStorage.setItem(
