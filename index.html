@@ -2,23 +2,48 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
   <title>EGC - Emergency Gas Cylinder</title>
 
+  <!-- Prevent browser from restoring old scroll position -->
+  <script>
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+
+    window.addEventListener("pageshow", function () {
+      window.scrollTo(0, 0);
+    });
+  </script>
+
   <style>
+
+    /* =====================================================
+       RESET
+    ===================================================== */
+
     *{
       margin:0;
       padding:0;
       box-sizing:border-box;
     }
 
-    html,
-    body{
+    html{
       width:100%;
       min-height:100%;
+      scroll-behavior:auto;
+      overflow-x:hidden;
     }
 
     body{
+      width:100%;
+      min-height:100%;
+      margin:0;
+      padding:0;
       font-family:Arial, sans-serif;
       background:#eef7fc;
       color:#003e81;
@@ -29,22 +54,41 @@
       width:100%;
       min-height:100vh;
       background:#eef7fc;
+      overflow:hidden;
     }
 
-    /* ================= HERO ================= */
+
+    /* =====================================================
+       HERO
+    ===================================================== */
 
     .hero{
       width:100%;
       position:relative;
       overflow:hidden;
+
       background:
-        radial-gradient(circle at 15% 45%, rgba(255,255,255,.95), transparent 30%),
-        radial-gradient(circle at 85% 55%, rgba(255,255,255,.9), transparent 32%),
+        radial-gradient(
+          circle at 15% 45%,
+          rgba(255,255,255,.95),
+          transparent 30%
+        ),
+        radial-gradient(
+          circle at 85% 55%,
+          rgba(255,255,255,.9),
+          transparent 32%
+        ),
         #eef7fc;
+
       display:flex;
       flex-direction:column;
       align-items:center;
     }
+
+
+    /* =====================================================
+       TOP CONTENT
+    ===================================================== */
 
     .top-content{
       width:min(100%,1100px);
@@ -54,61 +98,105 @@
       z-index:3;
     }
 
-    /* ================= LOGO ================= */
+
+    /* =====================================================
+       LOGO
+    ===================================================== */
 
     .logo{
       width:min(450px,85vw);
+      height:auto;
       max-height:230px;
       object-fit:contain;
       display:block;
       margin:0 auto;
     }
 
-    /* ================= TITLE ================= */
+
+    /* =====================================================
+       FINANCE TITLE
+    ===================================================== */
 
     .finance-title{
       width:min(820px,88vw);
       min-height:65px;
+
       margin:0 auto;
       padding:14px 25px;
+
       display:flex;
       align-items:center;
       justify-content:center;
-      background:linear-gradient(90deg,#ffb900,#ffc515);
+
+      background:linear-gradient(
+        90deg,
+        #ffb900,
+        #ffc515
+      );
+
       border-radius:40px;
+
       color:#00418b;
-      font-size:clamp(20px,2.4vw,31px);
+
+      font-size:clamp(
+        20px,
+        2.4vw,
+        31px
+      );
+
       font-weight:800;
       line-height:1.2;
       text-align:center;
-      box-shadow:0 10px 24px rgba(247,185,0,.18);
+
+      box-shadow:
+        0 10px 24px
+        rgba(247,185,0,.18);
     }
 
-    /* ================= DESCRIPTION ================= */
+
+    /* =====================================================
+       DESCRIPTION
+    ===================================================== */
 
     .description{
+      width:100%;
       max-width:850px;
+
       margin:45px auto 0;
+
       color:#004080;
-      font-size:clamp(20px,2.5vw,30px);
+
+      font-size:clamp(
+        20px,
+        2.5vw,
+        30px
+      );
+
       line-height:1.45;
       font-weight:700;
     }
 
-    /* ================= DIVIDER ================= */
+
+    /* =====================================================
+       DIVIDER
+    ===================================================== */
 
     .divider{
       display:flex;
       justify-content:center;
       align-items:center;
+
       gap:8px;
+
       margin:24px auto 20px;
     }
 
     .divider span{
       display:block;
+
       width:95px;
       height:7px;
+
       border-radius:10px;
     }
 
@@ -120,134 +208,141 @@
       background:#0063c7;
     }
 
-    /* ================= CYLINDER AREA ================= */
+
+    /* =====================================================
+       CYLINDER AREA
+    ===================================================== */
 
     .visual-area{
       width:min(800px,90vw);
+
       height:380px;
+
       position:relative;
+
       display:flex;
       justify-content:center;
       align-items:flex-end;
+
       z-index:2;
+
       flex-shrink:0;
     }
 
-    .rings{
-      position:absolute;
-      width:330px;
-      height:330px;
-      left:50%;
-      bottom:15px;
-      transform:translateX(-50%);
-    }
 
-    .ring-yellow{
-      position:absolute;
-      width:230px;
-      height:300px;
-      border-left:8px solid #ffb900;
-      border-radius:50%;
-      transform:rotate(20deg);
-      left:25px;
-      top:20px;
-    }
-
-    .ring-blue{
-      position:absolute;
-      width:230px;
-      height:300px;
-      border-left:8px solid #0754a9;
-      border-radius:50%;
-      transform:rotate(20deg);
-      left:45px;
-      top:20px;
-    }
-
-    /* ================= CYLINDER IMAGE ================= */
+    /* =====================================================
+       CYLINDER IMAGE
+    ===================================================== */
 
     .cylinder{
       position:absolute;
+
       bottom:0;
       left:50%;
+
       transform:translateX(-50%);
+
       width:755px;
       height:450px;
+
       max-width:none;
+
       object-fit:contain;
+
       z-index:3;
+
       pointer-events:none;
     }
 
-    .shield{
-      position:absolute;
-      width:120px;
-      height:150px;
-      right:calc(50% - 205px);
-      bottom:55px;
-      background:#0872d5;
-      clip-path:polygon(
-        50% 0%,
-        92% 16%,
-        86% 78%,
-        50% 100%,
-        14% 78%,
-        8% 16%
-      );
-      z-index:4;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:48px;
-      font-weight:800;
-      text-shadow:0 2px 2px rgba(0,0,0,.15);
-    }
 
-    /* ================= BOTTOM ================= */
+    /* =====================================================
+       BOTTOM SECTION
+    ===================================================== */
 
     .bottom-section{
       width:100%;
+
       min-height:360px;
+
       margin-top:0;
+
       position:relative;
-      background:linear-gradient(180deg,#0754a9,#003e81);
+
+      background:
+        linear-gradient(
+          180deg,
+          #0754a9,
+          #003e81
+        );
+
       color:white;
+
       z-index:5;
+
       padding:80px 25px 40px;
     }
 
-    .bottom-section:before{
+
+    /* Yellow curved border */
+
+    .bottom-section::before{
       content:"";
+
       position:absolute;
+
       top:-35px;
       left:-5%;
+
       width:110%;
       height:70px;
+
       background:#ffb900;
-      border-radius:50% 50% 0 0 / 100% 100% 0 0;
+
+      border-radius:
+        50% 50% 0 0 /
+        100% 100% 0 0;
+
       z-index:-1;
     }
 
-    .bottom-section:after{
+
+    /* Blue curved border */
+
+    .bottom-section::after{
       content:"";
+
       position:absolute;
+
       top:-28px;
       left:-5%;
+
       width:110%;
       height:55px;
+
       background:#0754a9;
-      border-radius:50% 50% 0 0 / 100% 100% 0 0;
+
+      border-radius:
+        50% 50% 0 0 /
+        100% 100% 0 0;
+
       z-index:-1;
     }
 
-    /* ================= FEATURES ================= */
+
+    /* =====================================================
+       FEATURES
+    ===================================================== */
 
     .features{
       width:min(1050px,100%);
+
       margin:auto;
+
       display:grid;
-      grid-template-columns:repeat(4,1fr);
+
+      grid-template-columns:
+        repeat(4,1fr);
+
       gap:25px;
     }
 
@@ -255,36 +350,57 @@
       text-align:center;
     }
 
+
+    /* Feature icon */
+
     .feature-icon{
       width:76px;
       height:76px;
+
       margin:0 auto 12px;
+
       border-radius:50%;
-      border:4px solid rgba(255,255,255,.85);
+
+      border:
+        4px solid
+        rgba(255,255,255,.85);
+
       display:flex;
+
       align-items:center;
       justify-content:center;
+
       color:white;
+
       font-size:34px;
       font-weight:bold;
-      box-shadow:0 5px 12px rgba(0,0,0,.15);
+
+      box-shadow:
+        0 5px 12px
+        rgba(0,0,0,.15);
     }
 
-    .feature:nth-child(1) .feature-icon{
+
+    .feature:nth-child(1)
+    .feature-icon{
       background:#167be0;
     }
 
-    .feature:nth-child(2) .feature-icon{
+    .feature:nth-child(2)
+    .feature-icon{
       background:#16bd5b;
     }
 
-    .feature:nth-child(3) .feature-icon{
+    .feature:nth-child(3)
+    .feature-icon{
       background:#ff8b16;
     }
 
-    .feature:nth-child(4) .feature-icon{
+    .feature:nth-child(4)
+    .feature-icon{
       background:#a828d2;
     }
+
 
     .feature h3{
       font-size:18px;
@@ -293,14 +409,21 @@
       color:#fff;
     }
 
-    /* ================= POWERED ================= */
+
+    /* =====================================================
+       POWERED BY
+    ===================================================== */
 
     .powered{
       display:flex;
+
       justify-content:center;
       align-items:center;
+
       gap:25px;
+
       margin-top:48px;
+
       font-size:22px;
       font-weight:700;
     }
@@ -308,24 +431,46 @@
     .powered-line{
       width:125px;
       height:2px;
+
       background:white;
     }
 
-    /* ================= GET STARTED ================= */
+
+    /* =====================================================
+       GET STARTED
+    ===================================================== */
 
     .get-started{
       display:block;
+
       width:min(400px,90%);
+
       margin:32px auto 0;
+
       padding:17px 25px;
+
       border:0;
+
       border-radius:35px;
-      background:linear-gradient(90deg,#ffb900,#ffc515);
+
+      background:
+        linear-gradient(
+          90deg,
+          #ffb900,
+          #ffc515
+        );
+
       color:#00418b;
+
       font-size:18px;
       font-weight:800;
+
       cursor:pointer;
-      box-shadow:0 8px 18px rgba(0,0,0,.15);
+
+      box-shadow:
+        0 8px 18px
+        rgba(0,0,0,.15);
+
       transition:.2s;
     }
 
@@ -333,27 +478,39 @@
       transform:translateY(-2px);
     }
 
-    /* ================= TABLET ================= */
+
+    /* =====================================================
+       TABLET
+    ===================================================== */
 
     @media(max-width:800px){
 
       .top-content{
-        padding-top:28px;
+        padding:28px 18px 0;
       }
 
       .logo{
-        width:85vw;
-        max-height:100px;
+        width:78vw;
+        max-width:420px;
+        max-height:125px;
+        height:auto;
       }
 
       .finance-title{
-        font-size:22px;
+        width:92vw;
+
         min-height:60px;
+
         padding:12px 20px;
+
+        font-size:22px;
       }
 
       .description{
+        width:94vw;
+
         margin-top:35px;
+
         font-size:22px;
       }
 
@@ -365,19 +522,6 @@
       .cylinder{
         width:420px;
         height:330px;
-      }
-
-      .rings{
-        transform:translateX(-50%) scale(.82);
-        bottom:0;
-      }
-
-      .shield{
-        width:95px;
-        height:120px;
-        right:calc(50% - 175px);
-        bottom:45px;
-        font-size:38px;
       }
 
       .bottom-section{
@@ -403,49 +547,132 @@
       }
     }
 
-    /* ================= MOBILE ================= */
+
+    /* =====================================================
+       MOBILE
+    ===================================================== */
 
     @media(max-width:500px){
 
-      .hero{
-        min-height:0;
+      body{
+        min-width:0;
       }
+
+      .app{
+        width:100%;
+        min-width:0;
+      }
+
+
+      /* -------------------------------------------------
+         HERO
+      ------------------------------------------------- */
+
+      .hero{
+        width:100%;
+        min-height:0;
+
+        overflow:hidden;
+      }
+
+
+      /* -------------------------------------------------
+         TOP CONTENT
+      ------------------------------------------------- */
 
       .top-content{
         width:100%;
-        padding:22px 12px 0;
+
+        padding:
+          14px
+          10px
+          0;
+
+        text-align:center;
       }
 
-      /* MOBILE LOGO */
+
+      /* -------------------------------------------------
+         MOBILE LOGO
+      ------------------------------------------------- */
+
       .logo{
-        width:72vw;
-        max-width:350px;
+        display:block;
+
+        width:78vw;
+
+        max-width:340px;
+
         height:auto;
-        max-height:130px;
-        margin:0 auto 4px;
+
+        max-height:none;
+
+        margin:
+          0 auto
+          8px;
+
+        object-fit:contain;
       }
 
-      /* MOBILE TITLE */
+
+      /* -------------------------------------------------
+         MOBILE TITLE
+      ------------------------------------------------- */
+
       .finance-title{
         width:92vw;
+
         min-height:60px;
-        padding:10px 14px;
-        border-radius:35px;
+
+        margin:0 auto;
+
+        padding:
+          10px
+          14px;
+
+        border-radius:36px;
+
         font-size:19px;
+
         line-height:1.2;
+
+        white-space:normal;
       }
 
-      /* MOBILE DESCRIPTION */
+
+      /* -------------------------------------------------
+         MOBILE DESCRIPTION
+      ------------------------------------------------- */
+
       .description{
         width:94vw;
-        margin:32px auto 0;
+
+        max-width:none;
+
+        margin:
+          30px auto
+          0;
+
         font-size:20px;
+
         line-height:1.42;
+
+        font-weight:700;
       }
 
-      /* MOBILE DIVIDER */
+
+      /* -------------------------------------------------
+         MOBILE DIVIDER
+      ------------------------------------------------- */
+
       .divider{
-        margin:18px auto 5px;
+        width:100%;
+
+        margin:
+          18px auto
+          2px;
+
+        gap:8px;
       }
 
       .divider span{
@@ -453,206 +680,341 @@
         height:6px;
       }
 
-      /* MOBILE CYLINDER AREA */
+
+      /* -------------------------------------------------
+         MOBILE CYLINDER
+      ------------------------------------------------- */
+
       .visual-area{
         width:100%;
+
         height:315px;
-        margin-top:0;
+
+        margin:0;
+
+        position:relative;
+
         overflow:visible;
       }
 
-      /*
-        IMPORTANT:
-        Cylinder image अब visual-area के अंदर है,
-        इसलिए absolute positioning सही रहेगी।
-      */
       .cylinder{
+        position:absolute;
+
         width:430px;
         height:315px;
+
         max-width:none;
-        bottom:0;
+
         left:50%;
-        transform:translateX(-50%);
+        bottom:0;
+
+        transform:
+          translateX(-50%);
+
         object-fit:contain;
       }
 
-      .rings{
-        width:280px;
-        height:280px;
-        bottom:0;
-        transform:translateX(-50%) scale(.72);
-      }
 
-      .shield{
-        width:78px;
-        height:100px;
-        right:calc(50% - 145px);
-        bottom:35px;
-        font-size:32px;
-      }
-
-      /* ================= MOBILE BOTTOM ================= */
+      /* -------------------------------------------------
+         MOBILE BLUE SECTION
+      ------------------------------------------------- */
 
       .bottom-section{
+        width:100%;
+
         min-height:350px;
-        padding:65px 10px 30px;
-        margin-top:0;
+
+        margin:0;
+
+        padding:
+          65px
+          8px
+          30px;
+
+        overflow:hidden;
       }
 
-      .bottom-section:before{
+
+      .bottom-section::before{
         top:-35px;
+        left:-5%;
+        width:110%;
         height:70px;
       }
 
-      .bottom-section:after{
+
+      .bottom-section::after{
         top:-28px;
+        left:-5%;
+        width:110%;
         height:55px;
       }
 
+
+      /* -------------------------------------------------
+         FEATURES
+      ------------------------------------------------- */
+
       .features{
         width:100%;
-        grid-template-columns:repeat(4,1fr);
-        gap:3px;
+
+        grid-template-columns:
+          repeat(4,1fr);
+
+        gap:2px;
+
+        margin:0 auto;
+      }
+
+      .feature{
+        min-width:0;
       }
 
       .feature-icon{
         width:62px;
         height:62px;
+
+        margin:
+          0 auto
+          12px;
+
         font-size:27px;
+
         border-width:3px;
       }
 
       .feature h3{
         font-size:12px;
+
         line-height:1.25;
+
+        white-space:normal;
       }
 
-      /* POWERED */
+
+      /* -------------------------------------------------
+         POWERED BY
+      ------------------------------------------------- */
+
       .powered{
+        width:100%;
+
         gap:10px;
+
         margin-top:35px;
+
         font-size:16px;
+
+        white-space:nowrap;
       }
 
       .powered-line{
         width:55px;
+
+        flex-shrink:1;
       }
 
-      /* BUTTON */
+
+      /* -------------------------------------------------
+         GET STARTED
+      ------------------------------------------------- */
+
       .get-started{
         width:88%;
-        margin-top:25px;
-        padding:15px;
+
+        margin:
+          25px auto
+          0;
+
+        padding:
+          15px
+          12px;
+
         font-size:16px;
       }
+
     }
 
-    /* ================= SMALL MOBILE ================= */
+
+    /* =====================================================
+       SMALL MOBILE
+       380px and below
+    ===================================================== */
 
     @media(max-width:380px){
 
       .top-content{
-        padding-left:10px;
-        padding-right:10px;
+        padding:
+          10px
+          8px
+          0;
       }
 
+
       .logo{
-        width:74vw;
-        max-height:120px;
+        width:78vw;
+
+        max-width:300px;
+
+        margin-bottom:6px;
       }
+
 
       .finance-title{
         width:94vw;
-        font-size:17px;
+
         min-height:56px;
+
+        padding:
+          9px
+          12px;
+
+        font-size:17px;
       }
+
 
       .description{
         width:95vw;
+
+        margin-top:27px;
+
         font-size:18px;
-        margin-top:28px;
+
+        line-height:1.4;
       }
+
 
       .divider{
         margin-top:16px;
       }
 
+      .divider span{
+        width:62px;
+        height:6px;
+      }
+
+
       .visual-area{
         height:285px;
       }
+
 
       .cylinder{
         width:390px;
         height:285px;
       }
 
+
+      .bottom-section{
+        padding:
+          62px
+          5px
+          28px;
+      }
+
+
       .feature-icon{
         width:55px;
         height:55px;
+
         font-size:23px;
+
+        margin-bottom:10px;
       }
+
 
       .feature h3{
         font-size:10px;
       }
 
+
       .powered{
         font-size:15px;
+        gap:7px;
       }
 
       .powered-line{
         width:45px;
       }
 
+
       .get-started{
         width:90%;
+
         font-size:15px;
+
+        padding:14px 10px;
       }
     }
 
-    /* ================= VERY SMALL MOBILE ================= */
+
+    /* =====================================================
+       VERY SMALL MOBILE
+       340px and below
+    ===================================================== */
 
     @media(max-width:340px){
 
       .logo{
-        width:76vw;
+        width:80vw;
+        max-width:280px;
       }
+
 
       .finance-title{
         font-size:16px;
       }
 
+
       .description{
         font-size:17px;
       }
 
+
       .visual-area{
         height:265px;
       }
+
 
       .cylinder{
         width:360px;
         height:265px;
       }
 
+
       .feature-icon{
         width:51px;
         height:51px;
+
         font-size:21px;
       }
+
 
       .feature h3{
         font-size:9px;
       }
+
+
+      .powered{
+        font-size:14px;
+      }
+
+      .powered-line{
+        width:38px;
+      }
     }
+
   </style>
 </head>
+
 
 <body>
 
   <div class="app">
 
-    <!-- ================= HERO ================= -->
+    <!-- =================================================
+         HERO
+    ================================================== -->
 
     <section class="hero">
 
@@ -665,10 +1027,12 @@
           alt="EGC - Emergency Gas Cylinder"
         >
 
-        <!-- TITLE -->
+
+        <!-- FINANCE TITLE -->
         <div class="finance-title">
           Short-Term Emergency LPG Finance
         </div>
+
 
         <!-- DESCRIPTION -->
         <div class="description">
@@ -676,6 +1040,7 @@
           अधिकृत वित्तीय व्यवस्था के माध्यम से<br>
           LPG Cylinder लेने में सहायता।
         </div>
+
 
         <!-- DIVIDER -->
         <div class="divider">
@@ -686,11 +1051,12 @@
       </div>
 
 
-      <!-- ================= CYLINDER ================= -->
+      <!-- =================================================
+           CYLINDER
+      ================================================== -->
 
       <div class="visual-area">
 
-        <!-- LPG CYLINDER IMAGE -->
         <img
           class="cylinder"
           src="assets/Cylinder logo.png"
@@ -702,52 +1068,79 @@
     </section>
 
 
-    <!-- ================= BOTTOM SECTION ================= -->
+    <!-- =================================================
+         BOTTOM SECTION
+    ================================================== -->
 
     <section class="bottom-section">
+
 
       <!-- FEATURES -->
 
       <div class="features">
 
         <div class="feature">
-          <div class="feature-icon">ϟ</div>
+
+          <div class="feature-icon">
+            ϟ
+          </div>
+
           <h3>
             Quick<br>
             Finance
           </h3>
+
         </div>
 
+
         <div class="feature">
-          <div class="feature-icon">✓</div>
+
+          <div class="feature-icon">
+            ✓
+          </div>
+
           <h3>
             Secure<br>
             &amp; Trusted
           </h3>
+
         </div>
 
+
         <div class="feature">
-          <div class="feature-icon">▤</div>
+
+          <div class="feature-icon">
+            ▤
+          </div>
+
           <h3>
             Simple<br>
             Process
           </h3>
+
         </div>
 
+
         <div class="feature">
-          <div class="feature-icon">₹</div>
+
+          <div class="feature-icon">
+            ₹
+          </div>
+
           <h3>
             Easy<br>
             Repayment
           </h3>
+
         </div>
 
       </div>
 
 
-      <!-- POWERED BY -->
+      <!-- POWERED BY EGC -->
 
       <div class="powered">
+
         <span class="powered-line"></span>
 
         <span>
@@ -755,6 +1148,7 @@
         </span>
 
         <span class="powered-line"></span>
+
       </div>
 
 
@@ -767,29 +1161,85 @@
         GET STARTED →
       </button>
 
+
     </section>
 
   </div>
 
+
+  <!-- =====================================================
+       SCROLL CONTROL
+  ====================================================== -->
+
   <script>
+
     function startFinance(){
       alert("EGC Finance process will start here.");
     }
 
-  
-  window.addEventListener("load", function () {
-    setTimeout(function () {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: "instant"
-      });
-    }, 50);
-  });
 
-  if ("scrollRestoration" in history) {
-    history.scrollRestoration = "manual";
-  }
+    /*
+      Mobile browser अगर पिछली scroll position restore करे,
+      तो page को हमेशा ऊपर से शुरू कराना।
+    */
+
+    function forceTop(){
+      window.scrollTo(0, 0);
+
+      if(document.documentElement){
+        document.documentElement.scrollTop = 0;
+      }
+
+      if(document.body){
+        document.body.scrollTop = 0;
+      }
+    }
+
+
+    window.addEventListener(
+      "DOMContentLoaded",
+      forceTop
+    );
+
+
+    window.addEventListener(
+      "load",
+      function(){
+
+        forceTop();
+
+        setTimeout(
+          forceTop,
+          50
+        );
+
+        setTimeout(
+          forceTop,
+          250
+        );
+
+        setTimeout(
+          forceTop,
+          600
+        );
+
+      }
+    );
+
+
+    window.addEventListener(
+      "pageshow",
+      function(){
+
+        forceTop();
+
+        setTimeout(
+          forceTop,
+          50
+        );
+
+      }
+    );
 
   </script>
 
