@@ -824,332 +824,158 @@ a{
   border-color:#c62828;
 }
 
-/* =========================
-   MOBILE BOTTOM NAV
-========================= */
+/* =========================================
+   FIXED MOBILE BOTTOM NAVIGATION
+   EXACTLY 5 BUTTONS
+========================================= */
 
-.mobile-bottom-nav{
-  display:none;
+.mobile-bottom-nav {
+  display: none;
 }
 
-/* =========================
-   1100px
-========================= */
+@media (max-width: 800px) {
 
-@media(max-width:1100px){
-
-  .cards{
-    grid-template-columns:repeat(2,1fr);
+  /* Main content: bottom navigation ke liye space */
+  .main {
+    margin-left: 0;
+    width: 100%;
+    padding: 20px 15px
+      calc(100px + env(safe-area-inset-bottom));
   }
 
-  .dashboard-grid{
-    grid-template-columns:1fr;
-  }
-}
+  /* Navigation stays fixed while scrolling */
+  .mobile-bottom-nav {
+    display: flex;
 
-/* =========================
-   MOBILE
-========================= */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
 
-@media(max-width:800px){
+    width: 100%;
+    height: calc(70px + env(safe-area-inset-bottom));
 
-  .topbar{
-    height:65px;
-    padding:0 15px;
-  }
+    padding:
+      4px 3px
+      calc(3px + env(safe-area-inset-bottom));
 
-  .layout{
-    min-height:calc(100vh - 65px);
-  }
+    box-sizing: border-box;
 
-  .brand{
-    gap:8px;
-  }
+    background: #ffffff;
+    border-top: 1px solid #dce8ef;
 
-  .brand img{
-    width:145px;
-    height:58px;
-  }
+    box-shadow: 0 -6px 22px rgba(0, 62, 129, 0.10);
 
-  .brand-text{
-    display:none;
-  }
+    align-items: center;
+    justify-content: space-around;
 
-  .profile-mini{
-    gap:8px;
+    z-index: 1500;
+
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+
+    isolation: isolate;
   }
 
-  .profile-email{
-    display:none;
-  }
-
-  .profile-name{
-    font-size:12px;
-  }
-
-  .profile-photo{
-    width:38px;
-    height:38px;
-  }
-
-  .sidebar{
-    display:none;
-  }
-
-  .mobile-sidebar{
-    display:block;
-    position:fixed;
-    left:0;
-    top:0;
-    bottom:0;
-    width:285px;
-    max-width:82vw;
-    background:#fff;
-    z-index:2000;
-    transform:translateX(-105%);
-    transition:transform .28s ease;
-    box-shadow:12px 0 35px rgba(0,62,129,.16);
-    overflow-y:auto;
-    padding:25px 14px;
-  }
-
-  .mobile-sidebar.open{
-    transform:translateX(0);
-  }
-
-  .mobile-sidebar-logo{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:0 5px 22px;
-    border-bottom:1px solid #e5eef4;
-    margin-bottom:18px;
-  }
-
-  .mobile-sidebar-logo img{
-    width:190px;
-    height:75px;
-    object-fit:contain;
-  }
-
-  .mobile-sidebar .nav-title{
-    padding-left:13px;
-  }
-
-  .mobile-sidebar .nav-btn{
-    padding:14px;
-    margin-bottom:6px;
-  }
-
-  .mobile-sidebar .mobile-logout{
-    margin-top:18px;
-    color:#d33b3b;
-  }
-
-  .mobile-sidebar .mobile-logout:hover{
-    background:#fff0f0;
-    color:#c62828;
-  }
-
-  .sidebar-overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(0,20,40,.42);
-    backdrop-filter:blur(2px);
-    -webkit-backdrop-filter:blur(2px);
-    z-index:1900;
-  }
-
-  .sidebar-overlay.show{
-    display:block;
-  }
-
-  .main{
-    margin-left:0;
-    width:100%;
-    padding:20px 15px 95px;
-  }
-
-  .welcome{
-    margin-bottom:20px;
-  }
-
-  .welcome h1{
-    font-size:23px;
-  }
-
-  .welcome p{
-    font-size:12px;
-  }
-
-  .notify-btn{
-    width:43px;
-    height:43px;
-  }
-
-  .cards{
-    grid-template-columns:repeat(2,1fr);
-    gap:12px;
-  }
-
-  .stat-card{
-    padding:16px;
-  }
-
-  .stat-number{
-    font-size:23px;
-  }
-
-  .stat-icon{
-    width:36px;
-    height:36px;
-    font-size:18px;
-  }
-
-  .box{
-    padding:18px;
-    border-radius:17px;
-  }
-
-  .request-details{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .mobile-bottom-nav{
-    display:flex;
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    height:70px;
-    background:#fff;
-    border-top:1px solid #dce8ef;
-    z-index:1500;
-    box-shadow:0 -6px 22px rgba(0,62,129,.10);
-    align-items:center;
-    justify-content:space-around;
-    padding:4px 3px 3px;
-  }
-
+  /* All five buttons receive equal width */
   .mobile-bottom-nav a,
-  .mobile-bottom-nav button{
-    flex:1;
-    height:62px;
-    border:0;
-    background:transparent;
-    color:#7890a3;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    gap:3px;
-    font-size:10px;
-    font-weight:800;
-    min-width:0;
-    border-radius:12px;
-    transition:.15s;
+  .mobile-bottom-nav button {
+    flex: 1 1 20%;
+
+    width: 20%;
+    max-width: 20%;
+    min-width: 0;
+
+    height: 62px;
+
+    padding: 0 1px;
+    margin: 0;
+
+    border: 0;
+    border-radius: 12px;
+
+    background: transparent;
+    color: #7890a3;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+
+    text-align: center;
+    white-space: nowrap;
+
+    cursor: pointer;
   }
 
   .mobile-bottom-nav a:active,
-  .mobile-bottom-nav button:active{
-    background:#f0f7fb;
+  .mobile-bottom-nav button:active {
+    background: #f0f7fb;
   }
 
-  .mobile-bottom-nav .bottom-icon{
-    font-size:21px;
-    line-height:22px;
+  /* Icons */
+  .mobile-bottom-nav .bottom-icon {
+    font-size: 21px;
+    line-height: 22px;
   }
 
-  .mobile-bottom-nav .bottom-label{
-    font-size:10px;
-    line-height:13px;
-    white-space:nowrap;
+  /* Labels */
+  .mobile-bottom-nav .bottom-label {
+    font-size: 10px;
+    line-height: 13px;
+    white-space: nowrap;
   }
 
-  .mobile-bottom-nav .active{
-    color:#0754a9;
+  /* Active page */
+  .mobile-bottom-nav .active {
+    color: #0754a9;
   }
 
-  .mobile-bottom-nav .more-btn{
-    color:#58738d;
+  /* More button */
+  .mobile-bottom-nav .more-btn {
+    color: #58738d;
   }
 
-  .logout-popup{
-    max-width:350px;
-    padding:25px 20px 21px;
-  }
-
-  .logout-title{
-    font-size:20px;
-  }
-
-  .toast{
-    left:15px;
-    right:15px;
-    bottom:85px;
-    text-align:center;
+  /* Toast stays above bottom navigation */
+  .toast {
+    left: 15px;
+    right: 15px;
+    bottom: calc(85px + env(safe-area-inset-bottom));
+    text-align: center;
   }
 }
 
-/* =========================
-   SMALL MOBILE
-========================= */
+/* =========================================
+   SMALL MOBILE SCREENS
+========================================= */
 
-@media(max-width:450px){
+@media (max-width: 450px) {
 
-  .topbar{
-    padding:0 10px;
-  }
+  .mobile-bottom-nav {
+    height: calc(68px + env(safe-area-inset-bottom));
 
-  .brand img{
-    width:132px;
-    height:55px;
-  }
-
-  .profile-name{
-    display:none;
-  }
-
-  .profile-photo{
-    width:37px;
-    height:37px;
-  }
-
-  .cards{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .stat-label{
-    font-size:11px;
-  }
-
-  .stat-number{
-    font-size:21px;
-  }
-
-  .history{
-    min-width:500px;
-  }
-
-  .logout-buttons{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .mobile-bottom-nav{
-    height:68px;
+    padding-bottom:
+      calc(3px + env(safe-area-inset-bottom));
   }
 
   .mobile-bottom-nav a,
-  .mobile-bottom-nav button{
-    height:61px;
+  .mobile-bottom-nav button {
+    height: 61px;
   }
 
-  .mobile-bottom-nav .bottom-icon{
-    font-size:20px;
+  .mobile-bottom-nav .bottom-icon {
+    font-size: 20px;
   }
 
-  .mobile-bottom-nav .bottom-label{
-    font-size:9px;
+  .mobile-bottom-nav .bottom-label {
+    font-size: 9px;
   }
 }
 </style>
@@ -1648,75 +1474,42 @@ a{
 </div>
 
 
-<nav class="mobile-bottom-nav">
+<!-- EGC MOBILE BOTTOM NAVIGATION: EXACTLY 5 BUTTONS -->
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
 
-  <a
-    href="dashboard.html"
-    class="active">
-
+  <!-- 1. HOME -->
+  <a href="dashboard.html" class="active">
     <span class="bottom-icon">🏠</span>
-
-    <span class="bottom-label">
-      Home
-    </span>
-
+    <span class="bottom-label">Home</span>
   </a>
 
-
+  <!-- 2. REQUESTS -->
   <a href="my-requests.html">
-
     <span class="bottom-icon">📋</span>
-
-    <span class="bottom-label">
-      Requests
-    </span>
-
+    <span class="bottom-label">Requests</span>
   </a>
 
-
+  <!-- 3. REQUEST CYLINDER -->
   <a href="request-cylinder.html">
-
     <span class="bottom-icon">➕</span>
-
-    <span class="bottom-label">
-      Request
-    </span>
-
+    <span class="bottom-label">Request</span>
   </a>
 
-
+  <!-- 4. PAYMENTS -->
   <a href="payments.html">
-
     <span class="bottom-icon">💰</span>
-
-    <span class="bottom-label">
-      Payments
-    </span>
-
+    <span class="bottom-label">Payments</span>
   </a>
 
-
-  <a href="profile.html">
-
-    <span class="bottom-icon">👤</span>
-
-    <span class="bottom-label">
-      Profile
-    </span>
-
-  </a>
-
-
+  <!-- 5. MORE MENU: PROFILE REMAINS INSIDE -->
   <button
     type="button"
     class="more-btn"
-    onclick="toggleMobileMenu()">
+    onclick="toggleMobileMenu()"
+    aria-label="Open more menu">
 
     <span class="bottom-icon">☰</span>
-
-    <span class="bottom-label">
-      More
-    </span>
+    <span class="bottom-label">More</span>
 
   </button>
 
