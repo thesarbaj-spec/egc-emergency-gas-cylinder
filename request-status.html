@@ -9,1963 +9,1629 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:#eef7fc;
-    color:#073f73;
-    min-height:100vh;
+:root {
+    --blue-dark: #06477f;
+    --blue: #0878d1;
+    --blue-light: #eef7fc;
+    --green: #16844c;
+    --red: #c62828;
+    --muted: #7890a3;
+    --border: #dfeaf2;
 }
 
-.app{
-    min-height:100vh;
-    width:100%;
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #eef7fc;
+    color: #073f73;
+    min-height: 100vh;
 }
 
-.header{
-    height:82px;
-    background:#fff;
-    border-bottom:1px solid #e2edf5;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:sticky;
-    top:0;
-    z-index:20;
+button {
+    font-family: inherit;
 }
 
-.header-left{
-    position:absolute;
-    left:25px;
+.app {
+    min-height: 100vh;
+    width: 100%;
 }
 
-.back-btn{
-    width:43px;
-    height:43px;
-    border:0;
-    border-radius:12px;
-    background:#eef7ff;
-    color:#075ca5;
-    font-size:28px;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.header {
+    height: 82px;
+    background: #fff;
+    border-bottom: 1px solid #e2edf5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }
 
-.egc-logo{
-    height:60px;
-    width:auto;
-    object-fit:contain;
+.header-left {
+    position: absolute;
+    left: 25px;
 }
 
-.main{
-    width:100%;
-    max-width:1050px;
-    margin:auto;
-    padding:40px 25px 70px;
+.back-btn {
+    width: 43px;
+    height: 43px;
+    border: 0;
+    border-radius: 12px;
+    background: #eef7ff;
+    color: #075ca5;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.page-title{
-    text-align:center;
-    margin-bottom:32px;
+.back-btn:hover {
+    background: #dceeff;
 }
 
-.page-title h1{
-    color:#06477f;
-    font-size:34px;
-    font-weight:800;
-    margin-bottom:8px;
+.egc-logo {
+    height: 60px;
+    width: auto;
+    max-width: 65%;
+    object-fit: contain;
 }
 
-.page-title p{
-    color:#73899b;
-    font-size:16px;
+.main {
+    width: 100%;
+    max-width: 1050px;
+    margin: auto;
+    padding: 40px 25px 70px;
 }
 
-.card{
-    background:#fff;
-    border:1px solid #dfeaf2;
-    border-radius:22px;
-    box-shadow:0 10px 40px rgba(7,65,105,.08);
-    padding:30px;
-    margin-bottom:20px;
+.page-title {
+    text-align: center;
+    margin-bottom: 32px;
 }
 
-.status-top{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:20px;
-    padding-bottom:25px;
-    border-bottom:1px solid #e4edf3;
+.page-title h1 {
+    color: #06477f;
+    font-size: 34px;
+    font-weight: 800;
+    margin-bottom: 8px;
 }
 
-.status-title{
-    font-size:25px;
-    font-weight:800;
-    color:#06477f;
-    margin-bottom:7px;
+.page-title p {
+    color: #73899b;
+    font-size: 16px;
+    line-height: 1.5;
 }
 
-.request-number{
-    color:#7890a3;
-    font-size:14px;
+.card {
+    background: #fff;
+    border: 1px solid #dfeaf2;
+    border-radius: 22px;
+    box-shadow: 0 10px 40px rgba(7, 65, 105, .08);
+    padding: 30px;
+    margin-bottom: 20px;
 }
 
-.status-badge{
-    padding:10px 18px;
-    border-radius:30px;
-    font-size:13px;
-    font-weight:800;
-    background:#fff5d9;
-    color:#a66b00;
-    white-space:nowrap;
+.status-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid #e4edf3;
 }
 
-.status-badge.approved{
-    background:#eaf9f0;
-    color:#16834d;
+.status-title {
+    font-size: 25px;
+    font-weight: 800;
+    color: #06477f;
+    margin-bottom: 7px;
 }
 
-.status-badge.rejected{
-    background:#fff0f0;
-    color:#c62828;
+.request-number {
+    color: #7890a3;
+    font-size: 14px;
+    overflow-wrap: anywhere;
 }
 
-.status-badge.completed{
-    background:#eaf9f0;
-    color:#16834d;
+.status-badge {
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 800;
+    background: #fff5d9;
+    color: #a66b00;
+    white-space: nowrap;
 }
 
-.progress{
-    display:flex;
-    align-items:flex-start;
-    margin:30px 0 5px;
+.status-badge.approved,
+.status-badge.completed {
+    background: #eaf9f0;
+    color: #16834d;
 }
 
-.progress-item{
-    flex:1;
-    text-align:center;
-    position:relative;
+.status-badge.rejected {
+    background: #fff0f0;
+    color: #c62828;
 }
 
-.progress-item:last-child{
-    flex:0 0 90px;
+.status-badge.processing {
+    background: #eaf4ff;
+    color: #075ca5;
 }
 
-.progress-circle{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    margin:auto;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#fff;
-    border:3px solid #d3e1eb;
-    color:#8da1b0;
-    font-weight:800;
-    position:relative;
-    z-index:2;
+.progress {
+    display: flex;
+    align-items: flex-start;
+    margin: 30px 0 5px;
 }
 
-.progress-item.active .progress-circle{
-    background:#0878d1;
-    border-color:#0878d1;
-    color:#fff;
+.progress-item {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    position: relative;
 }
 
-.progress-item.done .progress-circle{
-    background:#168c50;
-    border-color:#168c50;
-    color:#fff;
+.progress-item:last-child {
+    flex: 0 0 90px;
 }
 
-.progress-line{
-    position:absolute;
-    height:3px;
-    background:#d7e3eb;
-    left:50%;
-    right:-50%;
-    top:19px;
-    z-index:1;
+.progress-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 3px solid #d3e1eb;
+    color: #8da1b0;
+    font-weight: 800;
+    position: relative;
+    z-index: 2;
 }
 
-.progress-item.done .progress-line{
-    background:#168c50;
+.progress-item.active .progress-circle {
+    background: #0878d1;
+    border-color: #0878d1;
+    color: #fff;
 }
 
-.progress-name{
-    margin-top:8px;
-    font-size:11px;
-    font-weight:700;
-    color:#8a9aa7;
+.progress-item.done .progress-circle {
+    background: #168c50;
+    border-color: #168c50;
+    color: #fff;
 }
 
-.progress-item.active .progress-name{
-    color:#0872c7;
+.progress-line {
+    position: absolute;
+    height: 3px;
+    background: #d7e3eb;
+    left: 50%;
+    right: -50%;
+    top: 19px;
+    z-index: 1;
 }
 
-.progress-item.done .progress-name{
-    color:#16834d;
+.progress-item.done .progress-line {
+    background: #168c50;
 }
 
-.info-title{
-    font-size:20px;
-    font-weight:800;
-    color:#06477f;
-    margin-bottom:16px;
+.progress-name {
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a9aa7;
 }
 
-.info-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:13px;
+.progress-item.active .progress-name {
+    color: #0872c7;
 }
 
-.info-box{
-    background:#f8fcff;
-    border:1px solid #dfebf3;
-    border-radius:14px;
-    padding:15px;
+.progress-item.done .progress-name {
+    color: #16834d;
 }
 
-.info-label{
-    color:#8295a4;
-    font-size:11px;
-    font-weight:800;
-    text-transform:uppercase;
-    margin-bottom:6px;
+.info-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #06477f;
+    margin-bottom: 16px;
 }
 
-.info-value{
-    color:#164d72;
-    font-size:15px;
-    font-weight:700;
-    word-break:break-word;
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
 }
 
-.amount-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:13px;
+.info-box {
+    min-width: 0;
+    background: #f8fcff;
+    border: 1px solid #dfebf3;
+    border-radius: 14px;
+    padding: 15px;
 }
 
-.amount-box{
-    border-radius:15px;
-    padding:19px;
-    background:#f8fcff;
-    border:1px solid #dceaf4;
+.info-label {
+    color: #8295a4;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 6px;
 }
 
-.amount-box.first{
-    background:#fffaf0;
-    border-color:#ffe0a1;
+.info-value {
+    color: #164d72;
+    font-size: 15px;
+    font-weight: 700;
+    word-break: break-word;
 }
 
-.amount-box.remaining{
-    background:#effaf4;
-    border-color:#c8ead7;
+.amount-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 13px;
 }
 
-.amount-label{
-    color:#7c91a1;
-    font-size:11px;
-    text-transform:uppercase;
-    font-weight:800;
-    margin-bottom:8px;
+.amount-box {
+    min-width: 0;
+    border-radius: 15px;
+    padding: 19px;
+    background: #f8fcff;
+    border: 1px solid #dceaf4;
 }
 
-.amount-value{
-    color:#06477f;
-    font-size:25px;
-    font-weight:800;
+.amount-box.first {
+    background: #fffaf0;
+    border-color: #ffe0a1;
 }
 
-.amount-box.first .amount-value{
-    color:#c38300;
+.amount-box.remaining {
+    background: #effaf4;
+    border-color: #c8ead7;
 }
 
-.amount-box.remaining .amount-value{
-    color:#16844c;
+.amount-label {
+    color: #7c91a1;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 8px;
 }
 
-.wait-box{
-    margin-top:20px;
-    background:#fff9eb;
-    border:1px solid #f4d899;
-    border-radius:15px;
-    padding:19px;
+.amount-value {
+    color: #06477f;
+    font-size: 25px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
-.wait-title{
-    color:#986500;
-    font-size:17px;
-    font-weight:800;
-    margin-bottom:7px;
+.amount-box.first .amount-value {
+    color: #c38300;
 }
 
-.wait-text{
-    color:#735a29;
-    font-size:14px;
-    line-height:1.6;
+.amount-box.remaining .amount-value {
+    color: #16844c;
 }
 
-.approved-box{
-    display:none;
-    margin-top:20px;
-    background:#effaf4;
-    border:1px solid #c6e8d3;
-    border-radius:15px;
-    padding:19px;
+.wait-box,
+.approved-box,
+.rejected-box {
+    margin-top: 20px;
+    border-radius: 15px;
+    padding: 19px;
 }
 
-.approved-box.show{
-    display:block;
+.wait-box {
+    background: #fff9eb;
+    border: 1px solid #f4d899;
 }
 
-.approved-title{
-    color:#16844c;
-    font-size:17px;
-    font-weight:800;
-    margin-bottom:7px;
+.wait-title {
+    color: #986500;
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 7px;
 }
 
-.approved-text{
-    color:#376a4d;
-    font-size:14px;
-    line-height:1.6;
+.wait-text {
+    color: #735a29;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.rejected-box{
-    display:none;
-    margin-top:20px;
-    background:#fff1f1;
-    border:1px solid #f4caca;
-    border-radius:15px;
-    padding:19px;
+.approved-box {
+    display: none;
+    background: #effaf4;
+    border: 1px solid #c6e8d3;
 }
 
-.rejected-box.show{
-    display:block;
+.approved-box.show {
+    display: block;
 }
 
-.rejected-title{
-    color:#c62828;
-    font-size:17px;
-    font-weight:800;
-    margin-bottom:7px;
+.approved-title {
+    color: #16844c;
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 7px;
 }
 
-.rejected-text{
-    color:#784040;
-    font-size:14px;
-    line-height:1.6;
+.approved-text {
+    color: #376a4d;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.action{
-    margin-top:24px;
-    display:flex;
-    justify-content:center;
+.rejected-box {
+    display: none;
+    background: #fff1f1;
+    border: 1px solid #f4caca;
 }
 
-.payment-btn{
-    display:none;
-    width:100%;
-    max-width:400px;
-    height:56px;
-    border:0;
-    border-radius:14px;
-    background:#ffc21a;
-    color:#063d70;
-    font-size:17px;
-    font-weight:800;
-    cursor:pointer;
-    box-shadow:0 7px 18px rgba(255,194,26,.25);
+.rejected-box.show {
+    display: block;
 }
 
-.payment-btn.show{
-    display:block;
+.rejected-title {
+    color: #c62828;
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 7px;
 }
 
-.home-btn{
-    width:100%;
-    max-width:400px;
-    height:54px;
-    border:1px solid #d2e1ec;
-    border-radius:14px;
-    background:#fff;
-    color:#15547d;
-    font-size:15px;
-    font-weight:800;
-    cursor:pointer;
+.rejected-text {
+    color: #784040;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
-.message{
-    display:none;
-    margin-top:18px;
-    padding:14px 17px;
-    border-radius:12px;
-    font-size:14px;
-    line-height:1.5;
+.action {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
 }
 
-.message.error{
-    display:block;
-    color:#bd2828;
-    background:#fff1f1;
-    border:1px solid #ffc9c9;
+.payment-btn {
+    display: none;
+    width: 100%;
+    max-width: 400px;
+    min-height: 56px;
+    padding: 12px 18px;
+    border: 0;
+    border-radius: 14px;
+    background: #ffc21a;
+    color: #063d70;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 7px 18px rgba(255, 194, 26, .25);
 }
 
-.loading{
-    text-align:center;
-    padding:40px 15px;
-    color:#71879a;
-    font-size:15px;
+.payment-btn:hover {
+    background: #ffb900;
 }
 
-.hidden{
-    display:none!important;
+.payment-btn.show {
+    display: block;
 }
 
-@media(max-width:700px){
+.payment-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
 
-    .header{
-        height:70px;
+.home-btn {
+    width: 100%;
+    max-width: 400px;
+    min-height: 54px;
+    padding: 12px 18px;
+    border: 1px solid #d2e1ec;
+    border-radius: 14px;
+    background: #fff;
+    color: #15547d;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.home-btn:hover {
+    background: #f5faff;
+}
+
+.message {
+    display: none;
+    margin-top: 18px;
+    padding: 14px 17px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.message.error {
+    display: block;
+    color: #bd2828;
+    background: #fff1f1;
+    border: 1px solid #ffc9c9;
+}
+
+.message.success {
+    display: block;
+    color: #16844c;
+    background: #effaf4;
+    border: 1px solid #c6e8d3;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px 15px;
+    color: #71879a;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.retry-btn {
+    margin-top: 15px;
+    border: 0;
+    background: #0878d1;
+    color: #fff;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 700px) {
+    .header {
+        height: 70px;
     }
 
-    .header-left{
-        left:14px;
+    .header-left {
+        left: 14px;
     }
 
-    .back-btn{
-        width:38px;
-        height:38px;
-        font-size:25px;
+    .back-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 25px;
     }
 
-    .egc-logo{
-        height:49px;
+    .egc-logo {
+        height: 49px;
+        max-width: 58%;
     }
 
-    .main{
-        padding:25px 12px 45px;
+    .main {
+        padding: 25px 12px 45px;
     }
 
-    .page-title{
-        margin-bottom:23px;
+    .page-title {
+        margin-bottom: 23px;
     }
 
-    .page-title h1{
-        font-size:27px;
+    .page-title h1 {
+        font-size: 27px;
     }
 
-    .page-title p{
-        font-size:13px;
-        line-height:1.5;
+    .page-title p {
+        font-size: 13px;
+        line-height: 1.5;
     }
 
-    .card{
-        padding:19px 14px;
-        border-radius:17px;
+    .card {
+        padding: 19px 14px;
+        border-radius: 17px;
     }
 
-    .status-top{
-        align-items:flex-start;
-        flex-direction:column;
-        gap:12px;
+    .status-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
     }
 
-    .status-title{
-        font-size:21px;
+    .status-title {
+        font-size: 21px;
     }
 
-    .request-number{
-        font-size:12px;
+    .request-number {
+        font-size: 12px;
     }
 
-    .status-badge{
-        font-size:11px;
-        padding:8px 13px;
+    .status-badge {
+        font-size: 11px;
+        padding: 8px 13px;
     }
 
-    .progress{
-        margin-top:25px;
+    .progress {
+        margin-top: 25px;
     }
 
-    .progress-item:last-child{
-        flex:0 0 55px;
+    .progress-item:last-child {
+        flex: 0 0 55px;
     }
 
-    .progress-circle{
-        width:34px;
-        height:34px;
-        font-size:12px;
+    .progress-circle {
+        width: 34px;
+        height: 34px;
+        font-size: 12px;
     }
 
-    .progress-line{
-        top:16px;
+    .progress-line {
+        top: 16px;
     }
 
-    .progress-name{
-        font-size:8px;
+    .progress-name {
+        font-size: 8px;
     }
 
-    .info-title{
-        font-size:18px;
+    .info-title {
+        font-size: 18px;
     }
 
-    .info-grid{
-        grid-template-columns:1fr;
+    .info-grid {
+        grid-template-columns: 1fr;
     }
 
-    .amount-grid{
-        grid-template-columns:1fr;
+    .amount-grid {
+        grid-template-columns: 1fr;
     }
 
-    .amount-value{
-        font-size:23px;
+    .amount-box {
+        padding: 16px;
+    }
+
+    .amount-value {
+        font-size: 23px;
     }
 
     .wait-title,
     .approved-title,
-    .rejected-title{
-        font-size:15px;
+    .rejected-title {
+        font-size: 15px;
     }
 
     .wait-text,
     .approved-text,
-    .rejected-text{
-        font-size:12px;
+    .rejected-text {
+        font-size: 12px;
     }
 
+    .payment-btn {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 360px) {
+    .main {
+        padding-left: 9px;
+        padding-right: 9px;
+    }
+
+    .card {
+        padding: 16px 11px;
+    }
+
+    .progress-item:last-child {
+        flex-basis: 48px;
+    }
+
+    .progress-name {
+        font-size: 7px;
+    }
 }
 </style>
 </head>
 
 <body>
-
 <div class="app">
 
-<header class="header">
-
-    <div class="header-left">
-        <button
-            type="button"
-            class="back-btn"
-            id="backBtn"
-        >‹</button>
-    </div>
-
-    <img
-        src="assets/EGC - Emergency Gas Cylinder logo.png"
-        class="egc-logo"
-        alt="EGC"
-        onerror="this.style.display='none';"
-    >
-
-</header>
-
-<main class="main">
-
-<div class="page-title">
-
-    <h1>Request Status</h1>
-
-    <p>
-        Track your current EGC cylinder request.
-    </p>
-
-</div>
-
-
-<div id="loadingBox" class="card">
-
-    <div class="loading">
-        Loading your request...
-    </div>
-
-</div>
-
-
-<div id="content" class="hidden">
-
-
-<section class="card">
-
-<div class="status-top">
-
-    <div>
-
-        <div class="status-title">
-            Cylinder Request
+    <header class="header">
+        <div class="header-left">
+            <button type="button" class="back-btn" id="backBtn" aria-label="Back to dashboard">‹</button>
         </div>
 
-        <div class="request-number">
-            Request No:
-            <strong id="requestNumber">---</strong>
-        </div>
-
-    </div>
-
-    <div
-        class="status-badge"
-        id="statusBadge"
-    >
-        PENDING APPROVAL
-    </div>
-
-</div>
-
-
-<div class="progress">
-
-    <div
-        class="progress-item done"
-        id="progressRequest"
-    >
-
-        <div class="progress-circle">
-            ✓
-        </div>
-
-        <div class="progress-name">
-            Request
-        </div>
-
-        <div class="progress-line"></div>
-
-    </div>
-
-
-    <div
-        class="progress-item active"
-        id="progressApproval"
-    >
-
-        <div class="progress-circle">
-            2
-        </div>
-
-        <div class="progress-name">
-            Approval
-        </div>
-
-        <div class="progress-line"></div>
-
-    </div>
-
-
-    <div
-        class="progress-item"
-        id="progressPayment"
-    >
-
-        <div class="progress-circle">
-            3
-        </div>
-
-        <div class="progress-name">
-            Payment
-        </div>
-
-        <div class="progress-line"></div>
-
-    </div>
-
-
-    <div
-        class="progress-item"
-        id="progressComplete"
-    >
-
-        <div class="progress-circle">
-            4
-        </div>
-
-        <div class="progress-name">
-            Complete
-        </div>
-
-    </div>
-
-</div>
-
-</section>
-
-
-<section class="card">
-
-<div class="info-title">
-    Request Details
-</div>
-
-<div class="info-grid">
-
-    <div class="info-box">
-
-        <div class="info-label">
-            Agency
-        </div>
-
-        <div
-            class="info-value"
-            id="agencyName"
+        <img
+            src="assets/EGC - Emergency Gas Cylinder logo.png"
+            class="egc-logo"
+            alt="EGC"
+            onerror="this.style.display='none';"
         >
-            ---
+    </header>
+
+    <main class="main">
+
+        <div class="page-title">
+            <h1>Request Status</h1>
+            <p>Track the current status of your EGC cylinder request.</p>
         </div>
 
-    </div>
-
-
-    <div class="info-box">
-
-        <div class="info-label">
-            Agency Code
+        <div id="loadingBox" class="card">
+            <div class="loading">Loading your request...</div>
         </div>
 
-        <div
-            class="info-value"
-            id="agencyCode"
-        >
-            ---
+        <div id="content" class="hidden">
+
+            <section class="card">
+                <div class="status-top">
+                    <div>
+                        <div class="status-title">Cylinder Request</div>
+                        <div class="request-number">
+                            Request No:
+                            <strong id="requestNumber">---</strong>
+                        </div>
+                    </div>
+
+                    <div class="status-badge" id="statusBadge">
+                        PENDING APPROVAL
+                    </div>
+                </div>
+
+                <div class="progress" aria-label="Request progress">
+
+                    <div class="progress-item done" id="progressRequest">
+                        <div class="progress-circle">✓</div>
+                        <div class="progress-name">Request</div>
+                        <div class="progress-line"></div>
+                    </div>
+
+                    <div class="progress-item active" id="progressApproval">
+                        <div class="progress-circle">2</div>
+                        <div class="progress-name">Approval</div>
+                        <div class="progress-line"></div>
+                    </div>
+
+                    <div class="progress-item" id="progressPayment">
+                        <div class="progress-circle">3</div>
+                        <div class="progress-name">Payment</div>
+                        <div class="progress-line"></div>
+                    </div>
+
+                    <div class="progress-item" id="progressComplete">
+                        <div class="progress-circle">4</div>
+                        <div class="progress-name">Complete</div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="info-title">Request Details</div>
+
+                <div class="info-grid">
+
+                    <div class="info-box">
+                        <div class="info-label">Agency</div>
+                        <div class="info-value" id="agencyName">---</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">Agency Code</div>
+                        <div class="info-value" id="agencyCode">---</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">LPG Company</div>
+                        <div class="info-value" id="lpgCompany">---</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">Request Date</div>
+                        <div class="info-value" id="requestDate">---</div>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="info-title">Payment Details</div>
+
+                <div class="amount-grid">
+
+                    <div class="amount-box">
+                        <div class="amount-label">Cylinder Amount</div>
+                        <div class="amount-value" id="cylinderAmount">₹890</div>
+                    </div>
+
+                    <div class="amount-box first">
+                        <div class="amount-label">First Payment</div>
+                        <div class="amount-value" id="firstPayment">₹200</div>
+                    </div>
+
+                    <div class="amount-box remaining">
+                        <div class="amount-label">Remaining</div>
+                        <div class="amount-value" id="remainingAmount">₹690</div>
+                    </div>
+
+                </div>
+
+                <div class="wait-box" id="waitBox">
+                    <div class="wait-title">Waiting for Owner Approval</div>
+                    <div class="wait-text">
+                        Your cylinder request has been submitted successfully.
+                        Payment is not available yet. The EGC owner must approve
+                        your request first. Once approved, the payment option
+                        will become available.
+                    </div>
+                </div>
+
+                <div class="approved-box" id="approvedBox">
+                    <div class="approved-title">✓ Request Approved</div>
+                    <div class="approved-text" id="approvedText">
+                        Your cylinder request has been approved by the EGC owner.
+                        You can now proceed with the first payment.
+                    </div>
+                </div>
+
+                <div class="rejected-box" id="rejectedBox">
+                    <div class="rejected-title">Request Not Approved</div>
+                    <div class="rejected-text" id="rejectedText">
+                        Your request was not approved.
+                    </div>
+                </div>
+
+                <div class="action">
+                    <button type="button" class="payment-btn" id="paymentBtn">
+                        PROCEED TO PAYMENT
+                    </button>
+                </div>
+            </section>
+
+            <div id="message" class="message" role="status" aria-live="polite"></div>
+
+            <div class="action">
+                <button type="button" class="home-btn" id="homeBtn">
+                    BACK TO DASHBOARD
+                </button>
+            </div>
+
         </div>
-
-    </div>
-
-
-    <div class="info-box">
-
-        <div class="info-label">
-            LPG Company
-        </div>
-
-        <div
-            class="info-value"
-            id="lpgCompany"
-        >
-            ---
-        </div>
-
-    </div>
-
-
-    <div class="info-box">
-
-        <div class="info-label">
-            Request Date
-        </div>
-
-        <div
-            class="info-value"
-            id="requestDate"
-        >
-            ---
-        </div>
-
-    </div>
-
+    </main>
 </div>
-
-</section>
-
-
-<section class="card">
-
-<div class="info-title">
-    Payment Details
-</div>
-
-<div class="amount-grid">
-
-    <div class="amount-box">
-
-        <div class="amount-label">
-            Cylinder Amount
-        </div>
-
-        <div
-            class="amount-value"
-            id="cylinderAmount"
-        >
-            ₹890
-        </div>
-
-    </div>
-
-
-    <div class="amount-box first">
-
-        <div class="amount-label">
-            First Payment
-        </div>
-
-        <div
-            class="amount-value"
-            id="firstPayment"
-        >
-            ₹200
-        </div>
-
-    </div>
-
-
-    <div class="amount-box remaining">
-
-        <div class="amount-label">
-            Remaining
-        </div>
-
-        <div
-            class="amount-value"
-            id="remainingAmount"
-        >
-            ₹690
-        </div>
-
-    </div>
-
-</div>
-
-
-<div
-    class="wait-box"
-    id="waitBox"
->
-
-    <div class="wait-title">
-        Waiting for Owner Approval
-    </div>
-
-    <div class="wait-text">
-        Your cylinder request has been submitted successfully.
-        Payment is not available yet. The EGC owner must approve
-        your request first. Once approved, the payment option will
-        automatically become available.
-    </div>
-
-</div>
-
-
-<div
-    class="approved-box"
-    id="approvedBox"
->
-
-    <div class="approved-title">
-        ✓ Request Approved
-    </div>
-
-    <div class="approved-text">
-        Your cylinder request has been approved by the EGC owner.
-        You can now proceed with the first payment.
-    </div>
-
-</div>
-
-
-<div
-    class="rejected-box"
-    id="rejectedBox"
->
-
-    <div class="rejected-title">
-        Request Not Approved
-    </div>
-
-    <div
-        class="rejected-text"
-        id="rejectedText"
-    >
-        Your request was not approved.
-    </div>
-
-</div>
-
-
-<div class="action">
-
-    <button
-        type="button"
-        class="payment-btn"
-        id="paymentBtn"
-    >
-        PROCEED TO PAYMENT
-    </button>
-
-</div>
-
-</section>
-
-
-<div
-    id="message"
-    class="message"
-></div>
-
-
-<div class="action">
-
-    <button
-        type="button"
-        class="home-btn"
-        id="homeBtn"
-    >
-        BACK TO HOME
-    </button>
-
-</div>
-
-
-</div>
-
-</main>
-
-</div>
-
 
 <script>
+"use strict";
 
 /* =========================================================
    EGC SUPABASE CONFIG
 ========================================================= */
 
-const SUPABASE_URL =
-    "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
+let supabaseClient = null;
 
-const supabaseClient =
-    window.supabase.createClient(
+if (window.supabase && window.supabase.createClient) {
+    supabaseClient = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
     );
-
+}
 
 /* =========================================================
    ELEMENTS
 ========================================================= */
 
-const loadingBox =
-    document.getElementById("loadingBox");
+const loadingBox = document.getElementById("loadingBox");
+const content = document.getElementById("content");
+const message = document.getElementById("message");
 
-const content =
-    document.getElementById("content");
+const requestNumber = document.getElementById("requestNumber");
+const statusBadge = document.getElementById("statusBadge");
 
-const message =
-    document.getElementById("message");
+const agencyName = document.getElementById("agencyName");
+const agencyCode = document.getElementById("agencyCode");
+const lpgCompany = document.getElementById("lpgCompany");
+const requestDate = document.getElementById("requestDate");
 
-const requestNumber =
-    document.getElementById("requestNumber");
+const cylinderAmount = document.getElementById("cylinderAmount");
+const firstPayment = document.getElementById("firstPayment");
+const remainingAmount = document.getElementById("remainingAmount");
 
-const statusBadge =
-    document.getElementById("statusBadge");
+const waitBox = document.getElementById("waitBox");
+const approvedBox = document.getElementById("approvedBox");
+const approvedText = document.getElementById("approvedText");
+const rejectedBox = document.getElementById("rejectedBox");
+const rejectedText = document.getElementById("rejectedText");
 
-const agencyName =
-    document.getElementById("agencyName");
+const paymentBtn = document.getElementById("paymentBtn");
 
-const agencyCode =
-    document.getElementById("agencyCode");
+const progressRequest = document.getElementById("progressRequest");
+const progressApproval = document.getElementById("progressApproval");
+const progressPayment = document.getElementById("progressPayment");
+const progressComplete = document.getElementById("progressComplete");
 
-const lpgCompany =
-    document.getElementById("lpgCompany");
-
-const requestDate =
-    document.getElementById("requestDate");
-
-const cylinderAmount =
-    document.getElementById("cylinderAmount");
-
-const firstPayment =
-    document.getElementById("firstPayment");
-
-const remainingAmount =
-    document.getElementById("remainingAmount");
-
-const waitBox =
-    document.getElementById("waitBox");
-
-const approvedBox =
-    document.getElementById("approvedBox");
-
-const rejectedBox =
-    document.getElementById("rejectedBox");
-
-const rejectedText =
-    document.getElementById("rejectedText");
-
-const paymentBtn =
-    document.getElementById("paymentBtn");
-
+let currentUser = null;
+let currentRequest = null;
+let realtimeChannel = null;
+let realtimeRefreshTimer = null;
 
 /* =========================================================
-   SHOW ERROR
+   SAFE TEXT / MESSAGE
 ========================================================= */
 
-function showError(text){
-
-    message.className =
-        "message error";
-
-    message.textContent =
-        text;
-
+function showError(text) {
+    message.className = "message error";
+    message.textContent = text;
 }
 
+function showSuccess(text) {
+    message.className = "message success";
+    message.textContent = text;
+}
+
+function clearMessage() {
+    message.className = "message";
+    message.textContent = "";
+}
+
+function setLoadingText(text) {
+    loadingBox.innerHTML = "";
+
+    const box = document.createElement("div");
+    box.className = "loading";
+    box.textContent = text;
+
+    loadingBox.appendChild(box);
+}
+
+function showLoadError(text) {
+    loadingBox.innerHTML = "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "loading";
+
+    const description = document.createElement("div");
+    description.textContent = text;
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "retry-btn";
+    retry.textContent = "TRY AGAIN";
+    retry.addEventListener("click", loadRequest);
+
+    wrapper.appendChild(description);
+    wrapper.appendChild(retry);
+    loadingBox.appendChild(wrapper);
+
+    loadingBox.classList.remove("hidden");
+    content.classList.add("hidden");
+}
 
 /* =========================================================
-   FORMAT DATE
+   FORMAT HELPERS
 ========================================================= */
 
-function formatDate(value){
+function formatDate(value) {
+    if (!value) return "---";
 
-    if(!value){
+    const date = new Date(value);
 
-        return "---";
-
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
     }
 
-    const date =
-        new Date(value);
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
 
-    if(isNaN(date.getTime())){
+function money(value) {
+    const number = Number(value);
 
-        return value;
-
+    if (!Number.isFinite(number)) {
+        return "₹0";
     }
 
-    return date.toLocaleString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric",
-            hour:"2-digit",
-            minute:"2-digit"
-        }
-    );
-
+    return "₹" + number.toLocaleString("en-IN", {
+        maximumFractionDigits: 2
+    });
 }
 
-
-/* =========================================================
-   MONEY
-========================================================= */
-
-function money(value){
-
-    return "₹" +
-        Number(value || 0).toLocaleString("en-IN");
-
+function normalise(value) {
+    return String(value || "").trim().toLowerCase();
 }
 
+function isRejected(request) {
+    const approval = normalise(request.owner_approval);
+    const status = normalise(request.status);
+
+    return [
+        "rejected", "declined", "not_approved"
+    ].includes(approval) ||
+    [
+        "rejected", "declined", "not_approved"
+    ].includes(status);
+}
+
+function isApproved(request) {
+    if (isRejected(request)) return false;
+
+    const approval = normalise(request.owner_approval);
+    const status = normalise(request.status);
+
+    return [
+        "approved", "approve", "accepted"
+    ].includes(approval) ||
+    [
+        "approved", "processing", "assigned",
+        "ready", "out_for_delivery", "delivered",
+        "completed"
+    ].includes(status);
+}
+
+function isFullyPaid(request) {
+    const paymentStatus = normalise(request.payment_status);
+    const remaining = Number(request.remaining_amount);
+
+    if (Number.isFinite(remaining) && remaining <= 0) {
+        return true;
+    }
+
+    return [
+        "fully_paid", "paid_in_full", "settled"
+    ].includes(paymentStatus);
+}
+
+function isCancelled(request) {
+    const status = normalise(request.status);
+    const approval = normalise(request.owner_approval);
+
+    return status === "cancelled" ||
+           status === "canceled" ||
+           approval === "cancelled" ||
+           approval === "canceled";
+}
 
 /* =========================================================
-   GET CURRENT USER
+   CURRENT USER
 ========================================================= */
 
-async function getCurrentUser(){
+async function getCurrentUser() {
+    if (!supabaseClient) {
+        throw new Error(
+            "Supabase is not available. Check your internet connection and reload the page."
+        );
+    }
 
-    const result =
-        await supabaseClient.auth.getUser();
+    const result = await supabaseClient.auth.getUser();
 
-    if(result.error){
-
+    if (result.error) {
         throw result.error;
-
     }
 
-    if(!result.data.user){
-
+    if (!result.data || !result.data.user) {
         throw new Error(
             "Your login session has expired. Please login again."
         );
-
     }
 
     return result.data.user;
-
 }
 
-
 /* =========================================================
-   GET REQUEST ID FROM LOCAL STORAGE
+   REQUEST ID LOOKUP
+   Supports both keys used by the EGC pages.
 ========================================================= */
 
-function getSavedRequestId(){
+function getSavedRequestId() {
+    const queryId = new URLSearchParams(window.location.search)
+        .get("request_id");
 
-    try{
+    if (queryId) return queryId;
 
-        const current =
-            localStorage.getItem(
-                "egc_current_request"
-            );
+    const keys = [
+        "egc_current_request",
+        "egc_current_request_id"
+    ];
 
-        if(current){
+    for (const key of keys) {
+        try {
+            const value = localStorage.getItem(key);
 
-            const data =
-                JSON.parse(current);
+            if (!value) continue;
 
-            if(data.request_id){
+            let parsed = null;
 
-                return data.request_id;
-
+            try {
+                parsed = JSON.parse(value);
+            } catch (_) {
+                parsed = null;
             }
 
+            if (parsed && typeof parsed === "object") {
+                const id =
+                    parsed.request_id ||
+                    parsed.id ||
+                    parsed.requestId;
+
+                if (id) return String(id);
+            }
+
+            /* Some pages may save the ID as plain text. */
+            if (typeof value === "string" && value.trim()) {
+                const trimmed = value.trim();
+
+                if (
+                    trimmed !== "null" &&
+                    trimmed !== "undefined" &&
+                    !trimmed.startsWith("{") &&
+                    !trimmed.startsWith("[")
+                ) {
+                    return trimmed;
+                }
+            }
+        } catch (error) {
+            console.warn("Could not read saved request:", error);
         }
-
-    }catch(error){
-
-        console.warn(error);
-
     }
 
     return null;
-
 }
 
+/* =========================================================
+   SAVE CURRENT REQUEST
+========================================================= */
+
+function saveCurrentRequest(request, userId) {
+    const remaining = request.remaining_amount != null
+        ? Number(request.remaining_amount)
+        : Math.max(
+            0,
+            Number(request.cylinder_amount || request.total_amount || 890) -
+            Number(request.advance_amount || 200)
+        );
+
+    const saved = {
+        request_id: request.id,
+        request_number: request.request_number || null,
+        user_id: userId,
+        agency_id: request.agency_id || null,
+        cylinder_amount: Number(
+            request.cylinder_amount || request.total_amount || 890
+        ),
+        first_payment: Number(request.advance_amount || 200),
+        remaining_amount: Number.isFinite(remaining) ? remaining : 0
+    };
+
+    try {
+        localStorage.setItem(
+            "egc_current_request",
+            JSON.stringify(saved)
+        );
+
+        localStorage.setItem(
+            "egc_current_request_id",
+            String(request.id)
+        );
+    } catch (error) {
+        console.warn("Could not save request locally:", error);
+    }
+}
 
 /* =========================================================
    FIND CURRENT REQUEST
 ========================================================= */
 
-async function findCurrentRequest(userId){
-
-    const savedId =
-        getSavedRequestId();
-
+async function findCurrentRequest(userId) {
+    const savedId = getSavedRequestId();
 
     /*
-      First try the exact request saved after submission.
+      If an exact request was saved, use that same request.
+      Do not silently switch to another request when the
+      saved ID does not belong to this logged-in user.
     */
 
-    if(savedId){
-
-        const exact =
-            await supabaseClient
+    if (savedId) {
+        const exact = await supabaseClient
             .from("cylinder_requests")
             .select("*")
-            .eq("id",savedId)
-            .eq("user_id",userId)
+            .eq("id", savedId)
+            .eq("user_id", userId)
             .maybeSingle();
 
-        if(exact.error){
-
-            console.warn(
-                "Exact request lookup:",
-                exact.error
-            );
-
+        if (exact.error) {
+            throw exact.error;
         }
 
-        if(exact.data){
-
+        if (exact.data) {
             return exact.data;
-
         }
-
-    }
-
-
-    /*
-      If localStorage is missing, find the latest
-      non-completed request for this user.
-    */
-
-    const result =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*")
-        .eq("user_id",userId)
-        .order(
-            "created_at",
-            {
-                ascending:false
-            }
-        )
-        .limit(20);
-
-
-    if(result.error){
-
-        throw result.error;
-
-    }
-
-
-    const requests =
-        result.data || [];
-
-
-    const current =
-        requests.find(function(item){
-
-            const status =
-                String(
-                    item.status || ""
-                ).toLowerCase();
-
-            const payment =
-                String(
-                    item.payment_status || ""
-                ).toLowerCase();
-
-            /*
-              Cancelled requests are ignored.
-            */
-
-            if(
-                status === "cancelled"
-            ){
-
-                return false;
-
-            }
-
-            /*
-              Completed fully-paid requests are ignored.
-            */
-
-            if(
-                payment === "completed" &&
-                Number(
-                    item.remaining_amount || 0
-                ) <= 0
-            ){
-
-                return false;
-
-            }
-
-            return true;
-
-        });
-
-
-    return current || null;
-
-}
-
-
-/* =========================================================
-   UPDATE UI
-========================================================= */
-
-function updateStatusUI(request){
-
-    const ownerApproval =
-        String(
-            request.owner_approval || ""
-        ).toLowerCase();
-
-    const status =
-        String(
-            request.status || ""
-        ).toLowerCase();
-
-    const paymentStatus =
-        String(
-            request.payment_status || ""
-        ).toLowerCase();
-
-
-    /*
-      Reset.
-    */
-
-    waitBox.style.display =
-        "none";
-
-    approvedBox.classList.remove(
-        "show"
-    );
-
-    rejectedBox.classList.remove(
-        "show"
-    );
-
-    paymentBtn.classList.remove(
-        "show"
-    );
-
-
-    statusBadge.className =
-        "status-badge";
-
-
-    /*
-      PENDING
-    */
-
-    if(
-        ownerApproval === "pending" ||
-        ownerApproval === "" ||
-        status === "pending"
-    ){
-
-        statusBadge.textContent =
-            "PENDING APPROVAL";
-
-        statusBadge.classList.add(
-            "pending"
-        );
-
-        waitBox.style.display =
-            "block";
-
-        document
-        .getElementById(
-            "progressApproval"
-        )
-        .classList.add(
-            "active"
-        );
-
-        return;
-
-    }
-
-
-    /*
-      APPROVED
-    */
-
-    if(
-        ownerApproval === "approved" ||
-        ownerApproval === "approve" ||
-        status === "approved"
-    ){
-
-        statusBadge.textContent =
-            "APPROVED";
-
-        statusBadge.classList.add(
-            "approved"
-        );
-
-        approvedBox.classList.add(
-            "show"
-        );
-
-
-        document
-        .getElementById(
-            "progressApproval"
-        )
-        .classList.remove(
-            "active"
-        );
-
-        document
-        .getElementById(
-            "progressApproval"
-        )
-        .classList.add(
-            "done"
-        );
-
 
         /*
-          Payment becomes available only after
-          owner approval.
+          The stored ID may refer to an old or deleted request.
+          Only search the latest request when no exact record
+          is found for this user.
         */
-
-        if(
-            paymentStatus !== "completed" &&
-            Number(
-                request.remaining_amount || 0
-            ) > 0
-        ){
-
-            paymentBtn.classList.add(
-                "show"
-            );
-
-        }
-
-        return;
-
+        console.warn(
+            "Saved request was not found for this user. Looking up the latest request."
+        );
     }
 
+    const result = await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    const requests = result.data || [];
 
     /*
-      REJECTED
+      Prefer a non-cancelled, non-rejected request that is
+      still awaiting approval, payment or delivery.
     */
 
-    if(
-        ownerApproval === "rejected" ||
-        ownerApproval === "declined" ||
-        status === "rejected"
-    ){
+    const activeRequest = requests.find(function(request) {
+        return !isCancelled(request) && !isRejected(request);
+    });
 
-        statusBadge.textContent =
-            "NOT APPROVED";
+    if (activeRequest) {
+        return activeRequest;
+    }
 
-        statusBadge.classList.add(
-            "rejected"
-        );
+    /*
+      If all requests are rejected/cancelled, show the newest
+      one so the user can still see its actual status.
+    */
 
-        rejectedBox.classList.add(
-            "show"
-        );
+    return requests.length ? requests[0] : null;
+}
 
+/* =========================================================
+   PROGRESS UI
+========================================================= */
+
+function resetProgress() {
+    [progressRequest, progressApproval, progressPayment, progressComplete]
+        .forEach(function(item) {
+            item.classList.remove("active", "done");
+        });
+
+    progressRequest.classList.add("done");
+    progressRequest.querySelector(".progress-circle").textContent = "✓";
+
+    progressApproval.querySelector(".progress-circle").textContent = "2";
+    progressPayment.querySelector(".progress-circle").textContent = "3";
+    progressComplete.querySelector(".progress-circle").textContent = "4";
+}
+
+function markStepDone(element, symbol) {
+    element.classList.remove("active");
+    element.classList.add("done");
+
+    const circle = element.querySelector(".progress-circle");
+    if (circle && symbol) circle.textContent = symbol;
+}
+
+function markStepActive(element) {
+    element.classList.remove("done");
+    element.classList.add("active");
+}
+
+function setProgress(request) {
+    resetProgress();
+
+    if (isRejected(request) || isCancelled(request)) {
+        return;
+    }
+
+    if (!isApproved(request)) {
+        markStepActive(progressApproval);
+        return;
+    }
+
+    markStepDone(progressApproval, "✓");
+
+    if (isFullyPaid(request)) {
+        markStepDone(progressPayment, "✓");
+        markStepDone(progressComplete, "✓");
+        return;
+    }
+
+    markStepActive(progressPayment);
+}
+
+/* =========================================================
+   STATUS UI
+========================================================= */
+
+function updateStatusUI(request) {
+    const ownerApproval = normalise(request.owner_approval);
+    const status = normalise(request.status);
+
+    waitBox.style.display = "none";
+    approvedBox.classList.remove("show");
+    rejectedBox.classList.remove("show");
+    paymentBtn.classList.remove("show");
+
+    statusBadge.className = "status-badge";
+
+    if (isCancelled(request)) {
+        statusBadge.textContent = "CANCELLED";
+        statusBadge.classList.add("rejected");
+
+        rejectedBox.classList.add("show");
         rejectedText.textContent =
             request.owner_note ||
             request.agency_note ||
+            "This request has been cancelled.";
+
+        setProgress(request);
+        return;
+    }
+
+    if (isRejected(request)) {
+        statusBadge.textContent = "NOT APPROVED";
+        statusBadge.classList.add("rejected");
+
+        rejectedBox.classList.add("show");
+        rejectedText.textContent =
+            request.owner_note ||
+            request.agency_note ||
+            request.rejection_reason ||
             "The owner did not approve this request.";
 
+        setProgress(request);
         return;
-
     }
 
+    if (!isApproved(request)) {
+        statusBadge.textContent = "PENDING APPROVAL";
+        waitBox.style.display = "block";
 
-    /*
-      COMPLETED
-    */
-
-    if(
-        paymentStatus === "completed" ||
-        status === "completed"
-    ){
-
-        statusBadge.textContent =
-            "COMPLETED";
-
-        statusBadge.classList.add(
-            "completed"
-        );
-
-        document
-        .getElementById(
-            "progressApproval"
-        )
-        .classList.add(
-            "done"
-        );
-
-        document
-        .getElementById(
-            "progressPayment"
-        )
-        .classList.add(
-            "done"
-        );
-
-        document
-        .getElementById(
-            "progressComplete"
-        )
-        .classList.add(
-            "done"
-        );
-
+        markStepActive(progressApproval);
         return;
-
     }
 
+    if (isFullyPaid(request)) {
+        statusBadge.textContent = "COMPLETED";
+        statusBadge.classList.add("completed");
+
+        approvedBox.classList.add("show");
+        approvedText.textContent =
+            "Your request shows no remaining amount. You can check your dashboard for the latest delivery and repayment details.";
+
+        setProgress(request);
+        return;
+    }
+
+    statusBadge.textContent = "APPROVED";
+    statusBadge.classList.add("approved");
+
+    approvedBox.classList.add("show");
+    approvedText.textContent =
+        "Your cylinder request has been approved by the EGC owner. You can now proceed to the payment page.";
 
     /*
-      Default.
+      Payment button is shown only when approval is confirmed.
+      The click handler also checks the database again.
     */
 
-    statusBadge.textContent =
-        "PENDING APPROVAL";
+    paymentBtn.classList.add("show");
 
-    waitBox.style.display =
-        "block";
-
+    setProgress(request);
 }
 
+/* =========================================================
+   AGENCY DETAILS
+========================================================= */
+
+async function loadAgencyDetails(request) {
+    agencyName.textContent = request.agency_name || "---";
+    agencyCode.textContent = request.agency_code || "---";
+    lpgCompany.textContent = request.lpg_company || "---";
+
+    if (!request.agency_id || !supabaseClient) {
+        return;
+    }
+
+    const result = await supabaseClient
+        .from("agencies")
+        .select("agency_name,agency_code,lpg_company")
+        .eq("id", request.agency_id)
+        .maybeSingle();
+
+    if (result.error) {
+        console.warn("Agency details lookup failed:", result.error);
+        return;
+    }
+
+    if (result.data) {
+        agencyName.textContent =
+            result.data.agency_name ||
+            request.agency_name ||
+            "---";
+
+        agencyCode.textContent =
+            result.data.agency_code ||
+            request.agency_code ||
+            "---";
+
+        lpgCompany.textContent =
+            request.lpg_company ||
+            result.data.lpg_company ||
+            "---";
+    }
+}
+
+/* =========================================================
+   RENDER REQUEST
+========================================================= */
+
+async function renderRequest(request, userId) {
+    currentRequest = request;
+
+    requestNumber.textContent =
+        request.request_number ||
+        request.id ||
+        "---";
+
+    const cylinder = Number(
+        request.cylinder_amount || request.total_amount || 890
+    );
+
+    const first = Number(
+        request.advance_amount != null
+            ? request.advance_amount
+            : 200
+    );
+
+    let remaining;
+
+    if (request.remaining_amount != null) {
+        remaining = Number(request.remaining_amount);
+    } else {
+        remaining = Math.max(0, cylinder - first);
+    }
+
+    cylinderAmount.textContent = money(cylinder);
+    firstPayment.textContent = money(first);
+    remainingAmount.textContent = money(remaining);
+
+    requestDate.textContent = formatDate(
+        request.request_date || request.created_at
+    );
+
+    await loadAgencyDetails(request);
+
+    updateStatusUI(request);
+    saveCurrentRequest(request, userId);
+
+    loadingBox.classList.add("hidden");
+    content.classList.remove("hidden");
+}
 
 /* =========================================================
    LOAD REQUEST
 ========================================================= */
 
-async function loadRequest(){
+async function loadRequest() {
+    clearMessage();
+    paymentBtn.disabled = false;
 
-    try{
+    setLoadingText("Loading your request...");
+    loadingBox.classList.remove("hidden");
+    content.classList.add("hidden");
 
-        const user =
-            await getCurrentUser();
+    try {
+        currentUser = await getCurrentUser();
 
+        const request = await findCurrentRequest(currentUser.id);
 
-        const request =
-            await findCurrentRequest(
-                user.id
+        if (!request) {
+            showLoadError(
+                "No cylinder request was found for your account. Please return to your dashboard and submit a request first."
             );
-
-
-        if(!request){
-
-            loadingBox.innerHTML = `
-                <div class="loading">
-                    No active cylinder request was found.
-                </div>
-            `;
-
-            content.classList.add(
-                "hidden"
-            );
-
             return;
-
         }
 
+        await renderRequest(request, currentUser.id);
+        startRealtime(request.id);
 
-        /*
-          Request number.
-        */
+    } catch (error) {
+        console.error("REQUEST STATUS ERROR:", error);
 
-        requestNumber.textContent =
-            request.request_number ||
-            "---";
-
-
-        /*
-          Amounts.
-        */
-
-        cylinderAmount.textContent =
-            money(
-                request.cylinder_amount ||
-                request.total_amount ||
-                890
-            );
-
-
-        firstPayment.textContent =
-            money(
-                request.advance_amount ||
-                200
-            );
-
-
-        remainingAmount.textContent =
-            money(
-                request.remaining_amount ||
-                690
-            );
-
-
-        /*
-          Agency information.
-
-          First use agency_id to fetch current
-          agency details.
-        */
-
-        if(request.agency_id){
-
-            const agencyResult =
-                await supabaseClient
-                .from("agencies")
-                .select(
-                    "agency_name,agency_code,lpg_company"
-                )
-                .eq(
-                    "id",
-                    request.agency_id
-                )
-                .maybeSingle();
-
-
-            if(
-                !agencyResult.error &&
-                agencyResult.data
-            ){
-
-                agencyName.textContent =
-                    agencyResult.data.agency_name ||
-                    "---";
-
-                agencyCode.textContent =
-                    agencyResult.data.agency_code ||
-                    "---";
-
-                lpgCompany.textContent =
-                    request.lpg_company ||
-                    agencyResult.data.lpg_company ||
-                    "---";
-
-            }else{
-
-                agencyName.textContent =
-                    "---";
-
-                agencyCode.textContent =
-                    "---";
-
-                lpgCompany.textContent =
-                    request.lpg_company ||
-                    "---";
-
-            }
-
-        }else{
-
-            agencyName.textContent =
-                request.agency_name ||
-                "---";
-
-            agencyCode.textContent =
-                request.agency_code ||
-                "---";
-
-            lpgCompany.textContent =
-                request.lpg_company ||
-                "---";
-
-        }
-
-
-        requestDate.textContent =
-            formatDate(
-                request.request_date ||
-                request.created_at
-            );
-
-
-        /*
-          Update status UI.
-        */
-
-        updateStatusUI(
-            request
+        showLoadError(
+            error && error.message
+                ? error.message
+                : "Unable to load request status. Please try again."
         );
-
-
-        /*
-          Save latest request locally.
-        */
-
-        localStorage.setItem(
-            "egc_current_request",
-            JSON.stringify({
-
-                request_id:
-                    request.id,
-
-                request_number:
-                    request.request_number,
-
-                user_id:
-                    user.id,
-
-                agency_id:
-                    request.agency_id,
-
-                cylinder_amount:
-                    request.cylinder_amount ||
-                    request.total_amount ||
-                    890,
-
-                first_payment:
-                    request.advance_amount ||
-                    200,
-
-                remaining_amount:
-                    request.remaining_amount ||
-                    690
-
-            })
-        );
-
-
-        loadingBox.classList.add(
-            "hidden"
-        );
-
-        content.classList.remove(
-            "hidden"
-        );
-
-
-        /*
-          Realtime subscription.
-          When owner changes approval status,
-          this page updates automatically.
-        */
-
-        startRealtime(
-            request.id
-        );
-
-
-    }catch(error){
-
-        console.error(
-            "REQUEST STATUS ERROR:",
-            error
-        );
-
-        loadingBox.innerHTML = `
-            <div class="loading">
-                Unable to load request status.
-                <br><br>
-                ${error.message || ""}
-            </div>
-        `;
-
     }
-
 }
-
 
 /* =========================================================
    REALTIME
 ========================================================= */
 
-let realtimeChannel = null;
+function startRealtime(requestId) {
+    if (!supabaseClient || !requestId) return;
 
-function startRealtime(requestId){
-
-    if(realtimeChannel){
-
-        supabaseClient
-        .removeChannel(
-            realtimeChannel
-        );
-
+    if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
     }
 
-
-    realtimeChannel =
-        supabaseClient
-        .channel(
-            "egc-request-status-" +
-            requestId
-        )
+    realtimeChannel = supabaseClient
+        .channel("egc-request-status-" + requestId)
         .on(
             "postgres_changes",
             {
-                event:"UPDATE",
-                schema:"public",
-                table:"cylinder_requests",
-                filter:
-                    "id=eq." +
-                    requestId
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests",
+                filter: "id=eq." + requestId
             },
-            function(payload){
+            function(payload) {
+                if (!payload.new || !currentUser) return;
 
-                console.log(
-                    "Request updated:",
-                    payload.new
-                );
-
-
-                const request =
-                    payload.new;
-
+                const updatedRequest = payload.new;
 
                 /*
-                  Update amounts.
+                  Keep the update restricted to the request
+                  already loaded for the authenticated user.
                 */
 
-                cylinderAmount.textContent =
-                    money(
-                        request.cylinder_amount ||
-                        request.total_amount ||
-                        890
-                    );
+                if (
+                    currentRequest &&
+                    String(updatedRequest.id) !== String(currentRequest.id)
+                ) {
+                    return;
+                }
 
+                currentRequest = updatedRequest;
 
-                firstPayment.textContent =
-                    money(
-                        request.advance_amount ||
-                        200
-                    );
-
-
-                remainingAmount.textContent =
-                    money(
-                        request.remaining_amount ||
-                        690
-                    );
-
-
-                /*
-                  Update status.
-                */
-
-                updateStatusUI(
-                    request
-                );
-
+                renderRequest(updatedRequest, currentUser.id)
+                    .catch(function(error) {
+                        console.error(
+                            "Could not refresh request display:",
+                            error
+                        );
+                    });
             }
         )
-        .subscribe();
-
+        .subscribe(function(status) {
+            console.log("Request status realtime:", status);
+        });
 }
-
 
 /* =========================================================
    PAYMENT BUTTON
+   Always verify owner approval from Supabase again.
 ========================================================= */
 
-paymentBtn.addEventListener(
-    "click",
-    async function(){
+paymentBtn.addEventListener("click", async function() {
+    clearMessage();
 
-        /*
-          Always re-check database before payment.
-          This prevents manually opening payment URL
-          before approval.
-        */
+    if (paymentBtn.disabled) return;
 
-        try{
+    paymentBtn.disabled = true;
+    paymentBtn.textContent = "CHECKING APPROVAL...";
 
-            const user =
-                await getCurrentUser();
+    try {
+        const user = await getCurrentUser();
 
+        const requestId =
+            currentRequest && currentRequest.id
+                ? currentRequest.id
+                : getSavedRequestId();
 
-            const savedId =
-                getSavedRequestId();
-
-
-            if(!savedId){
-
-                showError(
-                    "Request information was not found."
-                );
-
-                return;
-
-            }
-
-
-            const result =
-                await supabaseClient
-                .from("cylinder_requests")
-                .select(
-                    "id,owner_approval,status,payment_status"
-                )
-                .eq(
-                    "id",
-                    savedId
-                )
-                .eq(
-                    "user_id",
-                    user.id
-                )
-                .maybeSingle();
-
-
-            if(result.error){
-
-                throw result.error;
-
-            }
-
-
-            const request =
-                result.data;
-
-
-            if(!request){
-
-                showError(
-                    "Request not found."
-                );
-
-                return;
-
-            }
-
-
-            const approval =
-                String(
-                    request.owner_approval || ""
-                ).toLowerCase();
-
-
-            if(
-                approval !== "approved" &&
-                String(
-                    request.status || ""
-                ).toLowerCase() !== "approved"
-            ){
-
-                showError(
-                    "Payment is available only after owner approval."
-                );
-
-                return;
-
-            }
-
-
-            /*
-              Only now go to payment page.
-            */
-
-            window.location.href =
-                "payment.html";
-
-        }catch(error){
-
-            console.error(
-                error
+        if (!requestId) {
+            throw new Error(
+                "Request information was not found. Please reload this page."
             );
-
-            showError(
-                error.message ||
-                "Unable to continue to payment."
-            );
-
         }
 
-    }
-);
+        const result = await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq("id", requestId)
+            .eq("user_id", user.id)
+            .maybeSingle();
 
+        if (result.error) {
+            throw result.error;
+        }
+
+        const request = result.data;
+
+        if (!request) {
+            throw new Error(
+                "This request could not be found for your account."
+            );
+        }
+
+        if (isRejected(request) || isCancelled(request)) {
+            throw new Error(
+                "This request is not approved for payment."
+            );
+        }
+
+        if (!isApproved(request)) {
+            throw new Error(
+                "Payment is available only after the EGC owner approves your request."
+            );
+        }
+
+        if (isFullyPaid(request)) {
+            window.location.href = "repayment-scheme.html";
+            return;
+        }
+
+        saveCurrentRequest(request, user.id);
+
+        window.location.href = "payment.html";
+
+    } catch (error) {
+        console.error("PAYMENT NAVIGATION ERROR:", error);
+
+        showError(
+            error && error.message
+                ? error.message
+                : "Unable to continue to payment."
+        );
+
+    } finally {
+        paymentBtn.disabled = false;
+        paymentBtn.textContent = "PROCEED TO PAYMENT";
+    }
+});
 
 /* =========================================================
-   BACK BUTTON
+   BACK / DASHBOARD
 ========================================================= */
 
-document
-.getElementById("backBtn")
-.addEventListener(
-    "click",
-    function(){
+document.getElementById("backBtn").addEventListener("click", function() {
+    window.location.href = "dashboard.html";
+});
 
-        window.location.href =
-            "index.html";
-
-    }
-);
-
+document.getElementById("homeBtn").addEventListener("click", function() {
+    window.location.href = "dashboard.html";
+});
 
 /* =========================================================
-   HOME BUTTON
+   CLEANUP
 ========================================================= */
 
-document
-.getElementById("homeBtn")
-.addEventListener(
-    "click",
-    function(){
-
-        window.location.href =
-            "index.html";
-
+window.addEventListener("beforeunload", function() {
+    if (realtimeChannel && supabaseClient) {
+        supabaseClient.removeChannel(realtimeChannel);
     }
-);
 
+    if (realtimeRefreshTimer) {
+        clearTimeout(realtimeRefreshTimer);
+    }
+});
 
 /* =========================================================
    INITIAL LOAD
 ========================================================= */
 
 loadRequest();
-
 </script>
 
 </body>
