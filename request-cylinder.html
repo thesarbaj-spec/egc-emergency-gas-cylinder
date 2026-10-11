@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="same-origin">
 <title>EGC - LPG Details</title>
 
 <style>
@@ -192,32 +193,6 @@ body {
     margin-bottom: 31px;
 }
 
-/* SAVED DETAILS NOTICE */
-.saved-box {
-    display: none;
-    margin-bottom: 25px;
-    padding: 17px 19px;
-    border-radius: 14px;
-    background: #effaf3;
-    border: 1px solid #bfe7ca;
-    color: #24743d;
-}
-
-.saved-box.show {
-    display: block;
-}
-
-.saved-box-title {
-    font-size: 15px;
-    font-weight: 800;
-    margin-bottom: 5px;
-}
-
-.saved-box-text {
-    font-size: 13px;
-    line-height: 1.5;
-}
-
 /* FORM */
 .form-grid {
     display: grid;
@@ -311,15 +286,18 @@ select:disabled {
     overflow-wrap: anywhere;
 }
 
-.message.error {
+.message.error,
+.message.success {
     display: block;
+}
+
+.message.error {
     color: #bd2828;
     background: #fff1f1;
     border: 1px solid #ffc9c9;
 }
 
 .message.success {
-    display: block;
     color: #16833a;
     background: #effcf3;
     border: 1px solid #bde8c9;
@@ -357,7 +335,6 @@ select:disabled {
     transform: none;
 }
 
-/* DESKTOP */
 @media (min-width: 1200px) {
     .main {
         padding-left: 80px;
@@ -369,7 +346,6 @@ select:disabled {
     }
 }
 
-/* TABLET */
 @media (max-width: 900px) {
     .main {
         padding: 32px 25px 60px;
@@ -393,7 +369,6 @@ select:disabled {
     }
 }
 
-/* MOBILE */
 @media (max-width: 700px) {
     .header {
         height: 70px;
@@ -483,10 +458,6 @@ select:disabled {
         width: 100%;
         min-width: 0;
     }
-
-    .saved-box {
-        padding: 15px;
-    }
 }
 
 @media (max-width: 380px) {
@@ -516,7 +487,6 @@ select:disabled {
 <div class="app">
 
     <header class="header">
-
         <div class="header-left">
             <button
                 type="button"
@@ -532,7 +502,6 @@ select:disabled {
             alt="EGC - Emergency Gas Cylinder"
             onerror="this.style.display='none';"
         >
-
     </header>
 
     <main class="main">
@@ -542,7 +511,6 @@ select:disabled {
             <p>Select your LPG connection details</p>
         </div>
 
-        <!-- STEPS -->
         <div class="steps">
 
             <div class="step-box">
@@ -586,7 +554,6 @@ select:disabled {
 
         </div>
 
-        <!-- CARD -->
         <section class="card">
 
             <h2 class="card-title">LPG Details</h2>
@@ -595,46 +562,32 @@ select:disabled {
                 Select your location, LPG company and registered agency
             </p>
 
-            <!-- SAVED DETAILS -->
-            <div id="savedBox" class="saved-box">
-
-                <div class="saved-box-title">
-                    ✓ Your LPG details are already saved
-                </div>
-
-                <div class="saved-box-text">
-                    Your saved details have been loaded automatically.
-                    You can continue directly to verification.
-                </div>
-
-            </div>
-
             <div class="form-grid">
 
                 <div class="form-group">
                     <label for="state">State</label>
-                    <select id="state">
+                    <select id="state" name="lpg-state" autocomplete="off">
                         <option value="">Select State</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="district">District</label>
-                    <select id="district" disabled>
+                    <select id="district" name="lpg-district" autocomplete="off" disabled>
                         <option value="">Select District</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="city">City</label>
-                    <select id="city" disabled>
+                    <select id="city" name="lpg-city" autocomplete="off" disabled>
                         <option value="">Select City</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="company">LPG Company</label>
-                    <select id="company">
+                    <select id="company" name="lpg-company" autocomplete="off">
                         <option value="">Select LPG Company</option>
                     </select>
                 </div>
@@ -642,7 +595,7 @@ select:disabled {
                 <div class="form-group full">
                     <label for="agency">LPG Agency</label>
 
-                    <select id="agency" disabled>
+                    <select id="agency" name="lpg-agency" autocomplete="off" disabled>
                         <option value="">Select LPG Company first</option>
                     </select>
 
@@ -652,12 +605,11 @@ select:disabled {
             </div>
 
             <div class="info">
-                Your LPG connection details will be securely saved
-                to your EGC account.
+                Select your LPG connection details to continue.
                 <br>
-                You will not need to enter these details again for
-                future cylinder requests unless you want to change
-                your LPG agency or connection details.
+                For privacy, this form starts empty each time you open
+                or refresh this page. Your submitted request records are
+                not deleted when the form is cleared.
             </div>
 
             <div id="message" class="message" role="status" aria-live="polite"></div>
@@ -674,7 +626,6 @@ select:disabled {
 
 </div>
 
-<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -693,17 +644,11 @@ const SUPABASE_ANON_KEY =
 let supabaseClient = null;
 
 try {
-    if (
-        SUPABASE_URL &&
-        SUPABASE_ANON_KEY &&
-        window.supabase
-    ) {
+    if (window.supabase) {
         supabaseClient = window.supabase.createClient(
             SUPABASE_URL,
             SUPABASE_ANON_KEY
         );
-
-        console.log("Supabase initialized successfully.");
     }
 } catch (error) {
     console.error("Supabase initialization error:", error);
@@ -807,33 +752,41 @@ const agencyStatus = document.getElementById("agencyStatus");
 const continueBtn = document.getElementById("continueBtn");
 const message = document.getElementById("message");
 const backBtn = document.getElementById("backBtn");
-const savedBox = document.getElementById("savedBox");
 
 /* =========================================================
-   SAFE LOCAL STORAGE
+   CLEAR OLD LPG FORM DATA
+
+   The old version loaded egc_lpg_details from localStorage.
+   This version removes the old cached copy and never restores
+   saved dropdown selections when this page opens.
+
+   sessionStorage is cleared on each page load so refreshing
+   this page will not restore the previous form submission.
 ========================================================= */
 
-function safeGetLocal(key) {
+function clearOldLpgCache() {
     try {
-        return localStorage.getItem(key);
+        localStorage.removeItem("egc_lpg_details");
+        localStorage.removeItem("egc_lpg_details_completed");
+        localStorage.removeItem("egc_lpg_completed_at");
     } catch (error) {
-        console.error("Local storage read error:", error);
-        return null;
+        console.warn("Could not clear old LPG cache:", error);
     }
-}
 
-function safeSetLocal(key, value) {
+    /*
+     * Remove stale form data from a previous visit.
+     * Other unrelated EGC session data is not touched.
+     */
     try {
-        localStorage.setItem(key, value);
-        return true;
+        sessionStorage.removeItem("egc_lpg_details");
+        sessionStorage.removeItem("egc_lpg_details_completed");
     } catch (error) {
-        console.error("Local storage write error:", error);
-        return false;
+        console.warn("Could not clear session LPG cache:", error);
     }
 }
 
 /* =========================================================
-   NORMALIZE HELPERS
+   HELPERS
 ========================================================= */
 
 function normalize(value) {
@@ -850,9 +803,15 @@ function normalizeRequestStatus(value) {
         .replace(/[ -]+/g, "_");
 }
 
-/* =========================================================
-   MESSAGE
-========================================================= */
+function safeSetSession(key, value) {
+    try {
+        sessionStorage.setItem(key, value);
+        return true;
+    } catch (error) {
+        console.error("Session storage error:", error);
+        return false;
+    }
+}
 
 function showMessage(text, type) {
     message.className = "message " + type;
@@ -875,11 +834,6 @@ function setAgencyStatus(text, type = "") {
 
 /* =========================================================
    EXISTING REQUEST ROUTING
-
-   Pending approval -> request-status.html
-   Approved, unpaid -> payment.html
-   Fully paid -> repayment-scheme.html
-   No active request -> show LPG Details form
 ========================================================= */
 
 function isCancelledOrRejected(request) {
@@ -922,16 +876,12 @@ function isRequestFullyPaid(request) {
         request?.repayment_status
     );
 
-    const remainingAmount = Number(request?.remaining_amount);
-
-    /*
-     * Zero remaining amount is treated as fully paid only
-     * when the field is actually present and not empty.
-     */
     const hasRemainingAmount =
         request?.remaining_amount !== null &&
         request?.remaining_amount !== undefined &&
         String(request.remaining_amount).trim() !== "";
+
+    const remainingAmount = Number(request?.remaining_amount);
 
     const remainingIsZero =
         hasRemainingAmount &&
@@ -966,10 +916,7 @@ async function routeExistingRequest() {
     let user;
 
     try {
-        const {
-            data,
-            error
-        } = await supabaseClient.auth.getUser();
+        const { data, error } = await supabaseClient.auth.getUser();
 
         if (error) {
             console.error("Authentication lookup error:", error);
@@ -982,10 +929,6 @@ async function routeExistingRequest() {
         return false;
     }
 
-    /*
-     * If the user is not logged in, do not query requests.
-     * The existing page flow remains available.
-     */
     if (!user) {
         return false;
     }
@@ -993,22 +936,17 @@ async function routeExistingRequest() {
     let requests;
 
     try {
-        const {
-            data,
-            error
-        } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .select("*")
             .eq("user_id", user.id)
-            .order("created_at", {
-                ascending: false
-            });
+            .order("created_at", { ascending: false });
 
         if (error) {
             console.error("Existing request lookup failed:", error);
 
             showMessage(
-                "We could not check your existing request. Please try again. If this continues, check your Supabase access policies.",
+                "We could not check your existing request. Please try again. Check your Supabase access policies if the problem continues.",
                 "error"
             );
 
@@ -1031,10 +969,6 @@ async function routeExistingRequest() {
         return false;
     }
 
-    /*
-     * Find the newest request that is not cancelled/rejected.
-     * If all previous requests are cancelled/rejected, allow a new one.
-     */
     const activeRequests = requests.filter(
         request => !isCancelledOrRejected(request)
     );
@@ -1043,10 +977,6 @@ async function routeExistingRequest() {
         return false;
     }
 
-    /*
-     * Prefer updated_at for the most recently updated request.
-     * Use created_at when updated_at is missing.
-     */
     activeRequests.sort(function(a, b) {
         const dateA = new Date(
             a.updated_at || a.created_at || 0
@@ -1061,12 +991,11 @@ async function routeExistingRequest() {
 
     const request = activeRequests[0];
 
-    /*
-     * Save the request ID for pages that need to load
-     * the same request. The database remains the source of truth.
-     */
     if (request.id) {
-        safeSetLocal("egc_current_request_id", String(request.id));
+        safeSetSession(
+            "egc_current_request_id",
+            String(request.id)
+        );
     }
 
     const approved = isRequestApproved(request);
@@ -1102,6 +1031,8 @@ function loadStates() {
 
         stateSelect.appendChild(option);
     });
+
+    stateSelect.value = "";
 }
 
 /* =========================================================
@@ -1174,7 +1105,7 @@ function loadCities() {
 }
 
 /* =========================================================
-   LOAD LPG COMPANIES
+   LOAD COMPANIES
 ========================================================= */
 
 function loadCompanies() {
@@ -1189,6 +1120,8 @@ function loadCompanies() {
 
         companySelect.appendChild(option);
     });
+
+    companySelect.value = "";
 }
 
 /* =========================================================
@@ -1199,13 +1132,14 @@ function resetAgency(text) {
     agencySelect.innerHTML =
         '<option value="">' + text + '</option>';
 
+    agencySelect.value = "";
     agencySelect.disabled = true;
 
     setAgencyStatus("");
 }
 
 /* =========================================================
-   ADD AGENCIES TO DROPDOWN
+   AGENCY DROPDOWN
 ========================================================= */
 
 function addAgenciesToDropdown(agencies) {
@@ -1213,10 +1147,7 @@ function addAgenciesToDropdown(agencies) {
         '<option value="">Select LPG Agency</option>';
 
     if (!agencies || agencies.length === 0) {
-        agencySelect.innerHTML =
-            '<option value="">No agency found</option>';
-
-        agencySelect.disabled = true;
+        resetAgency("No agency found");
         return;
     }
 
@@ -1246,6 +1177,7 @@ function addAgenciesToDropdown(agencies) {
     });
 
     agencySelect.disabled = false;
+    agencySelect.value = "";
 }
 
 /* =========================================================
@@ -1279,7 +1211,7 @@ async function loadAgencies() {
         );
 
         showMessage(
-            "Supabase could not be initialized. Check your internet connection and refresh the page.",
+            "Supabase could not be initialized. Check your internet connection and refresh.",
             "error"
         );
 
@@ -1293,7 +1225,7 @@ async function loadAgencies() {
 
     setAgencyStatus("Searching registered agencies...");
 
-    const locationSnapshot = {
+    const snapshot = {
         company,
         state,
         district,
@@ -1310,9 +1242,7 @@ async function loadAgencies() {
             )
             .eq("is_active", true)
             .eq("lpg_company", company)
-            .order("agency_name", {
-                ascending: true
-            });
+            .order("agency_name", { ascending: true });
     } catch (error) {
         console.error("Agency request exception:", error);
 
@@ -1324,7 +1254,7 @@ async function loadAgencies() {
         );
 
         showMessage(
-            "Unable to load LPG agencies.\n\nError: " +
+            "Unable to load LPG agencies.\n\n" +
             (error?.message || String(error)),
             "error"
         );
@@ -1332,15 +1262,11 @@ async function loadAgencies() {
         return;
     }
 
-    /*
-     * If the user changed the location while the query was running,
-     * do not show results for the previous location.
-     */
     if (
-        stateSelect.value !== locationSnapshot.state ||
-        districtSelect.value !== locationSnapshot.district ||
-        citySelect.value !== locationSnapshot.city ||
-        companySelect.value !== locationSnapshot.company
+        stateSelect.value !== snapshot.state ||
+        districtSelect.value !== snapshot.district ||
+        citySelect.value !== snapshot.city ||
+        companySelect.value !== snapshot.company
     ) {
         return;
     }
@@ -1356,9 +1282,9 @@ async function loadAgencies() {
         );
 
         showMessage(
-            "Unable to load LPG agencies.\n\nSupabase error: " +
+            "Unable to load LPG agencies.\n\n" +
             (result.error.message || "Unknown error") +
-            "\n\nCode: " +
+            "\nCode: " +
             (result.error.code || "N/A"),
             "error"
         );
@@ -1408,12 +1334,10 @@ async function loadAgencies() {
     );
 
     /*
-     * Automatically select an agency only when exactly one
-     * matching agency exists.
+     * Do not automatically select an agency.
+     * The user must select it explicitly.
      */
-    if (filtered.length === 1) {
-        agencySelect.value = String(filtered[0].id);
-    }
+    agencySelect.value = "";
 }
 
 /* =========================================================
@@ -1426,115 +1350,27 @@ async function getCurrentUser() {
     }
 
     try {
-        const {
-            data,
-            error
-        } = await supabaseClient.auth.getUser();
+        const { data, error } =
+            await supabaseClient.auth.getUser();
 
         if (error) {
-            console.error("User error:", error);
+            console.error("User lookup error:", error);
             return null;
         }
 
         return data?.user || null;
     } catch (error) {
-        console.error("getCurrentUser exception:", error);
+        console.error("User lookup exception:", error);
         return null;
     }
 }
 
 /* =========================================================
-   SAVE DETAILS LOCALLY
-========================================================= */
+   SAVE DETAILS FOR THE NEXT PAGE ONLY
 
-function saveDetailsLocally(details) {
-    const saved = safeSetLocal(
-        "egc_lpg_details",
-        JSON.stringify(details)
-    );
-
-    if (!saved) {
-        return false;
-    }
-
-    safeSetLocal(
-        "egc_lpg_details_completed",
-        "true"
-    );
-
-    return true;
-}
-
-/* =========================================================
-   LOAD SAVED DETAILS
-========================================================= */
-
-async function loadSavedDetails() {
-    const saved = safeGetLocal("egc_lpg_details");
-
-    if (!saved) {
-        return;
-    }
-
-    let savedDetails;
-
-    try {
-        savedDetails = JSON.parse(saved);
-    } catch (error) {
-        console.error("Saved details parsing error:", error);
-        return;
-    }
-
-    if (!savedDetails || typeof savedDetails !== "object") {
-        return;
-    }
-
-    if (savedDetails.state) {
-        stateSelect.value = savedDetails.state;
-        loadDistricts();
-    }
-
-    if (savedDetails.district) {
-        districtSelect.value = savedDetails.district;
-        loadCities();
-    }
-
-    if (savedDetails.city) {
-        citySelect.value = savedDetails.city;
-    }
-
-    if (savedDetails.company) {
-        companySelect.value = savedDetails.company;
-        await loadAgencies();
-    }
-
-    if (savedDetails.agency_id) {
-        const option = Array.from(agencySelect.options).find(
-            function(item) {
-                return String(item.value) ===
-                    String(savedDetails.agency_id);
-            }
-        );
-
-        if (option) {
-            agencySelect.value = String(savedDetails.agency_id);
-        }
-    }
-
-    if (
-        savedBox &&
-        savedDetails.state &&
-        savedDetails.district &&
-        savedDetails.city &&
-        savedDetails.company &&
-        savedDetails.agency_id
-    ) {
-        savedBox.classList.add("show");
-    }
-}
-
-/* =========================================================
-   SAVE LPG DETAILS
+   We deliberately do not save LPG details to localStorage
+   or the profile. The details are temporarily passed to
+   verification.html through sessionStorage.
 ========================================================= */
 
 async function saveDetails() {
@@ -1574,7 +1410,7 @@ async function saveDetails() {
     const selectedAgency =
         agencySelect.options[agencySelect.selectedIndex];
 
-    if (!selectedAgency || selectedAgency.disabled) {
+    if (!selectedAgency || !selectedAgency.value) {
         showMessage(
             "Please select a valid registered LPG Agency.",
             "error"
@@ -1583,10 +1419,10 @@ async function saveDetails() {
     }
 
     const details = {
-        state: state,
-        district: district,
-        city: city,
-        company: company,
+        state,
+        district,
+        city,
+        company,
         agency_id: agencyId,
         agency_name: selectedAgency.dataset.name || "",
         agency_code: selectedAgency.dataset.code || "",
@@ -1596,73 +1432,45 @@ async function saveDetails() {
     };
 
     /*
-     * Save the selected LPG details locally.
+     * sessionStorage makes the current details available to
+     * verification.html in the same tab. It is not used to
+     * prefill this LPG page on a subsequent visit.
      */
-    const localSaved = saveDetailsLocally(details);
+    const saved = safeSetSession(
+        "egc_lpg_details",
+        JSON.stringify(details)
+    );
 
-    if (!localSaved) {
+    if (!saved) {
         showMessage(
-            "Unable to save LPG details on this device. Check browser storage settings.",
+            "Unable to pass LPG details to Verification. Check your browser storage settings.",
             "error"
         );
         return false;
     }
 
+    safeSetSession(
+        "egc_lpg_details_completed",
+        "true"
+    );
+
     /*
-     * Save agency_id to the user's profile if the column exists.
-     * A profile update failure will not block the LPG form.
+     * Clear the old persistent copy so the previous version
+     * cannot automatically reload it from localStorage.
      */
-    if (supabaseClient) {
-        const user = await getCurrentUser();
-
-        if (user) {
-            try {
-                const {
-                    error
-                } = await supabaseClient
-                    .from("profiles")
-                    .update({
-                        agency_id: agencyId,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq("id", user.id);
-
-                if (error) {
-                    console.error(
-                        "Profile update error:",
-                        error
-                    );
-                } else {
-                    console.log(
-                        "Agency ID saved to profile."
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Profile update exception:",
-                    error
-                );
-            }
-        }
+    try {
+        localStorage.removeItem("egc_lpg_details");
+        localStorage.removeItem("egc_lpg_details_completed");
+        localStorage.removeItem("egc_lpg_completed_at");
+    } catch (error) {
+        console.warn("Could not clear previous LPG data:", error);
     }
-
-    safeSetLocal(
-        "egc_current_step",
-        "verification"
-    );
-
-    safeSetLocal(
-        "egc_lpg_completed_at",
-        new Date().toISOString()
-    );
-
-    console.log("LPG details saved:", details);
 
     return true;
 }
 
 /* =========================================================
-   CONTINUE BUTTON
+   CONTINUE
 ========================================================= */
 
 continueBtn.addEventListener("click", async function() {
@@ -1680,22 +1488,22 @@ continueBtn.addEventListener("click", async function() {
 
         if (saved) {
             showMessage(
-                "LPG details saved successfully. Opening verification...",
+                "LPG details prepared successfully. Opening verification...",
                 "success"
             );
 
             setTimeout(function() {
                 window.location.href = "verification.html";
-            }, 700);
+            }, 500);
         } else {
             continueBtn.disabled = false;
             continueBtn.textContent = "CONTINUE →";
         }
     } catch (error) {
-        console.error("Continue button error:", error);
+        console.error("Continue error:", error);
 
         showMessage(
-            "Something went wrong while saving LPG details. Please try again.",
+            "Something went wrong. Please try again.",
             "error"
         );
 
@@ -1705,7 +1513,7 @@ continueBtn.addEventListener("click", async function() {
 });
 
 /* =========================================================
-   STATE CHANGE
+   DROPDOWN EVENTS
 ========================================================= */
 
 stateSelect.addEventListener("change", function() {
@@ -1713,59 +1521,22 @@ stateSelect.addEventListener("change", function() {
     clearMessage();
 });
 
-/* =========================================================
-   DISTRICT CHANGE
-========================================================= */
-
 districtSelect.addEventListener("change", function() {
     loadCities();
     clearMessage();
 });
 
-/* =========================================================
-   CITY CHANGE
-========================================================= */
+citySelect.addEventListener("change", loadAgencies);
+companySelect.addEventListener("change", loadAgencies);
 
-citySelect.addEventListener("change", async function() {
-    clearMessage();
-
-    if (companySelect.value) {
-        await loadAgencies();
-    }
-});
-
-/* =========================================================
-   COMPANY CHANGE
-========================================================= */
-
-companySelect.addEventListener("change", async function() {
-    clearMessage();
-
-    await loadAgencies();
-});
-
-/* =========================================================
-   AGENCY CHANGE
-========================================================= */
-
-agencySelect.addEventListener("change", function() {
-    clearMessage();
-});
+agencySelect.addEventListener("change", clearMessage);
 
 /* =========================================================
    BACK BUTTON
 ========================================================= */
 
 backBtn.addEventListener("click", function() {
-    if (
-        document.referrer &&
-        new URL(document.referrer).origin === window.location.origin &&
-        document.referrer !== window.location.href
-    ) {
-        history.back();
-    } else {
-        window.location.href = "dashboard.html";
-    }
+    window.location.href = "dashboard.html";
 });
 
 /* =========================================================
@@ -1774,32 +1545,36 @@ backBtn.addEventListener("click", function() {
 
 async function initializePage() {
     /*
-     * First check whether the logged-in user already has
-     * a request. If so, route to the appropriate page.
+     * Clear old data before anything can prefill the form.
+     */
+    clearOldLpgCache();
+
+    /*
+     * Always render the dropdowns from empty values.
+     */
+    loadStates();
+    loadCompanies();
+
+    districtSelect.value = "";
+    districtSelect.disabled = true;
+
+    citySelect.value = "";
+    citySelect.disabled = true;
+
+    resetAgency("Select LPG Company first");
+
+    /*
+     * Check existing request routing without restoring LPG form
+     * values. If an active request exists, preserve that workflow.
      */
     const redirected = await routeExistingRequest();
 
     if (redirected) {
         return;
     }
-
-    /*
-     * No active request was found. Show the LPG Details form.
-     */
-    loadStates();
-    loadCompanies();
-
-    resetAgency("Select LPG Company first");
-
-    await loadSavedDetails();
 }
 
-/* =========================================================
-   START
-========================================================= */
-
 initializePage();
-
 </script>
 
 </body>
