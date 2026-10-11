@@ -3,3391 +3,1504 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>EGC - Owner Requests</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
-
-html{
-    scroll-behavior:smooth;
-}
-
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
 body{
     font-family:Arial,Helvetica,sans-serif;
-    color:#073f73;
-    min-height:100vh;
+    color:#073f73;min-height:100vh;
     background:
-        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
-        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
-        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
-        #fff;
+    radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+    radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+    radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),#fff
 }
-
-button,
-input,
-select{
-    font-family:inherit;
-}
-
-button{
-    -webkit-tap-highlight-color:transparent;
-}
-
-/* =========================================================
-   MASTER OWNER HEADER
-========================================================= */
+button,input,select,textarea{font-family:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.55;cursor:not-allowed}
 
 .header{
-    height:78px;
-    background:rgba(255,255,255,.96);
-    border-bottom:1px solid #dfe8ef;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 28px;
-    position:sticky;
-    top:0;
-    z-index:1000;
-    backdrop-filter:blur(12px);
+    height:78px;background:rgba(255,255,255,.96);
+    border-bottom:1px solid #dfe8ef;display:flex;
+    align-items:center;justify-content:space-between;
+    padding:0 28px;position:sticky;top:0;z-index:1000;
+    backdrop-filter:blur(12px)
 }
-
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:15px;
-}
-
+.header-left,.header-right{display:flex;align-items:center;gap:15px}
 .menu-btn{
-    width:42px;
-    height:42px;
-    border:0;
-    border-radius:12px;
-    background:#eef7ff;
-    color:#075ca5;
-    font-size:22px;
-    cursor:pointer;
-    display:none;
-    align-items:center;
-    justify-content:center;
+    width:42px;height:42px;border:0;border-radius:12px;
+    background:#eef7ff;color:#075ca5;font-size:22px;
+    display:none;align-items:center;justify-content:center
 }
+.logo{height:57px;width:auto;object-fit:contain}
+.owner-title{font-size:20px;font-weight:800;color:#06477f}
+.owner-subtitle{font-size:12px;color:#8094a6;margin-top:3px}
 
-.logo{
-    height:57px;
-    width:auto;
-    object-fit:contain;
-}
-
-.owner-title{
-    font-size:20px;
-    font-weight:800;
-    color:#06477f;
-}
-
-.owner-subtitle{
-    font-size:12px;
-    color:#8094a6;
-    margin-top:3px;
-}
-
-.header-right{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-/* =========================================================
-   NOTIFICATION
-========================================================= */
-
-.notification-wrap{
-    position:relative;
-}
-
+.notification-wrap{position:relative}
 .notification-btn{
-    width:42px;
-    height:42px;
-    border:0;
-    border-radius:12px;
-    background:#eef7ff;
-    color:#075ca5;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    font-size:19px;
-    position:relative;
+    width:42px;height:42px;border:0;border-radius:12px;
+    background:#eef7ff;color:#075ca5;display:flex;
+    align-items:center;justify-content:center;font-size:19px;
+    position:relative
 }
-
-.notification-btn:hover{
-    background:#e2f1fc;
-}
-
 .notification-count{
-    position:absolute;
-    top:-4px;
-    right:-4px;
-    min-width:18px;
-    height:18px;
-    padding:0 5px;
-    border-radius:20px;
-    background:#d93636;
-    color:#fff;
-    border:2px solid #fff;
-    font-size:9px;
-    font-weight:800;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;
+    padding:0 5px;border-radius:20px;background:#d93636;color:#fff;
+    border:2px solid #fff;font-size:9px;font-weight:800;
+    display:flex;align-items:center;justify-content:center
 }
-
 .notification-panel{
-    position:absolute;
-    top:52px;
-    right:0;
-    width:330px;
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:15px;
+    position:absolute;top:52px;right:0;width:330px;background:#fff;
+    border:1px solid #dce6ef;border-radius:15px;
     box-shadow:0 18px 50px rgba(20,60,90,.18);
-    display:none;
-    overflow:hidden;
-    z-index:3000;
+    display:none;overflow:hidden;z-index:3000
 }
-
-.notification-panel.show{
-    display:block;
-}
-
+.notification-panel.show{display:block}
 .notification-head{
-    padding:14px 16px;
-    border-bottom:1px solid #edf2f6;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid #edf2f6;
+    display:flex;align-items:center;justify-content:space-between
 }
-
-.notification-head-title{
-    color:#06477f;
-    font-size:14px;
-    font-weight:800;
-}
-
-.notification-head-count{
-    color:#0871c3;
-    font-size:10px;
-    font-weight:800;
-}
-
+.notification-head-title{color:#06477f;font-size:14px;font-weight:800}
+.notification-head-count{color:#0871c3;font-size:10px;font-weight:800}
 .notification-item{
-    padding:13px 15px;
-    border-bottom:1px solid #f0f3f6;
-    display:flex;
-    gap:10px;
-    cursor:pointer;
+    padding:13px 15px;border-bottom:1px solid #f0f3f6;
+    display:flex;gap:10px
 }
-
-.notification-item:hover{
-    background:#f8fbfd;
-}
-
-.notification-item:last-child{
-    border-bottom:0;
-}
-
 .notification-icon{
-    width:34px;
-    height:34px;
-    flex-shrink:0;
-    border-radius:10px;
-    background:#eef7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:15px;
+    width:34px;height:34px;flex-shrink:0;border-radius:10px;
+    background:#eef7ff;display:flex;align-items:center;
+    justify-content:center;font-size:15px
 }
-
-.notification-content{
-    min-width:0;
-}
-
-.notification-title{
-    color:#315671;
-    font-size:11px;
-    font-weight:800;
-}
-
-.notification-text{
-    color:#8194a5;
-    font-size:10px;
-    line-height:1.4;
-    margin-top:3px;
-}
-
-.notification-time{
-    color:#a1adb7;
-    font-size:9px;
-    margin-top:4px;
-}
-
-.notification-empty{
-    padding:25px 15px;
-    text-align:center;
-    color:#91a1af;
-    font-size:11px;
-}
-
+.notification-title{color:#315671;font-size:11px;font-weight:800}
+.notification-text{color:#8194a5;font-size:10px;line-height:1.5;margin-top:3px}
+.notification-time{color:#a1adb7;font-size:9px;margin-top:4px}
+.notification-empty{padding:25px 15px;text-align:center;color:#91a1af;font-size:11px}
 .owner-badge{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    background:#eef8ff;
-    padding:9px 14px;
-    border-radius:12px;
-    color:#075ca5;
-    font-size:14px;
-    font-weight:700;
+    display:flex;align-items:center;gap:9px;background:#eef8ff;
+    padding:9px 14px;border-radius:12px;color:#075ca5;
+    font-size:14px;font-weight:700
 }
+.owner-dot{width:9px;height:9px;background:#20a45a;border-radius:50%}
 
-.owner-dot{
-    width:9px;
-    height:9px;
-    background:#20a45a;
-    border-radius:50%;
-}
-
-/* =========================================================
-   MASTER LAYOUT
-========================================================= */
-
-.layout{
-    display:flex;
-    min-height:calc(100vh - 78px);
-}
-
-/* =========================================================
-   MASTER SIDEBAR
-========================================================= */
-
+.layout{display:flex;min-height:calc(100vh - 78px)}
 .sidebar{
     width:245px;
-    background:
-        linear-gradient(
-            180deg,
-            rgba(255,245,245,.98) 0%,
-            rgba(242,248,255,.98) 52%,
-            rgba(255,255,255,.98) 100%
-        );
-    border-right:1px solid #e1e9f0;
-    padding:25px 15px;
-    flex-shrink:0;
-    box-shadow:5px 0 25px rgba(60,90,120,.05);
-    display:flex;
-    flex-direction:column;
-    overflow-y:auto;
-    scrollbar-width:thin;
+    background:linear-gradient(180deg,rgba(255,245,245,.98),rgba(242,248,255,.98) 52%,rgba(255,255,255,.98));
+    border-right:1px solid #e1e9f0;padding:25px 15px;
+    flex-shrink:0;box-shadow:5px 0 25px rgba(60,90,120,.05);
+    display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin
 }
-
-.sidebar::-webkit-scrollbar{
-    width:5px;
-}
-
-.sidebar::-webkit-scrollbar-thumb{
-    background:#cbdce8;
-    border-radius:10px;
-}
-
 .sidebar-title{
-    color:#7990a4;
-    font-size:12px;
-    font-weight:800;
-    padding:0 13px 10px;
-    text-transform:uppercase;
-    letter-spacing:.5px;
+    color:#7990a4;font-size:12px;font-weight:800;
+    padding:0 13px 10px;text-transform:uppercase;letter-spacing:.5px
 }
-
 .nav-btn{
-    width:100%;
-    border:0;
-    background:transparent;
-    color:#496a82;
-    padding:11px 14px;
-    border-radius:11px;
-    margin-bottom:4px;
-    text-align:left;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.2s;
-    flex-shrink:0;
+    width:100%;border:0;background:transparent;color:#496a82;
+    padding:11px 14px;border-radius:11px;margin-bottom:4px;
+    text-align:left;font-size:14px;font-weight:700;transition:.2s;
+    flex-shrink:0
 }
-
-.nav-btn:hover{
-    background:#e5f2fc;
-    color:#075ca5;
-}
-
+.nav-btn:hover{background:#e5f2fc;color:#075ca5}
 .nav-btn.active{
     background:linear-gradient(135deg,#eaf6ff,#fff0f0);
-    color:#075ca5;
-    box-shadow:0 4px 12px rgba(60,120,170,.08);
+    color:#075ca5;box-shadow:0 4px 12px rgba(60,120,170,.08)
 }
-
 .nav-icon{
-    display:inline-flex;
-    width:25px;
-    align-items:center;
-    justify-content:flex-start;
-    font-size:16px;
-    vertical-align:middle;
+    display:inline-flex;width:25px;align-items:center;
+    justify-content:flex-start;font-size:16px;vertical-align:middle
 }
+.sidebar-bottom{margin-top:auto;padding-top:12px}
+.sidebar-logout{color:#c72e2e;background:rgba(255,241,241,.7)}
+.sidebar-logout:hover{background:#ffe3e3;color:#b92727}
+.overlay{display:none}
 
-.sidebar-bottom{
-    margin-top:auto;
-    padding-top:12px;
-}
+.main{flex:1;padding:30px;min-width:0}
+.welcome{margin-bottom:22px}
+.welcome h1{font-size:28px;color:#06477f;font-weight:800;margin-bottom:6px}
+.welcome p{color:#7890a3;font-size:14px;line-height:1.5}
 
-.sidebar-logout{
-    color:#c72e2e;
-    background:rgba(255,241,241,.7);
-}
-
-.sidebar-logout:hover{
-    background:#ffe3e3;
-    color:#b92727;
-}
-
-/* =========================================================
-   OVERLAY
-========================================================= */
-
-.overlay{
-    display:none;
-}
-
-/* =========================================================
-   MAIN
-========================================================= */
-
-.main{
-    flex:1;
-    padding:30px;
-    min-width:0;
-}
-
-.welcome{
-    margin-bottom:22px;
-}
-
-.welcome h1{
-    font-size:28px;
-    color:#06477f;
-    font-weight:800;
-    margin-bottom:6px;
-}
-
-.welcome p{
-    color:#7890a3;
-    font-size:14px;
-}
-
-/* =========================================================
-   STATS
-========================================================= */
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:16px;
-    margin-bottom:22px;
-}
-
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
 .stat-card{
-    background:rgba(255,255,255,.95);
-    border:1px solid #dce6ef;
-    border-radius:17px;
-    padding:18px;
-    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    background:rgba(255,255,255,.95);border:1px solid #dce6ef;
+    border-radius:17px;padding:18px;box-shadow:0 8px 28px rgba(50,80,110,.07)
 }
-
-.stat-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.stat-name{
-    color:#8093a4;
-    font-size:11px;
-    font-weight:800;
-    text-transform:uppercase;
-}
-
-.stat-number{
-    color:#06477f;
-    font-size:29px;
-    font-weight:800;
-    margin-top:8px;
-}
-
+.stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stat-name{color:#8093a4;font-size:11px;font-weight:800;text-transform:uppercase}
+.stat-number{color:#06477f;font-size:29px;font-weight:800;margin-top:8px}
 .stat-icon{
-    width:43px;
-    height:43px;
-    border-radius:12px;
+    width:43px;height:43px;flex-shrink:0;border-radius:12px;
     background:linear-gradient(135deg,#eef8ff,#fff1f1);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:21px;
+    display:flex;align-items:center;justify-content:center;font-size:21px
 }
-
-/* =========================================================
-   PANEL
-========================================================= */
 
 .panel{
-    background:rgba(255,255,255,.95);
-    border:1px solid #dce6ef;
-    border-radius:18px;
-    box-shadow:0 8px 28px rgba(50,80,110,.07);
-    overflow:hidden;
+    background:rgba(255,255,255,.95);border:1px solid #dce6ef;
+    border-radius:18px;box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden
 }
-
 .panel-header{
-    padding:20px;
-    border-bottom:1px solid #edf2f6;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:15px;
+    padding:20px;border-bottom:1px solid #edf2f6;
+    display:flex;align-items:center;justify-content:space-between;gap:15px
 }
-
-.panel-title{
-    font-size:18px;
-    font-weight:800;
-    color:#06477f;
-}
-
-.panel-subtitle{
-    font-size:12px;
-    color:#8799a9;
-    margin-top:4px;
-}
-
-/* =========================================================
-   SEARCH
-========================================================= */
-
+.panel-title{font-size:18px;font-weight:800;color:#06477f}
+.panel-subtitle{font-size:12px;color:#8799a9;margin-top:5px;line-height:1.6}
 .search-box{
-    padding:18px 20px;
-    border-bottom:1px solid #edf2f6;
-    display:flex;
-    gap:10px;
+    padding:18px 20px;border-bottom:1px solid #edf2f6;
+    display:flex;gap:10px
 }
-
-.search-input{
-    flex:1;
-    height:44px;
-    border:1px solid #dce6ef;
-    border-radius:11px;
-    padding:0 14px;
-    outline:none;
-    color:#31566f;
-    background:#fbfdff;
-    font-size:13px;
+.search-input,.status-filter{
+    height:44px;border:1px solid #dce6ef;border-radius:11px;
+    padding:0 14px;outline:none;color:#31566f;background:#fbfdff;font-size:13px
 }
-
-.search-input:focus{
-    border-color:#8fc3ea;
-    box-shadow:0 0 0 3px rgba(65,150,215,.08);
+.search-input{flex:1;min-width:0}
+.status-filter{min-width:190px}
+.search-input:focus,.status-filter:focus{
+    border-color:#8fc3ea;box-shadow:0 0 0 3px rgba(65,150,215,.08)
 }
-
-.status-filter{
-    height:44px;
-    min-width:190px;
-    border:1px solid #dce6ef;
-    border-radius:11px;
-    padding:0 12px;
-    color:#31566f;
-    background:#fbfdff;
-    outline:none;
-    font-size:13px;
-}
-
-.status-filter:focus{
-    border-color:#8fc3ea;
-}
-
-/* =========================================================
-   TABLE
-========================================================= */
-
-.table-wrap{
-    width:100%;
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:1900px;
-}
-
+.table-wrap{width:100%;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:2050px}
 th{
-    background:#f7fafc;
-    color:#71889a;
-    font-size:10px;
-    text-transform:uppercase;
-    padding:13px 12px;
-    text-align:left;
-    white-space:nowrap;
+    background:#f7fafc;color:#71889a;font-size:10px;text-transform:uppercase;
+    padding:13px 12px;text-align:left;white-space:nowrap
 }
-
 td{
-    padding:12px;
-    border-top:1px solid #edf2f6;
-    color:#35566f;
-    font-size:12px;
-    vertical-align:middle;
-    white-space:nowrap;
+    padding:12px;border-top:1px solid #edf2f6;
+    color:#35566f;font-size:12px;vertical-align:middle;white-space:nowrap
 }
-
-tbody tr{
-    transition:.15s;
-}
-
-tbody tr:hover{
-    background:#fbfdff;
-}
-
-.request-number{
-    font-weight:800;
-    color:#0871c3;
-}
-
+tbody tr:hover{background:#fbfdff}
+.request-number{font-weight:800;color:#0871c3}
 .user-id{
-    display:inline-flex;
-    align-items:center;
-    padding:7px 10px;
-    border-radius:9px;
-    background:#eef7ff;
-    color:#0871c3;
-    font-size:11px;
-    font-weight:800;
-    letter-spacing:.2px;
+    display:inline-flex;align-items:center;padding:7px 10px;
+    border-radius:9px;background:#eef7ff;color:#0871c3;
+    font-size:11px;font-weight:800;letter-spacing:.2px
 }
-
-.user-box{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    min-width:190px;
+.user-box{display:flex;align-items:center;gap:9px;min-width:190px}
+.user-photo,.user-photo-fallback{
+    width:42px;height:42px;border-radius:50%;flex-shrink:0
 }
-
-.user-photo{
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    object-fit:cover;
-    border:2px solid #e1edf5;
-    background:#eef7ff;
-    flex-shrink:0;
-}
-
+.user-photo{object-fit:cover;border:2px solid #e1edf5;background:#eef7ff;cursor:pointer}
 .user-photo-fallback{
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    background:#eef7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:18px;
-    flex-shrink:0;
+    background:#eef7ff;display:flex;align-items:center;
+    justify-content:center;font-size:18px
 }
-
-.user-name{
-    font-weight:800;
-    color:#315671;
-}
-
-.user-email{
-    font-size:10px;
-    color:#91a0ac;
-    margin-top:3px;
-}
-
-.money{
-    font-weight:800;
-    color:#315671;
-}
-
+.user-name{font-weight:800;color:#315671}
+.user-email{font-size:10px;color:#91a0ac;margin-top:3px}
+.money{font-weight:800;color:#315671}
 .badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:82px;
-    padding:6px 9px;
-    border-radius:20px;
-    font-size:10px;
-    font-weight:800;
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:82px;padding:6px 9px;border-radius:20px;
+    font-size:10px;font-weight:800
 }
-
-.badge-green{
-    background:#eaf9ef;
-    color:#18803d;
-}
-
-.badge-yellow{
-    background:#fff7df;
-    color:#a36b00;
-}
-
-.badge-blue{
-    background:#edf6ff;
-    color:#086db7;
-}
-
-.badge-red{
-    background:#fff0f0;
-    color:#c72e2e;
-}
-
-.badge-gray{
-    background:#f0f3f5;
-    color:#617687;
-}
-
+.badge-green{background:#eaf9ef;color:#18803d}
+.badge-yellow{background:#fff7df;color:#a36b00}
+.badge-blue{background:#edf6ff;color:#086db7}
+.badge-red{background:#fff0f0;color:#c72e2e}
+.badge-gray{background:#f0f3f5;color:#617687}
 .status{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:90px;
-    padding:6px 9px;
-    border-radius:20px;
-    font-size:10px;
-    font-weight:800;
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:90px;padding:6px 9px;border-radius:20px;
+    font-size:10px;font-weight:800
 }
-
-.status.pending{
-    background:#fff7df;
-    color:#a36b00;
-}
-
-.status.processing{
-    background:#edf6ff;
-    color:#086db7;
-}
-
-.status.completed{
-    background:#eaf9ef;
-    color:#18803d;
-}
-
-.status.cancelled{
-    background:#fff0f0;
-    color:#c72e2e;
-}
-
-.action-wrap{
-    display:flex;
-    gap:6px;
-}
-
+.status.pending{background:#fff7df;color:#a36b00}
+.status.processing{background:#edf6ff;color:#086db7}
+.status.completed{background:#eaf9ef;color:#18803d}
+.status.cancelled{background:#fff0f0;color:#c72e2e}
+.action-wrap{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .action-btn{
-    border:0;
-    border-radius:8px;
-    padding:8px 12px;
-    font-size:11px;
-    font-weight:800;
-    cursor:pointer;
-    transition:.2s;
+    border:0;border-radius:8px;padding:8px 10px;
+    font-size:11px;font-weight:800;transition:.2s;white-space:nowrap
 }
-
-.details-btn{
-    background:#edf7ff;
-    color:#0871c3;
-}
-
-.details-btn:hover{
-    background:#dcefff;
-}
-
-.empty{
-    text-align:center;
-    padding:45px 20px;
-    color:#91a1af;
-    font-size:13px;
-}
-
-.loading{
-    text-align:center;
-    padding:45px;
-    color:#7890a3;
-}
-
-/* =========================================================
-   TOAST
-========================================================= */
+.action-btn:hover{filter:brightness(.96)}
+.details-btn{background:#edf7ff;color:#0871c3}
+.approve-action-btn{background:#eaf9ef;color:#168447}
+.payment-action-btn{background:#e9f3ff;color:#075ca5}
+.edit-btn{background:#fff7df;color:#986500}
+.delete-btn{background:#fff0f0;color:#c72e2e}
+.empty,.loading{text-align:center;padding:45px 20px;color:#91a1af;font-size:13px}
 
 .toast{
-    position:fixed;
-    right:20px;
-    bottom:20px;
-    z-index:99999;
-    min-width:290px;
-    max-width:390px;
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:14px;
-    box-shadow:0 15px 45px rgba(20,60,90,.18);
-    padding:15px;
-    display:none;
+    position:fixed;right:20px;bottom:20px;z-index:99999;
+    min-width:290px;max-width:390px;background:#fff;
+    border:1px solid #dce6ef;border-radius:14px;
+    box-shadow:0 15px 45px rgba(20,60,90,.18);padding:15px;display:none
 }
-
-.toast.show{
-    display:block;
-    animation:toastIn .2s ease;
-}
-
-.toast-title{
-    color:#06477f;
-    font-size:13px;
-    font-weight:800;
-}
-
-.toast-text{
-    color:#7890a3;
-    font-size:11px;
-    margin-top:4px;
-    line-height:1.5;
-}
-
+.toast.show{display:block;animation:toastIn .2s ease}
+.toast-title{color:#06477f;font-size:13px;font-weight:800}
+.toast-text{color:#7890a3;font-size:11px;margin-top:4px;line-height:1.5}
 @keyframes toastIn{
-    from{
-        opacity:0;
-        transform:translateY(10px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
 }
 
-/* =========================================================
-   LOGOUT MODAL
-========================================================= */
-
-.logout-modal{
-    display:none;
-    position:fixed;
-    inset:0;
-    z-index:50000;
-    background:rgba(5,35,58,.48);
-    align-items:center;
-    justify-content:center;
-    padding:20px;
+.logout-modal,.app-modal{
+    display:none;position:fixed;inset:0;z-index:50000;
+    background:rgba(5,35,58,.52);align-items:center;justify-content:center;padding:18px
 }
-
-.logout-modal.show{
-    display:flex;
+.logout-modal.show,.app-modal.show{display:flex}
+.logout-card,.modal-card{
+    width:100%;max-width:680px;max-height:90vh;overflow-y:auto;
+    background:#fff;border-radius:20px;padding:25px;
+    box-shadow:0 25px 80px rgba(0,0,0,.25)
 }
-
-.logout-card{
-    width:100%;
-    max-width:420px;
-    background:#fff;
-    border-radius:20px;
-    padding:28px;
-    text-align:center;
-    box-shadow:0 25px 80px rgba(0,0,0,.25);
-    animation:logoutIn .18s ease;
-}
-
-@keyframes logoutIn{
-    from{
-        opacity:0;
-        transform:scale(.96) translateY(8px);
-    }
-    to{
-        opacity:1;
-        transform:scale(1) translateY(0);
-    }
-}
-
+.logout-card{max-width:420px;text-align:center}
 .logout-icon{
-    width:60px;
-    height:60px;
-    margin:0 auto 15px;
-    border-radius:50%;
-    background:#fff1f1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:28px;
+    width:60px;height:60px;margin:0 auto 15px;border-radius:50%;
+    background:#fff1f1;display:flex;align-items:center;justify-content:center;font-size:28px
 }
-
-.logout-title{
-    color:#06477f;
-    font-size:20px;
-    font-weight:800;
+.logout-title,.modal-title{color:#06477f;font-size:20px;font-weight:800}
+.logout-text{color:#8194a5;font-size:13px;line-height:1.6;margin:9px 0 21px}
+.logout-actions,.modal-actions{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px
 }
-
-.logout-text{
-    color:#8194a5;
-    font-size:13px;
-    line-height:1.6;
-    margin:9px 0 21px;
+.logout-cancel,.logout-confirm,.btn{
+    min-height:43px;border:0;border-radius:10px;
+    font-size:13px;font-weight:800;padding:10px 14px
 }
-
-.logout-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
+.logout-cancel{background:#eef4f8;color:#527087}
+.logout-confirm,.btn-danger{background:#d93636;color:#fff}
+.btn-primary{background:#0871c3;color:#fff}
+.btn-secondary{background:#eef4f8;color:#527087}
+.btn-success{background:#168447;color:#fff}
+.btn-warning{background:#fff3d0;color:#986500}
+.modal-top{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:12px;margin-bottom:18px
 }
-
-.logout-cancel,
-.logout-confirm{
-    height:45px;
-    border:0;
-    border-radius:10px;
-    font-size:13px;
-    font-weight:800;
-    cursor:pointer;
+.modal-subtitle{font-size:12px;color:#8093a4;line-height:1.5;margin-top:5px}
+.close-btn{
+    width:36px;height:36px;border:0;border-radius:10px;
+    background:#eef4f8;color:#496a82;font-size:20px;flex-shrink:0
 }
-
-.logout-cancel{
-    background:#eef4f8;
-    color:#527087;
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.form-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:11px;font-weight:800;color:#59768d}
+.form-field input,.form-field select,.form-field textarea{
+    width:100%;min-height:42px;border:1px solid #dce6ef;border-radius:10px;
+    padding:10px 12px;background:#fbfdff;color:#31566f;font-size:13px;outline:none
 }
-
-.logout-confirm{
-    background:#d93636;
-    color:#fff;
+.form-field textarea{min-height:90px;resize:vertical}
+.form-field input:focus,.form-field textarea:focus,.form-field select:focus{border-color:#8fc3ea}
+.modal-note{
+    background:#f4f9fd;border:1px solid #e1edf5;border-radius:12px;
+    padding:12px;color:#617f95;font-size:12px;line-height:1.6;margin-top:14px
 }
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media(max-width:1100px){
-
-    .stats{
-        grid-template-columns:1fr 1fr;
-    }
+.document-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.document-card{border:1px solid #dce6ef;border-radius:13px;overflow:hidden;background:#fbfdff;min-width:0}
+.document-card img{width:100%;height:180px;object-fit:contain;background:#f2f7fa;cursor:zoom-in}
+.document-caption{padding:10px;font-size:12px;font-weight:800;color:#315671;overflow-wrap:anywhere}
+.document-link{display:block;padding:0 10px 12px;color:#0871c3;font-size:12px;font-weight:800;overflow-wrap:anywhere}
+.user-profile-view{
+    display:flex;gap:16px;align-items:center;padding:15px;
+    background:#f5faff;border:1px solid #e1edf5;border-radius:14px;margin-bottom:16px
 }
-
-@media(max-width:900px){
-
-    .sidebar{
-        width:235px;
-    }
-
-    .main{
-        padding:25px;
-    }
+.user-profile-view img{
+    width:88px;height:88px;border-radius:50%;object-fit:cover;
+    border:3px solid #fff;box-shadow:0 3px 12px #dbe6ee;cursor:zoom-in
 }
+.user-profile-view h3{font-size:17px;color:#06477f;overflow-wrap:anywhere}
+.user-profile-view p{font-size:12px;color:#7890a3;margin-top:5px;overflow-wrap:anywhere}
+.approval-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.approval-choice button{
+    padding:17px 12px;border:1px solid #dce6ef;border-radius:13px;
+    background:#fbfdff;font-weight:800;color:#315671
+}
+.approval-choice button:hover{border-color:#8fc3ea;background:#f2f9ff}
+.approval-choice .approve-option{color:#168447}
+.approval-choice .reject-option{color:#c72e2e}
+.payment-summary{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;margin-bottom:15px
+}
+.summary-item{
+    padding:12px;border:1px solid #e1edf5;border-radius:12px;background:#f8fbfe;
+    min-width:0
+}
+.summary-label{font-size:10px;color:#8093a4;font-weight:800;text-transform:uppercase}
+.summary-value{font-size:14px;color:#06477f;font-weight:800;margin-top:6px;overflow-wrap:anywhere}
+.payment-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.payment-proof{
+    border:1px solid #dce6ef;border-radius:12px;overflow:hidden;background:#f8fbfe;min-width:0
+}
+.payment-proof img{width:100%;height:135px;object-fit:contain;cursor:zoom-in;background:#eef4f8}
+.payment-proof a{display:block;padding:9px;font-size:11px;font-weight:800;overflow-wrap:anywhere}
+.inline-status{font-size:12px;color:#71889a;line-height:1.6;margin-top:12px}
 
+@media(max-width:1100px){.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.sidebar{width:235px}.main{padding:25px}}
 @media(max-width:760px){
-
-    .header{
-        height:70px;
-        padding:0 14px;
-    }
-
-    .menu-btn{
-        display:flex;
-    }
-
-    .logo{
-        height:48px;
-    }
-
-    .owner-title,
-    .owner-subtitle,
-    .owner-badge{
-        display:none;
-    }
-
-    .notification-btn{
-        width:40px;
-        height:40px;
-    }
-
-    .notification-panel{
-        position:fixed;
-        top:62px;
-        right:12px;
-        left:12px;
-        width:auto;
-    }
-
-    .layout{
-        display:block;
-    }
-
+    .header{height:70px;padding:0 14px}
+    .menu-btn{display:flex}
+    .logo{height:48px}
+    .owner-title,.owner-subtitle,.owner-badge{display:none}
+    .notification-btn{width:40px;height:40px}
+    .notification-panel{position:fixed;top:62px;right:12px;left:12px;width:auto}
+    .layout{display:block}
     .sidebar{
-        position:fixed;
-        top:70px;
-        left:-260px;
-        width:245px;
-        height:calc(100vh - 70px);
-        z-index:2000;
-        transition:.25s ease;
-        overflow-y:auto;
-        padding:20px 15px 25px;
+        position:fixed;top:70px;left:-260px;width:245px;
+        height:calc(100vh - 70px);z-index:2000;transition:.25s ease;
+        overflow-y:auto;padding:20px 15px 25px
     }
-
-    .sidebar.open{
-        left:0;
-    }
-
+    .sidebar.open{left:0}
     .overlay.show{
-        display:block;
-        position:fixed;
-        inset:70px 0 0 0;
-        background:rgba(0,0,0,.25);
-        z-index:1500;
+        display:block;position:fixed;inset:70px 0 0;
+        background:rgba(0,0,0,.25);z-index:1500
     }
-
-    .main{
-        padding:20px 14px 40px;
-    }
-
-    .welcome{
-        margin-bottom:18px;
-    }
-
-    .welcome h1{
-        font-size:23px;
-    }
-
-    .welcome p{
-        font-size:12px;
-        line-height:1.5;
-    }
-
-    .stats{
-        grid-template-columns:1fr 1fr;
-        gap:10px;
-    }
-
-    .stat-card{
-        padding:14px;
-    }
-
-    .stat-name{
-        font-size:9px;
-    }
-
-    .stat-number{
-        font-size:23px;
-    }
-
-    .stat-icon{
-        width:36px;
-        height:36px;
-        font-size:17px;
-    }
-
-    .panel{
-        border-radius:15px;
-    }
-
-    .panel-header{
-        padding:16px;
-    }
-
-    .panel-title{
-        font-size:16px;
-    }
-
-    .panel-subtitle{
-        font-size:11px;
-        line-height:1.4;
-    }
-
-    .search-box{
-        flex-direction:column;
-        padding:15px;
-    }
-
-    .search-input,
-    .status-filter{
-        width:100%;
-        min-width:100%;
-    }
-
-    .toast{
-        left:14px;
-        right:14px;
-        bottom:14px;
-        min-width:0;
-        max-width:none;
-    }
-
-    .logout-modal{
-        padding:14px;
-    }
-
-    .logout-card{
-        padding:24px 18px;
-    }
+    .main{padding:20px 14px 40px}
+    .welcome h1{font-size:23px}
+    .welcome p{font-size:12px}
+    .stats{gap:10px}
+    .stat-card{padding:14px}
+    .stat-name{font-size:9px}
+    .stat-number{font-size:23px}
+    .stat-icon{width:36px;height:36px;font-size:17px}
+    .panel{border-radius:15px}
+    .panel-header{padding:16px}
+    .panel-title{font-size:16px}
+    .search-box{flex-direction:column;padding:15px}
+    .search-input,.status-filter{width:100%;min-width:100%}
+    .toast{left:14px;right:14px;bottom:14px;min-width:0;max-width:none}
+    .logout-card,.modal-card{padding:21px 16px}
+    .form-grid,.document-grid{grid-template-columns:1fr}
+    .form-field.full{grid-column:auto}
+    .user-profile-view{align-items:flex-start}
+    .payment-proof-grid{grid-template-columns:1fr 1fr}
 }
-
 @media(max-width:520px){
-
-    .stats{
-        grid-template-columns:1fr 1fr;
-    }
-
-    .main{
-        padding-left:10px;
-        padding-right:10px;
-    }
-
-    .stat-card{
-        padding:12px;
-    }
-
-    .stat-number{
-        font-size:21px;
-    }
-
-    .stat-icon{
-        width:32px;
-        height:32px;
-        font-size:15px;
-    }
-
-    .logout-actions{
-        grid-template-columns:1fr;
-    }
+    .main{padding-left:10px;padding-right:10px}
+    .stat-card{padding:12px}
+    .stat-number{font-size:21px}
+    .stat-icon{width:32px;height:32px;font-size:15px}
+    .logout-actions,.modal-actions{grid-template-columns:1fr}
+    .payment-summary,.payment-proof-grid{grid-template-columns:1fr}
 }
-
 @media(max-height:700px) and (min-width:761px){
-
-    .sidebar{
-        padding-top:15px;
-        padding-bottom:15px;
-    }
-
-    .nav-btn{
-        padding-top:9px;
-        padding-bottom:9px;
-        margin-bottom:2px;
-    }
-
-    .sidebar-title{
-        padding-bottom:7px;
-    }
+    .sidebar{padding-top:15px;padding-bottom:15px}
+    .nav-btn{padding-top:9px;padding-bottom:9px;margin-bottom:2px}
+    .sidebar-title{padding-bottom:7px}
 }
 </style>
 </head>
 
 <body>
-
 <header class="header">
-
     <div class="header-left">
-
-        <button
-            class="menu-btn"
-            id="menuBtn"
-            type="button"
-            aria-label="Open menu"
-        >☰</button>
-
-        <img
-            src="assets/EGC - Emergency Gas Cylinder logo.png"
-            class="logo"
-            alt="EGC"
-            onerror="this.style.display='none';"
-        >
-
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu">☰</button>
+        <img src="assets/EGC - Emergency Gas Cylinder logo.png" class="logo" alt="EGC" onerror="this.style.display='none'">
         <div>
-
-            <div class="owner-title">
-                Owner Dashboard
-            </div>
-
-            <div class="owner-subtitle">
-                Emergency Gas Cylinder Management
-            </div>
-
+            <div class="owner-title">Owner Dashboard</div>
+            <div class="owner-subtitle">Emergency Gas Cylinder Management</div>
         </div>
-
     </div>
-
-
     <div class="header-right">
-
         <div class="notification-wrap">
-
-            <button
-                class="notification-btn"
-                id="notificationBtn"
-                type="button"
-                aria-label="Notifications"
-            >
-                🔔
-
-                <span
-                    class="notification-count"
-                    id="notificationCount"
-                >
-                    0
-                </span>
+            <button class="notification-btn" id="notificationBtn" type="button" aria-label="Notifications">
+                🔔 <span class="notification-count" id="notificationCount">0</span>
             </button>
-
-
-            <div
-                class="notification-panel"
-                id="notificationPanel"
-            >
-
+            <div class="notification-panel" id="notificationPanel">
                 <div class="notification-head">
-
-                    <div class="notification-head-title">
-                        Notifications
-                    </div>
-
-                    <div
-                        class="notification-head-count"
-                        id="notificationHeadCount"
-                    >
-                        0 New
-                    </div>
-
+                    <div class="notification-head-title">Notifications</div>
+                    <div class="notification-head-count" id="notificationHeadCount">0 New</div>
                 </div>
-
-
-                <div id="notificationList">
-
-                    <div class="notification-empty">
-                        No new notifications
-                    </div>
-
-                </div>
-
+                <div id="notificationList"><div class="notification-empty">Loading notifications...</div></div>
             </div>
-
         </div>
-
-
-        <div class="owner-badge">
-
-            <span class="owner-dot"></span>
-
-            Owner
-
-        </div>
-
+        <div class="owner-badge"><span class="owner-dot"></span>Owner</div>
     </div>
-
 </header>
 
-
 <div class="layout">
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Management</div>
+    <button class="nav-btn" data-page="dashboard" type="button"><span class="nav-icon">▦</span>Dashboard</button>
+    <button class="nav-btn" data-page="users" type="button"><span class="nav-icon">👥</span>Users</button>
+    <button class="nav-btn" data-page="agencies" type="button"><span class="nav-icon">🏪</span>LPG Agencies</button>
+    <button class="nav-btn" data-page="companies" type="button"><span class="nav-icon">🏢</span>LPG Companies</button>
+    <button class="nav-btn" data-page="pending-approvals" type="button"><span class="nav-icon">⏳</span>Pending Approvals</button>
+    <button class="nav-btn active" data-page="requests" type="button"><span class="nav-icon">🛢</span>Cylinder Requests</button>
+    <button class="nav-btn" data-page="payments" type="button"><span class="nav-icon">₹</span>Payments</button>
+    <button class="nav-btn" data-page="reports" type="button"><span class="nav-icon">▤</span>Reports</button>
 
+    <div class="sidebar-title" style="margin-top:22px">Owner Pages</div>
+    <button class="nav-btn" data-page="request-details" type="button"><span class="nav-icon">📄</span>Request Details</button>
+    <button class="nav-btn" data-page="payment-details" type="button"><span class="nav-icon">💳</span>Payment Details</button>
+    <button class="nav-btn" data-page="agency-details" type="button"><span class="nav-icon">🏪</span>Agency Details</button>
+    <button class="nav-btn" data-page="deliveries" type="button"><span class="nav-icon">🚚</span>Deliveries</button>
+    <button class="nav-btn" data-page="repayments" type="button"><span class="nav-icon">💰</span>Repayments</button>
+    <button class="nav-btn" data-page="notifications" type="button"><span class="nav-icon">🔔</span>Notifications</button>
+    <button class="nav-btn" data-page="slips" type="button"><span class="nav-icon">🧾</span>Slips</button>
+    <button class="nav-btn" data-page="profile" type="button"><span class="nav-icon">👤</span>Profile</button>
 
-<!-- =====================================================
-     MASTER SIDEBAR
-===================================================== -->
-
-<aside
-    class="sidebar"
-    id="sidebar"
->
-
-    <div class="sidebar-title">
-        Management
-    </div>
-
-
-    <button
-        class="nav-btn"
-        data-page="dashboard"
-        type="button"
-    >
-        <span class="nav-icon">▦</span>
-        Dashboard
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="users"
-        type="button"
-    >
-        <span class="nav-icon">👥</span>
-        Users
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="agencies"
-        type="button"
-    >
-        <span class="nav-icon">🏪</span>
-        LPG Agencies
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="companies"
-        type="button"
-    >
-        <span class="nav-icon">🏢</span>
-        LPG Companies
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="pending-approvals"
-        type="button"
-    >
-        <span class="nav-icon">⏳</span>
-        Pending Approvals
-    </button>
-
-
-    <button
-        class="nav-btn active"
-        data-page="requests"
-        type="button"
-    >
-        <span class="nav-icon">🛢</span>
-        Cylinder Requests
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="payments"
-        type="button"
-    >
-        <span class="nav-icon">₹</span>
-        Payments
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="reports"
-        type="button"
-    >
-        <span class="nav-icon">▤</span>
-        Reports
-    </button>
-
-
-    <div
-        class="sidebar-title"
-        style="margin-top:22px;"
-    >
-        Owner Pages
-    </div>
-
-
-    <button
-        class="nav-btn"
-        data-page="request-details"
-        type="button"
-    >
-        <span class="nav-icon">📄</span>
-        Request Details
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="payment-details"
-        type="button"
-    >
-        <span class="nav-icon">💳</span>
-        Payment Details
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="agency-details"
-        type="button"
-    >
-        <span class="nav-icon">🏪</span>
-        Agency Details
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="deliveries"
-        type="button"
-    >
-        <span class="nav-icon">🚚</span>
-        Deliveries
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="repayments"
-        type="button"
-    >
-        <span class="nav-icon">💰</span>
-        Repayments
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="notifications"
-        type="button"
-    >
-        <span class="nav-icon">🔔</span>
-        Notifications
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="slips"
-        type="button"
-    >
-        <span class="nav-icon">🧾</span>
-        Slips
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="profile"
-        type="button"
-    >
-        <span class="nav-icon">👤</span>
-        Profile
-    </button>
-
-
-    <div
-        class="sidebar-title"
-        style="margin-top:22px;"
-    >
-        System
-    </div>
-
-
-    <button
-        class="nav-btn"
-        data-page="settings"
-        type="button"
-    >
-        <span class="nav-icon">⚙</span>
-        Settings
-    </button>
-
-
+    <div class="sidebar-title" style="margin-top:22px">System</div>
+    <button class="nav-btn" data-page="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
     <div class="sidebar-bottom">
-
-        <button
-            class="nav-btn sidebar-logout"
-            id="logoutBtn"
-            type="button"
-        >
-            <span class="nav-icon">🚪</span>
-            Logout
-        </button>
-
+        <button class="nav-btn sidebar-logout" id="logoutBtn" type="button"><span class="nav-icon">🚪</span>Logout</button>
     </div>
-
 </aside>
 
-
-<div
-    class="overlay"
-    id="overlay"
-></div>
-
-
-<!-- =====================================================
-     MAIN CONTENT
-===================================================== -->
+<div class="overlay" id="overlay"></div>
 
 <main class="main">
-
     <div class="welcome">
-
-        <h1>
-            Cylinder Requests
-        </h1>
-
-        <p>
-            View and manage all LPG cylinder requests received from customers.
-        </p>
-
+        <h1>Cylinder Requests</h1>
+        <p>Request approval and payment verification are managed independently. Approving one will not automatically approve the other.</p>
     </div>
-
-
-    <!-- STATS -->
 
     <section class="stats">
-
-        <div class="stat-card">
-
-            <div class="stat-top">
-
-                <div>
-
-                    <div class="stat-name">
-                        Total Requests
-                    </div>
-
-                    <div
-                        class="stat-number"
-                        id="totalRequests"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-                <div class="stat-icon">
-                    🛢️
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-top">
-
-                <div>
-
-                    <div class="stat-name">
-                        Pending
-                    </div>
-
-                    <div
-                        class="stat-number"
-                        id="pendingRequests"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-                <div class="stat-icon">
-                    ⏳
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-top">
-
-                <div>
-
-                    <div class="stat-name">
-                        Processing
-                    </div>
-
-                    <div
-                        class="stat-number"
-                        id="processingRequests"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-                <div class="stat-icon">
-                    🔄
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="stat-card">
-
-            <div class="stat-top">
-
-                <div>
-
-                    <div class="stat-name">
-                        Completed
-                    </div>
-
-                    <div
-                        class="stat-number"
-                        id="completedRequests"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-                <div class="stat-icon">
-                    ✅
-                </div>
-
-            </div>
-
-        </div>
-
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Total Requests</div><div class="stat-number" id="totalRequests">0</div></div><div class="stat-icon">🛢️</div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Pending Requests</div><div class="stat-number" id="pendingRequests">0</div></div><div class="stat-icon">⏳</div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Processing</div><div class="stat-number" id="processingRequests">0</div></div><div class="stat-icon">🔄</div></div></div>
+        <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Completed</div><div class="stat-number" id="completedRequests">0</div></div><div class="stat-icon">✅</div></div></div>
     </section>
-
-
-    <!-- REQUEST PANEL -->
 
     <section class="panel">
-
         <div class="panel-header">
-
             <div>
-
-                <div class="panel-title">
-                    All Cylinder Requests
-                </div>
-
+                <div class="panel-title">All Cylinder Requests</div>
                 <div class="panel-subtitle">
-                    Select a request to open its complete details and owner actions.
+                    👁️ Documents · ✅ Request Approval · 💳 Payment Approval · ✏️ Edit · 🗑️ Delete
+                    <br>Request approval updates only owner_approval. Payment approval updates only payment_verification_status.
                 </div>
-
             </div>
-
         </div>
-
-
-        <!-- SEARCH -->
 
         <div class="search-box">
-
-            <input
-                type="text"
-                id="searchInput"
-                class="search-input"
-                placeholder="🔎 Search request, customer, mobile, email, agency, company, city..."
-            >
-
-
-            <select
-                id="statusFilter"
-                class="status-filter"
-            >
-
-                <option value="">
-                    All Request Status
-                </option>
-
-                <option value="Pending">
-                    Pending
-                </option>
-
-                <option value="Processing">
-                    Processing
-                </option>
-
-                <option value="Completed">
-                    Completed
-                </option>
-
-                <option value="Cancelled">
-                    Cancelled
-                </option>
-
+            <input type="text" id="searchInput" class="search-input" placeholder="🔎 Search request, customer, mobile, email, company, city...">
+            <select id="statusFilter" class="status-filter">
+                <option value="">All Request Status</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
             </select>
-
         </div>
-
-
-        <!-- TABLE -->
 
         <div class="table-wrap">
-
             <table>
-
                 <thead>
-
-                    <tr>
-
-                        <th>Request Number</th>
-                        <th>User ID</th>
-                        <th>Customer</th>
-                        <th>Mobile</th>
-                        <th>Email</th>
-                        <th>LPG Company</th>
-                        <th>Agency</th>
-                        <th>City</th>
-                        <th>Date</th>
-                        <th>Quantity</th>
-                        <th>Amount</th>
-                        <th>Payment</th>
-                        <th>Owner Approval</th>
-                        <th>Agency Status</th>
-                        <th>Delivery</th>
-                        <th>Request Status</th>
-                        <th>Action</th>
-
-                    </tr>
-
+                <tr>
+                    <th>Request Number</th>
+                    <th>EGC User ID</th>
+                    <th>Customer</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                    <th>LPG Company</th>
+                    <th>Agency</th>
+                    <th>City</th>
+                    <th>Date</th>
+                    <th>Quantity</th>
+                    <th>Total Payable</th>
+                    <th>Payment Status</th>
+                    <th>Payment Approval</th>
+                    <th>Request Approval</th>
+                    <th>Agency Status</th>
+                    <th>Delivery</th>
+                    <th>Request Status</th>
+                    <th>Actions</th>
+                </tr>
                 </thead>
-
-
                 <tbody id="requestTableBody">
-
-                    <tr>
-
-                        <td
-                            colspan="17"
-                            class="loading"
-                        >
-                            Loading requests...
-                        </td>
-
-                    </tr>
-
+                    <tr><td colspan="18" class="loading">Loading requests...</td></tr>
                 </tbody>
-
             </table>
-
         </div>
-
     </section>
-
 </main>
-
 </div>
 
-
-<!-- =====================================================
-     LOGOUT CONFIRMATION
-===================================================== -->
-
-<div
-    class="logout-modal"
-    id="logoutModal"
->
-
+<div class="logout-modal" id="logoutModal">
     <div class="logout-card">
-
-        <div class="logout-icon">
-            🚪
-        </div>
-
-        <div class="logout-title">
-            Logout?
-        </div>
-
-        <div class="logout-text">
-            Are you sure you want to logout from the Owner Panel?
-        </div>
-
+        <div class="logout-icon">🚪</div>
+        <div class="logout-title">Logout?</div>
+        <div class="logout-text">Are you sure you want to logout from the Owner Panel?</div>
         <div class="logout-actions">
-
-            <button
-                type="button"
-                class="logout-cancel"
-                id="logoutCancel"
-            >
-                Cancel
-            </button>
-
-            <button
-                type="button"
-                class="logout-confirm"
-                id="logoutConfirm"
-            >
-                Logout
-            </button>
-
+            <button type="button" class="logout-cancel" id="logoutCancel">Cancel</button>
+            <button type="button" class="logout-confirm" id="logoutConfirm">Logout</button>
         </div>
-
     </div>
-
 </div>
 
-
-<!-- =====================================================
-     TOAST
-===================================================== -->
-
-<div
-    class="toast"
-    id="toast"
->
-
-    <div
-        class="toast-title"
-        id="toastTitle"
-    >
-        Notification
+<div class="app-modal" id="appModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+        <div class="modal-top">
+            <div>
+                <div class="modal-title" id="modalTitle">Request</div>
+                <div class="modal-subtitle" id="modalSubtitle"></div>
+            </div>
+            <button class="close-btn" id="modalClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div id="modalContent"></div>
     </div>
-
-    <div
-        class="toast-text"
-        id="toastText"
-    >
-        New notification
-    </div>
-
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div class="app-modal" id="imageModal" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width:850px;text-align:center">
+        <div class="modal-top">
+            <div class="modal-title">Image Preview</div>
+            <button class="close-btn" type="button" id="imageClose">×</button>
+        </div>
+        <img id="largeImage" alt="Document preview" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:10px">
+    </div>
+</div>
+
+<div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle">Notification</div>
+    <div class="toast-text" id="toastText"></div>
+</div>
 
 <script>
+"use strict";
 
-const SUPABASE_URL =
-    "https://szefvmvokkhvnzryodqu.supabase.co";
+/* Supabase project configuration */
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const SUPABASE_ANON_KEY =
-    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
-
-
-const totalRequests =
-    document.getElementById("totalRequests");
-
-const pendingRequests =
-    document.getElementById("pendingRequests");
-
-const processingRequests =
-    document.getElementById("processingRequests");
-
-const completedRequests =
-    document.getElementById("completedRequests");
-
-const requestTableBody =
-    document.getElementById("requestTableBody");
-
-const searchInput =
-    document.getElementById("searchInput");
-
-const statusFilter =
-    document.getElementById("statusFilter");
-
-const toast =
-    document.getElementById("toast");
-
-const toastTitle =
-    document.getElementById("toastTitle");
-
-const toastText =
-    document.getElementById("toastText");
-
-const menuBtn =
-    document.getElementById("menuBtn");
-
-const sidebar =
-    document.getElementById("sidebar");
-
-const overlay =
-    document.getElementById("overlay");
-
-const logoutBtn =
-    document.getElementById("logoutBtn");
-
+const $ = id => document.getElementById(id);
 
 let requests = [];
-
 let currentOwnerId = null;
+let toastTimer = null;
+let realtimeChannel = null;
+let loadingRequests = false;
 
+const requestTableBody = $("requestTableBody");
+const appModal = $("appModal");
+const modalTitle = $("modalTitle");
+const modalSubtitle = $("modalSubtitle");
+const modalContent = $("modalContent");
 
-function openPage(page){
-
-    const pages = {
-
-        dashboard:
-            "owner-dashboard.html",
-
-        customers:
-            "owner-customers.html",
-
-        requests:
-            "owner-requests.html",
-
-        payments:
-            "owner-payments.html",
-
-        "pending-payments":
-            "owner-pending-payments.html",
-
-        agencies:
-            "owner-agencies.html",
-
-        companies:
-            "owner-companies.html",
-
-        reports:
-            "owner-reports.html",
-
-        notifications:
-            "owner-notifications.html",
-
-        profile:
-            "owner-profile.html",
-
-        settings:
-            "owner-settings.html"
-
-    };
-
-
-    if(pages[page]){
-
-        window.location.href =
-            pages[page];
-
-    }
-
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    })[ch]);
 }
 
+function showToast(title, message) {
+    $("toastTitle").textContent = title || "Notification";
+    $("toastText").textContent = message || "";
+    $("toast").classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $("toast").classList.remove("show"), 4500);
+}
 
-document
-    .querySelectorAll("[data-page]")
-    .forEach(button => {
+function formatDate(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "—" :
+        d.toLocaleString("en-IN", {
+            day:"2-digit",month:"short",year:"numeric"
+        });
+}
 
-        button.addEventListener(
-            "click",
-            function(){
-
-                openPage(
-                    this.dataset.page
-                );
-
-            }
-        );
-
+function formatMoney(value) {
+    const n = Number(value);
+    if (value === null || value === undefined || value === "" || !Number.isFinite(n)) return "₹0.00";
+    return "₹" + n.toLocaleString("en-IN", {
+        minimumFractionDigits:2,maximumFractionDigits:2
     });
-
-
-menuBtn.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.toggle("open");
-
-        overlay.classList.toggle("show");
-
-    }
-);
-
-
-overlay.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.remove("open");
-
-        overlay.classList.remove("show");
-
-    }
-);
-
-
-function escapeHtml(value){
-
-    return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
 }
 
-
-function showToast(title,text){
-
-    toastTitle.textContent =
-        title || "Notification";
-
-    toastText.textContent =
-        text || "";
-
-    toast.classList.add("show");
-
-    clearTimeout(
-        window.egcToastTimer
-    );
-
-    window.egcToastTimer =
-        setTimeout(
-            function(){
-
-                toast.classList.remove(
-                    "show"
-                );
-
-            },
-            5000
-        );
-
-}
-
-
-function formatDate(value){
-
-    if(!value){
-        return "—";
-    }
-
-    const date =
-        new Date(value);
-
-    if(
-        Number.isNaN(
-            date.getTime()
-        )
-    ){
-        return "—";
-    }
-
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
-}
-
-
-function formatMoney(value){
-
-    if(
-        value === null ||
-        value === undefined ||
-        value === ""
-    ){
-        return "₹0.00";
-    }
-
-    const number =
-        Number(value);
-
-    if(
-        Number.isNaN(number)
-    ){
-        return "₹0.00";
-    }
-
-    return "₹" +
-        number.toLocaleString(
-            "en-IN",
-            {
-                minimumFractionDigits:2,
-                maximumFractionDigits:2
-            }
-        );
-
-}
-
-
-function normalizeApproval(value){
-
-    const v =
-        String(
-            value || "pending"
-        )
-        .trim()
-        .toLowerCase();
-
-    if(v === "approved"){
-        return "approved";
-    }
-
-    if(v === "rejected"){
-        return "rejected";
-    }
-
+function normalizeApproval(value) {
+    const v = String(value || "pending").trim().toLowerCase();
+    if (["approved","approve","accepted","success","verified"].includes(v)) return "approved";
+    if (["rejected","reject","declined","failed"].includes(v)) return "rejected";
     return "pending";
-
 }
 
-
-function approvalLabel(value){
-
-    const normalized =
-        normalizeApproval(value);
-
-    if(
-        normalized === "approved"
-    ){
-        return "Approved";
-    }
-
-    if(
-        normalized === "rejected"
-    ){
-        return "Rejected";
-    }
-
-    return "Pending";
-
+function displayStatusText(value) {
+    if (!value) return "Not Set";
+    return String(value).split(/[\s_-]+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 }
 
-
-function getStatusClass(status){
-
-    const value =
-        String(
-            status || "Pending"
-        )
-        .toLowerCase();
-
-    if(value === "processing"){
-        return "processing";
-    }
-
-    if(value === "completed"){
-        return "completed";
-    }
-
-    if(value === "cancelled"){
-        return "cancelled";
-    }
-
-    return "pending";
-
-}
-
-
-function displayStatusText(value){
-
-    const text =
-        String(value || "");
-
-    if(!text){
-        return "Not Set";
-    }
-
-    return text
-        .split(" ")
-        .map(
-            word =>
-                word.charAt(0).toUpperCase() +
-                word.slice(1).toLowerCase()
-        )
-        .join(" ");
-
-}
-
-
-function getBadgeClass(value){
-
-    const v =
-        String(value || "")
-        .toLowerCase();
-
-    if(
-        v.includes("approved") ||
-        v === "paid" ||
-        v === "completed" ||
-        v === "delivered" ||
-        v === "accepted"
-    ){
-        return "badge-green";
-    }
-
-    if(
-        v.includes("pending") ||
-        v === "preparing" ||
-        v === "waiting"
-    ){
-        return "badge-yellow";
-    }
-
-    if(
-        v.includes("processing") ||
-        v.includes("out for")
-    ){
-        return "badge-blue";
-    }
-
-    if(
-        v.includes("rejected") ||
-        v.includes("failed") ||
-        v.includes("cancelled")
-    ){
-        return "badge-red";
-    }
-
+function getBadgeClass(value) {
+    const v = String(value || "").toLowerCase();
+    if (["approved","paid","completed","delivered","accepted","success","verified"].includes(v) || v.includes("approved")) return "badge-green";
+    if (["pending","waiting","submitted","unpaid","due"].includes(v) || v.includes("pending")) return "badge-yellow";
+    if (["processing","assigned","ready","out for delivery"].includes(v) || v.includes("processing")) return "badge-blue";
+    if (["rejected","failed","cancelled","declined"].includes(v) || v.includes("rejected")) return "badge-red";
     return "badge-gray";
-
 }
 
+function badgeHtml(value) {
+    return `<span class="badge ${getBadgeClass(value)}">${escapeHtml(displayStatusText(value || "pending"))}</span>`;
+}
 
-function badgeHtml(value){
+function getRequestStatusClass(status) {
+    const v = String(status || "pending").toLowerCase();
+    if (v === "processing") return "processing";
+    if (v === "completed" || v === "delivered") return "completed";
+    if (v === "cancelled" || v === "rejected") return "cancelled";
+    return "pending";
+}
 
-    if(
-        value === null ||
-        value === undefined ||
-        value === ""
-    ){
+function getUserId(r) {
+    return r.egc_user_code || r.profile?.egc_user_id || r.profile?.user_code || r.user_id || "—";
+}
 
-        return `
-            <span class="badge badge-gray">
-                Not Set
-            </span>
-        `;
+function getUserName(r) {
+    return r.customer_name || r.profile?.full_name || r.profile?.name || "User";
+}
 
+function getUserMobile(r) {
+    return r.customer_mobile || r.profile?.mobile || r.profile?.phone || "—";
+}
+
+function getUserEmail(r) {
+    return r.customer_email || r.profile?.email || "—";
+}
+
+function getUserPhoto(r) {
+    return r.profile_photo || r.profile?.profile_photo || r.profile?.photo_url || "";
+}
+
+function getAgencyName(r) {
+    const a = r.agency || {};
+    return a.agency_name || a.name || r.agency_name || (r.agency_id ? r.agency_id : "Not assigned");
+}
+
+function getCompanyName(r) {
+    return r.lpg_company || r.company_name || r.agency?.lpg_company || "—";
+}
+
+function getCity(r) {
+    return r.city || r.district || r.profile?.city || "—";
+}
+
+function getPaymentAmount(r) {
+    for (const key of ["total_payable","total_amount","cylinder_amount","advance_amount"]) {
+        if (r[key] !== null && r[key] !== undefined && r[key] !== "") {
+            const n = Number(r[key]);
+            if (Number.isFinite(n)) return n;
+        }
     }
-
-    return `
-        <span class="badge ${getBadgeClass(value)}">
-            ${escapeHtml(
-                displayStatusText(value)
-            )}
-        </span>
-    `;
-
+    return 0;
 }
 
+function getPaymentApproval(r) {
+    return normalizeApproval(r.payment_verification_status);
+}
 
-async function getCurrentOwner(){
+function openPage(page) {
+    const pages = {
+        dashboard:"owner-dashboard.html",
+        users:"owner-users.html",
+        agencies:"owner-agencies.html",
+        companies:"owner-companies.html",
+        "pending-approvals":"owner-pending-approvals.html",
+        requests:"owner-requests.html",
+        payments:"owner-payments.html",
+        reports:"owner-reports.html",
+        "request-details":"owner-request-details.html",
+        "payment-details":"owner-payment-details.html",
+        "agency-details":"owner-agency-details.html",
+        deliveries:"owner-deliveries.html",
+        repayments:"owner-repayments.html",
+        notifications:"owner-notifications.html",
+        slips:"owner-slips.html",
+        profile:"owner-profile.html",
+        settings:"owner-settings.html"
+    };
+    if (pages[page]) window.location.href = pages[page];
+}
 
-    try{
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", () => openPage(button.dataset.page));
+});
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient.auth.getUser();
+$("menuBtn").addEventListener("click", () => {
+    $("sidebar").classList.toggle("open");
+    $("overlay").classList.toggle("show");
+});
 
+$("overlay").addEventListener("click", () => {
+    $("sidebar").classList.remove("open");
+    $("overlay").classList.remove("show");
+});
 
-        if(error){
+async function getCurrentOwner() {
+    const {data,error} = await supabaseClient.auth.getUser();
+    if (error) throw error;
+    return data?.user || null;
+}
 
-            console.error(
-                "Owner session error:",
-                error
-            );
+async function requireOwner() {
+    try {
+        const user = await getCurrentOwner();
+        currentOwnerId = user?.id || null;
 
-            currentOwnerId =
-                null;
-
+        if (!user) {
+            showToast("Login Required","Please login to the EGC Owner Panel.");
+            setTimeout(() => window.location.replace("owner-login.html"), 1000);
             return null;
-
         }
-
-
-        if(
-            data &&
-            data.user
-        ){
-
-            currentOwnerId =
-                data.user.id;
-
-            return data.user;
-
-        }
-
-
-        currentOwnerId =
-            null;
-
+        return user;
+    } catch (error) {
+        console.error("Session error:", error);
+        showToast("Session Error", error.message || "Please login again.");
+        setTimeout(() => window.location.replace("owner-login.html"), 1200);
         return null;
-
     }
-    catch(error){
-
-        console.error(
-            "Owner session exception:",
-            error
-        );
-
-        currentOwnerId =
-            null;
-
-        return null;
-
-    }
-
 }
 
-
-async function requireOwner(){
-
-    const user =
-        await getCurrentOwner();
-
-
-    if(!user){
-
-        showToast(
-            "Owner Login Required",
-            "Please login to the EGC Owner Panel first."
-        );
-
-
-        setTimeout(
-            function(){
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
-            },
-            1200
-        );
-
-
-        return null;
-
-    }
-
-
-    return user;
-
+function updateCounters() {
+    $("totalRequests").textContent = requests.length;
+    $("pendingRequests").textContent = requests.filter(r =>
+        normalizeApproval(r.owner_approval) === "pending" &&
+        String(r.status || "pending").toLowerCase() !== "cancelled"
+    ).length;
+    $("processingRequests").textContent = requests.filter(r =>
+        String(r.status || "").toLowerCase() === "processing"
+    ).length;
+    $("completedRequests").textContent = requests.filter(r =>
+        ["completed","delivered"].includes(String(r.status || "").toLowerCase())
+    ).length;
 }
 
+async function attachRelatedData() {
+    if (!requests.length) return;
 
-async function loadRequests(){
-
-    requestTableBody.innerHTML = `
-        <tr>
-            <td
-                colspan="17"
-                class="loading"
-            >
-                Loading requests...
-            </td>
-        </tr>
-    `;
-
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .order(
-                "created_at",
-                {
-                    ascending:false
-                }
-            );
-
-
-        if(error){
-
-            console.error(
-                "Request loading error:",
-                error
-            );
-
-
-            requestTableBody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="17"
-                        class="empty"
-                    >
-                        Unable to load requests.<br>
-                        ${escapeHtml(
-                            error.message
-                        )}
-                    </td>
-                </tr>
-            `;
-
-            return;
-
-        }
-
-
-        requests =
-            data || [];
-
-
-        await attachRelatedData();
-
-        updateCounters();
-
-        renderRequests();
-
-    }
-    catch(error){
-
-        console.error(
-            "Request loading exception:",
-            error
-        );
-
-
-        requestTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="17"
-                    class="empty"
-                >
-                    Unable to load requests.
-                </td>
-            </tr>
-        `;
-
-    }
-
-}
-
-
-async function attachRelatedData(){
-
-    if(!requests.length){
-        return;
-    }
-
-
-    const userIds =
-        [
-            ...new Set(
-                requests
-                    .map(
-                        request =>
-                            request.user_id
-                    )
-                    .filter(Boolean)
-            )
-        ];
-
-
-    const agencyIds =
-        [
-            ...new Set(
-                requests
-                    .map(
-                        request =>
-                            request.agency_id
-                    )
-                    .filter(Boolean)
-            )
-        ];
-
+    const userIds = [...new Set(requests.map(r => r.user_id).filter(Boolean))];
+    const agencyIds = [...new Set(requests.map(r => r.agency_id).filter(Boolean))];
 
     let profiles = [];
-
     let agencies = [];
 
+    if (userIds.length) {
+        const {data,error} = await supabaseClient
+            .from("profiles").select("*").in("id",userIds);
 
-    if(userIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from("profiles")
-                .select("*")
-                .in(
-                    "id",
-                    userIds
-                );
-
-
-            if(!error){
-
-                profiles =
-                    data || [];
-
-            }
-            else{
-
-                console.warn(
-                    "Profiles loading error:",
-                    error.message
-                );
-
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Profiles loading exception:",
-                error
-            );
-
-        }
-
+        if (error) console.warn("Profiles unavailable:", error.message);
+        else profiles = data || [];
     }
 
+    if (agencyIds.length) {
+        const {data,error} = await supabaseClient
+            .from("agencies").select("*").in("id",agencyIds);
 
-    if(agencyIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from("agencies")
-                .select("*")
-                .in(
-                    "id",
-                    agencyIds
-                );
-
-
-            if(!error){
-
-                agencies =
-                    data || [];
-
-            }
-            else{
-
-                console.warn(
-                    "Agencies loading error:",
-                    error.message
-                );
-
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Agencies loading exception:",
-                error
-            );
-
-        }
-
+        if (error) console.warn("Agencies unavailable:", error.message);
+        else agencies = data || [];
     }
 
+    const profileMap = new Map(profiles.map(p => [p.id,p]));
+    const agencyMap = new Map(agencies.map(a => [a.id,a]));
 
-    const profileMap =
-        new Map(
-            profiles.map(
-                profile =>
-                    [
-                        profile.id,
-                        profile
-                    ]
-            )
-        );
-
-
-    const agencyMap =
-        new Map(
-            agencies.map(
-                agency =>
-                    [
-                        agency.id,
-                        agency
-                    ]
-            )
-        );
-
-
-    requests =
-        requests.map(
-            request => {
-
-                const profile =
-                    profileMap.get(
-                        request.user_id
-                    ) || {};
-
-
-                const agency =
-                    agencyMap.get(
-                        request.agency_id
-                    ) || {};
-
-
-                return {
-                    ...request,
-                    profile,
-                    agency
-                };
-
-            }
-        );
-
+    requests = requests.map(r => ({
+        ...r,
+        profile:profileMap.get(r.user_id) || {},
+        agency:agencyMap.get(r.agency_id) || {}
+    }));
 }
 
-
-function getUserId(request){
-
-    const profile =
-        request.profile || {};
-
-
-    return (
-        profile.user_code ||
-        request.user_code ||
-        request.user_id ||
-        "—"
-    );
-
-}
-
-
-function getUserName(request){
-
-    const profile =
-        request.profile || {};
-
-
-    return (
-        profile.full_name ||
-        profile.name ||
-        profile.username ||
-        profile.display_name ||
-        "User"
-    );
-
-}
-
-
-function getUserMobile(request){
-
-    const profile =
-        request.profile || {};
-
-
-    return (
-        profile.mobile ||
-        profile.phone ||
-        profile.mobile_number ||
-        profile.phone_number ||
-        request.mobile ||
-        request.phone ||
-        "—"
-    );
-
-}
-
-
-function getUserEmail(request){
-
-    const profile =
-        request.profile || {};
-
-
-    return (
-        profile.email ||
-        request.email ||
-        "—"
-    );
-
-}
-
-
-function getUserPhoto(request){
-
-    const profile =
-        request.profile || {};
-
-
-    return (
-        profile.profile_photo ||
-        profile.photo_url ||
-        profile.avatar_url ||
-        profile.photo ||
-        profile.image_url ||
-        profile.profile_image ||
-        request.profile_photo ||
-        request.photo_url ||
-        ""
-    );
-
-}
-
-
-function getAgencyName(request){
-
-    const agency =
-        request.agency || {};
-
-
-    return (
-        agency.agency_name ||
-        agency.name ||
-        agency.agency ||
-        request.agency_name ||
-        "Agency"
-    );
-
-}
-
-
-function getCompanyName(request){
-
-    const agency =
-        request.agency || {};
-
-
-    return (
-        request.lpg_company ||
-        request.company_name ||
-        agency.lpg_company ||
-        agency.company_name ||
-        agency.company ||
-        "LPG"
-    );
-
-}
-
-
-function getCity(request){
-
-    const profile =
-        request.profile || {};
-
-    const agency =
-        request.agency || {};
-
-
-    return (
-        request.city ||
-        profile.city ||
-        agency.city ||
-        extractCity(
-            request.address
-        ) ||
-        "—"
-    );
-
-}
-
-
-function extractCity(address){
-
-    if(!address){
-        return "";
-    }
-
-
-    const parts =
-        String(address)
-            .split(",");
-
-
-    return (
-        parts[parts.length - 2] ||
-        parts[parts.length - 1] ||
-        ""
-    )
-    .trim();
-
-}
-
-
-function updateCounters(){
-
-    let total =
-        requests.length;
-
-    let pending = 0;
-
-    let processing = 0;
-
-    let completed = 0;
-
-
-    requests.forEach(
-        request => {
-
-            const status =
-                String(
-                    request.status ||
-                    "Pending"
-                )
-                .trim()
-                .toLowerCase();
-
-
-            if(
-                status === "pending"
-            ){
-                pending++;
-            }
-
-
-            if(
-                status === "processing"
-            ){
-                processing++;
-            }
-
-
-            if(
-                status === "completed"
-            ){
-                completed++;
-            }
-
-        }
-    );
-
-
-    totalRequests.textContent =
-        total;
-
-    pendingRequests.textContent =
-        pending;
-
-    processingRequests.textContent =
-        processing;
-
-    completedRequests.textContent =
-        completed;
-
-}
-
-
-function openRequestDetails(id){
-
-    if(!id){
-        return;
-    }
-
-
-    window.location.href =
-        "owner-request-details.html?id=" +
-        encodeURIComponent(id);
-
-}
-
-
-function renderRequests(){
-
-    const search =
-        String(
-            searchInput.value ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
-
-
-    const filter =
-        String(
-            statusFilter.value ||
-            ""
-        )
-        .trim()
-        .toLowerCase();
-
-
-    const filtered =
-        requests.filter(
-            request => {
-
-                const searchable =
-                    [
-
-                        getUserId(request),
-
-                        request.request_number,
-
-                        getUserName(request),
-
-                        getUserMobile(request),
-
-                        getUserEmail(request),
-
-                        getCompanyName(request),
-
-                        getAgencyName(request),
-
-                        getCity(request),
-
-                        request.status,
-
-                        request.payment_status,
-
-                        request.owner_approval,
-
-                        request.agency_status,
-
-                        request.delivery_status
-
-                    ]
-                    .join(" ")
-                    .toLowerCase();
-
-
-                const matchesSearch =
-                    !search ||
-                    searchable.includes(
-                        search
-                    );
-
-
-                const requestStatus =
-                    String(
-                        request.status ||
-                        "Pending"
-                    )
-                    .trim()
-                    .toLowerCase();
-
-
-                const matchesStatus =
-                    !filter ||
-                    requestStatus ===
-                        filter;
-
-
-                return (
-                    matchesSearch &&
-                    matchesStatus
-                );
-
-            }
-        );
-
-
-    if(
-        filtered.length === 0
-    ){
-
-        requestTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="17"
-                    class="empty"
-                >
-                    No cylinder requests found.
-                </td>
-            </tr>
-        `;
-
-        return;
-
-    }
-
-
+async function loadRequests() {
+    if (loadingRequests) return;
+    loadingRequests = true;
     requestTableBody.innerHTML =
-        "";
+        '<tr><td colspan="18" class="loading">Loading requests...</td></tr>';
 
+    try {
+        const {data,error} = await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .order("created_at",{ascending:false});
 
-    filtered.forEach(
-        request => {
+        if (error) throw error;
 
-            const tr =
-                document.createElement(
-                    "tr"
-                );
+        requests = data || [];
+        await attachRelatedData();
+        updateCounters();
+        renderRequests();
+    } catch (error) {
+        console.error("Request loading error:", error);
+        requestTableBody.innerHTML =
+            `<tr><td colspan="18" class="empty">Unable to load requests.<br>${escapeHtml(error.message || "Check Supabase permissions and database columns.")}</td></tr>`;
+    } finally {
+        loadingRequests = false;
+    }
+}
 
+function renderRequests() {
+    const search = $("searchInput").value.trim().toLowerCase();
+    const filter = $("statusFilter").value.trim().toLowerCase();
 
-            const userId =
-                getUserId(request);
+    const filtered = requests.filter(r => {
+        const text = [
+            getUserId(r),r.request_number,getUserName(r),getUserMobile(r),
+            getUserEmail(r),getCompanyName(r),getAgencyName(r),getCity(r),
+            r.status,r.payment_status,r.payment_verification_status,
+            r.owner_approval,r.agency_status,r.delivery_status
+        ].join(" ").toLowerCase();
 
-            const name =
-                getUserName(request);
+        const status = String(r.status || "pending").toLowerCase();
+        return (!search || text.includes(search)) && (!filter || status === filter);
+    });
 
-            const mobile =
-                getUserMobile(request);
+    if (!filtered.length) {
+        requestTableBody.innerHTML =
+            '<tr><td colspan="18" class="empty">No cylinder requests found.</td></tr>';
+        return;
+    }
 
-            const email =
-                getUserEmail(request);
+    requestTableBody.innerHTML = filtered.map(r => {
+        const photo = getUserPhoto(r);
+        const ownerApproval = normalizeApproval(r.owner_approval);
+        const paymentApproval = getPaymentApproval(r);
+        const id = escapeHtml(r.id);
 
-            const photo =
-                getUserPhoto(request);
+        const photoHtml = photo
+            ? `<img src="${escapeHtml(photo)}" class="user-photo" alt="User photo" data-preview="${escapeHtml(photo)}">`
+            : '<div class="user-photo-fallback">👤</div>';
 
-            const company =
-                getCompanyName(request);
-
-            const agency =
-                getAgencyName(request);
-
-            const city =
-                getCity(request);
-
-            const requestStatus =
-                request.status ||
-                "Pending";
-
-            const approval =
-                normalizeApproval(
-                    request.owner_approval
-                );
-
-
-            let photoHtml = "";
-
-
-            if(photo){
-
-                photoHtml = `
-                    <img
-                        src="${escapeHtml(photo)}"
-                        class="user-photo"
-                        alt="User"
-                        onerror="
-                            this.style.display='none';
-                            this.nextElementSibling.style.display='flex';
-                        "
-                    >
-
-                    <div
-                        class="user-photo-fallback"
-                        style="display:none;"
-                    >
-                        👤
+        return `
+        <tr>
+            <td><div class="request-number">${escapeHtml(r.request_number || r.id)}</div></td>
+            <td><span class="user-id">${escapeHtml(getUserId(r))}</span></td>
+            <td>
+                <div class="user-box">
+                    ${photoHtml}
+                    <div>
+                        <div class="user-name">${escapeHtml(getUserName(r))}</div>
+                        <div class="user-email">${escapeHtml(getUserEmail(r))}</div>
                     </div>
-                `;
+                </div>
+            </td>
+            <td>${escapeHtml(getUserMobile(r))}</td>
+            <td>${escapeHtml(getUserEmail(r))}</td>
+            <td>${escapeHtml(getCompanyName(r))}</td>
+            <td>${escapeHtml(getAgencyName(r))}</td>
+            <td>${escapeHtml(getCity(r))}</td>
+            <td>${formatDate(r.created_at || r.request_date)}</td>
+            <td>${escapeHtml(r.quantity ?? 1)}</td>
+            <td class="money">${formatMoney(getPaymentAmount(r))}</td>
+            <td>${badgeHtml(r.payment_status || "pending")}</td>
+            <td>${badgeHtml(paymentApproval)}</td>
+            <td>${badgeHtml(ownerApproval)}</td>
+            <td>${badgeHtml(r.agency_status || "waiting")}</td>
+            <td>${badgeHtml(r.delivery_status || "pending")}</td>
+            <td><span class="status ${getRequestStatusClass(r.status)}">${escapeHtml(displayStatusText(r.status || "Pending"))}</span></td>
+            <td>
+                <div class="action-wrap">
+                    <button class="action-btn details-btn" type="button"
+                        data-action="documents" data-id="${id}" title="View documents">👁️</button>
 
-            }
-            else{
+                    <button class="action-btn approve-action-btn" type="button"
+                        data-action="request-approval" data-id="${id}" title="Request approval">✅ Request</button>
 
-                photoHtml = `
-                    <div class="user-photo-fallback">
-                        👤
-                    </div>
-                `;
+                    <button class="action-btn payment-action-btn" type="button"
+                        data-action="payment-approval" data-id="${id}" title="Payment approval">💳 Payment</button>
 
-            }
+                    <button class="action-btn edit-btn" type="button"
+                        data-action="edit" data-id="${id}" title="Edit request">✏️</button>
 
+                    <button class="action-btn delete-btn" type="button"
+                        data-action="delete" data-id="${id}" title="Delete request">🗑️</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join("");
 
-            tr.innerHTML = `
+    requestTableBody.querySelectorAll("img.user-photo").forEach(img => {
+        img.addEventListener("error", () => {
+            const fallback = document.createElement("div");
+            fallback.className = "user-photo-fallback";
+            fallback.textContent = "👤";
+            img.replaceWith(fallback);
+        }, {once:true});
+    });
+}
 
-                <td>
+$("searchInput").addEventListener("input", renderRequests);
+$("statusFilter").addEventListener("change", renderRequests);
 
-                    <div class="request-number">
-                        ${escapeHtml(
-                            request.request_number ||
-                            request.id ||
-                            "Request"
-                        )}
-                    </div>
+requestTableBody.addEventListener("click", event => {
+    const preview = event.target.closest("[data-preview]");
+    if (preview) {
+        showImagePreview(preview.dataset.preview);
+        return;
+    }
 
-                </td>
+    const button = event.target.closest("[data-action]");
+    if (!button) return;
 
+    const request = requests.find(r => String(r.id) === String(button.dataset.id));
+    if (!request) return;
 
-                <td>
+    switch (button.dataset.action) {
+        case "documents": openDocumentsModal(request); break;
+        case "request-approval": openRequestApprovalModal(request); break;
+        case "payment-approval": openPaymentApprovalModal(request); break;
+        case "edit": openEditModal(request); break;
+        case "delete": openDeleteModal(request); break;
+    }
+});
 
-                    <span class="user-id">
-                        ${escapeHtml(
-                            userId
-                        )}
-                    </span>
+function openModal(title,subtitle,html) {
+    modalTitle.textContent = title;
+    modalSubtitle.textContent = subtitle || "";
+    modalContent.innerHTML = html;
+    appModal.classList.add("show");
+}
 
-                </td>
+function closeModal() {
+    appModal.classList.remove("show");
+    modalContent.innerHTML = "";
+}
 
+$("modalClose").addEventListener("click", closeModal);
+appModal.addEventListener("click", e => {
+    if (e.target === appModal) closeModal();
+});
 
-                <td>
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        closeModal();
+        $("imageModal").classList.remove("show");
+        $("sidebar").classList.remove("open");
+        $("overlay").classList.remove("show");
+        $("logoutModal").classList.remove("show");
+    }
+});
 
-                    <div class="user-box">
+function showImagePreview(src) {
+    if (!src) return;
+    $("largeImage").src = src;
+    $("imageModal").classList.add("show");
+}
 
-                        ${photoHtml}
+$("imageClose").addEventListener("click", () => {
+    $("imageModal").classList.remove("show");
+});
+$("imageModal").addEventListener("click", e => {
+    if (e.target === $("imageModal")) $("imageModal").classList.remove("show");
+});
 
-                        <div>
+function userProfileCard(r) {
+    const photo = getUserPhoto(r);
+    return `
+    <div class="user-profile-view">
+        ${photo
+            ? `<img src="${escapeHtml(photo)}" alt="Customer photo" data-preview="${escapeHtml(photo)}">`
+            : '<div class="user-photo-fallback" style="width:88px;height:88px;font-size:30px">👤</div>'}
+        <div>
+            <h3>${escapeHtml(getUserName(r))}</h3>
+            <p>EGC User ID: ${escapeHtml(getUserId(r))}</p>
+            <p>${escapeHtml(getUserMobile(r))} · ${escapeHtml(getUserEmail(r))}</p>
+            <p>Request: ${escapeHtml(r.request_number || r.id)}</p>
+        </div>
+    </div>`;
+}
 
-                            <div class="user-name">
-                                ${escapeHtml(
-                                    name
-                                )}
-                            </div>
+/* -------------------------------------------------------
+   REQUEST APPROVAL
+   This function updates owner_approval only.
+   It does not update payment_status or payment_verification_status.
+------------------------------------------------------- */
 
-                            <div class="user-email">
-                                ${escapeHtml(
-                                    email
-                                )}
-                            </div>
+function openRequestApprovalModal(r) {
+    const current = normalizeApproval(r.owner_approval);
 
-                        </div>
+    const html = userProfileCard(r) + `
+        <div class="payment-summary">
+            <div class="summary-item">
+                <div class="summary-label">Current Request Approval</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(current))}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Current Payment Approval</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(getPaymentApproval(r)))}</div>
+            </div>
+        </div>
 
-                    </div>
+        <div class="approval-choice">
+            <button type="button" class="approve-option" id="approveRequestBtn">✅ Approve Request</button>
+            <button type="button" class="reject-option" id="rejectRequestBtn">❌ Reject Request</button>
+        </div>
 
-                </td>
+        <div class="form-field" style="margin-top:14px">
+            <label for="requestApprovalNote">Request Approval Note</label>
+            <textarea id="requestApprovalNote" placeholder="Write a note or rejection reason...">${escapeHtml(r.owner_note || "")}</textarea>
+        </div>
 
+        <div class="modal-note">
+            This action changes only <b>owner_approval</b>. Payment verification remains unchanged.
+        </div>`;
 
-                <td>
-                    ${escapeHtml(
-                        mobile
-                    )}
-                </td>
+    openModal("Request Approval", "Manage the cylinder request independently of payment approval.", html);
 
+    $("approveRequestBtn").addEventListener("click", () => saveRequestApproval(r,"approved"));
+    $("rejectRequestBtn").addEventListener("click", () => saveRequestApproval(r,"rejected"));
+}
 
-                <td>
-                    ${escapeHtml(
-                        email
-                    )}
-                </td>
+async function saveRequestApproval(r,decision) {
+    const btn = $(decision === "approved" ? "approveRequestBtn" : "rejectRequestBtn");
+    if (!btn) return;
 
+    const note = $("requestApprovalNote").value.trim();
+    const otherBtn = $(decision === "approved" ? "rejectRequestBtn" : "approveRequestBtn");
+    btn.disabled = true;
+    if (otherBtn) otherBtn.disabled = true;
 
-                <td>
-                    ${escapeHtml(
-                        company
-                    )}
-                </td>
+    try {
+        const payload = {
+            owner_approval:decision,
+            owner_note:note || null
+        };
 
-
-                <td>
-                    ${escapeHtml(
-                        agency
-                    )}
-                </td>
-
-
-                <td>
-                    ${escapeHtml(
-                        city
-                    )}
-                </td>
-
-
-                <td>
-                    ${formatDate(
-                        request.created_at
-                    )}
-                </td>
-
-
-                <td>
-                    ${escapeHtml(
-                        request.quantity ?? 0
-                    )}
-                </td>
-
-
-                <td class="money">
-                    ${formatMoney(
-                        request.total_amount
-                    )}
-                </td>
-
-
-                <td>
-                    ${badgeHtml(
-                        request.payment_status
-                    )}
-                </td>
-
-
-                <td>
-                    ${badgeHtml(
-                        approval
-                    )}
-                </td>
-
-
-                <td>
-                    ${badgeHtml(
-                        request.agency_status
-                    )}
-                </td>
-
-
-                <td>
-                    ${badgeHtml(
-                        request.delivery_status
-                    )}
-                </td>
-
-
-                <td>
-
-                    <span
-                        class="status ${getStatusClass(
-                            requestStatus
-                        )}"
-                    >
-                        ${escapeHtml(
-                            requestStatus
-                        )}
-                    </span>
-
-                </td>
-
-
-                <td>
-
-                    <div class="action-wrap">
-
-                        <button
-                            type="button"
-                            class="action-btn details-btn"
-                            data-details-id="${escapeHtml(
-                                request.id
-                            )}"
-                        >
-                            👁️ Details
-                        </button>
-
-                    </div>
-
-                </td>
-
-            `;
-
-
-            requestTableBody.appendChild(
-                tr
-            );
-
+        if (decision === "approved") {
+            payload.approved_by = currentOwnerId;
+            payload.approved_at = new Date().toISOString();
+            payload.owner_rejected_at = null;
+            payload.rejection_reason = null;
+        } else {
+            payload.owner_rejected_at = new Date().toISOString();
+            payload.rejection_reason = note || "Rejected by Owner";
         }
-    );
 
+        const {error} = await supabaseClient
+            .from("cylinder_requests")
+            .update(payload)
+            .eq("id",r.id);
 
-    document
-        .querySelectorAll(
-            "[data-details-id]"
-        )
-        .forEach(
-            button => {
+        if (error) throw error;
 
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        openRequestDetails(
-                            this.dataset.detailsId
-                        );
-
-                    }
-                );
-
-            }
+        closeModal();
+        showToast(
+            decision === "approved" ? "Request Approved" : "Request Rejected",
+            "Request approval updated. Payment approval was not changed."
         );
-
+        await loadRequests();
+    } catch (error) {
+        console.error("Request approval error:", error);
+        showToast("Request Approval Failed", error.message || "Could not update request approval.");
+        btn.disabled = false;
+        if (otherBtn) otherBtn.disabled = false;
+    }
 }
 
+/* -------------------------------------------------------
+   PAYMENT APPROVAL
+   This function updates payment_verification_status only.
+   payment_status is retained as the submitted/payment status.
+------------------------------------------------------- */
 
-searchInput.addEventListener(
-    "input",
-    renderRequests
-);
-
-
-statusFilter.addEventListener(
-    "change",
-    renderRequests
-);
-
-
-function startRealtime(){
-
-    const channel =
-        supabaseClient
-            .channel(
-                "owner-requests-realtime"
-            );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"INSERT",
-            schema:"public",
-            table:"cylinder_requests"
-        },
-        async payload => {
-
-            console.log(
-                "NEW REQUEST:",
-                payload
-            );
-
-
-            showToast(
-                "🔔 New Cylinder Request",
-                "A new customer cylinder request has been received."
-            );
-
-
-            await loadRequests();
-
+function collectPaymentProofs(r) {
+    const items = [];
+    const add = (label,url) => {
+        if (typeof url !== "string" || !url.trim()) return;
+        const value = url.trim();
+        if (/^https?:\/\//i.test(value) || value.startsWith("data:image/")) {
+            if (!items.some(x => x.url === value)) items.push({label,url:value});
         }
-    );
+    };
 
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"UPDATE",
-            schema:"public",
-            table:"cylinder_requests"
-        },
-        async payload => {
-
-            console.log(
-                "REQUEST UPDATED:",
-                payload
-            );
-
-
-            await loadRequests();
-
-        }
-    );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"postgres_changes",
-            schema:"public",
-            table:"cylinder_requests"
-        }
-    );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"DELETE",
-            schema:"public",
-            table:"cylinder_requests"
-        },
-        async payload => {
-
-            console.log(
-                "REQUEST DELETED:",
-                payload
-            );
-
-
-            await loadRequests();
-
-        }
-    );
-
-
-    channel.subscribe(
-        status => {
-
-            console.log(
-                "EGC Owner Requests Realtime:",
-                status
-            );
-
-        }
-    );
-
-
-    window.egcOwnerRequestsRealtime =
-        channel;
-
+    add("Payment Screenshot 1",r.payment_screenshot_1);
+    add("Payment Screenshot 2",r.payment_screenshot_2);
+    add("Payment Screenshot 3",r.payment_screenshot_3);
+    add("Payment Proof",r.payment_screenshot || r.payment_screenshot_url || r.payment_proof_url);
+    return items;
 }
 
+function openPaymentApprovalModal(r) {
+    const current = getPaymentApproval(r);
+    const proofs = collectPaymentProofs(r);
 
-logoutBtn.addEventListener(
-    "click",
-    async function(){
+    const proofHtml = proofs.length
+        ? `<div class="payment-proof-grid">${proofs.map(p => `
+            <div class="payment-proof">
+                <img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.label)}" data-preview="${escapeHtml(p.url)}">
+                <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.label)} ↗</a>
+            </div>`).join("")}</div>`
+        : `<div class="modal-note">No payment screenshot URL was found in the known payment screenshot fields. Confirm the payment through your trusted payment records before approving.</div>`;
 
-        const confirmed =
-            confirm(
-                "Kya aap EGC Owner Panel se logout karna chahte hain?"
-            );
+    const html = userProfileCard(r) + `
+        <div class="payment-summary">
+            <div class="summary-item">
+                <div class="summary-label">Payment Amount / Total Payable</div>
+                <div class="summary-value">${formatMoney(r.total_payable ?? r.advance_amount ?? r.total_amount)}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Status</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(r.payment_status || "pending"))}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Approval</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(current))}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Method</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(r.payment_method || "Not provided"))}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Transaction ID</div>
+                <div class="summary-value">${escapeHtml(r.payment_transaction_id || "Not provided")}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Reference</div>
+                <div class="summary-value">${escapeHtml(r.payment_reference || "Not provided")}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Submitted At</div>
+                <div class="summary-value">${escapeHtml(r.payment_submitted_at ? formatDate(r.payment_submitted_at) : "Not provided")}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Note</div>
+                <div class="summary-value">${escapeHtml(r.payment_note || "—")}</div>
+            </div>
+        </div>
 
+        <div class="form-field">
+            <label for="paymentApprovalNote">Payment Approval Note</label>
+            <textarea id="paymentApprovalNote" placeholder="Record payment verification details or rejection reason...">${escapeHtml(r.payment_approval_note || "")}</textarea>
+        </div>
 
-        if(!confirmed){
+        ${proofHtml}
+
+        <div class="approval-choice" style="margin-top:16px">
+            <button type="button" class="approve-option" id="approvePaymentBtn">✅ Approve Payment</button>
+            <button type="button" class="reject-option" id="rejectPaymentBtn">❌ Reject Payment</button>
+        </div>
+
+        <div class="modal-note">
+            This action changes <b>payment_verification_status</b> only. It does not approve or reject the cylinder request and does not change <b>payment_status</b>.
+        </div>`;
+
+    openModal("Payment Approval", "Verify the submitted payment independently of the cylinder request.", html);
+
+    $("approvePaymentBtn").addEventListener("click", () => savePaymentApproval(r,"approved"));
+    $("rejectPaymentBtn").addEventListener("click", () => savePaymentApproval(r,"rejected"));
+}
+
+async function savePaymentApproval(r,decision) {
+    const btn = $(decision === "approved" ? "approvePaymentBtn" : "rejectPaymentBtn");
+    const otherBtn = $(decision === "approved" ? "rejectPaymentBtn" : "approvePaymentBtn");
+    if (!btn) return;
+
+    btn.disabled = true;
+    if (otherBtn) otherBtn.disabled = true;
+
+    const note = $("paymentApprovalNote").value.trim();
+
+    try {
+        /*
+          Dedicated payment verification field.
+          payment_status and owner_approval are intentionally not updated here.
+        */
+        const payload = {
+            payment_verification_status:decision,
+            payment_verified_at:decision === "approved" ? new Date().toISOString() : null
+        };
+
+        const {error} = await supabaseClient
+            .from("cylinder_requests")
+            .update(payload)
+            .eq("id",r.id);
+
+        if (error) throw error;
+
+        closeModal();
+        showToast(
+            decision === "approved" ? "Payment Approved" : "Payment Rejected",
+            "Payment verification updated. Request approval was not changed."
+        );
+        await loadRequests();
+    } catch (error) {
+        console.error("Payment approval error:", error);
+        showToast(
+            "Payment Approval Failed",
+            error.message || "Could not update payment verification. Check the SQL column and Supabase permissions."
+        );
+        btn.disabled = false;
+        if (otherBtn) otherBtn.disabled = false;
+    }
+}
+
+/* DOCUMENTS */
+
+function collectDocumentLinks(r) {
+    const docs = [];
+    const fields = [
+        ["Profile Photo",r.profile_photo || r.profile?.profile_photo],
+        ["Aadhaar Front",r.aadhaar_front_photo],
+        ["Aadhaar Back",r.aadhaar_back_photo],
+        ["PAN Photo",r.pan_photo],
+        ["Gas Passbook",r.gas_passbook_photo],
+        ["Payment Screenshot 1",r.payment_screenshot_1],
+        ["Payment Screenshot 2",r.payment_screenshot_2],
+        ["Payment Screenshot 3",r.payment_screenshot_3]
+    ];
+
+    for (const [label,value] of fields) {
+        if (typeof value !== "string" || !value.trim()) continue;
+        const url = value.trim();
+        if (/^https?:\/\//i.test(url) || url.startsWith("data:image/")) {
+            if (!docs.some(d => d.url === url)) docs.push({label,url});
+        }
+    }
+    return docs;
+}
+
+function openDocumentsModal(r) {
+    const docs = collectDocumentLinks(r);
+    const html = userProfileCard(r) + `
+        <div class="payment-summary">
+            <div class="summary-item"><div class="summary-label">State</div><div class="summary-value">${escapeHtml(r.state || "—")}</div></div>
+            <div class="summary-item"><div class="summary-label">District</div><div class="summary-value">${escapeHtml(r.district || "—")}</div></div>
+            <div class="summary-item"><div class="summary-label">Aadhaar</div><div class="summary-value">${escapeHtml(r.aadhaar || "Not provided")}</div></div>
+            <div class="summary-item"><div class="summary-label">PAN</div><div class="summary-value">${escapeHtml(r.pan || "Not provided")}</div></div>
+            <div class="summary-item"><div class="summary-label">Scheme</div><div class="summary-value">${escapeHtml(r.scheme_name || "—")}</div></div>
+            <div class="summary-item"><div class="summary-label">Address</div><div class="summary-value">${escapeHtml(r.address || "—")}</div></div>
+        </div>
+        ${docs.length ? `<div class="document-grid">${docs.map(d => `
+            <div class="document-card">
+                <img src="${escapeHtml(d.url)}" alt="${escapeHtml(d.label)}" data-preview="${escapeHtml(d.url)}">
+                <div class="document-caption">${escapeHtml(d.label)}</div>
+                <a class="document-link" href="${escapeHtml(d.url)}" target="_blank" rel="noopener noreferrer">Open document ↗</a>
+            </div>`).join("")}</div>`
+            : `<div class="modal-note">No accessible document URL was found. If these fields contain private Supabase Storage paths rather than public URLs, a signed URL must be generated using the correct bucket and path.</div>`}`;
+
+    openModal("Customer Documents", "Customer profile and verification details.", html);
+}
+
+/* EDIT REQUEST
+   Keep the edit action limited to columns known to exist in the supplied schema.
+   Approval fields are intentionally not editable from this general form.
+*/
+
+function openEditModal(r) {
+    const html = `
+    <form id="editForm">
+        <div class="form-grid">
+            <div class="form-field"><label for="edit_request_number">Request Number</label><input id="edit_request_number" value="${escapeHtml(r.request_number || "")}" disabled></div>
+            <div class="form-field"><label for="edit_customer_name">Customer Name</label><input id="edit_customer_name" value="${escapeHtml(r.customer_name || "")}"></div>
+            <div class="form-field"><label for="edit_customer_mobile">Mobile</label><input id="edit_customer_mobile" value="${escapeHtml(r.customer_mobile || "")}"></div>
+            <div class="form-field"><label for="edit_customer_email">Email</label><input id="edit_customer_email" type="email" value="${escapeHtml(r.customer_email || "")}"></div>
+            <div class="form-field"><label for="edit_lpg_company">LPG Company</label><input id="edit_lpg_company" value="${escapeHtml(r.lpg_company || "")}"></div>
+            <div class="form-field"><label for="edit_city">City</label><input id="edit_city" value="${escapeHtml(r.city || "")}"></div>
+            <div class="form-field"><label for="edit_quantity">Quantity</label><input id="edit_quantity" type="number" min="1" step="1" value="${escapeHtml(r.quantity ?? 1)}" required></div>
+            <div class="form-field"><label for="edit_total_amount">Total Amount (₹)</label><input id="edit_total_amount" type="number" min="0" step="0.01" value="${escapeHtml(r.total_amount ?? 0)}" required></div>
+            <div class="form-field"><label for="edit_status">Request Status</label>
+                <select id="edit_status">
+                    ${["Pending","Processing","Completed","Cancelled"].map(s =>
+                        `<option value="${s}" ${String(r.status || "Pending").toLowerCase() === s.toLowerCase() ? "selected" : ""}>${s}</option>`
+                    ).join("")}
+                </select>
+            </div>
+            <div class="form-field"><label for="edit_agency_status">Agency Status</label>
+                <select id="edit_agency_status">
+                    ${["waiting","assigned","processing","ready","out_for_delivery","delivered"].map(s =>
+                        `<option value="${s}" ${String(r.agency_status || "waiting").toLowerCase() === s ? "selected" : ""}>${displayStatusText(s)}</option>`
+                    ).join("")}
+                </select>
+            </div>
+            <div class="form-field full"><label for="edit_address">Address</label><textarea id="edit_address">${escapeHtml(r.address || "")}</textarea></div>
+            <div class="form-field full"><label for="edit_owner_note">Owner Note</label><textarea id="edit_owner_note">${escapeHtml(r.owner_note || "")}</textarea></div>
+        </div>
+        <div class="modal-note">Request approval and payment approval are not editable in this form. Use their separate action buttons.</div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+        </div>
+    </form>`;
+
+    openModal("Edit Request", "Update supported request details.", html);
+
+    $("editForm").addEventListener("submit", async e => {
+        e.preventDefault();
+
+        const quantity = Number($("edit_quantity").value);
+        const total = Number($("edit_total_amount").value);
+
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            showToast("Invalid Quantity","Quantity must be a whole number greater than zero.");
+            return;
+        }
+        if (!Number.isFinite(total) || total < 0) {
+            showToast("Invalid Amount","Total amount cannot be negative.");
             return;
         }
 
+        const btn = $("saveEditBtn");
+        btn.disabled = true;
 
-        try{
+        const payload = {
+            customer_name:$("edit_customer_name").value.trim() || null,
+            customer_mobile:$("edit_customer_mobile").value.trim() || null,
+            customer_email:$("edit_customer_email").value.trim() || null,
+            lpg_company:$("edit_lpg_company").value.trim() || null,
+            city:$("edit_city").value.trim() || null,
+            quantity,
+            total_amount:total,
+            status:$("edit_status").value,
+            agency_status:$("edit_agency_status").value,
+            address:$("edit_address").value.trim() || null,
+            owner_note:$("edit_owner_note").value.trim() || null,
+            updated_at:new Date().toISOString()
+        };
 
-            await supabaseClient
-                .auth
-                .signOut();
+        try {
+            const {error} = await supabaseClient
+                .from("cylinder_requests")
+                .update(payload)
+                .eq("id",r.id);
 
+            if (error) throw error;
 
-            window.location.replace(
-                "owner-login.html"
-            );
-
+            closeModal();
+            showToast("Request Updated","Request details saved successfully.");
+            await loadRequests();
+        } catch (error) {
+            console.error("Edit error:", error);
+            showToast("Update Failed",error.message || "Could not update request.");
+            btn.disabled = false;
         }
-        catch(error){
-
-            console.error(
-                "Logout error:",
-                error
-            );
-
-
-            showToast(
-                "Logout Failed",
-                "Please try again."
-            );
-
-        }
-
-    }
-);
-
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Escape"
-        ){
-
-            sidebar.classList.remove(
-                "open"
-            );
-
-            overlay.classList.remove(
-                "show"
-            );
-
-        }
-
-    }
-);
-
-
-async function init(){
-
-    const owner =
-        await requireOwner();
-
-
-    if(!owner){
-        return;
-    }
-
-
-    await loadRequests();
-
-
-    startRealtime();
-
+    });
 }
 
+/* DELETE REQUEST */
+
+function openDeleteModal(r) {
+    const html = userProfileCard(r) + `
+        <div class="modal-note">
+            This permanently deletes the request row if Supabase permissions allow it.
+            Make sure you understand the consequences before deleting financial or delivery-related records.
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+            <button class="btn btn-danger" type="button" id="confirmDeleteBtn">Delete Request</button>
+        </div>`;
+
+    openModal("Delete Request?", "Confirm carefully before deleting.", html);
+
+    $("confirmDeleteBtn").addEventListener("click", async () => {
+        const btn = $("confirmDeleteBtn");
+        btn.disabled = true;
+
+        try {
+            const {error} = await supabaseClient
+                .from("cylinder_requests")
+                .delete()
+                .eq("id",r.id);
+
+            if (error) throw error;
+
+            closeModal();
+            showToast("Request Deleted","Request row deleted successfully.");
+            await loadRequests();
+        } catch (error) {
+            console.error("Delete error:", error);
+            showToast("Delete Failed",error.message || "Delete blocked by database permissions or linked records.");
+            btn.disabled = false;
+        }
+    });
+}
+
+modalContent.addEventListener("click", event => {
+    const close = event.target.closest("[data-close-modal]");
+    if (close) closeModal();
+
+    const preview = event.target.closest("[data-preview]");
+    if (preview) showImagePreview(preview.dataset.preview);
+});
+
+/* NOTIFICATIONS */
+
+async function loadNotifications() {
+    try {
+        const {data,error} = await supabaseClient
+            .from("notifications")
+            .select("*")
+            .order("created_at",{ascending:false})
+            .limit(8);
+
+        if (error) throw error;
+
+        const rows = data || [];
+        $("notificationCount").textContent = String(rows.length);
+        $("notificationHeadCount").textContent = rows.length + " New";
+
+        $("notificationList").innerHTML = rows.length ? rows.map(n => `
+            <div class="notification-item">
+                <div class="notification-icon">🔔</div>
+                <div>
+                    <div class="notification-title">${escapeHtml(n.title || n.heading || "EGC Notification")}</div>
+                    <div class="notification-text">${escapeHtml(n.message || n.body || n.description || "")}</div>
+                    <div class="notification-time">${formatDate(n.created_at)}</div>
+                </div>
+            </div>`).join("") : '<div class="notification-empty">No notifications found.</div>';
+    } catch (error) {
+        console.warn("Notifications unavailable:",error.message || error);
+        $("notificationCount").textContent = "0";
+        $("notificationHeadCount").textContent = "0 New";
+        $("notificationList").innerHTML = '<div class="notification-empty">Notifications are not available.</div>';
+    }
+}
+
+$("notificationBtn").addEventListener("click", () => {
+    $("notificationPanel").classList.toggle("show");
+});
+
+document.addEventListener("click", e => {
+    if (!e.target.closest(".notification-wrap")) {
+        $("notificationPanel").classList.remove("show");
+    }
+});
+
+/* LOGOUT */
+
+$("logoutBtn").addEventListener("click", () => $("logoutModal").classList.add("show"));
+$("logoutCancel").addEventListener("click", () => $("logoutModal").classList.remove("show"));
+
+$("logoutModal").addEventListener("click", e => {
+    if (e.target === $("logoutModal")) $("logoutModal").classList.remove("show");
+});
+
+$("logoutConfirm").addEventListener("click", async () => {
+    const btn = $("logoutConfirm");
+    btn.disabled = true;
+
+    try {
+        const {error} = await supabaseClient.auth.signOut();
+        if (error) throw error;
+        window.location.replace("owner-login.html");
+    } catch (error) {
+        showToast("Logout Failed",error.message || "Please try again.");
+        btn.disabled = false;
+    }
+});
+
+/* REALTIME */
+
+function startRealtime() {
+    if (realtimeChannel) return;
+
+    realtimeChannel = supabaseClient
+        .channel("owner-requests-live")
+        .on("postgres_changes", {
+            event:"*",
+            schema:"public",
+            table:"cylinder_requests"
+        }, async payload => {
+            if (payload.eventType === "INSERT") {
+                showToast("New Cylinder Request","A new request was received.");
+            }
+            await loadRequests();
+        })
+        .subscribe(status => console.log("EGC Owner Requests Realtime:",status));
+}
+
+async function init() {
+    const owner = await requireOwner();
+    if (!owner) return;
+
+    await Promise.all([loadRequests(),loadNotifications()]);
+    startRealtime();
+}
 
 init();
-
 </script>
-
 </body>
 </html>

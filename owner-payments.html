@@ -1619,31 +1619,17 @@ td{
 
 
             <select
-                id="statusFilter"
-                class="status-filter"
-            >
-
-                <option value="">
-                    All Payment Status
-                </option>
-
-                <option value="pending">
-                    Pending
-                </option>
-
-                <option value="paid">
-                    Paid
-                </option>
-
-                <option value="failed">
-                    Failed
-                </option>
-
-                <option value="refunded">
-                    Refunded
-                </option>
-
-            </select>
+    id="statusFilter"
+    class="status-filter"
+>
+    <option value="">All Payments</option>
+    <option value="pending">Pending Payments</option>
+    <option value="paid">Paid Payments</option>
+    <option value="failed">Failed Payments</option>
+    <option value="refunded">Refunded Payments</option>
+    <option value="approved">Owner Approved</option>
+    <option value="rejected">Owner Rejected</option>
+</select>
 
 
         </div>
@@ -1847,705 +1833,534 @@ td{
     </div>
 
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
+
+/* =========================================================
+   EGC OWNER PAYMENTS — SUPABASE CONFIG
+========================================================= */
 
 const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+    "https://szefvmvokkhvnzryodqu.supabase.co";
 
-const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
+if (!window.supabase) {
+    alert("Supabase library load nahi hui. Internet connection check karein.");
+    throw new Error("Supabase JS library not loaded.");
+}
+
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_PUBLISHABLE_KEY
 );
 
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
-/* ================= ELEMENTS ================= */
+const totalPayments = document.getElementById("totalPayments");
+const paidPayments = document.getElementById("paidPayments");
+const pendingPayments = document.getElementById("pendingPayments");
+const totalAmount = document.getElementById("totalAmount");
+const paymentTableBody = document.getElementById("paymentTableBody");
+const searchInput = document.getElementById("searchInput");
+const statusFilter = document.getElementById("statusFilter");
 
-const totalPayments =
-document.getElementById("totalPayments");
+const deleteModal = document.getElementById("deleteModal");
+const deleteCancel = document.getElementById("deleteCancel");
+const deleteConfirm = document.getElementById("deleteConfirm");
 
-const paidPayments =
-document.getElementById("paidPayments");
+const toast = document.getElementById("toast");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
 
-const pendingPayments =
-document.getElementById("pendingPayments");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const logoutBtn = document.getElementById("logoutBtn");
 
-const totalAmount =
-document.getElementById("totalAmount");
-
-const paymentTableBody =
-document.getElementById("paymentTableBody");
-
-const searchInput =
-document.getElementById("searchInput");
-
-const statusFilter =
-document.getElementById("statusFilter");
-
-const deleteModal =
-document.getElementById("deleteModal");
-
-const deleteCancel =
-document.getElementById("deleteCancel");
-
-const deleteConfirm =
-document.getElementById("deleteConfirm");
-
-const toast =
-document.getElementById("toast");
-
-const toastTitle =
-document.getElementById("toastTitle");
-
-const toastText =
-document.getElementById("toastText");
-
-const menuBtn =
-document.getElementById("menuBtn");
-
-const sidebar =
-document.getElementById("sidebar");
-
-const overlay =
-document.getElementById("overlay");
-
-const logoutBtn =
-document.getElementById("logoutBtn");
-
-
-/* ================= DATA ================= */
+/* =========================================================
+   STATE
+========================================================= */
 
 let payments = [];
-
 let selectedDeleteId = null;
+let realtimeChannel = null;
+let isLoadingPayments = false;
 
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
-/* ================= NAVIGATION ================= */
-
-function openPage(page){
-
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-
-        users:"owner-users.html",
-
-        agencies:"owner-agencies.html",
-
-        companies:"owner-companies.html",
-
-        requests:"owner-requests.html",
-
-        payments:"owner-payments.html",
-
-        reports:"owner-reports.html",
-
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        settings: "owner-settings.html"
     };
 
-    if(pages[page]){
-
-        window.location.href =
-        pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
-
-document
-.querySelectorAll("[data-page]")
-.forEach(button => {
-
-    button.addEventListener(
-        "click",
-        function(){
-
-            openPage(
-                this.dataset.page
-            );
-
-        }
-    );
-
+document.querySelectorAll("[data-page]").forEach(function (button) {
+    button.addEventListener("click", function () {
+        openPage(this.dataset.page);
+    });
 });
 
+/* =========================================================
+   MOBILE SIDEBAR
+========================================================= */
 
-/* ================= MOBILE ================= */
-
-menuBtn.addEventListener(
-    "click",
-    function(){
-
+if (menuBtn && sidebar && overlay) {
+    menuBtn.addEventListener("click", function () {
         sidebar.classList.toggle("open");
-
         overlay.classList.toggle("show");
+    });
 
-    }
-);
-
-
-overlay.addEventListener(
-    "click",
-    function(){
-
+    overlay.addEventListener("click", function () {
         sidebar.classList.remove("open");
-
         overlay.classList.remove("show");
-
-    }
-);
-
-
-/* ================= SAFE HTML ================= */
-
-function escapeHtml(value){
-
-    return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
+    });
 }
 
+/* =========================================================
+   SAFE HTML
+========================================================= */
 
-/* ================= TOAST ================= */
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
-function showToast(title,text){
+/* =========================================================
+   TOAST
+========================================================= */
 
-    toastTitle.textContent =
-    title || "Notification";
+function showToast(title, text) {
+    if (!toast || !toastTitle || !toastText) {
+        console.log(title, text);
+        return;
+    }
 
-    toastText.textContent =
-    text || "";
+    toastTitle.textContent = title || "Notification";
+    toastText.textContent = text || "";
 
     toast.classList.add("show");
 
-    clearTimeout(
-        window.egcPaymentToastTimer
-    );
+    clearTimeout(window.egcPaymentToastTimer);
 
-    window.egcPaymentToastTimer =
-    setTimeout(
-        function(){
-
-            toast.classList.remove("show");
-
-        },
-        5000
-    );
-
+    window.egcPaymentToastTimer = setTimeout(function () {
+        toast.classList.remove("show");
+    }, 5000);
 }
 
+/* =========================================================
+   DATE AND MONEY
+========================================================= */
 
-/* ================= DATE ================= */
+function formatDate(value) {
+    if (!value) return "—";
 
-function formatDate(value){
+    const date = new Date(value);
 
-    if(!value){
+    if (Number.isNaN(date.getTime())) {
         return "—";
     }
 
-    const date =
-    new Date(value);
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
+}
 
-    if(Number.isNaN(date.getTime())){
+function formatDateTime(value) {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
         return "—";
     }
 
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
-
-/* ================= MONEY ================= */
-
-function moneyNumber(value){
-
-    const number =
-    Number(value);
-
-    if(
+function moneyNumber(value) {
+    if (
         value === null ||
         value === undefined ||
-        value === "" ||
-        Number.isNaN(number)
-    ){
+        value === ""
+    ) {
         return 0;
     }
 
-    return number;
+    const number = Number(value);
 
+    return Number.isFinite(number) ? number : 0;
 }
 
+function formatMoney(value) {
+    return "₹" + moneyNumber(value).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
 
-function formatMoney(value){
+/* =========================================================
+   PAYMENT STATUS HELPERS
+========================================================= */
 
-    return "₹" +
-    moneyNumber(value)
-    .toLocaleString(
-        "en-IN",
-        {
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
-        }
+function normaliseStatus(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function getPaymentStatus(payment) {
+    return normaliseStatus(payment.payment_status || "pending");
+}
+
+function getVerificationStatus(payment) {
+    const value = normaliseStatus(payment.verification_status);
+
+    if (value) return value;
+
+    /*
+      Do not infer approval solely from a missing verification
+      field. A legacy payment must be inspected accurately.
+    */
+
+    if (getPaymentStatus(payment) === "paid") {
+        return "not recorded";
+    }
+
+    return "pending";
+}
+
+function isPaymentPending(payment) {
+    const paymentStatus = getPaymentStatus(payment);
+    const verificationStatus = getVerificationStatus(payment);
+
+    return (
+        paymentStatus === "pending" &&
+        verificationStatus !== "approved" &&
+        verificationStatus !== "rejected"
     );
-
 }
 
+function getBadgeClass(value) {
+    const status = normaliseStatus(value);
 
-/* ================= LOAD PAYMENTS ================= */
+    if (
+        status === "paid" ||
+        status === "approved" ||
+        status === "completed" ||
+        status === "delivered"
+    ) {
+        return "badge-green";
+    }
 
-async function loadPayments(){
+    if (
+        status === "pending" ||
+        status === "waiting"
+    ) {
+        return "badge-yellow";
+    }
 
-    paymentTableBody.innerHTML = `
-        <tr>
-            <td
-                colspan="16"
-                class="loading"
-            >
-                Loading payments...
-            </td>
-        </tr>
+    if (
+        status === "processing"
+    ) {
+        return "badge-blue";
+    }
+
+    if (
+        status === "failed" ||
+        status === "refunded" ||
+        status === "rejected" ||
+        status === "cancelled" ||
+        status === "declined"
+    ) {
+        return "badge-red";
+    }
+
+    return "badge-gray";
+}
+
+function badgeHtml(value) {
+    const text = value
+        ? String(value)
+        : "Not Set";
+
+    return `
+        <span class="badge ${getBadgeClass(text)}">
+            ${escapeHtml(text)}
+        </span>
     `;
+}
 
-    try{
+/* =========================================================
+   LOAD ALL PAYMENTS
+========================================================= */
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("payments")
-        .select("*")
-        .order(
-            "payment_date",
-            {
-                ascending:false
-            }
-        );
+async function loadPayments() {
+    if (isLoadingPayments) return;
 
+    isLoadingPayments = true;
 
-        if(error){
+    if (paymentTableBody) {
+        paymentTableBody.innerHTML = `
+            <tr>
+                <td colspan="16" class="loading">
+                    Loading payments...
+                </td>
+            </tr>
+        `;
+    }
 
-            console.error(
-                "Payments loading error:",
-                error
-            );
+    try {
+        /*
+          Do not filter out old or pending records here.
+          Owner needs to see every payment visible under RLS.
+        */
 
-            paymentTableBody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="16"
-                        class="empty"
-                    >
-                        Unable to load payments.<br>
-                        ${escapeHtml(error.message)}
-                    </td>
-                </tr>
-            `;
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .order("created_at", { ascending: false });
 
-            return;
-
+        if (error) {
+            throw error;
         }
 
-
-        payments =
-        data || [];
-
+        payments = data || [];
 
         await attachRelatedData();
 
         updateCounters();
-
         renderPayments();
 
+    } catch (error) {
+        console.error("Payments loading error:", error);
+
+        if (paymentTableBody) {
+            paymentTableBody.innerHTML = `
+                <tr>
+                    <td colspan="16" class="empty">
+                        Unable to load payments.<br>
+                        ${escapeHtml(error.message || "Unknown error")}
+                    </td>
+                </tr>
+            `;
+        }
+
+        showToast(
+            "Payments Load Failed",
+            error.message || "Unable to load payment records."
+        );
+
+    } finally {
+        isLoadingPayments = false;
     }
-    catch(error){
-
-        console.error(error);
-
-        paymentTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="16"
-                    class="empty"
-                >
-                    Unable to load payments.
-                </td>
-            </tr>
-        `;
-
-    }
-
 }
 
+/* =========================================================
+   ATTACH PROFILE, REQUEST AND AGENCY DETAILS
+========================================================= */
 
-/* ================= RELATED DATA ================= */
+async function attachRelatedData() {
+    if (!payments.length) return;
 
-async function attachRelatedData(){
-
-    if(!payments.length){
-        return;
-    }
-
-
-    const userIds =
-    [
+    const userIds = [
         ...new Set(
             payments
-            .map(item => item.user_id)
-            .filter(Boolean)
+                .map(payment => payment.user_id)
+                .filter(Boolean)
         )
     ];
 
-
-    const requestIds =
-    [
+    const requestIds = [
         ...new Set(
             payments
-            .map(item => item.request_id)
-            .filter(Boolean)
+                .map(payment => payment.request_id)
+                .filter(Boolean)
         )
     ];
-
 
     let profiles = [];
-
     let requests = [];
-
     let agencies = [];
 
+    /* ---------------- PROFILES ---------------- */
 
-    /* ================= PROFILES ================= */
-
-    if(userIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
+    if (userIds.length) {
+        const { data, error } = await supabaseClient
             .from("profiles")
             .select("*")
-            .in(
-                "id",
-                userIds
-            );
+            .in("id", userIds);
 
-            if(!error){
-
-                profiles =
-                data || [];
-
-            }
-            else{
-
-                console.warn(
-                    "Profiles loading:",
-                    error.message
-                );
-
-            }
-
+        if (error) {
+            console.warn("Profiles loading error:", error.message);
+        } else {
+            profiles = data || [];
         }
-        catch(error){
-
-            console.warn(
-                "Profiles exception:",
-                error
-            );
-
-        }
-
     }
 
+    /* ---------------- REQUESTS ---------------- */
 
-    /* ================= REQUESTS ================= */
-
-    if(requestIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
+    if (requestIds.length) {
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .select("*")
-            .in(
-                "id",
-                requestIds
-            );
+            .in("id", requestIds);
 
-            if(!error){
-
-                requests =
-                data || [];
-
-            }
-            else{
-
-                console.warn(
-                    "Requests loading:",
-                    error.message
-                );
-
-            }
-
+        if (error) {
+            console.warn("Requests loading error:", error.message);
+        } else {
+            requests = data || [];
         }
-        catch(error){
-
-            console.warn(
-                "Requests exception:",
-                error
-            );
-
-        }
-
     }
 
+    /* ---------------- AGENCIES ---------------- */
 
-    /* ================= AGENCIES ================= */
-
-    const agencyIds =
-    [
+    const agencyIds = [
         ...new Set(
             requests
-            .map(item => item.agency_id)
-            .filter(Boolean)
+                .map(request => request.agency_id)
+                .filter(Boolean)
         )
     ];
 
-
-    if(agencyIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
+    if (agencyIds.length) {
+        const { data, error } = await supabaseClient
             .from("agencies")
             .select("*")
-            .in(
-                "id",
-                agencyIds
-            );
+            .in("id", agencyIds);
 
-            if(!error){
-
-                agencies =
-                data || [];
-
-            }
-            else{
-
-                console.warn(
-                    "Agencies loading:",
-                    error.message
-                );
-
-            }
-
+        if (error) {
+            console.warn("Agencies loading error:", error.message);
+        } else {
+            agencies = data || [];
         }
-        catch(error){
-
-            console.warn(
-                "Agencies exception:",
-                error
-            );
-
-        }
-
     }
 
-
-    const profileMap =
-    new Map(
-        profiles.map(
-            profile =>
-            [
-                profile.id,
-                profile
-            ]
-        )
+    const profileMap = new Map(
+        profiles.map(profile => [profile.id, profile])
     );
 
-
-    const requestMap =
-    new Map(
-        requests.map(
-            request =>
-            [
-                request.id,
-                request
-            ]
-        )
+    const requestMap = new Map(
+        requests.map(request => [request.id, request])
     );
 
-
-    const agencyMap =
-    new Map(
-        agencies.map(
-            agency =>
-            [
-                agency.id,
-                agency
-            ]
-        )
+    const agencyMap = new Map(
+        agencies.map(agency => [agency.id, agency])
     );
 
-
-    payments =
-    payments.map(payment => {
-
-        const profile =
-        profileMap.get(
-            payment.user_id
-        ) || {};
-
-
-        const request =
-        requestMap.get(
-            payment.request_id
-        ) || {};
-
-
-        const agency =
-        agencyMap.get(
-            request.agency_id
-        ) || {};
-
+    payments = payments.map(function (payment) {
+        const profile = profileMap.get(payment.user_id) || {};
+        const request = requestMap.get(payment.request_id) || {};
+        const agency = agencyMap.get(request.agency_id) || {};
 
         return {
-
             ...payment,
-
             profile,
-
             request,
-
             agency
-
         };
-
     });
-
 }
 
+/* =========================================================
+   USER DETAILS
+========================================================= */
 
-/* ================= USER DATA ================= */
-
-function getUserName(payment){
-
-    const p =
-    payment.profile || {};
+function getUserName(payment) {
+    const profile = payment.profile || {};
 
     return (
-        p.full_name ||
-        p.username ||
-        p.name ||
-        p.display_name ||
+        profile.full_name ||
+        profile.username ||
+        profile.name ||
+        profile.display_name ||
         "User"
     );
-
 }
 
-
-function getUserMobile(payment){
-
-    const p =
-    payment.profile || {};
+function getUserMobile(payment) {
+    const profile = payment.profile || {};
 
     return (
-        p.mobile ||
-        p.phone ||
-        p.mobile_number ||
-        p.phone_number ||
+        profile.mobile ||
+        profile.phone ||
+        profile.mobile_number ||
+        profile.phone_number ||
         "—"
     );
-
 }
 
-
-function getUserEmail(payment){
-
-    const p =
-    payment.profile || {};
+function getUserEmail(payment) {
+    const profile = payment.profile || {};
 
     return (
-        p.email ||
-        p.auth_email ||
+        profile.email ||
+        profile.auth_email ||
         "—"
     );
-
 }
 
-
-function getUserPhoto(payment){
-
-    const p =
-    payment.profile || {};
+function getUserPhoto(payment) {
+    const profile = payment.profile || {};
 
     return (
-        p.profile_photo ||
-        p.photo_url ||
-        p.avatar_url ||
-        p.profile_image ||
-        p.photo ||
-        p.image_url ||
+        profile.profile_photo ||
+        profile.photo_url ||
+        profile.avatar_url ||
+        profile.profile_image ||
+        profile.photo ||
+        profile.image_url ||
         ""
     );
-
 }
 
+/* =========================================================
+   AGENCY AND COMPANY DETAILS
+========================================================= */
 
-/* ================= AGENCY DATA ================= */
-
-function getAgencyName(payment){
-
-    const a =
-    payment.agency || {};
+function getAgencyName(payment) {
+    const agency = payment.agency || {};
 
     return (
-        a.agency_name ||
-        a.name ||
-        a.agency ||
-        a.title ||
+        agency.agency_name ||
+        agency.name ||
+        agency.agency ||
+        agency.title ||
         "—"
     );
-
 }
 
-
-function getCompanyName(payment){
-
-    const request =
-    payment.request || {};
-
-    const agency =
-    payment.agency || {};
+function getCompanyName(payment) {
+    const request = payment.request || {};
+    const agency = payment.agency || {};
 
     return (
         request.lpg_company ||
@@ -2556,16 +2371,14 @@ function getCompanyName(payment){
         agency.company ||
         "—"
     );
-
 }
 
+/* =========================================================
+   REQUEST DETAILS
+========================================================= */
 
-/* ================= REQUEST DATA ================= */
-
-function getRequestNumber(payment){
-
-    const request =
-    payment.request || {};
+function getRequestNumber(payment) {
+    const request = payment.request || {};
 
     return (
         request.request_number ||
@@ -2573,503 +2386,278 @@ function getRequestNumber(payment){
         request.request_id ||
         "—"
     );
-
 }
 
-
-function getQuantity(payment){
-
-    const request =
-    payment.request || {};
+function getQuantity(payment) {
+    const request = payment.request || {};
 
     return (
         request.quantity ??
         request.cylinder_quantity ??
         request.cylinders ??
-        "0"
+        "—"
     );
-
 }
 
-
-function getRequestTotal(payment){
-
-    const request =
-    payment.request || {};
+function getRequestTotal(payment) {
+    const request = payment.request || {};
 
     return moneyNumber(
+        request.total_payable ??
         request.total_amount ??
         request.request_total ??
         request.total
     );
-
 }
 
-
-function getExtraCharge(payment){
-
-    const request =
-    payment.request || {};
+function getExtraCharge(payment) {
+    const request = payment.request || {};
 
     return moneyNumber(
         request.extra_charge ??
+        request.charge_amount ??
         request.extra_charges ??
         request.service_charge
     );
-
 }
 
+/* =========================================================
+   COUNTERS
+========================================================= */
 
-/* ================= STATUS ================= */
-
-function getBadgeClass(value){
-
-    const v =
-    String(value || "")
-    .toLowerCase();
-
-
-    if(
-        v === "paid" ||
-        v === "verified" ||
-        v === "completed" ||
-        v === "delivered" ||
-        v === "approved"
-    ){
-
-        return "badge-green";
-
-    }
-
-
-    if(
-        v === "pending" ||
-        v === "waiting"
-    ){
-
-        return "badge-yellow";
-
-    }
-
-
-    if(
-        v === "processing"
-    ){
-
-        return "badge-blue";
-
-    }
-
-
-    if(
-        v === "failed" ||
-        v === "refunded" ||
-        v === "rejected" ||
-        v === "cancelled"
-    ){
-
-        return "badge-red";
-
-    }
-
-
-    return "badge-gray";
-
-}
-
-
-function badgeHtml(value){
-
-    if(
-        value === null ||
-        value === undefined ||
-        value === ""
-    ){
-
-        return `
-            <span class="badge badge-gray">
-                Not Set
-            </span>
-        `;
-
-    }
-
-
-    return `
-        <span class="badge ${getBadgeClass(value)}">
-            ${escapeHtml(value)}
-        </span>
-    `;
-
-}
-
-
-/* ================= COUNTERS ================= */
-
-function updateCounters(){
-
-    const total =
-    payments.length;
-
+function updateCounters() {
+    const total = payments.length;
 
     let paid = 0;
-
     let pending = 0;
-
     let amount = 0;
 
+    payments.forEach(function (payment) {
+        const status = getPaymentStatus(payment);
 
-    payments.forEach(payment => {
-
-        const status =
-        String(
-            payment.payment_status ||
-            "pending"
-        )
-        .toLowerCase();
-
-
-        if(status === "paid"){
+        if (status === "paid") {
             paid++;
         }
 
-
-        if(status === "pending"){
+        if (isPaymentPending(payment)) {
             pending++;
         }
 
+        /*
+          Total Amount is the sum of payment records, not
+          request totals. This avoids counting a full cylinder
+          value for every instalment.
+        */
 
-        amount +=
-        moneyNumber(
-            payment.payment_amount
-        );
-
+        amount += moneyNumber(payment.payment_amount);
     });
 
-
-    totalPayments.textContent =
-    total;
-
-    paidPayments.textContent =
-    paid;
-
-    pendingPayments.textContent =
-    pending;
-
-    totalAmount.textContent =
-    formatMoney(amount);
-
-}
-
-
-/* ================= OPEN PAYMENT DETAILS ================= */
-
-function openPaymentDetails(paymentId){
-
-    if(!paymentId){
-        return;
+    if (totalPayments) {
+        totalPayments.textContent = total;
     }
 
-    window.location.href =
-    "owner-payment-details.html?id=" +
-    encodeURIComponent(paymentId);
+    if (paidPayments) {
+        paidPayments.textContent = paid;
+    }
 
+    if (pendingPayments) {
+        pendingPayments.textContent = pending;
+    }
+
+    if (totalAmount) {
+        totalAmount.textContent = formatMoney(amount);
+    }
 }
 
+/* =========================================================
+   OPEN PAYMENT DETAILS
+========================================================= */
 
-/* ================= RENDER ================= */
+function openPaymentDetails(paymentId) {
+    if (!paymentId) return;
 
-function renderPayments(){
+    window.location.href =
+        "owner-payment-details.html?id=" +
+        encodeURIComponent(paymentId);
+}
 
-    const search =
-    String(
-        searchInput.value ||
-        ""
-    )
-    .trim()
-    .toLowerCase();
+/* =========================================================
+   RENDER PAYMENT TABLE
+========================================================= */
 
+function renderPayments() {
+    if (!paymentTableBody) return;
 
-    const filter =
-    String(
-        statusFilter.value ||
-        ""
-    )
-    .toLowerCase();
+    const search = String(
+        searchInput?.value || ""
+    ).trim().toLowerCase();
 
+    const filter = String(
+        statusFilter?.value || ""
+    ).trim().toLowerCase();
 
-    const filtered =
-    payments.filter(payment => {
-
-        const searchable =
-        [
-
+    const filtered = payments.filter(function (payment) {
+        const searchable = [
             payment.id,
-
             payment.request_id,
-
             getRequestNumber(payment),
-
             payment.user_id,
-
             getUserName(payment),
-
             getUserMobile(payment),
-
             getUserEmail(payment),
-
             getAgencyName(payment),
-
             getCompanyName(payment),
-
             payment.payment_status,
-
             payment.verification_status,
-
             payment.payment_amount,
-
             payment.payment_reference,
-
-            payment.transaction_id
-
-        ]
-        .join(" ")
-        .toLowerCase();
-
+            payment.transaction_id,
+            payment.payment_method
+        ].join(" ").toLowerCase();
 
         const matchesSearch =
-        !search ||
-        searchable.includes(search);
+            !search || searchable.includes(search);
 
+        const paymentStatus = getPaymentStatus(payment);
+        const verificationStatus = getVerificationStatus(payment);
 
-        const paymentStatus =
-        String(
-            payment.payment_status ||
-            "pending"
-        )
-        .toLowerCase();
+        let matchesStatus = true;
 
+        if (filter) {
+            if (filter === "pending") {
+                matchesStatus = isPaymentPending(payment);
+            } else if (filter === "approved") {
+                matchesStatus =
+                    verificationStatus === "approved" ||
+                    paymentStatus === "paid";
+            } else if (filter === "rejected") {
+                matchesStatus =
+                    verificationStatus === "rejected" ||
+                    paymentStatus === "failed";
+            } else {
+                matchesStatus = paymentStatus === filter;
+            }
+        }
 
-        const matchesStatus =
-        !filter ||
-        paymentStatus === filter;
-
-
-        return (
-            matchesSearch &&
-            matchesStatus
-        );
-
+        return matchesSearch && matchesStatus;
     });
 
-
-    if(filtered.length === 0){
-
+    if (!filtered.length) {
         paymentTableBody.innerHTML = `
             <tr>
-                <td
-                    colspan="16"
-                    class="empty"
-                >
+                <td colspan="16" class="empty">
                     No payments found.
                 </td>
             </tr>
         `;
 
         return;
-
     }
 
+    paymentTableBody.innerHTML = "";
 
-    paymentTableBody.innerHTML =
-    "";
+    filtered.forEach(function (payment) {
+        const name = getUserName(payment);
+        const mobile = getUserMobile(payment);
+        const email = getUserEmail(payment);
+        const photo = getUserPhoto(payment);
+        const agency = getAgencyName(payment);
+        const company = getCompanyName(payment);
+        const quantity = getQuantity(payment);
 
+        const paymentAmount = moneyNumber(payment.payment_amount);
+        const extraCharge = getExtraCharge(payment);
+        const requestTotal = getRequestTotal(payment);
 
-    filtered.forEach(payment => {
+        const status = getPaymentStatus(payment);
+        const verification = getVerificationStatus(payment);
 
-        const name =
-        getUserName(payment);
+        let photoHtml = "";
 
-        const mobile =
-        getUserMobile(payment);
-
-        const email =
-        getUserEmail(payment);
-
-        const photo =
-        getUserPhoto(payment);
-
-        const agency =
-        getAgencyName(payment);
-
-        const company =
-        getCompanyName(payment);
-
-        const quantity =
-        getQuantity(payment);
-
-        const paymentAmount =
-        moneyNumber(
-            payment.payment_amount
-        );
-
-        const extraCharge =
-        getExtraCharge(payment);
-
-        const requestTotal =
-        getRequestTotal(payment);
-
-        const status =
-        payment.payment_status ||
-        "pending";
-
-        const verification =
-        payment.verification_status ||
-        (
-            payment.verified_at
-            ? "verified"
-            : "pending"
-        );
-
-
-        let photoHtml;
-
-
-        if(photo){
-
+        if (photo) {
             photoHtml = `
                 <img
                     src="${escapeHtml(photo)}"
                     class="user-photo"
                     alt="User"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                    onerror="this.style.display='none';"
                 >
-
-                <div
-                    class="user-photo-fallback"
-                    style="display:none;"
-                >
-                    👤
-                </div>
             `;
-
-        }
-        else{
-
+        } else {
             photoHtml = `
                 <div class="user-photo-fallback">
                     👤
                 </div>
             `;
-
         }
 
+        const transactionId =
+            payment.transaction_id ||
+            payment.payment_reference ||
+            "—";
 
-        const tr =
-        document.createElement("tr");
+        const tr = document.createElement("tr");
 
+        if (isPaymentPending(payment)) {
+            tr.classList.add("payment-pending-row");
+        }
 
         tr.innerHTML = `
-
             <td>
-
                 <div class="payment-id">
                     ${escapeHtml(payment.id)}
                 </div>
-
             </td>
 
-
             <td>
-
                 <div class="request-number">
-                    ${escapeHtml(
-                        getRequestNumber(payment)
-                    )}
+                    ${escapeHtml(getRequestNumber(payment))}
                 </div>
-
             </td>
 
-
             <td>
-
                 <div class="user-box">
-
                     ${photoHtml}
-
                     <div>
-
                         <div class="user-name">
                             ${escapeHtml(name)}
                         </div>
-
                         <div class="user-email">
                             ${escapeHtml(email)}
                         </div>
-
                     </div>
-
                 </div>
-
             </td>
 
+            <td>${escapeHtml(mobile)}</td>
+
+            <td>${escapeHtml(email)}</td>
 
             <td>
-                ${escapeHtml(mobile)}
-            </td>
-
-
-            <td>
-                ${escapeHtml(email)}
-            </td>
-
-
-            <td>
-
                 <div class="user-id">
-                    ${escapeHtml(
-                        payment.user_id ||
-                        "—"
-                    )}
+                    ${escapeHtml(payment.user_id || "—")}
                 </div>
-
             </td>
 
+            <td>${escapeHtml(agency)}</td>
 
-            <td>
-                ${escapeHtml(agency)}
-            </td>
+            <td>${escapeHtml(company)}</td>
 
-
-            <td>
-                ${escapeHtml(company)}
-            </td>
-
-
-            <td>
-                ${escapeHtml(quantity)}
-            </td>
-
+            <td>${escapeHtml(quantity)}</td>
 
             <td class="money">
                 ${formatMoney(paymentAmount)}
             </td>
 
-
             <td class="money">
                 ${formatMoney(extraCharge)}
             </td>
-
 
             <td class="total-money">
                 ${formatMoney(requestTotal)}
             </td>
 
-
-            <td>
-                ${badgeHtml(status)}
-            </td>
-
+            <td>${badgeHtml(status)}</td>
 
             <td>
                 ${formatDate(
@@ -3078,16 +2666,10 @@ function renderPayments(){
                 )}
             </td>
 
+            <td>${badgeHtml(verification)}</td>
 
             <td>
-                ${badgeHtml(verification)}
-            </td>
-
-
-            <td>
-
                 <div class="action-wrap">
-
                     <button
                         type="button"
                         class="action-btn details-btn"
@@ -3096,7 +2678,6 @@ function renderPayments(){
                         👁 Details
                     </button>
 
-
                     <button
                         type="button"
                         class="action-btn delete-btn"
@@ -3104,426 +2685,239 @@ function renderPayments(){
                     >
                         🗑️
                     </button>
-
                 </div>
-
             </td>
-
         `;
 
-
         paymentTableBody.appendChild(tr);
-
     });
 
+    paymentTableBody
+        .querySelectorAll("[data-details-id]")
+        .forEach(function (button) {
+            button.addEventListener("click", function () {
+                openPaymentDetails(this.dataset.detailsId);
+            });
+        });
 
-    document
-    .querySelectorAll("[data-details-id]")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            function(){
-
-                openPaymentDetails(
-                    this.dataset.detailsId
-                );
-
-            }
-        );
-
-    });
-
-
-    document
-    .querySelectorAll("[data-delete-id]")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            function(){
-
-                openDeleteModal(
-                    this.dataset.deleteId
-                );
-
-            }
-        );
-
-    });
-
+    paymentTableBody
+        .querySelectorAll("[data-delete-id]")
+        .forEach(function (button) {
+            button.addEventListener("click", function () {
+                openDeleteModal(this.dataset.deleteId);
+            });
+        });
 }
 
+/* =========================================================
+   SEARCH AND STATUS FILTER
+========================================================= */
 
-/* ================= SEARCH ================= */
-
-searchInput.addEventListener(
-    "input",
-    renderPayments
-);
-
-
-statusFilter.addEventListener(
-    "change",
-    renderPayments
-);
-
-
-/* ================= DELETE ================= */
-
-function openDeleteModal(id){
-
-    selectedDeleteId =
-    id;
-
-    deleteModal.classList.add(
-        "show"
-    );
-
+if (searchInput) {
+    searchInput.addEventListener("input", renderPayments);
 }
 
+if (statusFilter) {
+    statusFilter.addEventListener("change", renderPayments);
+}
 
-deleteCancel.addEventListener(
-    "click",
-    function(){
+/* =========================================================
+   DELETE PAYMENT
+========================================================= */
 
-        deleteModal.classList.remove(
-            "show"
-        );
+function openDeleteModal(id) {
+    selectedDeleteId = id;
 
-        selectedDeleteId =
-        null;
-
+    if (deleteModal) {
+        deleteModal.classList.add("show");
     }
-);
+}
 
+function closeDeleteModal() {
+    if (deleteModal) {
+        deleteModal.classList.remove("show");
+    }
 
-deleteConfirm.addEventListener(
-    "click",
-    async function(){
+    selectedDeleteId = null;
+}
 
-        if(!selectedDeleteId){
-            return;
-        }
+if (deleteCancel) {
+    deleteCancel.addEventListener("click", closeDeleteModal);
+}
 
+if (deleteConfirm) {
+    deleteConfirm.addEventListener("click", async function () {
+        if (!selectedDeleteId) return;
 
-        deleteConfirm.disabled =
-        true;
+        const idToDelete = selectedDeleteId;
 
-        deleteConfirm.textContent =
-        "Deleting...";
+        deleteConfirm.disabled = true;
+        deleteConfirm.textContent = "Deleting...";
 
+        try {
+            /*
+              RLS must restrict deletion to authorized Owner users.
+              Do not disable RLS to make this action work.
+            */
 
-        try{
+            const { error } = await supabaseClient
+                .from("payments")
+                .delete()
+                .eq("id", idToDelete);
 
-            const {
-                error
-            } =
-            await supabaseClient
-            .from("payments")
-            .delete()
-            .eq(
-                "id",
-                selectedDeleteId
-            );
+            if (error) throw error;
 
-
-            if(error){
-
-                console.error(error);
-
-                showToast(
-                    "Delete Failed",
-                    error.message
-                );
-
-                return;
-
-            }
-
-
-            deleteModal.classList.remove(
-                "show"
-            );
-
+            closeDeleteModal();
 
             showToast(
                 "Payment Deleted",
                 "Payment record deleted successfully."
             );
 
-
-            selectedDeleteId =
-            null;
-
-
             await loadPayments();
 
-        }
-        catch(error){
-
-            console.error(error);
+        } catch (error) {
+            console.error("Delete payment error:", error);
 
             showToast(
                 "Delete Failed",
-                "Unable to delete payment."
+                error.message || "Unable to delete payment."
             );
 
+        } finally {
+            deleteConfirm.disabled = false;
+            deleteConfirm.textContent = "Delete";
         }
-        finally{
-
-            deleteConfirm.disabled =
-            false;
-
-            deleteConfirm.textContent =
-            "Delete";
-
-        }
-
-    }
-);
-
-
-deleteModal.addEventListener(
-    "click",
-    function(event){
-
-        if(
-            event.target ===
-            deleteModal
-        ){
-
-            deleteModal.classList.remove(
-                "show"
-            );
-
-            selectedDeleteId =
-            null;
-
-        }
-
-    }
-);
-
-
-/* ================= REALTIME ================= */
-
-function startRealtime(){
-
-    const channel =
-    supabaseClient
-    .channel(
-        "owner-payments-realtime"
-    );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"INSERT",
-            schema:"public",
-            table:"payments"
-        },
-        async payload => {
-
-            console.log(
-                "NEW PAYMENT:",
-                payload
-            );
-
-
-            showToast(
-                "🔔 New Payment",
-                "A new payment has been received."
-            );
-
-
-            await loadPayments();
-
-        }
-    );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"UPDATE",
-            schema:"public",
-            table:"payments"
-        },
-        async payload => {
-
-            console.log(
-                "PAYMENT UPDATED:",
-                payload
-            );
-
-
-            await loadPayments();
-
-        }
-    );
-
-
-    channel.on(
-        "postgres_changes",
-        {
-            event:"DELETE",
-            schema:"public",
-            table:"payments"
-        },
-        async payload => {
-
-            console.log(
-                "PAYMENT DELETED:",
-                payload
-            );
-
-
-            await loadPayments();
-
-        }
-    );
-
-
-    channel.subscribe(
-        status => {
-
-            console.log(
-                "EGC Payment Realtime:",
-                status
-            );
-
-        }
-    );
-
-
-    window.egcPaymentRealtime =
-    channel;
-
+    });
 }
 
+if (deleteModal) {
+    deleteModal.addEventListener("click", function (event) {
+        if (event.target === deleteModal) {
+            closeDeleteModal();
+        }
+    });
+}
 
-/* ================= LOGOUT ================= */
+/* =========================================================
+   REALTIME PAYMENTS
+========================================================= */
 
-logoutBtn.addEventListener(
-    "click",
-    async function(){
+function startRealtime() {
+    if (realtimeChannel) return;
 
-        const confirmed =
-        confirm(
+    realtimeChannel = supabaseClient
+        .channel("owner-payments-realtime")
+
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            async function (payload) {
+                console.log("Payment changed:", payload);
+
+                if (payload.eventType === "INSERT") {
+                    showToast(
+                        "🔔 New Payment",
+                        "A new payment record has been submitted."
+                    );
+                }
+
+                await loadPayments();
+            }
+        )
+
+        .subscribe(function (status) {
+            console.log("EGC Payment Realtime:", status);
+        });
+
+    window.egcPaymentRealtime = realtimeChannel;
+}
+
+/* =========================================================
+   OWNER LOGOUT
+========================================================= */
+
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", async function () {
+        const confirmed = confirm(
             "Kya aap EGC Owner Panel se logout karna chahte hain?"
         );
 
+        if (!confirmed) return;
 
-        if(!confirmed){
-            return;
-        }
+        try {
+            const { error } = await supabaseClient.auth.signOut();
 
+            if (error) throw error;
 
-        try{
+            window.location.replace("owner-login.html");
 
-            await supabaseClient.auth.signOut();
-
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-        }
-        catch(error){
-
-            console.error(error);
-
+        } catch (error) {
+            console.error("Logout error:", error);
 
             showToast(
                 "Logout Failed",
-                "Please try again."
+                error.message || "Please try again."
             );
-
         }
+    });
+}
 
-    }
-);
+/* =========================================================
+   ESC KEY
+========================================================= */
 
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+        closeDeleteModal();
 
-/* ================= ESC ================= */
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Escape"){
-
-            deleteModal.classList.remove(
-                "show"
-            );
-
-            selectedDeleteId =
-            null;
-
+        if (sidebar && overlay) {
+            sidebar.classList.remove("open");
+            overlay.classList.remove("show");
         }
-
     }
-);
+});
 
+/* =========================================================
+   INITIALIZE
+========================================================= */
 
-/* ================= INITIALIZE ================= */
+async function init() {
+    try {
+        const { data, error } =
+            await supabaseClient.auth.getSession();
 
-async function init(){
+        if (error) throw error;
 
-    try{
-
-        const {
-            data:{
-                session
-            }
-        } =
-        await supabaseClient.auth.getSession();
-
-
-        if(!session){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+        if (!data || !data.session) {
+            window.location.replace("owner-login.html");
             return;
-
         }
-
 
         await loadPayments();
 
         startRealtime();
 
+    } catch (error) {
+        console.error("Owner Payments initialization error:", error);
+
+        if (paymentTableBody) {
+            paymentTableBody.innerHTML = `
+                <tr>
+                    <td colspan="16" class="empty">
+                        Unable to initialize Payments page.<br>
+                        ${escapeHtml(error.message || "Unknown error")}
+                    </td>
+                </tr>
+            `;
+        }
     }
-    catch(error){
-
-        console.error(
-            "Initialization error:",
-            error
-        );
-
-        paymentTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="16"
-                    class="empty"
-                >
-                    Unable to initialize Payments page.
-                </td>
-            </tr>
-        `;
-
-    }
-
 }
-
 
 init();
 
 </script>
-
-</body>
-</html>

@@ -13,9 +13,18 @@
     padding:0;
 }
 
+:root{
+    --blue:#0871c3;
+    --dark:#06477f;
+    --text:#31566f;
+    --muted:#8194a4;
+    --border:#dce6ef;
+    --green:#18803d;
+}
+
 body{
     font-family:Arial,Helvetica,sans-serif;
-    color:#073f73;
+    color:var(--dark);
     min-height:100vh;
     background:
         radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
@@ -69,12 +78,12 @@ button{
 .owner-title{
     font-size:20px;
     font-weight:800;
-    color:#06477f;
+    color:var(--dark);
 }
 
 .owner-subtitle{
     font-size:12px;
-    color:#8094a6;
+    color:var(--muted);
     margin-top:3px;
 }
 
@@ -190,7 +199,7 @@ button{
 
 .page-heading h1{
     font-size:28px;
-    color:#06477f;
+    color:var(--dark);
     font-weight:800;
     margin-bottom:6px;
 }
@@ -198,15 +207,17 @@ button{
 .page-heading p{
     color:#7890a3;
     font-size:14px;
+    line-height:1.6;
 }
 
 .top-actions{
     display:flex;
     gap:9px;
+    flex-wrap:wrap;
 }
 
 .top-btn{
-    height:42px;
+    min-height:42px;
     border:0;
     border-radius:10px;
     padding:0 16px;
@@ -232,7 +243,7 @@ button{
 
 .slip-card{
     background:#fff;
-    border:1px solid #dce6ef;
+    border:1px solid var(--border);
     border-radius:20px;
     box-shadow:0 12px 38px rgba(50,80,110,.09);
     overflow:hidden;
@@ -251,6 +262,7 @@ button{
     display:flex;
     align-items:center;
     gap:15px;
+    min-width:0;
 }
 
 .slip-logo{
@@ -260,7 +272,7 @@ button{
 }
 
 .slip-brand-title{
-    color:#06477f;
+    color:var(--dark);
     font-size:21px;
     font-weight:900;
 }
@@ -273,6 +285,7 @@ button{
 
 .receipt-box{
     text-align:right;
+    min-width:0;
 }
 
 .receipt-label{
@@ -284,8 +297,8 @@ button{
 }
 
 .receipt-number{
-    color:#0871c3;
-    font-size:15px;
+    color:var(--blue);
+    font-size:14px;
     font-weight:900;
     word-break:break-all;
 }
@@ -301,7 +314,7 @@ button{
 }
 
 .status-left-title{
-    color:#06477f;
+    color:var(--dark);
     font-size:14px;
     font-weight:800;
 }
@@ -310,17 +323,19 @@ button{
     color:#8a9aa8;
     font-size:11px;
     margin-top:4px;
+    line-height:1.5;
 }
 
 .badge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:90px;
     padding:8px 13px;
     border-radius:22px;
     font-size:11px;
     font-weight:900;
+    text-align:center;
+    line-height:1.3;
 }
 
 .badge-green{
@@ -354,6 +369,7 @@ button{
 
 .section{
     margin-bottom:25px;
+    break-inside:avoid;
 }
 
 .section:last-child{
@@ -361,7 +377,7 @@ button{
 }
 
 .section-title{
-    color:#06477f;
+    color:var(--dark);
     font-size:14px;
     font-weight:900;
     margin-bottom:12px;
@@ -375,12 +391,13 @@ button{
     width:4px;
     height:17px;
     border-radius:5px;
-    background:#0871c3;
+    background:var(--blue);
+    flex-shrink:0;
 }
 
 .info-grid{
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:repeat(2,minmax(0,1fr));
     gap:10px;
 }
 
@@ -398,6 +415,7 @@ button{
     text-transform:uppercase;
     font-weight:900;
     margin-bottom:5px;
+    line-height:1.4;
 }
 
 .info-value{
@@ -405,6 +423,7 @@ button{
     font-size:12px;
     font-weight:700;
     word-break:break-word;
+    line-height:1.5;
 }
 
 .user-card{
@@ -417,38 +436,41 @@ button{
     border-radius:13px;
 }
 
-.user-photo{
-    width:58px;
-    height:58px;
-    border-radius:50%;
-    object-fit:cover;
-    border:2px solid #dceaf4;
-    background:#eef7ff;
-    flex-shrink:0;
-}
-
+.user-photo,
 .user-fallback{
     width:58px;
     height:58px;
     border-radius:50%;
+    flex-shrink:0;
+}
+
+.user-photo{
+    object-fit:cover;
+    border:2px solid #dceaf4;
+    background:#eef7ff;
+}
+
+.user-fallback{
     background:#eef7ff;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:25px;
-    flex-shrink:0;
 }
 
 .user-name{
     color:#315671;
     font-size:15px;
     font-weight:900;
+    word-break:break-word;
 }
 
 .user-contact{
     color:#8b9ba8;
     font-size:11px;
     margin-top:4px;
+    line-height:1.6;
+    overflow-wrap:anywhere;
 }
 
 .amount-section{
@@ -460,7 +482,7 @@ button{
 .amount-row{
     display:flex;
     justify-content:space-between;
-    align-items:center;
+    align-items:flex-start;
     gap:15px;
     padding:13px 15px;
     border-bottom:1px solid #e8eff4;
@@ -474,12 +496,15 @@ button{
     color:#71889a;
     font-size:12px;
     font-weight:700;
+    line-height:1.5;
 }
 
 .amount-value{
     color:#315671;
     font-size:13px;
     font-weight:800;
+    text-align:right;
+    overflow-wrap:anywhere;
 }
 
 .amount-row.total{
@@ -487,12 +512,12 @@ button{
 }
 
 .amount-row.total .amount-label{
-    color:#06477f;
+    color:var(--dark);
     font-weight:900;
 }
 
 .amount-row.total .amount-value{
-    color:#0871c3;
+    color:var(--blue);
     font-size:18px;
     font-weight:900;
 }
@@ -507,6 +532,16 @@ button{
     font-weight:900;
 }
 
+.amount-row.remaining{
+    background:#fffaf0;
+}
+
+.amount-row.remaining .amount-label,
+.amount-row.remaining .amount-value{
+    color:#9a6700;
+    font-weight:900;
+}
+
 .reference-box{
     background:#fbfdff;
     border:1px dashed #cbdde9;
@@ -518,7 +553,7 @@ button{
     display:flex;
     justify-content:space-between;
     gap:15px;
-    padding:7px 0;
+    padding:8px 0;
 }
 
 .reference-row:not(:last-child){
@@ -529,6 +564,7 @@ button{
     color:#8799a8;
     font-size:10px;
     font-weight:800;
+    flex-shrink:0;
 }
 
 .reference-value{
@@ -546,8 +582,17 @@ button{
     background:#f5fcf7;
 }
 
+.verification.pending{
+    border-color:#f0e1b8;
+    background:#fffaf0;
+}
+
+.verification.rejected{
+    border-color:#f0dede;
+    background:#fff5f5;
+}
+
 .verification-title{
-    color:#18803d;
     font-size:12px;
     font-weight:900;
 }
@@ -555,8 +600,39 @@ button{
 .verification-text{
     color:#789083;
     font-size:10px;
-    margin-top:4px;
-    line-height:1.5;
+    margin-top:5px;
+    line-height:1.7;
+    overflow-wrap:anywhere;
+}
+
+.approval-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+}
+
+.approval-box{
+    background:#f8fafc;
+    border:1px solid #e5edf3;
+    border-radius:12px;
+    padding:14px;
+    min-width:0;
+}
+
+.approval-label{
+    color:#8496a5;
+    font-size:10px;
+    font-weight:900;
+    text-transform:uppercase;
+    margin-bottom:8px;
+}
+
+.approval-detail{
+    color:#7890a3;
+    font-size:10px;
+    line-height:1.6;
+    margin-top:7px;
+    overflow-wrap:anywhere;
 }
 
 .footer{
@@ -567,7 +643,7 @@ button{
 }
 
 .footer-title{
-    color:#06477f;
+    color:var(--dark);
     font-size:12px;
     font-weight:900;
 }
@@ -576,17 +652,18 @@ button{
     color:#8b9aa7;
     font-size:10px;
     margin-top:4px;
-    line-height:1.5;
+    line-height:1.7;
 }
 
 .loading-card{
     background:#fff;
-    border:1px solid #dce6ef;
+    border:1px solid var(--border);
     border-radius:18px;
     padding:60px 20px;
     text-align:center;
     color:#7890a3;
     box-shadow:0 10px 35px rgba(50,80,110,.07);
+    line-height:1.7;
 }
 
 .loading-icon{
@@ -625,7 +702,8 @@ button{
     color:#8a9aa8;
     font-size:12px;
     margin-top:7px;
-    line-height:1.6;
+    line-height:1.7;
+    overflow-wrap:anywhere;
 }
 
 .error-actions{
@@ -633,6 +711,7 @@ button{
     display:flex;
     justify-content:center;
     gap:8px;
+    flex-wrap:wrap;
 }
 
 .toast{
@@ -643,7 +722,7 @@ button{
     min-width:290px;
     max-width:390px;
     background:#fff;
-    border:1px solid #dce6ef;
+    border:1px solid var(--border);
     border-radius:14px;
     box-shadow:0 15px 45px rgba(20,60,90,.18);
     padding:15px;
@@ -655,7 +734,7 @@ button{
 }
 
 .toast-title{
-    color:#06477f;
+    color:var(--dark);
     font-size:13px;
     font-weight:800;
 }
@@ -672,7 +751,6 @@ button{
 }
 
 @media(max-width:760px){
-
     .header{
         height:70px;
         padding:0 14px;
@@ -705,7 +783,7 @@ button{
         width:245px;
         height:calc(100vh - 70px);
         z-index:200;
-        transition:.25s;
+        transition:left .25s;
         overflow-y:auto;
     }
 
@@ -744,6 +822,7 @@ button{
 
     .top-btn{
         flex:1;
+        padding:0 10px;
     }
 
     .slip-card{
@@ -758,6 +837,7 @@ button{
 
     .slip-logo{
         height:52px;
+        max-width:100px;
     }
 
     .slip-brand-title{
@@ -766,6 +846,7 @@ button{
 
     .receipt-box{
         text-align:left;
+        max-width:100%;
     }
 
     .status-row{
@@ -778,12 +859,21 @@ button{
         padding:18px;
     }
 
-    .info-grid{
+    .info-grid,
+    .approval-grid{
         grid-template-columns:1fr;
     }
 
     .amount-row{
         padding:12px;
+    }
+
+    .amount-label{
+        font-size:11px;
+    }
+
+    .amount-value{
+        font-size:12px;
     }
 
     .footer{
@@ -799,7 +889,6 @@ button{
 }
 
 @media print{
-
     @page{
         size:A4;
         margin:12mm;
@@ -807,6 +896,7 @@ button{
 
     body{
         background:#fff !important;
+        color:#000;
     }
 
     .header,
@@ -852,6 +942,19 @@ button{
     .footer{
         padding:14px 18px !important;
     }
+
+    .section,
+    .amount-row,
+    .info-box,
+    .approval-box,
+    .verification{
+        break-inside:avoid;
+    }
+
+    *{
+        -webkit-print-color-adjust:exact !important;
+        print-color-adjust:exact !important;
+    }
 }
 </style>
 </head>
@@ -859,16 +962,8 @@ button{
 <body>
 
 <header class="header">
-
     <div class="header-left">
-
-        <button
-            class="menu-btn"
-            id="menuBtn"
-            type="button"
-        >
-            ☰
-        </button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu">☰</button>
 
         <img
             src="assets/EGC - Emergency Gas Cylinder logo.png"
@@ -878,607 +973,411 @@ button{
         >
 
         <div>
-            <div class="owner-title">
-                Owner Dashboard
-            </div>
-
-            <div class="owner-subtitle">
-                Emergency Gas Cylinder Management
-            </div>
+            <div class="owner-title">Owner Dashboard</div>
+            <div class="owner-subtitle">Emergency Gas Cylinder Management</div>
         </div>
-
     </div>
 
     <div class="owner-badge">
-
         <span class="owner-dot"></span>
-
         Owner
-
     </div>
-
 </header>
-
 
 <div class="layout">
 
-<aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-title">Management</div>
 
-    <div class="sidebar-title">
-        Management
-    </div>
-
-    <button
-        class="nav-btn"
-        data-page="dashboard"
-        type="button"
-    >
-        <span class="nav-icon">▦</span>
-        Dashboard
-    </button>
-
-    <button
-        class="nav-btn"
-        data-page="users"
-        type="button"
-    >
-        <span class="nav-icon">👥</span>
-        Users
-    </button>
-
-    <button
-        class="nav-btn"
-        data-page="agencies"
-        type="button"
-    >
-        <span class="nav-icon">🏪</span>
-        LPG Agencies
-    </button>
-
-    <button
-        class="nav-btn"
-        data-page="companies"
-        type="button"
-    >
-        <span class="nav-icon">🏢</span>
-        LPG Companies
-    </button>
-
-    <button
-        class="nav-btn"
-        data-page="requests"
-        type="button"
-    >
-        <span class="nav-icon">🛢</span>
-        Cylinder Requests
-    </button>
-
-    <button
-        class="nav-btn active"
-        data-page="payments"
-        type="button"
-    >
-        <span class="nav-icon">₹</span>
-        Payments
-    </button>
-
-    <button
-        class="nav-btn"
-        data-page="reports"
-        type="button"
-    >
-        <span class="nav-icon">▤</span>
-        Reports
-    </button>
-
-    <div
-        class="sidebar-title"
-        style="margin-top:25px;"
-    >
-        System
-    </div>
-
-    <button
-        class="nav-btn"
-        data-page="settings"
-        type="button"
-    >
-        <span class="nav-icon">⚙</span>
-        Settings
-    </button>
-
-    <div class="sidebar-bottom">
-
-        <button
-            class="nav-btn sidebar-logout"
-            id="logoutBtn"
-            type="button"
-        >
-            <span class="nav-icon">🚪</span>
-            Logout
+        <button class="nav-btn" data-page="dashboard" type="button">
+            <span class="nav-icon">▦</span>Dashboard
         </button>
 
-    </div>
+        <button class="nav-btn" data-page="users" type="button">
+            <span class="nav-icon">👥</span>Users
+        </button>
 
-</aside>
+        <button class="nav-btn" data-page="agencies" type="button">
+            <span class="nav-icon">🏪</span>LPG Agencies
+        </button>
 
+        <button class="nav-btn" data-page="companies" type="button">
+            <span class="nav-icon">🏢</span>LPG Companies
+        </button>
 
-<div
-    class="overlay"
-    id="overlay"
-></div>
+        <button class="nav-btn" data-page="requests" type="button">
+            <span class="nav-icon">🛢</span>Cylinder Requests
+        </button>
 
+        <button class="nav-btn active" data-page="payments" type="button">
+            <span class="nav-icon">₹</span>Payments
+        </button>
 
-<main class="main">
+        <button class="nav-btn" data-page="reports" type="button">
+            <span class="nav-icon">▤</span>Reports
+        </button>
 
-    <div class="page-top">
+        <div class="sidebar-title" style="margin-top:25px;">System</div>
 
-        <div class="page-heading">
+        <button class="nav-btn" data-page="settings" type="button">
+            <span class="nav-icon">⚙</span>Settings
+        </button>
 
-            <h1>
-                Payment Slip
-            </h1>
-
-            <p>
-                EGC payment receipt and transaction details.
-            </p>
-
-        </div>
-
-        <div class="top-actions">
-
-            <button
-                type="button"
-                class="top-btn back-btn"
-                id="backBtn"
-            >
-                ← Back to Payments
+        <div class="sidebar-bottom">
+            <button class="nav-btn sidebar-logout" id="logoutBtn" type="button">
+                <span class="nav-icon">🚪</span>Logout
             </button>
-
-            <button
-                type="button"
-                class="top-btn print-btn"
-                id="printBtn"
-            >
-                🖨 Print Slip
-            </button>
-
         </div>
+    </aside>
 
-    </div>
+    <div class="overlay" id="overlay"></div>
 
+    <main class="main">
 
-    <div
-        class="slip-area"
-        id="slipArea"
-    >
-
-        <div class="loading-card">
-
-            <div class="loading-icon">
-                ⏳
+        <div class="page-top">
+            <div class="page-heading">
+                <h1>Payment Slip</h1>
+                <p>EGC payment receipt, approval and transaction details.</p>
             </div>
 
-            Loading payment slip...
+            <div class="top-actions">
+                <button type="button" class="top-btn back-btn" id="backBtn">
+                    ← Back to Payments
+                </button>
 
+                <button type="button" class="top-btn print-btn" id="printBtn">
+                    🖨 Print / Save PDF
+                </button>
+            </div>
         </div>
 
-    </div>
+        <div class="slip-area" id="slipArea">
+            <div class="loading-card">
+                <div class="loading-icon">⏳</div>
+                Loading payment slip...
+            </div>
+        </div>
 
-</main>
-
+    </main>
 </div>
 
-
-<div
-    class="toast"
-    id="toast"
->
-
-    <div
-        class="toast-title"
-        id="toastTitle"
-    >
-        Notification
-    </div>
-
-    <div
-        class="toast-text"
-        id="toastText"
-    >
-        Notification
-    </div>
-
+<div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toast-title" id="toastTitle">Notification</div>
+    <div class="toast-text" id="toastText"></div>
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
+
+/* =========================================================
+   SUPABASE CONFIGURATION
+========================================================= */
 
 const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+    "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 const supabaseClient =
-window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
 
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
-/* ================= ELEMENTS ================= */
+const slipArea = document.getElementById("slipArea");
+const backBtn = document.getElementById("backBtn");
+const printBtn = document.getElementById("printBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const toast = document.getElementById("toast");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
 
-const slipArea =
-document.getElementById("slipArea");
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
-const backBtn =
-document.getElementById("backBtn");
-
-const printBtn =
-document.getElementById("printBtn");
-
-const logoutBtn =
-document.getElementById("logoutBtn");
-
-const menuBtn =
-document.getElementById("menuBtn");
-
-const sidebar =
-document.getElementById("sidebar");
-
-const overlay =
-document.getElementById("overlay");
-
-const toast =
-document.getElementById("toast");
-
-const toastTitle =
-document.getElementById("toastTitle");
-
-const toastText =
-document.getElementById("toastText");
-
-
-/* ================= NAVIGATION ================= */
-
-function openPage(page){
-
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-
-        users:"owner-users.html",
-
-        agencies:"owner-agencies.html",
-
-        companies:"owner-companies.html",
-
-        requests:"owner-requests.html",
-
-        payments:"owner-payments.html",
-
-        reports:"owner-reports.html",
-
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        settings: "owner-settings.html"
     };
 
-    if(pages[page]){
-
-        window.location.href =
-        pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
-
-document
-.querySelectorAll("[data-page]")
-.forEach(button => {
-
-    button.addEventListener(
-        "click",
-        function(){
-
-            openPage(
-                this.dataset.page
-            );
-
-        }
-    );
-
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", function () {
+        openPage(this.dataset.page);
+    });
 });
 
+backBtn.addEventListener("click", function () {
+    window.location.href = "owner-payments.html";
+});
 
-backBtn.addEventListener(
-    "click",
-    function(){
+printBtn.addEventListener("click", function () {
+    window.print();
+});
 
-        window.location.href =
-        "owner-payments.html";
+/* =========================================================
+   MOBILE MENU
+========================================================= */
 
-    }
-);
-
-
-printBtn.addEventListener(
-    "click",
-    function(){
-
-        window.print();
-
-    }
-);
-
-
-/* ================= MOBILE ================= */
-
-menuBtn.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.toggle("open");
-
-        overlay.classList.toggle("show");
-
-    }
-);
-
-
-overlay.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.remove("open");
-
-        overlay.classList.remove("show");
-
-    }
-);
-
-
-/* ================= SAFE HTML ================= */
-
-function escapeHtml(value){
-
-    return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
+function closeMobileMenu() {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
 }
 
+menuBtn.addEventListener("click", function () {
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("show");
+});
 
-/* ================= TOAST ================= */
+overlay.addEventListener("click", closeMobileMenu);
 
-function showToast(title,text){
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+        closeMobileMenu();
+    }
+});
 
-    toastTitle.textContent =
-    title || "Notification";
+/* =========================================================
+   SAFE HTML
+========================================================= */
 
-    toastText.textContent =
-    text || "";
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
+function safeText(value, fallback = "—") {
+    if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+    ) {
+        return fallback;
+    }
+
+    return String(value);
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(title, text) {
+    toastTitle.textContent = title || "Notification";
+    toastText.textContent = text || "";
     toast.classList.add("show");
 
-    clearTimeout(
-        window.egcSlipToastTimer
-    );
+    clearTimeout(window.egcSlipToastTimer);
 
-    window.egcSlipToastTimer =
-    setTimeout(
-        function(){
-
-            toast.classList.remove("show");
-
-        },
-        4500
-    );
-
+    window.egcSlipToastTimer = setTimeout(function () {
+        toast.classList.remove("show");
+    }, 4500);
 }
 
+/* =========================================================
+   MONEY
+========================================================= */
 
-/* ================= MONEY ================= */
-
-function moneyNumber(value){
-
-    const number =
-    Number(value);
-
-    if(
+function moneyNumber(value) {
+    if (
         value === null ||
         value === undefined ||
         value === "" ||
-        Number.isNaN(number)
-    ){
-
+        !Number.isFinite(Number(value))
+    ) {
         return 0;
-
     }
 
-    return number;
-
+    return Number(value);
 }
 
+function formatMoney(value) {
+    return "₹" + moneyNumber(value).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
 
-function formatMoney(value){
-
-    return "₹" +
-    moneyNumber(value)
-    .toLocaleString(
-        "en-IN",
-        {
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
+function firstMoney(...values) {
+    for (const value of values) {
+        if (
+            value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            Number.isFinite(Number(value))
+        ) {
+            return Number(value);
         }
-    );
+    }
 
+    return 0;
 }
 
+/* =========================================================
+   DATE
+========================================================= */
 
-/* ================= DATE ================= */
+function formatDateTime(value) {
+    if (!value) return "—";
 
-function formatDateTime(value){
+    const date = new Date(value);
 
-    if(!value){
-
+    if (Number.isNaN(date.getTime())) {
         return "—";
-
     }
 
-    const date =
-    new Date(value);
-
-    if(Number.isNaN(date.getTime())){
-
-        return "—";
-
-    }
-
-    return date.toLocaleString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric",
-            hour:"2-digit",
-            minute:"2-digit"
-        }
-    );
-
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
+function formatDate(value) {
+    if (!value) return "—";
 
-function formatDate(value){
+    const date = new Date(value);
 
-    if(!value){
-
+    if (Number.isNaN(date.getTime())) {
         return "—";
-
     }
 
-    const date =
-    new Date(value);
-
-    if(Number.isNaN(date.getTime())){
-
-        return "—";
-
-    }
-
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
 
+/* =========================================================
+   STATUS
+========================================================= */
 
-/* ================= STATUS ================= */
+function normalizeStatus(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ");
+}
 
-function getBadgeClass(value){
+function getBadgeClass(value) {
+    const status = normalizeStatus(value);
 
-    const v =
-    String(value || "")
-    .toLowerCase();
-
-    if(
-        v === "paid" ||
-        v === "verified" ||
-        v === "completed" ||
-        v === "approved" ||
-        v === "delivered"
-    ){
-
+    if (
+        [
+            "paid",
+            "verified",
+            "completed",
+            "approved",
+            "delivered",
+            "success",
+            "successful",
+            "fully paid"
+        ].includes(status)
+    ) {
         return "badge-green";
-
     }
 
-    if(
-        v === "pending" ||
-        v === "waiting"
-    ){
-
+    if (
+        [
+            "pending",
+            "waiting",
+            "under review",
+            "submitted",
+            "awaiting approval"
+        ].includes(status)
+    ) {
         return "badge-yellow";
-
     }
 
-    if(
-        v === "processing"
-    ){
-
+    if (
+        [
+            "processing",
+            "assigned",
+            "ready",
+            "out for delivery",
+            "partially paid"
+        ].includes(status)
+    ) {
         return "badge-blue";
-
     }
 
-    if(
-        v === "failed" ||
-        v === "refunded" ||
-        v === "rejected" ||
-        v === "cancelled"
-    ){
-
+    if (
+        [
+            "failed",
+            "refunded",
+            "rejected",
+            "cancelled",
+            "canceled",
+            "unpaid"
+        ].includes(status)
+    ) {
         return "badge-red";
-
     }
 
     return "badge-gray";
-
 }
 
-
-function badgeHtml(value){
-
-    const safeValue =
-    value ||
-    "Not Set";
+function badgeHtml(value, fallback = "Not Set") {
+    const label = safeText(value, fallback);
 
     return `
-        <span class="badge ${getBadgeClass(safeValue)}">
-            ${escapeHtml(safeValue)}
+        <span class="badge ${getBadgeClass(label)}">
+            ${escapeHtml(label)}
         </span>
     `;
-
 }
 
+/* =========================================================
+   URL PARAMETERS
 
-/* ================= URL PARAMETERS ================= */
+   Supported:
+   owner-slip.html?payment_id=PAYMENT_UUID
+   owner-slip.html?request_id=REQUEST_UUID
+========================================================= */
 
-function getQueryParams(){
-
-    const params =
-    new URLSearchParams(
-        window.location.search
-    );
+function getQueryParams() {
+    const params = new URLSearchParams(window.location.search);
 
     return {
-
-        paymentId:
-        params.get("payment_id"),
-
-        requestId:
-        params.get("request_id")
-
+        paymentId: params.get("payment_id"),
+        requestId: params.get("request_id")
     };
-
 }
 
+/* =========================================================
+   DATA HELPERS
+========================================================= */
 
-/* ================= DATA HELPERS ================= */
-
-function getUserName(profile){
-
+function getUserName(profile) {
     return (
         profile?.full_name ||
         profile?.username ||
@@ -1486,12 +1385,9 @@ function getUserName(profile){
         profile?.display_name ||
         "User"
     );
-
 }
 
-
-function getUserMobile(profile){
-
+function getUserMobile(profile) {
     return (
         profile?.mobile ||
         profile?.phone ||
@@ -1499,23 +1395,17 @@ function getUserMobile(profile){
         profile?.phone_number ||
         "—"
     );
-
 }
 
-
-function getUserEmail(profile){
-
+function getUserEmail(profile) {
     return (
         profile?.email ||
         profile?.auth_email ||
         "—"
     );
-
 }
 
-
-function getUserPhoto(profile){
-
+function getUserPhoto(profile) {
     return (
         profile?.profile_photo ||
         profile?.photo_url ||
@@ -1525,12 +1415,22 @@ function getUserPhoto(profile){
         profile?.image_url ||
         ""
     );
-
 }
 
+function getUserEgcId(profile, request, payment) {
+    return (
+        profile?.egc_user_id ||
+        profile?.egc_id ||
+        profile?.user_code ||
+        profile?.customer_id ||
+        request?.egc_user_id ||
+        request?.user_code ||
+        payment?.egc_user_id ||
+        "Not assigned"
+    );
+}
 
-function getAgencyName(agency){
-
+function getAgencyName(agency) {
     return (
         agency?.agency_name ||
         agency?.name ||
@@ -1538,12 +1438,9 @@ function getAgencyName(agency){
         agency?.title ||
         "—"
     );
-
 }
 
-
-function getCompanyName(request,agency,profile){
-
+function getCompanyName(request, agency, profile) {
     return (
         request?.lpg_company ||
         request?.company ||
@@ -1554,91 +1451,258 @@ function getCompanyName(request,agency,profile){
         profile?.lpg_company ||
         "—"
     );
-
 }
 
-
-function getQuantity(request){
-
+function getQuantity(request) {
     return (
         request?.quantity ??
         request?.cylinder_quantity ??
         request?.cylinders ??
-        "0"
+        "—"
     );
-
 }
 
-
-function getRequestTotal(request,payment){
-
-    if(
-        request?.total_amount !== null &&
-        request?.total_amount !== undefined
-    ){
-
-        return moneyNumber(
-            request.total_amount
-        );
-
-    }
-
-    if(
-        payment?.request_total !== null &&
-        payment?.request_total !== undefined
-    ){
-
-        return moneyNumber(
-            payment.request_total
-        );
-
-    }
-
-    return 0;
-
+function getRequestNumber(request, payment) {
+    return (
+        request?.request_number ||
+        request?.request_no ||
+        payment?.request_number ||
+        request?.id ||
+        payment?.request_id ||
+        "—"
+    );
 }
 
-
-function getExtraCharge(request,payment){
-
-    if(
-        request?.extra_charge !== null &&
-        request?.extra_charge !== undefined
-    ){
-
-        return moneyNumber(
-            request.extra_charge
-        );
-
-    }
-
-    if(
-        payment?.extra_charge !== null &&
-        payment?.extra_charge !== undefined
-    ){
-
-        return moneyNumber(
-            payment.extra_charge
-        );
-
-    }
-
-    return 0;
-
+function getPaymentDate(payment) {
+    return (
+        payment?.payment_date ||
+        payment?.created_at ||
+        payment?.submitted_at ||
+        null
+    );
 }
 
+function getVerificationStatus(payment, request) {
+    return (
+        payment?.verification_status ||
+        payment?.payment_verification_status ||
+        request?.payment_verification_status ||
+        payment?.approval_status ||
+        payment?.payment_status ||
+        request?.payment_status ||
+        "pending"
+    );
+}
 
-/* ================= ERROR UI ================= */
+function getPaymentApprovalDate(payment, request) {
+    return (
+        payment?.approved_at ||
+        payment?.payment_approved_at ||
+        payment?.verified_at ||
+        request?.payment_approved_at ||
+        request?.payment_verified_at ||
+        null
+    );
+}
 
-function showError(title,text){
+function getPaymentApprovedBy(payment, request) {
+    return (
+        payment?.approved_by ||
+        payment?.verified_by ||
+        request?.payment_approved_by ||
+        "—"
+    );
+}
 
+function getRequestStatus(request) {
+    return (
+        request?.status ||
+        request?.request_status ||
+        "—"
+    );
+}
+
+function getOwnerApprovalStatus(request) {
+    return (
+        request?.owner_approval ||
+        request?.approval_status ||
+        "—"
+    );
+}
+
+function getPaymentStatus(payment, request) {
+    return (
+        payment?.payment_status ||
+        request?.payment_status ||
+        "pending"
+    );
+}
+
+function getDeliveryStatus(request) {
+    return (
+        request?.delivery_status ||
+        request?.delivery_state ||
+        (request?.delivered_at ? "Delivered" : "Not Delivered")
+    );
+}
+
+function getRepaymentStatus(request, payment) {
+    return (
+        request?.repayment_status ||
+        payment?.repayment_status ||
+        "—"
+    );
+}
+
+function getDeliveryDate(request) {
+    return (
+        request?.delivery_date ||
+        request?.delivered_at ||
+        null
+    );
+}
+
+function getRequestTotal(request, payment) {
+    return firstMoney(
+        request?.total_amount,
+        request?.grand_total,
+        request?.final_amount,
+        request?.request_total,
+        payment?.request_total,
+        payment?.total_amount
+    );
+}
+
+function getExtraCharge(request, payment) {
+    return firstMoney(
+        request?.extra_charge,
+        request?.extra_charges,
+        payment?.extra_charge,
+        payment?.extra_charges
+    );
+}
+
+function getInitialPayment(request, payment) {
+    return firstMoney(
+        request?.initial_payment,
+        request?.initial_payment_amount,
+        request?.advance_amount,
+        request?.first_payment_amount,
+        payment?.initial_payment,
+        payment?.initial_payment_amount,
+        payment?.advance_amount
+    );
+}
+
+function getRemainingPayment(request, payment, requestTotal, initialPayment, extraCharge) {
+    const storedRemaining = [
+        request?.remaining_amount,
+        request?.remaining_payment,
+        request?.remaining_payment_amount,
+        payment?.remaining_amount,
+        payment?.remaining_payment
+    ];
+
+    for (const value of storedRemaining) {
+        if (
+            value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            Number.isFinite(Number(value))
+        ) {
+            return Math.max(0, Number(value));
+        }
+    }
+
+    return Math.max(
+        0,
+        requestTotal + extraCharge - initialPayment
+    );
+}
+
+function getPaymentAmount(payment) {
+    return firstMoney(
+        payment?.payment_amount,
+        payment?.amount,
+        payment?.amount_paid,
+        payment?.paid_amount
+    );
+}
+
+function getTotalPaid(request, payment) {
+    return firstMoney(
+        request?.total_paid,
+        request?.amount_paid,
+        request?.paid_amount,
+        payment?.total_paid,
+        payment?.amount_paid
+    );
+}
+
+function getTransactionId(payment, request) {
+    return (
+        payment?.transaction_id ||
+        payment?.utr_number ||
+        payment?.utr ||
+        request?.transaction_id ||
+        request?.utr_number ||
+        "—"
+    );
+}
+
+function getPaymentMethod(payment, request) {
+    return (
+        payment?.payment_method ||
+        request?.payment_method ||
+        "—"
+    );
+}
+
+function getPaymentReference(payment, request) {
+    return (
+        payment?.payment_reference ||
+        payment?.reference ||
+        payment?.screenshot_url ||
+        payment?.payment_screenshot ||
+        request?.payment_reference ||
+        request?.payment_screenshot ||
+        "—"
+    );
+}
+
+function getSchemeName(request) {
+    return (
+        request?.scheme_name ||
+        request?.scheme ||
+        request?.selected_scheme ||
+        "—"
+    );
+}
+
+function getState(request) {
+    return request?.state || request?.state_name || "—";
+}
+
+function getDistrict(request) {
+    return request?.district || request?.district_name || "—";
+}
+
+function getCity(request) {
+    return request?.city || request?.city_name || "—";
+}
+
+function getAgencyId(request) {
+    return request?.agency_id || request?.assigned_agency_id || null;
+}
+
+/* =========================================================
+   ERROR UI
+========================================================= */
+
+function showError(title, text) {
     slipArea.innerHTML = `
-
         <div class="error-card">
-
-            <div class="error-icon">
-                ⚠️
-            </div>
+            <div class="error-icon">⚠️</div>
 
             <div class="error-title">
                 ${escapeHtml(title)}
@@ -1649,445 +1713,342 @@ function showError(title,text){
             </div>
 
             <div class="error-actions">
-
                 <button
                     type="button"
                     class="top-btn back-btn"
-                    onclick="window.location.href='owner-payments.html'"
+                    id="errorBackBtn"
                 >
                     ← Back to Payments
                 </button>
 
+                <button
+                    type="button"
+                    class="top-btn print-btn"
+                    id="errorRetryBtn"
+                >
+                    Try Again
+                </button>
             </div>
-
         </div>
-
     `;
 
+    document.getElementById("errorBackBtn")?.addEventListener("click", function () {
+        window.location.href = "owner-payments.html";
+    });
+
+    document.getElementById("errorRetryBtn")?.addEventListener("click", function () {
+        loadPayment();
+    });
 }
 
+/* =========================================================
+   LOAD PAYMENT RECORD
 
-/* ================= LOAD PAYMENT ================= */
+   Payment records are read from the payments table.
+   Request information is read from cylinder_requests.
+========================================================= */
 
-async function loadPayment(){
+async function loadPayment() {
+    const { paymentId, requestId } = getQueryParams();
 
-    const {
-        paymentId,
-        requestId
-    } =
-    getQueryParams();
-
-
-    if(
-        !paymentId &&
-        !requestId
-    ){
-
+    if (!paymentId && !requestId) {
         showError(
             "Payment Not Selected",
-            "Payment slip open karne ke liye payment_id ya request_id required hai."
+            "Payment slip open karne ke liye URL mein payment_id ya request_id dena zaroori hai."
         );
-
         return;
-
     }
 
+    slipArea.innerHTML = `
+        <div class="loading-card">
+            <div class="loading-icon">⏳</div>
+            Loading payment and request details...
+        </div>
+    `;
 
-    try{
-
+    try {
         let payment = null;
 
+        /* Load exact payment if payment_id was provided. */
+        if (paymentId) {
+            const result = await supabaseClient
+                .from("payments")
+                .select("*")
+                .eq("id", paymentId)
+                .maybeSingle();
 
-        /* ================= BY PAYMENT ID ================= */
-
-        if(paymentId){
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-            .from("payments")
-            .select("*")
-            .eq(
-                "id",
-                paymentId
-            )
-            .maybeSingle();
-
-
-            if(error){
-
-                console.error(
-                    "Payment loading error:",
-                    error
+            if (result.error) {
+                throw new Error(
+                    "Payment record load nahi hua: " + result.error.message
                 );
-
-                showError(
-                    "Payment Loading Failed",
-                    error.message
-                );
-
-                return;
-
             }
 
-
-            payment =
-            data;
-
+            payment = result.data;
         }
 
+        /* If payment_id was not supplied, load a payment for the request. */
+        if (!payment && requestId) {
+            const result = await supabaseClient
+                .from("payments")
+                .select("*")
+                .eq("request_id", requestId)
+                .order("created_at", { ascending: false })
+                .limit(1);
 
-        /* ================= BY REQUEST ID ================= */
-
-        if(
-            !payment &&
-            requestId
-        ){
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-            .from("payments")
-            .select("*")
-            .eq(
-                "request_id",
-                requestId
-            )
-            .order(
-                "payment_date",
-                {
-                    ascending:false
-                }
-            )
-            .limit(1)
-            .maybeSingle();
-
-
-            if(error){
-
-                console.error(
-                    "Request payment loading error:",
-                    error
+            if (result.error) {
+                throw new Error(
+                    "Request payment load nahi hua: " + result.error.message
                 );
-
-                showError(
-                    "Payment Loading Failed",
-                    error.message
-                );
-
-                return;
-
             }
 
-
-            payment =
-            data;
-
+            payment = result.data?.[0] || null;
         }
 
+        /*
+         * When the URL contains both IDs, make sure the selected
+         * payment belongs to the supplied request.
+         */
+        if (
+            payment &&
+            requestId &&
+            String(payment.request_id) !== String(requestId)
+        ) {
+            showError(
+                "Payment Does Not Match",
+                "URL mein diya gaya payment_id aur request_id ek hi request se sambandhit nahi hain."
+            );
+            return;
+        }
 
-        if(!payment){
-
+        if (!payment) {
             showError(
                 "Payment Not Found",
-                "Is payment ke liye koi payment record nahi mila."
+                "Is request ke liye payments table mein payment record nahi mila. Pehle payment record create hona chahiye."
             );
-
             return;
-
         }
 
-
-        /* ================= REQUEST ================= */
-
+        /* Load the linked cylinder request. */
         let request = null;
 
+        const linkedRequestId = payment.request_id || requestId;
 
-        if(payment.request_id){
+        if (linkedRequestId) {
+            const result = await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("id", linkedRequestId)
+                .maybeSingle();
 
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq(
-                "id",
-                payment.request_id
-            )
-            .maybeSingle();
-
-
-            if(!error){
-
-                request =
-                data;
-
-            }
-            else{
-
-                console.warn(
-                    "Request loading:",
-                    error.message
+            if (result.error) {
+                throw new Error(
+                    "Cylinder request load nahi hui: " + result.error.message
                 );
-
             }
 
+            request = result.data;
         }
 
-
-        /* ================= PROFILE ================= */
+        /*
+         * Use the actual user UUID from the payment/request record.
+         * Never use a hard-coded user ID.
+         */
+        const userId =
+            payment.user_id ||
+            request?.user_id ||
+            request?.customer_id ||
+            null;
 
         let profile = null;
 
+        if (userId) {
+            const result = await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("id", userId)
+                .maybeSingle();
 
-        if(payment.user_id){
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq(
-                "id",
-                payment.user_id
-            )
-            .maybeSingle();
-
-
-            if(!error){
-
-                profile =
-                data;
-
+            if (result.error) {
+                console.warn("Profile loading warning:", result.error.message);
+            } else {
+                profile = result.data;
             }
-            else{
-
-                console.warn(
-                    "Profile loading:",
-                    error.message
-                );
-
-            }
-
         }
 
-
-        /* ================= AGENCY ================= */
-
+        /* Load assigned LPG agency if available. */
         let agency = null;
+        const agencyId = getAgencyId(request);
 
+        if (agencyId) {
+            const result = await supabaseClient
+                .from("agencies")
+                .select("*")
+                .eq("id", agencyId)
+                .maybeSingle();
 
-        if(request?.agency_id){
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-            .from("agencies")
-            .select("*")
-            .eq(
-                "id",
-                request.agency_id
-            )
-            .maybeSingle();
-
-
-            if(!error){
-
-                agency =
-                data;
-
+            if (result.error) {
+                console.warn("Agency loading warning:", result.error.message);
+            } else {
+                agency = result.data;
             }
-            else{
-
-                console.warn(
-                    "Agency loading:",
-                    error.message
-                );
-
-            }
-
         }
 
+        renderSlip(payment, request, profile, agency);
 
-        renderSlip(
-            payment,
-            request,
-            profile,
-            agency
-        );
-
-    }
-    catch(error){
-
-        console.error(
-            "Payment slip exception:",
-            error
-        );
+    } catch (error) {
+        console.error("Payment slip loading error:", error);
 
         showError(
-            "Unable to Load Slip",
-            "Payment slip load nahi ho paayi. Please try again."
+            "Unable to Load Payment Slip",
+            error?.message || "Payment slip load nahi ho paayi. Please try again."
         );
-
     }
-
 }
 
+/* =========================================================
+   RENDER PAYMENT SLIP
+========================================================= */
 
-/* ================= RENDER SLIP ================= */
+function renderSlip(payment, request, profile, agency) {
+    const name = getUserName(profile);
+    const mobile = getUserMobile(profile);
+    const email = getUserEmail(profile);
+    const photo = getUserPhoto(profile);
+    const egcUserId = getUserEgcId(profile, request, payment);
 
-function renderSlip(
-    payment,
-    request,
-    profile,
-    agency
-){
+    const agencyName = getAgencyName(agency);
+    const companyName = getCompanyName(request, agency, profile);
 
-    const name =
-    getUserName(profile);
+    const quantity = getQuantity(request);
+    const requestNumber = getRequestNumber(request, payment);
 
-    const mobile =
-    getUserMobile(profile);
+    const paymentAmount = getPaymentAmount(payment);
+    const requestTotal = getRequestTotal(request, payment);
+    const extraCharge = getExtraCharge(request, payment);
+    const initialPayment = getInitialPayment(request, payment);
 
-    const email =
-    getUserEmail(profile);
-
-    const photo =
-    getUserPhoto(profile);
-
-    const agencyName =
-    getAgencyName(agency);
-
-    const companyName =
-    getCompanyName(
+    const remainingPayment = getRemainingPayment(
         request,
-        agency,
-        profile
+        payment,
+        requestTotal,
+        initialPayment,
+        extraCharge
     );
 
-    const quantity =
-    getQuantity(request);
+    const totalPayable = requestTotal + extraCharge;
 
-    const paymentAmount =
-    moneyNumber(
-        payment.payment_amount
-    );
+    const paymentStatus = getPaymentStatus(payment, request);
+    const verificationStatus = getVerificationStatus(payment, request);
+    const ownerApprovalStatus = getOwnerApprovalStatus(request);
 
-    const requestTotal =
-    getRequestTotal(
-        request,
-        payment
-    );
+    const approvalDate = getPaymentApprovalDate(payment, request);
+    const approvedBy = getPaymentApprovedBy(payment, request);
 
-    const extraCharge =
-    getExtraCharge(
-        request,
-        payment
-    );
+    const paymentDate = getPaymentDate(payment);
+    const transactionId = getTransactionId(payment, request);
+    const paymentMethod = getPaymentMethod(payment, request);
+    const paymentReference = getPaymentReference(payment, request);
 
-    const paymentStatus =
-    payment.payment_status ||
-    "pending";
+    const requestStatus = getRequestStatus(request);
+    const deliveryStatus = getDeliveryStatus(request);
+    const deliveryDate = getDeliveryDate(request);
+    const repaymentStatus = getRepaymentStatus(request, payment);
 
-    const verificationStatus =
-    payment.verification_status ||
-    (
-        payment.verified_at
-        ? "verified"
-        : "pending"
-    );
+    const schemeName = getSchemeName(request);
 
-    const requestNumber =
-    request?.request_number ||
-    payment.request_number ||
-    payment.request_id ||
-    "—";
+    const paidAmount = getTotalPaid(request, payment);
+    const actualPaidAmount = paidAmount > 0 ? paidAmount : paymentAmount;
 
-    const paymentDate =
-    payment.payment_date ||
-    payment.created_at;
+    const slipId =
+        payment?.slip_id ||
+        payment?.receipt_number ||
+        payment?.receipt_id ||
+        payment?.id ||
+        "—";
 
-    const transactionId =
-    payment.transaction_id ||
-    "—";
+    const paymentApprovalLabel = verificationStatus;
 
-    const paymentReference =
-    payment.payment_reference ||
-    payment.reference ||
-    "—";
+    let photoHtml = `
+        <div class="user-fallback">👤</div>
+    `;
 
-    const paymentMethod =
-    payment.payment_method ||
-    "—";
-
-
-    let photoHtml;
-
-
-    if(photo){
-
+    if (photo) {
         photoHtml = `
-
             <img
                 src="${escapeHtml(photo)}"
                 class="user-photo"
-                alt="User"
-                onerror="
-                    this.style.display='none';
-                    this.nextElementSibling.style.display='flex';
-                "
+                alt="User profile photo"
+                onerror="this.outerHTML='<div class=&quot;user-fallback&quot;>👤</div>';"
             >
-
-            <div
-                class="user-fallback"
-                style="display:none;"
-            >
-                👤
-            </div>
-
         `;
-
-    }
-    else{
-
-        photoHtml = `
-
-            <div class="user-fallback">
-                👤
-            </div>
-
-        `;
-
     }
 
+    const screenshotLink =
+        payment?.screenshot_url ||
+        payment?.payment_screenshot ||
+        payment?.proof_url ||
+        payment?.image_url ||
+        null;
+
+    const screenshotHtml = screenshotLink
+        ? `
+            <a
+                href="${escapeHtml(screenshotLink)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="reference-value"
+            >View payment proof</a>
+          `
+        : `<span class="reference-value">Not available</span>`;
+
+    const approvedAtText = approvalDate
+        ? formatDateTime(approvalDate)
+        : "Approval timestamp not available";
+
+    const paymentVerificationMessage = approvalDate
+        ? "Payment approval/verification timestamp: " + formatDateTime(approvalDate)
+        : (
+            normalizeStatus(verificationStatus) === "approved" ||
+            normalizeStatus(verificationStatus) === "verified"
+                ? "Payment status is approved/verified, but the database does not contain an approval timestamp."
+                : "Payment approval is not confirmed by an approval timestamp."
+        );
+
+    const requestCreatedAt =
+        request?.created_at ||
+        request?.submitted_at ||
+        payment?.request_created_at ||
+        null;
+
+    const paymentCreatedAt =
+        payment?.created_at ||
+        payment?.payment_date ||
+        null;
+
+    const paymentApproved = [
+        "approved",
+        "verified",
+        "paid",
+        "completed",
+        "success",
+        "successful"
+    ].includes(normalizeStatus(verificationStatus));
 
     slipArea.innerHTML = `
-
         <div class="slip-card">
 
+            <!-- SLIP HEADER -->
+
             <div class="slip-header">
-
                 <div class="slip-brand">
-
                     <img
                         src="assets/EGC - Emergency Gas Cylinder logo.png"
                         class="slip-logo"
-                        alt="EGC"
+                        alt="EGC Logo"
                         onerror="this.style.display='none';"
                     >
 
                     <div>
-
                         <div class="slip-brand-title">
                             Emergency Gas Cylinder
                         </div>
@@ -2095,610 +2056,541 @@ function renderSlip(
                         <div class="slip-brand-subtitle">
                             Short-Term Emergency LPG Finance
                         </div>
-
                     </div>
-
                 </div>
-
 
                 <div class="receipt-box">
+                    <div class="receipt-label">Payment Slip ID</div>
+                    <div class="receipt-number">${escapeHtml(slipId)}</div>
 
-                    <div class="receipt-label">
-                        Payment Slip
+                    <div class="receipt-label" style="margin-top:10px;">
+                        Generated On
                     </div>
 
-                    <div class="receipt-number">
-                        ${escapeHtml(
-                            payment.id || "—"
-                        )}
+                    <div class="info-value">
+                        ${escapeHtml(formatDateTime(new Date().toISOString()))}
                     </div>
-
                 </div>
-
             </div>
 
+            <!-- PAYMENT STATUS -->
 
             <div class="status-row">
-
                 <div>
-
                     <div class="status-left-title">
                         Payment Status
                     </div>
 
                     <div class="status-left-sub">
-                        Payment transaction status
+                        ${paymentApproved
+                            ? "The payment record is marked approved/verified."
+                            : "This slip shows the current saved payment status. Pending payment is not treated as approved."}
                     </div>
-
                 </div>
 
-                ${badgeHtml(
-                    paymentStatus
-                )}
-
+                ${badgeHtml(paymentStatus)}
             </div>
-
 
             <div class="slip-body">
 
+                <!-- USER INFORMATION -->
 
                 <section class="section">
-
-                    <div class="section-title">
-                        User Information
-                    </div>
-
+                    <div class="section-title">User Information</div>
 
                     <div class="user-card">
-
                         ${photoHtml}
 
                         <div>
-
                             <div class="user-name">
                                 ${escapeHtml(name)}
                             </div>
 
                             <div class="user-contact">
-                                ${escapeHtml(mobile)}
-                                &nbsp; • &nbsp;
-                                ${escapeHtml(email)}
+                                EGC User ID: ${escapeHtml(egcUserId)}<br>
+                                Mobile: ${escapeHtml(mobile)}<br>
+                                Email: ${escapeHtml(email)}
                             </div>
-
                         </div>
-
                     </div>
-
                 </section>
 
+                <!-- REQUEST INFORMATION -->
 
                 <section class="section">
-
-                    <div class="section-title">
-                        Cylinder Request
-                    </div>
-
+                    <div class="section-title">Cylinder Request Details</div>
 
                     <div class="info-grid">
 
                         <div class="info-box">
-
-                            <div class="info-label">
-                                Request Number
-                            </div>
-
+                            <div class="info-label">Request Number</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    requestNumber
-                                )}
+                                ${escapeHtml(requestNumber)}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                User ID
-                            </div>
-
+                            <div class="info-label">Request ID</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    payment.user_id || "—"
-                                )}
+                                ${escapeHtml(payment.request_id || request?.id || "—")}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                LPG Company
-                            </div>
-
+                            <div class="info-label">LPG Company</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    companyName
-                                )}
+                                ${escapeHtml(companyName)}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                LPG Agency
-                            </div>
-
+                            <div class="info-label">LPG Agency</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    agencyName
-                                )}
+                                ${escapeHtml(agencyName)}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                Quantity
-                            </div>
-
+                            <div class="info-label">Cylinder Quantity</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    quantity
-                                )}
+                                ${escapeHtml(quantity)}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                Request Status
-                            </div>
-
+                            <div class="info-label">Scheme</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    request?.status ||
-                                    request?.request_status ||
-                                    "—"
-                                )}
+                                ${escapeHtml(schemeName)}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                State
-                            </div>
-
+                            <div class="info-label">State</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    request?.state ||
-                                    "—"
-                                )}
+                                ${escapeHtml(getState(request))}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                District
-                            </div>
-
+                            <div class="info-label">District</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    request?.district ||
-                                    "—"
-                                )}
+                                ${escapeHtml(getDistrict(request))}
                             </div>
-
                         </div>
 
-
                         <div class="info-box">
-
-                            <div class="info-label">
-                                City
-                            </div>
-
+                            <div class="info-label">City</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    request?.city ||
-                                    "—"
-                                )}
+                                ${escapeHtml(getCity(request))}
                             </div>
-
                         </div>
 
+                        <div class="info-box">
+                            <div class="info-label">Request Created</div>
+                            <div class="info-value">
+                                ${escapeHtml(formatDateTime(requestCreatedAt))}
+                            </div>
+                        </div>
 
                         <div class="info-box">
-
-                            <div class="info-label">
-                                Payment Date
-                            </div>
-
+                            <div class="info-label">Request Status</div>
                             <div class="info-value">
-                                ${escapeHtml(
-                                    formatDateTime(
-                                        paymentDate
-                                    )
-                                )}
+                                ${badgeHtml(requestStatus)}
                             </div>
+                        </div>
 
+                        <div class="info-box">
+                            <div class="info-label">Owner Request Approval</div>
+                            <div class="info-value">
+                                ${badgeHtml(ownerApprovalStatus)}
+                            </div>
                         </div>
 
                     </div>
-
                 </section>
 
+                <!-- PAYMENT SUMMARY -->
 
                 <section class="section">
-
-                    <div class="section-title">
-                        Payment Summary
-                    </div>
-
+                    <div class="section-title">Payment Summary</div>
 
                     <div class="amount-section">
 
-
                         <div class="amount-row">
-
                             <div class="amount-label">
-                                Request Total
+                                Cylinder / Request Amount
                             </div>
 
                             <div class="amount-value">
-                                ${formatMoney(
-                                    requestTotal
-                                )}
+                                ${formatMoney(requestTotal)}
                             </div>
-
                         </div>
 
+                        <div class="amount-row">
+                            <div class="amount-label">
+                                Initial Payment
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(initialPayment)}
+                            </div>
+                        </div>
 
                         <div class="amount-row">
-
                             <div class="amount-label">
                                 Extra Charge
                             </div>
 
                             <div class="amount-value">
-                                ${formatMoney(
-                                    extraCharge
-                                )}
+                                ${formatMoney(extraCharge)}
                             </div>
-
                         </div>
-
 
                         <div class="amount-row total">
-
                             <div class="amount-label">
-                                Payment Amount
+                                Total Payable
                             </div>
 
                             <div class="amount-value">
-                                ${formatMoney(
-                                    paymentAmount
-                                )}
+                                ${formatMoney(totalPayable)}
                             </div>
-
                         </div>
-
 
                         <div class="amount-row paid">
-
                             <div class="amount-label">
-                                Amount Paid
+                                Amount Paid / Recorded
                             </div>
 
                             <div class="amount-value">
-                                ${formatMoney(
-                                    paymentAmount
-                                )}
+                                ${formatMoney(actualPaidAmount)}
                             </div>
-
                         </div>
 
+                        <div class="amount-row remaining">
+                            <div class="amount-label">
+                                Remaining Payment
+                            </div>
+
+                            <div class="amount-value">
+                                ${formatMoney(remainingPayment)}
+                            </div>
+                        </div>
 
                     </div>
 
-                </section>
-
-
-                <section class="section">
-
-                    <div class="section-title">
-                        Transaction Information
-                    </div>
-
-
-                    <div class="reference-box">
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Payment ID
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    payment.id || "—"
-                                )}
-                            </div>
-
-                        </div>
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Request ID
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    payment.request_id || "—"
-                                )}
-                            </div>
-
-                        </div>
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Payment Method
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    paymentMethod
-                                )}
-                            </div>
-
-                        </div>
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Transaction ID
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    transactionId
-                                )}
-                            </div>
-
-                        </div>
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Payment Reference
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    paymentReference
-                                )}
-                            </div>
-
-                        </div>
-
-
-                        <div class="reference-row">
-
-                            <div class="reference-label">
-                                Payment Date
-                            </div>
-
-                            <div class="reference-value">
-                                ${escapeHtml(
-                                    formatDateTime(
-                                        paymentDate
-                                    )
-                                )}
-                            </div>
-
-                        </div>
-
-
-                    </div>
-
-                </section>
-
-
-                <section class="section">
-
-                    <div class="section-title">
-                        Verification
-                    </div>
-
-
-                    <div class="verification">
-
-                        <div class="verification-title">
-                            ${escapeHtml(
-                                verificationStatus
-                            )}
+                    <div class="verification ${paymentApproved ? "" : "pending"}" style="margin-top:12px;">
+                        <div class="verification-title" style="color:${paymentApproved ? "#18803d" : "#9a6700"};">
+                            ${paymentApproved ? "Payment Approved / Verified" : "Payment Approval Pending / Unconfirmed"}
                         </div>
 
                         <div class="verification-text">
+                            This status comes from the payment record. A receipt being visible does not itself mean the payment has been approved.
+                        </div>
+                    </div>
+                </section>
 
-                            ${
-                                payment.verified_at
-                                ?
-                                "Payment verified on " +
-                                escapeHtml(
-                                    formatDateTime(
-                                        payment.verified_at
-                                    )
-                                )
-                                :
-                                "Payment verification information is not available."
-                            }
+                <!-- TRANSACTION INFORMATION -->
 
+                <section class="section">
+                    <div class="section-title">Transaction Information</div>
+
+                    <div class="reference-box">
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment ID</div>
+                            <div class="reference-value">
+                                ${escapeHtml(payment.id || "—")}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Request ID</div>
+                            <div class="reference-value">
+                                ${escapeHtml(payment.request_id || request?.id || "—")}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Method</div>
+                            <div class="reference-value">
+                                ${escapeHtml(paymentMethod)}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Transaction / UTR ID</div>
+                            <div class="reference-value">
+                                ${escapeHtml(transactionId)}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Reference</div>
+                            <div class="reference-value">
+                                ${escapeHtml(paymentReference)}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Proof</div>
+                            ${screenshotHtml}
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Submitted</div>
+                            <div class="reference-value">
+                                ${escapeHtml(formatDateTime(paymentCreatedAt || paymentDate))}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Date</div>
+                            <div class="reference-value">
+                                ${escapeHtml(formatDateTime(paymentDate))}
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- APPROVAL INFORMATION -->
+
+                <section class="section">
+                    <div class="section-title">Payment Verification & Approval</div>
+
+                    <div class="approval-grid">
+
+                        <div class="approval-box">
+                            <div class="approval-label">Payment Verification</div>
+
+                            ${badgeHtml(verificationStatus)}
+
+                            <div class="approval-detail">
+                                ${escapeHtml(paymentVerificationMessage)}
+                            </div>
+                        </div>
+
+                        <div class="approval-box">
+                            <div class="approval-label">Owner Approval</div>
+
+                            ${badgeHtml(
+                                payment?.owner_payment_approval ||
+                                payment?.payment_approval_status ||
+                                verificationStatus
+                            )}
+
+                            <div class="approval-detail">
+                                Approval date: ${escapeHtml(approvedAtText)}<br>
+                                Approved by: ${escapeHtml(approvedBy)}
+                            </div>
                         </div>
 
                     </div>
 
+                    <div class="reference-box" style="margin-top:12px;">
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Approved At</div>
+                            <div class="reference-value">
+                                ${escapeHtml(formatDateTime(approvalDate))}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Verification Status</div>
+                            <div class="reference-value">
+                                ${escapeHtml(verificationStatus)}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Owner Approval Status</div>
+                            <div class="reference-value">
+                                ${escapeHtml(ownerApprovalStatus)}
+                            </div>
+                        </div>
+
+                    </div>
                 </section>
 
+                <!-- DELIVERY INFORMATION -->
+
+                <section class="section">
+                    <div class="section-title">Agency & Delivery Information</div>
+
+                    <div class="info-grid">
+
+                        <div class="info-box">
+                            <div class="info-label">Assigned LPG Agency</div>
+                            <div class="info-value">
+                                ${escapeHtml(agencyName)}
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Agency ID</div>
+                            <div class="info-value">
+                                ${escapeHtml(agencyIdForDisplay(request))}
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Delivery Status</div>
+                            <div class="info-value">
+                                ${badgeHtml(deliveryStatus)}
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Delivery Date</div>
+                            <div class="info-value">
+                                ${escapeHtml(formatDateTime(deliveryDate))}
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Repayment Status</div>
+                            <div class="info-value">
+                                ${badgeHtml(repaymentStatus)}
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Last Updated</div>
+                            <div class="info-value">
+                                ${escapeHtml(formatDateTime(
+                                    request?.updated_at ||
+                                    payment?.updated_at ||
+                                    null
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- PAYMENT NOTE -->
+
+                <section class="section">
+                    <div class="section-title">Additional Information</div>
+
+                    <div class="reference-box">
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Note</div>
+                            <div class="reference-value">
+                                ${escapeHtml(
+                                    payment?.note ||
+                                    payment?.payment_note ||
+                                    request?.payment_note ||
+                                    "—"
+                                )}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Payment Record Created</div>
+                            <div class="reference-value">
+                                ${escapeHtml(formatDateTime(payment?.created_at))}
+                            </div>
+                        </div>
+
+                        <div class="reference-row">
+                            <div class="reference-label">Receipt Reference</div>
+                            <div class="reference-value">
+                                ${escapeHtml(slipId)}
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
 
             </div>
 
+            <!-- FOOTER -->
 
             <div class="footer">
-
-                <div class="footer-title">
-                    Powered by EGC
-                </div>
+                <div class="footer-title">Powered by EGC</div>
 
                 <div class="footer-text">
-                    This payment slip is generated from the EGC Emergency Gas Cylinder management system.
-                    Please keep this receipt for your records.
+                    This payment slip displays information retrieved from the EGC management system.
+                    Please keep this receipt for your records.<br>
+                    Payment approval is determined by the saved payment verification status.
                 </div>
-
             </div>
 
-
         </div>
-
     `;
-
 }
 
+/* Helper used by delivery information section. */
+function agencyIdForDisplay(request) {
+    return (
+        request?.agency_id ||
+        request?.assigned_agency_id ||
+        "—"
+    );
+}
 
-/* ================= LOGOUT ================= */
+/* =========================================================
+   LOGOUT
+========================================================= */
 
-logoutBtn.addEventListener(
-    "click",
-    async function(){
+logoutBtn.addEventListener("click", async function () {
+    const confirmed = confirm(
+        "Kya aap EGC Owner Panel se logout karna chahte hain?"
+    );
 
-        const confirmed =
-        confirm(
-            "Kya aap EGC Owner Panel se logout karna chahte hain?"
+    if (!confirmed) return;
+
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) throw error;
+
+        window.location.replace("owner-login.html");
+
+    } catch (error) {
+        console.error("Logout error:", error);
+
+        showToast(
+            "Logout Failed",
+            error?.message || "Please try again."
         );
-
-
-        if(!confirmed){
-
-            return;
-
-        }
-
-
-        try{
-
-            await supabaseClient.auth.signOut();
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-        }
-        catch(error){
-
-            console.error(error);
-
-            showToast(
-                "Logout Failed",
-                "Please try again."
-            );
-
-        }
-
     }
-);
+});
 
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
-/* ================= ESC ================= */
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key === "Escape"
-        ){
-
-            sidebar.classList.remove(
-                "open"
-            );
-
-            overlay.classList.remove(
-                "show"
-            );
-
-        }
-
-    }
-);
-
-
-/* ================= INITIALIZE ================= */
-
-async function init(){
-
-    try{
-
+async function init() {
+    try {
         const {
-            data:{
-                session
-            }
-        } =
-        await supabaseClient.auth.getSession();
+            data: { session },
+            error
+        } = await supabaseClient.auth.getSession();
 
+        if (error) throw error;
 
-        if(!session){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+        if (!session) {
+            window.location.replace("owner-login.html");
             return;
-
         }
-
 
         await loadPayment();
 
-    }
-    catch(error){
-
-        console.error(
-            "Initialization error:",
-            error
-        );
+    } catch (error) {
+        console.error("Initialization error:", error);
 
         showError(
             "Initialization Failed",
-            "Owner payment slip initialize nahi ho paayi."
+            error?.message || "Owner payment slip initialize nahi ho paayi."
         );
-
     }
-
 }
 
-
 init();
-
 </script>
 
 </body>

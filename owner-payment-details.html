@@ -7,845 +7,1049 @@
 <title>EGC - Payment Details</title>
 
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    color:#073f73;
-    min-height:100vh;
+:root {
+    --blue: #0871c3;
+    --dark-blue: #06477f;
+    --light-blue: #eef7ff;
+    --text: #315671;
+    --muted: #8194a5;
+    --border: #dce6ef;
+    --green: #18803d;
+    --red: #c72e2e;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--dark-blue);
+    min-height: 100vh;
     background:
-        radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
-        radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
-        radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),
+        radial-gradient(circle at 8% 8%, rgba(255,190,190,.34), transparent 30%),
+        radial-gradient(circle at 92% 12%, rgba(180,220,255,.38), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(220,235,255,.34), transparent 38%),
         #fff;
 }
 
-button,
-input,
-select,
-textarea{
-    font-family:inherit;
+button, input, select, textarea {
+    font-family: inherit;
 }
 
-.header{
-    height:78px;
-    background:rgba(255,255,255,.96);
-    border-bottom:1px solid #dfe8ef;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 28px;
-    position:sticky;
-    top:0;
-    z-index:100;
-    backdrop-filter:blur(12px);
+button {
+    -webkit-tap-highlight-color: transparent;
 }
 
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:15px;
+button:disabled {
+    opacity: .55;
+    cursor: not-allowed !important;
 }
 
-.menu-btn{
-    width:42px;
-    height:42px;
-    border:0;
-    border-radius:12px;
-    background:#eef7ff;
-    color:#075ca5;
-    font-size:22px;
-    cursor:pointer;
-    display:none;
+.header {
+    height: 78px;
+    background: rgba(255,255,255,.96);
+    border-bottom: 1px solid #dfe8ef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
 }
 
-.logo{
-    height:57px;
-    width:auto;
-    object-fit:contain;
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 0;
 }
 
-.owner-title{
-    font-size:20px;
-    font-weight:800;
-    color:#06477f;
+.menu-btn {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    background: #eef7ff;
+    color: #075ca5;
+    font-size: 22px;
+    cursor: pointer;
+    display: none;
 }
 
-.owner-subtitle{
-    font-size:12px;
-    color:#8094a6;
-    margin-top:3px;
+.logo {
+    height: 57px;
+    width: auto;
+    max-width: 100px;
+    object-fit: contain;
 }
 
-.header-right{
-    display:flex;
-    align-items:center;
-    gap:14px;
+.owner-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--dark-blue);
 }
 
-/* Notification */
-
-.notification-wrap{
-    position:relative;
+.owner-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
 }
 
-.notification-btn{
-    width:42px;
-    height:42px;
-    border:0;
-    border-radius:12px;
-    background:#eef7ff;
-    color:#075ca5;
-    font-size:19px;
-    cursor:pointer;
-    position:relative;
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
-.notification-count{
-    position:absolute;
-    top:-4px;
-    right:-4px;
-    min-width:18px;
-    height:18px;
-    padding:0 4px;
-    border-radius:20px;
-    background:#e63946;
-    color:#fff;
-    font-size:10px;
-    font-weight:800;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border:2px solid #fff;
+.notification-wrap {
+    position: relative;
 }
 
-.notification-panel{
-    position:absolute;
-    top:52px;
-    right:0;
-    width:330px;
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:15px;
-    box-shadow:0 15px 45px rgba(20,60,90,.16);
-    display:none;
-    overflow:hidden;
-    z-index:500;
+.notification-btn {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    background: #eef7ff;
+    color: #075ca5;
+    font-size: 19px;
+    cursor: pointer;
+    position: relative;
 }
 
-.notification-panel.show{
-    display:block;
+.notification-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 20px;
+    background: #e63946;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
 }
 
-.notification-head{
-    padding:15px 17px;
-    border-bottom:1px solid #edf2f6;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+.notification-panel {
+    position: absolute;
+    top: 52px;
+    right: 0;
+    width: 330px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    box-shadow: 0 15px 45px rgba(20,60,90,.16);
+    display: none;
+    overflow: hidden;
+    z-index: 500;
 }
 
-.notification-head strong{
-    color:#06477f;
-    font-size:14px;
+.notification-panel.show {
+    display: block;
 }
 
-.notification-head span{
-    color:#8799a9;
-    font-size:10px;
+.notification-head {
+    padding: 15px 17px;
+    border-bottom: 1px solid #edf2f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.notification-item{
-    padding:13px 17px;
-    border-bottom:1px solid #f0f3f6;
-    display:flex;
-    gap:10px;
+.notification-head strong {
+    color: var(--dark-blue);
+    font-size: 14px;
 }
 
-.notification-item:last-child{
-    border-bottom:0;
+.notification-head span {
+    color: #8799a9;
+    font-size: 10px;
 }
 
-.notification-icon{
-    width:32px;
-    height:32px;
-    border-radius:9px;
-    background:#eef7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
+.notification-item {
+    padding: 13px 17px;
+    border-bottom: 1px solid #f0f3f6;
+    display: flex;
+    gap: 10px;
 }
 
-.notification-text{
-    min-width:0;
+.notification-item:last-child {
+    border-bottom: 0;
 }
 
-.notification-text strong{
-    display:block;
-    color:#315671;
-    font-size:11px;
-    margin-bottom:3px;
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #eef7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.notification-text span{
-    display:block;
-    color:#8799a9;
-    font-size:10px;
-    line-height:1.45;
+.notification-text {
+    min-width: 0;
 }
 
-.owner-badge{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    background:#eef8ff;
-    padding:9px 14px;
-    border-radius:12px;
-    color:#075ca5;
-    font-size:14px;
-    font-weight:700;
+.notification-text strong {
+    display: block;
+    color: var(--text);
+    font-size: 11px;
+    margin-bottom: 3px;
 }
 
-.owner-dot{
-    width:9px;
-    height:9px;
-    background:#20a45a;
-    border-radius:50%;
+.notification-text span {
+    display: block;
+    color: #8799a9;
+    font-size: 10px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
-.layout{
-    display:flex;
-    min-height:calc(100vh - 78px);
+.owner-badge {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: #eef8ff;
+    padding: 9px 14px;
+    border-radius: 12px;
+    color: #075ca5;
+    font-size: 14px;
+    font-weight: 700;
 }
 
-.sidebar{
-    width:245px;
-    background:linear-gradient(
+.owner-dot {
+    width: 9px;
+    height: 9px;
+    background: #20a45a;
+    border-radius: 50%;
+}
+
+.layout {
+    display: flex;
+    min-height: calc(100vh - 78px);
+}
+
+.sidebar {
+    width: 245px;
+    background: linear-gradient(
         180deg,
         rgba(255,245,245,.98) 0%,
         rgba(242,248,255,.98) 52%,
         rgba(255,255,255,.98) 100%
     );
-    border-right:1px solid #e1e9f0;
-    padding:25px 15px;
-    flex-shrink:0;
-    box-shadow:5px 0 25px rgba(60,90,120,.05);
-    display:flex;
-    flex-direction:column;
+    border-right: 1px solid #e1e9f0;
+    padding: 25px 15px;
+    flex-shrink: 0;
+    box-shadow: 5px 0 25px rgba(60,90,120,.05);
+    display: flex;
+    flex-direction: column;
 }
 
-.sidebar-title{
-    color:#7990a4;
-    font-size:13px;
-    font-weight:800;
-    padding:0 13px 12px;
-    text-transform:uppercase;
-    letter-spacing:.5px;
+.sidebar-title {
+    color: #7990a4;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 0 13px 12px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
 }
 
-.nav-btn{
-    width:100%;
-    border:0;
-    background:transparent;
-    color:#496a82;
-    padding:13px 14px;
-    border-radius:11px;
-    margin-bottom:5px;
-    text-align:left;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.2s;
+.nav-btn {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #496a82;
+    padding: 13px 14px;
+    border-radius: 11px;
+    margin-bottom: 5px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s;
 }
 
-.nav-btn:hover{
-    background:#e5f2fc;
-    color:#075ca5;
+.nav-btn:hover {
+    background: #e5f2fc;
+    color: #075ca5;
 }
 
-.nav-btn.active{
-    background:linear-gradient(135deg,#eaf6ff,#fff0f0);
-    color:#075ca5;
-    box-shadow:0 4px 12px rgba(60,120,170,.08);
+.nav-btn.active {
+    background: linear-gradient(135deg,#eaf6ff,#fff0f0);
+    color: #075ca5;
+    box-shadow: 0 4px 12px rgba(60,120,170,.08);
 }
 
-.nav-icon{
-    display:inline-block;
-    width:25px;
-    font-size:17px;
+.nav-icon {
+    display: inline-block;
+    width: 25px;
+    font-size: 17px;
 }
 
-.sidebar-bottom{
-    margin-top:auto;
-    padding-top:12px;
+.sidebar-bottom {
+    margin-top: auto;
+    padding-top: 12px;
 }
 
-.sidebar-logout{
-    color:#c72e2e;
-    background:rgba(255,241,241,.7);
+.sidebar-logout {
+    color: #c72e2e;
+    background: rgba(255,241,241,.7);
 }
 
-.sidebar-logout:hover{
-    background:#ffe3e3;
-    color:#b92727;
+.sidebar-logout:hover {
+    background: #ffe3e3;
+    color: #b92727;
 }
 
-/* Main */
-
-.main{
-    flex:1;
-    padding:30px;
-    min-width:0;
+.main {
+    flex: 1;
+    padding: 30px;
+    min-width: 0;
 }
 
-.top-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:15px;
-    margin-bottom:22px;
+.top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 22px;
 }
 
-.page-heading h1{
-    font-size:28px;
-    color:#06477f;
-    font-weight:800;
-    margin-bottom:6px;
+.page-heading h1 {
+    font-size: 28px;
+    color: var(--dark-blue);
+    font-weight: 800;
+    margin-bottom: 6px;
 }
 
-.page-heading p{
-    color:#7890a3;
-    font-size:14px;
+.page-heading p {
+    color: #7890a3;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
-.back-btn{
-    height:42px;
-    border:0;
-    border-radius:11px;
-    padding:0 17px;
-    background:#edf7ff;
-    color:#0871c3;
-    font-weight:800;
-    cursor:pointer;
+.back-btn {
+    min-height: 42px;
+    border: 0;
+    border-radius: 11px;
+    padding: 0 17px;
+    background: #edf7ff;
+    color: var(--blue);
+    font-weight: 800;
+    cursor: pointer;
 }
 
-.back-btn:hover{
-    background:#dff0ff;
+.back-btn:hover {
+    background: #dff0ff;
 }
 
 .loading-card,
-.error-card{
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:18px;
-    box-shadow:0 8px 28px rgba(50,80,110,.07);
-    padding:45px 25px;
-    text-align:center;
-    color:#7890a3;
+.error-card,
+.empty-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(50,80,110,.07);
+    padding: 35px 22px;
+    text-align: center;
+    color: #7890a3;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
-.error-card{
-    color:#c72e2e;
+.error-card {
+    color: var(--red);
 }
 
-.content-grid{
-    display:grid;
-    grid-template-columns:minmax(0,1.5fr) minmax(300px,.8fr);
-    gap:20px;
+.content-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1.5fr) minmax(290px,.8fr);
+    gap: 20px;
+    align-items: start;
 }
 
-.card{
-    background:rgba(255,255,255,.96);
-    border:1px solid #dce6ef;
-    border-radius:18px;
-    box-shadow:0 8px 28px rgba(50,80,110,.07);
-    overflow:hidden;
+.left-column,
+.right-column {
+    min-width: 0;
 }
 
-.card-header{
-    padding:20px;
-    border-bottom:1px solid #edf2f6;
+.card {
+    background: rgba(255,255,255,.96);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(50,80,110,.07);
+    overflow: hidden;
+    margin-bottom: 20px;
 }
 
-.card-title{
-    font-size:18px;
-    font-weight:800;
-    color:#06477f;
+.card:last-child {
+    margin-bottom: 0;
 }
 
-.card-subtitle{
-    font-size:12px;
-    color:#8799a9;
-    margin-top:4px;
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid #edf2f6;
 }
 
-.card-body{
-    padding:20px;
+.card-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--dark-blue);
 }
 
-.user-header{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    padding:16px;
-    background:#f7fafc;
-    border:1px solid #e5edf3;
-    border-radius:14px;
-    margin-bottom:18px;
+.card-subtitle {
+    font-size: 12px;
+    color: #8799a9;
+    margin-top: 5px;
+    line-height: 1.5;
 }
 
-.user-photo{
-    width:65px;
-    height:65px;
-    border-radius:50%;
-    object-fit:cover;
-    background:#eef7ff;
-    border:2px solid #dceaf4;
-    flex-shrink:0;
+.card-body {
+    padding: 20px;
 }
 
-.user-photo-fallback{
-    width:65px;
-    height:65px;
-    border-radius:50%;
-    background:#eef7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:28px;
-    flex-shrink:0;
+.user-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #f7fafc;
+    border: 1px solid #e5edf3;
+    border-radius: 14px;
+    margin-bottom: 22px;
+    min-width: 0;
 }
 
-.user-name{
-    color:#315671;
-    font-size:17px;
-    font-weight:800;
+.user-photo {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eef7ff;
+    border: 2px solid #dceaf4;
+    flex-shrink: 0;
 }
 
-.user-contact{
-    color:#8799a9;
-    font-size:11px;
-    margin-top:4px;
+.user-photo-fallback {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #eef7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
 }
 
-.detail-section{
-    margin-bottom:22px;
+.user-name {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
-.detail-section:last-child{
-    margin-bottom:0;
+.user-contact {
+    color: #8799a9;
+    font-size: 11px;
+    margin-top: 5px;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
 }
 
-.section-title{
-    color:#0871c3;
-    font-size:12px;
-    font-weight:800;
-    text-transform:uppercase;
-    letter-spacing:.4px;
-    margin-bottom:10px;
+.detail-section {
+    margin-bottom: 23px;
 }
 
-.details-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
+.detail-section:last-child {
+    margin-bottom: 0;
 }
 
-.detail-box{
-    background:#f7fafc;
-    border:1px solid #e5edf3;
-    border-radius:11px;
-    padding:12px;
+.section-title {
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 11px;
 }
 
-.detail-label{
-    font-size:9px;
-    color:#8b9ba8;
-    text-transform:uppercase;
-    font-weight:800;
-    margin-bottom:5px;
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 10px;
 }
 
-.detail-value{
-    font-size:12px;
-    color:#31566f;
-    font-weight:700;
-    word-break:break-word;
+.detail-box {
+    min-width: 0;
+    background: #f7fafc;
+    border: 1px solid #e5edf3;
+    border-radius: 11px;
+    padding: 12px;
 }
 
-.detail-value.highlight{
-    color:#0871c3;
-    font-size:14px;
-    font-weight:900;
+.detail-label {
+    font-size: 9px;
+    color: #8b9ba8;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 7px;
+    letter-spacing: .25px;
 }
 
-.status-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:85px;
-    padding:6px 10px;
-    border-radius:20px;
-    font-size:10px;
-    font-weight:800;
+.detail-value {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 700;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
 }
 
-.status-paid{
-    background:#eaf9ef;
-    color:#18803d;
+.detail-value.highlight {
+    color: var(--blue);
+    font-size: 14px;
+    font-weight: 900;
 }
 
-.status-pending{
-    background:#fff7df;
-    color:#a36b00;
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 82px;
+    max-width: 100%;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
-.status-failed{
-    background:#fff0f0;
-    color:#c72e2e;
+.status-paid {
+    background: #eaf9ef;
+    color: #18803d;
 }
 
-.status-blue{
-    background:#edf6ff;
-    color:#086db7;
+.status-pending {
+    background: #fff7df;
+    color: #a36b00;
 }
 
-.status-gray{
-    background:#f0f3f5;
-    color:#617687;
+.status-failed {
+    background: #fff0f0;
+    color: #c72e2e;
 }
 
-.summary-box{
-    padding:18px;
-    background:linear-gradient(135deg,#eef8ff,#fff5f5);
-    border:1px solid #dceaf4;
-    border-radius:15px;
-    margin-bottom:18px;
+.status-blue {
+    background: #edf6ff;
+    color: #086db7;
 }
 
-.summary-label{
-    color:#8194a5;
-    font-size:10px;
-    font-weight:800;
-    text-transform:uppercase;
+.status-gray {
+    background: #f0f3f5;
+    color: #617687;
 }
 
-.summary-amount{
-    color:#0871c3;
-    font-size:31px;
-    font-weight:900;
-    margin-top:6px;
+.summary-box {
+    padding: 18px;
+    background: linear-gradient(135deg,#eef8ff,#fff5f5);
+    border: 1px solid #dceaf4;
+    border-radius: 15px;
+    margin-bottom: 18px;
 }
 
-.amount-row{
-    display:flex;
-    justify-content:space-between;
-    gap:15px;
-    padding:11px 0;
-    border-bottom:1px solid #edf2f6;
+.summary-label {
+    color: #8194a5;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
-.amount-row:last-child{
-    border-bottom:0;
+.summary-amount {
+    color: var(--blue);
+    font-size: 31px;
+    font-weight: 900;
+    margin-top: 6px;
+    overflow-wrap: anywhere;
 }
 
-.amount-label{
-    color:#7890a3;
-    font-size:12px;
+.amount-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid #edf2f6;
 }
 
-.amount-value{
-    color:#315671;
-    font-size:12px;
-    font-weight:800;
-    text-align:right;
+.amount-row:last-child {
+    border-bottom: 0;
 }
 
-.amount-total{
-    color:#0871c3;
-    font-size:15px;
-    font-weight:900;
+.amount-label {
+    color: #7890a3;
+    font-size: 12px;
 }
 
-.action-card{
-    margin-top:20px;
+.amount-value {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: right;
+    overflow-wrap: anywhere;
 }
 
-.action-buttons{
-    display:flex;
-    flex-direction:column;
-    gap:9px;
+.amount-total {
+    color: var(--blue);
+    font-size: 15px;
+    font-weight: 900;
 }
 
-.action-btn{
-    width:100%;
-    height:44px;
-    border:0;
-    border-radius:11px;
-    font-size:12px;
-    font-weight:800;
-    cursor:pointer;
+.screenshot-wrap {
+    display: none;
 }
 
-.slip-btn{
-    background:#0871c3;
-    color:#fff;
+.screenshot-preview {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    background: #f7fafc;
+    border: 1px solid #e5edf3;
+    border-radius: 12px;
+    margin-bottom: 12px;
 }
 
-.slip-btn:hover{
-    background:#075e9f;
+.screenshot-file {
+    padding: 20px;
+    border: 1px solid #e5edf3;
+    border-radius: 12px;
+    background: #f7fafc;
+    margin-bottom: 12px;
+    color: var(--text);
+    font-size: 13px;
+    overflow-wrap: anywhere;
 }
 
-.requests-btn{
-    background:#edf7ff;
-    color:#0871c3;
+.screenshot-empty {
+    padding: 24px 15px;
+    text-align: center;
+    background: #f7fafc;
+    border: 1px dashed #cad9e5;
+    border-radius: 12px;
+    color: #8799a9;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
-.payments-btn{
-    background:#eef9f2;
-    color:#18803d;
+.open-screenshot-btn {
+    display: block;
+    text-decoration: none;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    background: #edf7ff;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
 }
 
-/* Logout Popup */
-
-.logout-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(20,40,60,.42);
-    backdrop-filter:blur(4px);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:9998;
-    padding:20px;
+.review-note {
+    width: 100%;
+    min-height: 100px;
+    resize: vertical;
+    border: 1px solid #d7e3ed;
+    background: #fbfdff;
+    border-radius: 11px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    line-height: 1.6;
 }
 
-.logout-modal.show{
-    display:flex;
+.review-note:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(8,113,195,.08);
 }
 
-.logout-box{
-    width:min(390px,100%);
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:20px;
-    box-shadow:0 20px 60px rgba(20,60,90,.22);
-    padding:25px;
-    text-align:center;
+.review-note:disabled {
+    background: #f2f5f7;
+    color: #8092a1;
 }
 
-.logout-icon{
-    width:55px;
-    height:55px;
-    margin:0 auto 14px;
-    border-radius:16px;
-    background:#fff0f0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:25px;
+.review-help {
+    font-size: 11px;
+    color: #8799a9;
+    line-height: 1.6;
+    margin-top: 8px;
 }
 
-.logout-box h3{
-    color:#06477f;
-    font-size:19px;
-    margin-bottom:7px;
+.review-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
 }
 
-.logout-box p{
-    color:#8194a5;
-    font-size:12px;
-    line-height:1.5;
+.review-btn {
+    width: 100%;
+    min-height: 45px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: .2s;
 }
 
-.logout-actions{
-    display:flex;
-    gap:10px;
-    margin-top:20px;
+.approve-btn {
+    background: #168346;
+    color: #fff;
+}
+
+.approve-btn:hover:not(:disabled) {
+    background: #116d39;
+}
+
+.reject-btn {
+    background: #fff0f0;
+    color: #bf2929;
+    border: 1px solid #f3d1d1;
+}
+
+.reject-btn:hover:not(:disabled) {
+    background: #ffe1e1;
+}
+
+.secondary-btn {
+    background: #edf7ff;
+    color: var(--blue);
+}
+
+.notice {
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    overflow-wrap: anywhere;
+}
+
+.notice-pending {
+    color: #8c6508;
+    background: #fff8e4;
+    border: 1px solid #f2e3b5;
+}
+
+.notice-approved {
+    color: #176f38;
+    background: #eaf9ef;
+    border: 1px solid #c9ecd4;
+}
+
+.notice-rejected {
+    color: #ad2b2b;
+    background: #fff0f0;
+    border: 1px solid #f2d0d0;
+}
+
+.notice-info {
+    color: #17639c;
+    background: #edf7ff;
+    border: 1px solid #d4e9f8;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.action-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px;
+    border: 0;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.slip-btn {
+    background: var(--blue);
+    color: #fff;
+}
+
+.slip-btn:hover {
+    background: #075e9f;
+}
+
+.requests-btn {
+    background: #edf7ff;
+    color: var(--blue);
+}
+
+.payments-btn {
+    background: #eef9f2;
+    color: #18803d;
+}
+
+.logout-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,40,60,.42);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    padding: 20px;
+}
+
+.logout-modal.show {
+    display: flex;
+}
+
+.logout-box {
+    width: min(390px,100%);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(20,60,90,.22);
+    padding: 25px;
+    text-align: center;
+}
+
+.logout-icon {
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 14px;
+    border-radius: 16px;
+    background: #fff0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.logout-box h3 {
+    color: var(--dark-blue);
+    font-size: 19px;
+    margin-bottom: 7px;
+}
+
+.logout-box p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.logout-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .logout-cancel,
-.logout-confirm{
-    flex:1;
-    height:42px;
-    border:0;
-    border-radius:11px;
-    font-size:12px;
-    font-weight:800;
-    cursor:pointer;
+.logout-confirm {
+    flex: 1;
+    min-height: 42px;
+    border: 0;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
-.logout-cancel{
-    background:#edf7ff;
-    color:#0871c3;
+.logout-cancel {
+    background: #edf7ff;
+    color: var(--blue);
 }
 
-.logout-confirm{
-    background:#e84545;
-    color:#fff;
+.logout-confirm {
+    background: #e84545;
+    color: #fff;
 }
 
-/* Toast */
-
-.toast{
-    position:fixed;
-    right:20px;
-    bottom:20px;
-    z-index:99999;
-    min-width:290px;
-    max-width:390px;
-    background:#fff;
-    border:1px solid #dce6ef;
-    border-radius:14px;
-    box-shadow:0 15px 45px rgba(20,60,90,.18);
-    padding:15px;
-    display:none;
+.toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 99999;
+    width: min(390px,calc(100vw - 28px));
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 15px 45px rgba(20,60,90,.18);
+    padding: 15px;
+    display: none;
 }
 
-.toast.show{
-    display:block;
+.toast.show {
+    display: block;
 }
 
-.toast-title{
-    color:#06477f;
-    font-size:13px;
-    font-weight:800;
+.toast-title {
+    color: var(--dark-blue);
+    font-size: 13px;
+    font-weight: 800;
 }
 
-.toast-text{
-    color:#7890a3;
-    font-size:11px;
-    margin-top:4px;
-    line-height:1.5;
+.toast-text {
+    color: #7890a3;
+    font-size: 11px;
+    margin-top: 4px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
-.overlay{
-    display:none;
+.overlay {
+    display: none;
 }
 
-@media(max-width:1050px){
-
-    .content-grid{
-        grid-template-columns:1fr;
+@media(max-width:1050px) {
+    .content-grid {
+        grid-template-columns: minmax(0,1fr);
     }
 }
 
-@media(max-width:760px){
-
-    .header{
-        height:70px;
-        padding:0 14px;
+@media(max-width:760px) {
+    .header {
+        height: 70px;
+        padding: 0 14px;
     }
 
-    .menu-btn{
-        display:flex;
-        align-items:center;
-        justify-content:center;
+    .menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
-    .logo{
-        height:48px;
+    .logo {
+        height: 48px;
+        max-width: 82px;
     }
 
     .owner-title,
     .owner-subtitle,
-    .owner-badge{
-        display:none;
+    .owner-badge {
+        display: none;
     }
 
-    .header-right{
-        gap:0;
+    .header-right {
+        gap: 0;
     }
 
-    .notification-panel{
-        position:fixed;
-        top:78px;
-        right:14px;
-        width:min(330px,calc(100vw - 28px));
+    .notification-panel {
+        position: fixed;
+        top: 78px;
+        right: 14px;
+        width: min(330px,calc(100vw - 28px));
     }
 
-    .layout{
-        display:block;
+    .layout {
+        display: block;
+        min-height: calc(100vh - 70px);
     }
 
-    .sidebar{
-        position:fixed;
-        top:70px;
-        left:-260px;
-        width:245px;
-        height:calc(100vh - 70px);
-        z-index:200;
-        transition:.25s;
-        overflow-y:auto;
+    .sidebar {
+        position: fixed;
+        top: 70px;
+        left: -260px;
+        width: 245px;
+        height: calc(100vh - 70px);
+        z-index: 200;
+        transition: .25s;
+        overflow-y: auto;
     }
 
-    .sidebar.open{
-        left:0;
+    .sidebar.open {
+        left: 0;
     }
 
-    .overlay.show{
-        display:block;
-        position:fixed;
-        inset:70px 0 0 0;
-        background:rgba(0,0,0,.25);
-        z-index:150;
+    .overlay.show {
+        display: block;
+        position: fixed;
+        inset: 70px 0 0 0;
+        background: rgba(0,0,0,.25);
+        z-index: 150;
     }
 
-    .main{
-        padding:20px 14px 40px;
+    .main {
+        padding: 20px 14px 40px;
     }
 
-    .top-row{
-        align-items:flex-start;
-        flex-direction:column;
+    .top-row {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    .page-heading h1{
-        font-size:23px;
+    .page-heading h1 {
+        font-size: 23px;
     }
 
-    .page-heading p{
-        font-size:12px;
+    .page-heading p {
+        font-size: 12px;
     }
 
-    .back-btn{
-        width:100%;
+    .back-btn {
+        width: 100%;
     }
 
-    .details-grid{
-        grid-template-columns:1fr;
+    .details-grid {
+        grid-template-columns: minmax(0,1fr);
     }
 
-    .card-header{
-        padding:16px;
+    .card-header {
+        padding: 16px;
     }
 
-    .card-body{
-        padding:16px;
+    .card-body {
+        padding: 16px;
     }
 
-    .user-header{
-        padding:13px;
+    .user-header {
+        padding: 13px;
     }
 
-    .summary-amount{
-        font-size:27px;
+    .summary-amount {
+        font-size: 27px;
     }
 
-    .logout-actions{
-        flex-direction:column;
+    .logout-actions {
+        flex-direction: column;
     }
 
-    .toast{
-        left:14px;
-        right:14px;
-        bottom:14px;
-        min-width:0;
+    .toast {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        width: auto;
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
     }
 }
 </style>
@@ -854,14 +1058,8 @@ textarea{
 <body>
 
 <header class="header">
-
     <div class="header-left">
-
-        <button
-            class="menu-btn"
-            id="menuBtn"
-            type="button"
-        >☰</button>
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open navigation">☰</button>
 
         <img
             src="assets/EGC - Emergency Gas Cylinder logo.png"
@@ -871,2225 +1069,1449 @@ textarea{
         >
 
         <div>
-            <div class="owner-title">
-                Owner Dashboard
-            </div>
-
-            <div class="owner-subtitle">
-                Emergency Gas Cylinder Management
-            </div>
+            <div class="owner-title">Owner Dashboard</div>
+            <div class="owner-subtitle">Emergency Gas Cylinder Management</div>
         </div>
-
     </div>
 
     <div class="header-right">
-
         <div class="notification-wrap">
-
-            <button
-                class="notification-btn"
-                id="notificationBtn"
-                type="button"
-                aria-label="Notifications"
-            >
+            <button class="notification-btn" id="notificationBtn" type="button"
+                    aria-label="Notifications" aria-expanded="false">
                 🔔
-
-                <span
-                    class="notification-count"
-                    id="notificationCount"
-                >
-                    0
-                </span>
-
+                <span class="notification-count" id="notificationCount">0</span>
             </button>
 
-            <div
-                class="notification-panel"
-                id="notificationPanel"
-            >
-
+            <div class="notification-panel" id="notificationPanel">
                 <div class="notification-head">
-
-                    <strong>
-                        Notifications
-                    </strong>
-
-                    <span>
-                        Owner Panel
-                    </span>
-
+                    <strong>Notifications</strong>
+                    <span>Owner Panel</span>
                 </div>
 
                 <div class="notification-item">
-
-                    <div class="notification-icon">
-                        🔔
-                    </div>
-
+                    <div class="notification-icon">🔔</div>
                     <div class="notification-text">
-
-                        <strong>
-                            Payment Notifications
-                        </strong>
-
-                        <span>
-                            New payment notifications will appear here.
-                        </span>
-
+                        <strong>Payment Notifications</strong>
+                        <span id="paymentNotificationText">Payment information will appear here.</span>
                     </div>
-
                 </div>
 
                 <div class="notification-item">
-
-                    <div class="notification-icon">
-                        🛢
-                    </div>
-
+                    <div class="notification-icon">🛢</div>
                     <div class="notification-text">
-
-                        <strong>
-                            Cylinder Requests
-                        </strong>
-
-                        <span>
-                            New cylinder request updates will appear here.
-                        </span>
-
+                        <strong>Cylinder Requests</strong>
+                        <span>Open the linked cylinder request to view its details.</span>
                     </div>
-
                 </div>
-
             </div>
-
         </div>
 
         <div class="owner-badge">
-
             <span class="owner-dot"></span>
-
             Owner
-
         </div>
-
     </div>
-
 </header>
-
 
 <div class="layout">
 
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-title">Management</div>
 
-<aside
-    class="sidebar"
-    id="sidebar"
->
+        <button class="nav-btn" data-page="dashboard" type="button"><span class="nav-icon">▦</span>Dashboard</button>
+        <button class="nav-btn" data-page="users" type="button"><span class="nav-icon">👥</span>Users</button>
+        <button class="nav-btn" data-page="agencies" type="button"><span class="nav-icon">🏪</span>LPG Agencies</button>
+        <button class="nav-btn" data-page="companies" type="button"><span class="nav-icon">🏢</span>LPG Companies</button>
+        <button class="nav-btn" data-page="pending-approvals" type="button"><span class="nav-icon">⏳</span>Pending Approvals</button>
+        <button class="nav-btn" data-page="requests" type="button"><span class="nav-icon">🛢</span>Cylinder Requests</button>
+        <button class="nav-btn" data-page="payments" type="button"><span class="nav-icon">₹</span>Payments</button>
+        <button class="nav-btn" data-page="reports" type="button"><span class="nav-icon">▤</span>Reports</button>
 
-    <div class="sidebar-title">
-        Management
-    </div>
+        <div class="sidebar-title" style="margin-top:25px;">Owner Pages</div>
 
+        <button class="nav-btn" data-page="request-details" type="button"><span class="nav-icon">📄</span>Request Details</button>
+        <button class="nav-btn active" data-page="payment-details" type="button"><span class="nav-icon">💳</span>Payment Details</button>
+        <button class="nav-btn" data-page="agency-details" type="button"><span class="nav-icon">🏪</span>Agency Details</button>
+        <button class="nav-btn" data-page="deliveries" type="button"><span class="nav-icon">🚚</span>Deliveries</button>
+        <button class="nav-btn" data-page="repayments" type="button"><span class="nav-icon">💰</span>Repayments</button>
+        <button class="nav-btn" data-page="notifications" type="button"><span class="nav-icon">🔔</span>Notifications</button>
+        <button class="nav-btn" data-page="slips" type="button"><span class="nav-icon">🧾</span>Slips</button>
+        <button class="nav-btn" data-page="profile" type="button"><span class="nav-icon">👤</span>Profile</button>
 
-    <button
-        class="nav-btn"
-        data-page="dashboard"
-        type="button"
-    >
-        <span class="nav-icon">▦</span>
-        Dashboard
-    </button>
+        <div class="sidebar-title" style="margin-top:25px;">System</div>
+        <button class="nav-btn" data-page="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
 
+        <div class="sidebar-bottom">
+            <button class="nav-btn sidebar-logout" id="logoutBtn" type="button"><span class="nav-icon">🚪</span>Logout</button>
+        </div>
+    </aside>
 
-    <button
-        class="nav-btn"
-        data-page="users"
-        type="button"
-    >
-        <span class="nav-icon">👥</span>
-        Users
-    </button>
+    <div class="overlay" id="overlay"></div>
 
+    <main class="main">
 
-    <button
-        class="nav-btn"
-        data-page="agencies"
-        type="button"
-    >
-        <span class="nav-icon">🏪</span>
-        LPG Agencies
-    </button>
+        <div class="top-row">
+            <div class="page-heading">
+                <h1>Payment Details</h1>
+                <p>Review the user's payment evidence and verify the actual payment before approval.</p>
+            </div>
 
-
-    <button
-        class="nav-btn"
-        data-page="companies"
-        type="button"
-    >
-        <span class="nav-icon">🏢</span>
-        LPG Companies
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="pending-approvals"
-        type="button"
-    >
-        <span class="nav-icon">⏳</span>
-        Pending Approvals
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="requests"
-        type="button"
-    >
-        <span class="nav-icon">🛢</span>
-        Cylinder Requests
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="payments"
-        type="button"
-    >
-        <span class="nav-icon">₹</span>
-        Payments
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="reports"
-        type="button"
-    >
-        <span class="nav-icon">▤</span>
-        Reports
-    </button>
-
-
-    <div
-        class="sidebar-title"
-        style="margin-top:25px;"
-    >
-        Owner Pages
-    </div>
-
-
-    <button
-        class="nav-btn"
-        data-page="request-details"
-        type="button"
-    >
-        <span class="nav-icon">📄</span>
-        Request Details
-    </button>
-
-
-    <button
-        class="nav-btn active"
-        data-page="payment-details"
-        type="button"
-    >
-        <span class="nav-icon">💳</span>
-        Payment Details
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="agency-details"
-        type="button"
-    >
-        <span class="nav-icon">🏪</span>
-        Agency Details
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="deliveries"
-        type="button"
-    >
-        <span class="nav-icon">🚚</span>
-        Deliveries
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="repayments"
-        type="button"
-    >
-        <span class="nav-icon">💰</span>
-        Repayments
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="notifications"
-        type="button"
-    >
-        <span class="nav-icon">🔔</span>
-        Notifications
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="slips"
-        type="button"
-    >
-        <span class="nav-icon">🧾</span>
-        Slips
-    </button>
-
-
-    <button
-        class="nav-btn"
-        data-page="profile"
-        type="button"
-    >
-        <span class="nav-icon">👤</span>
-        Profile
-    </button>
-
-
-    <div
-        class="sidebar-title"
-        style="margin-top:25px;"
-    >
-        System
-    </div>
-
-
-    <button
-        class="nav-btn"
-        data-page="settings"
-        type="button"
-    >
-        <span class="nav-icon">⚙</span>
-        Settings
-    </button>
-
-
-    <div class="sidebar-bottom">
-
-        <button
-            class="nav-btn sidebar-logout"
-            id="logoutBtn"
-            type="button"
-        >
-            <span class="nav-icon">🚪</span>
-            Logout
-        </button>
-
-    </div>
-
-</aside>
-
-
-<div
-    class="overlay"
-    id="overlay"
-></div>
-
-
-<main class="main">
-
-
-    <div class="top-row">
-
-        <div class="page-heading">
-
-            <h1>
-                Payment Details
-            </h1>
-
-            <p>
-                Complete payment and linked cylinder request information.
-            </p>
-
+            <button class="back-btn" id="backBtn" type="button">← Back to Payments</button>
         </div>
 
+        <div id="loadingBox" class="loading-card">Loading payment details...</div>
 
-        <button
-            class="back-btn"
-            id="backBtn"
-            type="button"
-        >
-            ← Back to Payments
-        </button>
+        <div id="errorBox" class="error-card" style="display:none;" role="alert">
+            Payment details could not be loaded.
+        </div>
 
-    </div>
+        <div id="content" class="content-grid" style="display:none;">
 
+            <div class="left-column">
 
-    <div
-        id="loadingBox"
-        class="loading-card"
-    >
-        Loading payment details...
-    </div>
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Payment & Request Information</div>
+                        <div class="card-subtitle">Payment record, customer information and linked cylinder request.</div>
+                    </div>
 
+                    <div class="card-body">
 
-    <div
-        id="errorBox"
-        class="error-card"
-        style="display:none;"
-    >
-        Payment details could not be loaded.
-    </div>
+                        <div class="user-header">
+                            <div id="photoContainer">
+                                <div class="user-photo-fallback">👤</div>
+                            </div>
 
+                            <div style="min-width:0;">
+                                <div class="user-name" id="userName">User</div>
+                                <div class="user-contact" id="userContact">—</div>
+                            </div>
+                        </div>
 
-    <div
-        id="content"
-        class="content-grid"
-        style="display:none;"
-    >
+                        <div class="detail-section">
+                            <div class="section-title">Payment Information</div>
 
+                            <div class="details-grid">
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment ID</div>
+                                    <div class="detail-value" id="paymentId">—</div>
+                                </div>
 
-        <section class="card">
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment Status</div>
+                                    <div class="detail-value" id="paymentStatus">—</div>
+                                </div>
 
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment Amount</div>
+                                    <div class="detail-value highlight" id="paymentAmount">₹0.00</div>
+                                </div>
 
-            <div class="card-header">
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment Date</div>
+                                    <div class="detail-value" id="paymentDate">—</div>
+                                </div>
 
-                <div class="card-title">
-                    Payment & Request Information
-                </div>
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment Method</div>
+                                    <div class="detail-value" id="paymentMethod">—</div>
+                                </div>
 
-                <div class="card-subtitle">
-                    Complete information connected with this payment
-                </div>
+                                <div class="detail-box">
+                                    <div class="detail-label">Transaction ID</div>
+                                    <div class="detail-value" id="transactionId">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Payment Reference</div>
+                                    <div class="detail-value" id="paymentReference">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Verification Status</div>
+                                    <div class="detail-value" id="verificationStatus">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Verified At</div>
+                                    <div class="detail-value" id="verifiedAt">Not Verified</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Verification Note</div>
+                                    <div class="detail-value" id="verificationNote">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-title">Customer Information</div>
+
+                            <div class="details-grid">
+                                <div class="detail-box">
+                                    <div class="detail-label">Supabase User ID</div>
+                                    <div class="detail-value" id="userId">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">EGC User ID</div>
+                                    <div class="detail-value" id="egcUserId">Not available</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Full Name</div>
+                                    <div class="detail-value" id="fullName">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Mobile</div>
+                                    <div class="detail-value" id="mobile">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Email</div>
+                                    <div class="detail-value" id="email">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-title">Cylinder Request</div>
+
+                            <div class="details-grid">
+                                <div class="detail-box">
+                                    <div class="detail-label">Request Number</div>
+                                    <div class="detail-value" id="requestNumber">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Request Status</div>
+                                    <div class="detail-value" id="requestStatus">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Owner Approval</div>
+                                    <div class="detail-value" id="requestOwnerApproval">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Request Payment Status</div>
+                                    <div class="detail-value" id="requestPaymentStatus">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">LPG Company</div>
+                                    <div class="detail-value" id="company">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">LPG Agency</div>
+                                    <div class="detail-value" id="agency">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">Quantity</div>
+                                    <div class="detail-value" id="quantity">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">State</div>
+                                    <div class="detail-value" id="state">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">District</div>
+                                    <div class="detail-value" id="district">—</div>
+                                </div>
+
+                                <div class="detail-box">
+                                    <div class="detail-label">City</div>
+                                    <div class="detail-value" id="city">—</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Customer Payment Screenshot</div>
+                        <div class="card-subtitle">Review the uploaded evidence. Always verify the transaction in the actual receiving account.</div>
+                    </div>
+
+                    <div class="card-body">
+                        <div id="screenshotNotice" class="notice notice-info">
+                            Checking for an uploaded payment screenshot...
+                        </div>
+
+                        <div id="screenshotWrap" class="screenshot-wrap">
+                            <img id="screenshotImage" class="screenshot-preview"
+                                 alt="Customer payment screenshot" style="display:none;">
+
+                            <div id="screenshotFile" class="screenshot-file" style="display:none;">
+                                Payment evidence file
+                            </div>
+
+                            <a id="openScreenshotBtn" class="open-screenshot-btn"
+                               href="#" target="_blank" rel="noopener noreferrer">
+                                Open Screenshot / Evidence in New Tab
+                            </a>
+                        </div>
+
+                        <div id="screenshotEmpty" class="screenshot-empty" style="display:none;">
+                            No payment screenshot was uploaded for this record.
+                        </div>
+                    </div>
+                </section>
 
             </div>
 
+            <aside class="right-column">
 
-            <div class="card-body">
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Amount Summary</div>
+                        <div class="card-subtitle">Request amount and this individual payment.</div>
+                    </div>
 
+                    <div class="card-body">
 
-                <div class="user-header">
+                        <div class="summary-box">
+                            <div class="summary-label">Submitted Payment Amount</div>
+                            <div class="summary-amount" id="summaryPayment">₹0.00</div>
+                        </div>
 
-                    <div id="photoContainer">
+                        <div class="amount-row">
+                            <div class="amount-label">Cylinder Amount</div>
+                            <div class="amount-value" id="cylinderAmount">₹0.00</div>
+                        </div>
 
-                        <div class="user-photo-fallback">
-                            👤
+                        <div class="amount-row">
+                            <div class="amount-label">Advance Amount</div>
+                            <div class="amount-value" id="advanceAmount">₹0.00</div>
+                        </div>
+
+                        <div class="amount-row">
+                            <div class="amount-label">Extra Charge</div>
+                            <div class="amount-value" id="extraCharge">₹0.00</div>
+                        </div>
+
+                        <div class="amount-row">
+                            <div class="amount-label">Request Total</div>
+                            <div class="amount-value amount-total" id="requestTotal">₹0.00</div>
+                        </div>
+
+                        <div class="amount-row">
+                            <div class="amount-label">Remaining Amount</div>
+                            <div class="amount-value" id="remainingAmount">₹0.00</div>
+                        </div>
+
+                        <div class="amount-row">
+                            <div class="amount-label">Verified Paid Amount</div>
+                            <div class="amount-value amount-total" id="verifiedPaidAmount">₹0.00</div>
                         </div>
 
                     </div>
+                </section>
 
-
-                    <div>
-
-                        <div
-                            class="user-name"
-                            id="userName"
-                        >
-                            User
-                        </div>
-
-                        <div
-                            class="user-contact"
-                            id="userContact"
-                        >
-                            —
-                        </div>
-
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Owner Verification</div>
+                        <div class="card-subtitle">Approve only after confirming the payment reached the EGC receiving account.</div>
                     </div>
 
-                </div>
+                    <div class="card-body">
 
+                        <div id="reviewStatusNotice" class="notice notice-pending">
+                            Payment verification status will appear here.
+                        </div>
 
-                <div class="detail-section">
+                        <label for="reviewNote" class="section-title" style="display:block;">
+                            Owner Verification Note
+                        </label>
 
+                        <textarea
+                            id="reviewNote"
+                            class="review-note"
+                            maxlength="1000"
+                            placeholder="Optional note. For rejection, explain why the payment could not be verified."
+                        ></textarea>
 
-                    <div class="section-title">
-                        Payment
+                        <div class="review-help">
+                            A rejection reason is required. The note will be appended to the payment's existing notes when that database column is available.
+                        </div>
+
+                        <div class="review-actions">
+                            <button class="review-btn approve-btn" id="approvePaymentBtn" type="button">
+                                ✓ Approve Payment
+                            </button>
+
+                            <button class="review-btn reject-btn" id="rejectPaymentBtn" type="button">
+                                ✕ Reject Payment
+                            </button>
+
+                            <button class="review-btn secondary-btn" id="refreshBtn" type="button">
+                                ↻ Refresh Payment Details
+                            </button>
+                        </div>
+
+                        <div class="review-help" style="margin-top:13px;">
+                            Payment verification and Cylinder Request approval are separate decisions.
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Quick Actions</div>
                     </div>
 
-
-                    <div class="details-grid">
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment ID
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="paymentId"
-                            >
-                                —
-                            </div>
-
+                    <div class="card-body">
+                        <div class="action-buttons">
+                            <button class="action-btn slip-btn" id="slipBtn" type="button">🧾 Open Payment Slip</button>
+                            <button class="action-btn requests-btn" id="requestBtn" type="button">🛢 Open Cylinder Request</button>
+                            <button class="action-btn payments-btn" id="paymentsBtn" type="button">₹ Back to Payments</button>
                         </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment Status
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="paymentStatus"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment Amount
-                            </div>
-
-                            <div
-                                class="detail-value highlight"
-                                id="paymentAmount"
-                            >
-                                ₹0.00
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment Date
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="paymentDate"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment Method
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="paymentMethod"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Transaction ID
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="transactionId"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Payment Reference
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="paymentReference"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Verification
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="verificationStatus"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Verified At
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="verifiedAt"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
                     </div>
+                </section>
 
-                </div>
+            </aside>
 
-
-                <div class="detail-section">
-
-
-                    <div class="section-title">
-                        User
-                    </div>
-
-
-                    <div class="details-grid">
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                User ID
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="userId"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Full Name
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="fullName"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Mobile
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="mobile"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Email
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="email"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="detail-section">
-
-
-                    <div class="section-title">
-                        Cylinder Request
-                    </div>
-
-
-                    <div class="details-grid">
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Request Number
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="requestNumber"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Request Status
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="requestStatus"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                LPG Company
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="company"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                LPG Agency
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="agency"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                Quantity
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="quantity"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                State
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="state"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                District
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="district"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div class="detail-box">
-
-                            <div class="detail-label">
-                                City
-                            </div>
-
-                            <div
-                                class="detail-value"
-                                id="city"
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-            </div>
-
-        </section>
-
-
-        <aside>
-
-
-            <section class="card">
-
-
-                <div class="card-header">
-
-                    <div class="card-title">
-                        Amount Summary
-                    </div>
-
-                    <div class="card-subtitle">
-                        Request payment calculation
-                    </div>
-
-                </div>
-
-
-                <div class="card-body">
-
-
-                    <div class="summary-box">
-
-                        <div class="summary-label">
-                            Payment Amount
-                        </div>
-
-                        <div
-                            class="summary-amount"
-                            id="summaryPayment"
-                        >
-                            ₹0.00
-                        </div>
-
-                    </div>
-
-
-                    <div class="amount-row">
-
-                        <div class="amount-label">
-                            Cylinder Amount
-                        </div>
-
-                        <div
-                            class="amount-value"
-                            id="cylinderAmount"
-                        >
-                            ₹0.00
-                        </div>
-
-                    </div>
-
-
-                    <div class="amount-row">
-
-                        <div class="amount-label">
-                            Extra Charge
-                        </div>
-
-                        <div
-                            class="amount-value"
-                            id="extraCharge"
-                        >
-                            ₹0.00
-                        </div>
-
-                    </div>
-
-
-                    <div class="amount-row">
-
-                        <div class="amount-label">
-                            Request Total
-                        </div>
-
-                        <div
-                            class="amount-value amount-total"
-                            id="requestTotal"
-                        >
-                            ₹0.00
-                        </div>
-
-                    </div>
-
-
-                    <div class="amount-row">
-
-                        <div class="amount-label">
-                            Paid Amount
-                        </div>
-
-                        <div
-                            class="amount-value amount-total"
-                            id="paidAmount"
-                        >
-                            ₹0.00
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-            </section>
-
-
-            <section class="card action-card">
-
-
-                <div class="card-header">
-
-                    <div class="card-title">
-                        Quick Actions
-                    </div>
-
-                </div>
-
-
-                <div class="card-body">
-
-                    <div class="action-buttons">
-
-
-                        <button
-                            class="action-btn slip-btn"
-                            id="slipBtn"
-                            type="button"
-                        >
-                            🧾 Open Payment Slip
-                        </button>
-
-
-                        <button
-                            class="action-btn requests-btn"
-                            id="requestBtn"
-                            type="button"
-                        >
-                            🛢 Open Cylinder Request
-                        </button>
-
-
-                        <button
-                            class="action-btn payments-btn"
-                            id="paymentsBtn"
-                            type="button"
-                        >
-                            ₹ Back to Payments
-                        </button>
-
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-        </aside>
-
-
-    </div>
-
-
-</main>
-
-
+        </div>
+    </main>
 </div>
 
-
-<!-- Logout Confirmation -->
-
-<div
-    class="logout-modal"
-    id="logoutModal"
->
-
-    <div class="logout-box">
-
-        <div class="logout-icon">
-            🚪
-        </div>
-
-        <h3>
-            Confirm Logout
-        </h3>
-
-        <p>
-            Are you sure you want to logout from the EGC Owner Panel?
-        </p>
+<div class="logout-modal" id="logoutModal" aria-hidden="true">
+    <div class="logout-box" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+        <div class="logout-icon">🚪</div>
+        <h3 id="logoutTitle">Confirm Logout</h3>
+        <p>Are you sure you want to logout from the EGC Owner Panel?</p>
 
         <div class="logout-actions">
-
-            <button
-                class="logout-cancel"
-                id="logoutCancel"
-                type="button"
-            >
-                Cancel
-            </button>
-
-            <button
-                class="logout-confirm"
-                id="logoutConfirm"
-                type="button"
-            >
-                Logout
-            </button>
-
+            <button class="logout-cancel" id="logoutCancel" type="button">Cancel</button>
+            <button class="logout-confirm" id="logoutConfirm" type="button">Logout</button>
         </div>
-
     </div>
-
 </div>
 
-
-<!-- Toast -->
-
-<div
-    class="toast"
-    id="toast"
->
-
-    <div
-        class="toast-title"
-        id="toastTitle"
-    >
-        Notification
-    </div>
-
-    <div
-        class="toast-text"
-        id="toastText"
-    >
-        Notification
-    </div>
-
+<div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toast-title" id="toastTitle">Notification</div>
+    <div class="toast-text" id="toastText"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
 
-const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+/*
+ * EGC PAYMENT DETAILS
+ *
+ * Payment verification is separate from cylinder-request approval.
+ * Supabase RLS must restrict payment reads/writes to authorized Owners.
+ */
 
-const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const PAYMENT_BUCKET = "payment-screenshots";
 
-const supabaseClient =
-window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
 );
 
+const $ = id => document.getElementById(id);
 
-/* ================= ELEMENTS ================= */
-
-const loadingBox =
-document.getElementById("loadingBox");
-
-const errorBox =
-document.getElementById("errorBox");
-
-const content =
-document.getElementById("content");
-
-const menuBtn =
-document.getElementById("menuBtn");
-
-const sidebar =
-document.getElementById("sidebar");
-
-const overlay =
-document.getElementById("overlay");
-
-const logoutBtn =
-document.getElementById("logoutBtn");
-
-const backBtn =
-document.getElementById("backBtn");
-
-const slipBtn =
-document.getElementById("slipBtn");
-
-const requestBtn =
-document.getElementById("requestBtn");
-
-const paymentsBtn =
-document.getElementById("paymentsBtn");
-
-const toast =
-document.getElementById("toast");
-
-const toastTitle =
-document.getElementById("toastTitle");
-
-const toastText =
-document.getElementById("toastText");
-
-
-/* ================= DATA ================= */
+const loadingBox = $("loadingBox");
+const errorBox = $("errorBox");
+const content = $("content");
+const sidebar = $("sidebar");
+const overlay = $("overlay");
 
 let payment = null;
-
 let request = null;
-
 let profile = null;
-
 let agency = null;
+let currentSession = null;
+let busy = false;
+let screenshotObjectUrl = null;
 
-
-/* ================= HELPERS ================= */
-
-function escapeHtml(value){
-
-    return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
-}
-
-
-function moneyNumber(value){
-
-    const number =
-    Number(value);
-
-    if(
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        Number.isNaN(number)
-    ){
+function moneyNumber(value) {
+    if (value === null || value === undefined || value === "") {
         return 0;
     }
 
-    return number;
-
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
 }
 
-
-function formatMoney(value){
-
-    return "₹" +
-    moneyNumber(value)
-    .toLocaleString(
-        "en-IN",
-        {
-            minimumFractionDigits:2,
-            maximumFractionDigits:2
-        }
-    );
-
+function formatMoney(value) {
+    return "₹" + moneyNumber(value).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
+function formatDateTime(value) {
+    if (!value) return "—";
 
-function formatDateTime(value){
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
 
-    if(!value){
-        return "—";
-    }
-
-    const date =
-    new Date(value);
-
-    if(Number.isNaN(date.getTime())){
-        return "—";
-    }
-
-    return date.toLocaleString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric",
-            hour:"2-digit",
-            minute:"2-digit"
-        }
-    );
-
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
-
-function getParam(){
-
-    const params =
-    new URLSearchParams(
-        window.location.search
-    );
-
-    return (
-        params.get("payment_id") ||
-        params.get("id") ||
-        ""
-    );
-
+function getPaymentIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("payment_id") || params.get("id") || "";
 }
 
+function showToast(title, message) {
+    $("toastTitle").textContent = title || "Notification";
+    $("toastText").textContent = message || "";
+    $("toast").classList.add("show");
 
-function showToast(title,text){
-
-    toastTitle.textContent =
-    title || "Notification";
-
-    toastText.textContent =
-    text || "";
-
-    toast.classList.add("show");
-
-    clearTimeout(
-        window.egcPaymentDetailsToast
-    );
-
-    window.egcPaymentDetailsToast =
-    setTimeout(
-        function(){
-            toast.classList.remove("show");
-        },
-        4500
-    );
-
+    clearTimeout(window.egcPaymentDetailsToast);
+    window.egcPaymentDetailsToast = setTimeout(() => {
+        $("toast").classList.remove("show");
+    }, 5000);
 }
 
+function showError(message) {
+    loadingBox.style.display = "none";
+    content.style.display = "none";
+    errorBox.style.display = "block";
 
-function getUserName(){
+    errorBox.replaceChildren();
 
-    return (
-        profile?.full_name ||
+    const heading = document.createElement("strong");
+    heading.textContent = "Unable to load payment.";
+    errorBox.appendChild(heading);
+
+    errorBox.appendChild(document.createElement("br"));
+    errorBox.appendChild(document.createElement("br"));
+    errorBox.appendChild(document.createTextNode(message || "Unknown error"));
+}
+
+function showLoading() {
+    loadingBox.style.display = "block";
+    errorBox.style.display = "none";
+    content.style.display = "none";
+}
+
+function getUserName() {
+    return profile?.full_name ||
         profile?.username ||
         profile?.name ||
         profile?.display_name ||
-        "User"
-    );
-
+        "User";
 }
 
-
-function getMobile(){
-
-    return (
-        profile?.mobile ||
+function getMobile() {
+    return profile?.mobile ||
         profile?.phone ||
         profile?.mobile_number ||
         profile?.phone_number ||
-        "—"
-    );
-
+        "—";
 }
 
-
-function getEmail(){
-
-    return (
-        profile?.email ||
+function getEmail() {
+    return profile?.email ||
+        currentSession?.user?.email ||
         profile?.auth_email ||
-        "—"
-    );
-
+        "—";
 }
 
-
-function getPhoto(){
-
-    return (
-        profile?.profile_photo ||
+function getPhoto() {
+    return profile?.profile_photo ||
         profile?.photo_url ||
         profile?.avatar_url ||
         profile?.profile_image ||
         profile?.photo ||
         profile?.image_url ||
-        ""
-    );
-
+        "";
 }
 
-
-function getAgencyName(){
-
-    return (
-        agency?.agency_name ||
+function getAgencyName() {
+    return agency?.agency_name ||
         agency?.name ||
         agency?.agency ||
         agency?.title ||
-        "—"
-    );
-
+        "—";
 }
 
-
-function getCompanyName(){
-
-    return (
-        request?.lpg_company ||
+function getCompanyName() {
+    return request?.lpg_company ||
+        request?.company_name ||
         agency?.lpg_company ||
         agency?.company_name ||
         agency?.company ||
         profile?.lpg_company ||
-        "—"
-    );
-
+        "—";
 }
 
-
-function getQuantity(){
-
-    return (
-        request?.quantity ??
+function getQuantity() {
+    return request?.quantity ??
         request?.cylinder_quantity ??
-        "0"
-    );
-
+        "—";
 }
 
-
-function getRequestTotal(){
-
-    return moneyNumber(
-        request?.total_amount ??
-        request?.request_total ??
-        request?.total
-    );
-
+function getPaymentAmount() {
+    return moneyNumber(payment?.payment_amount ?? payment?.amount);
 }
 
-
-function getExtraCharge(){
-
-    return moneyNumber(
-        request?.extra_charge ??
-        request?.extra_charge_amount
-    );
-
-}
-
-
-function getCylinderAmount(){
-
+function getCylinderAmount() {
     return moneyNumber(
         request?.cylinder_amount ??
         request?.base_amount ??
         request?.amount
     );
-
 }
 
-
-function getPaymentAmount(){
-
+function getExtraCharge() {
     return moneyNumber(
-        payment?.payment_amount ??
-        payment?.amount
+        request?.extra_charge ??
+        request?.extra_charge_amount ??
+        request?.charge_amount
     );
-
 }
 
+function getRequestTotal() {
+    return moneyNumber(
+        request?.total_payable ??
+        request?.total_amount ??
+        request?.request_total ??
+        request?.total
+    );
+}
 
-function getBadgeClass(value){
+function getAdvanceAmount() {
+    return moneyNumber(
+        request?.advance_amount ??
+        request?.initial_payment ??
+        request?.advance
+    );
+}
 
-    const status =
-    String(value || "")
-    .toLowerCase();
+function getRemainingAmount() {
+    if (request?.remaining_amount !== null &&
+        request?.remaining_amount !== undefined) {
+        return moneyNumber(request.remaining_amount);
+    }
 
-    if(
-        status === "paid" ||
-        status === "verified" ||
-        status === "completed" ||
-        status === "approved"
-    ){
+    return Math.max(0, getRequestTotal() - getAdvanceAmount());
+}
+
+function getBadgeClass(value) {
+    const status = String(value || "").toLowerCase();
+
+    if (["paid", "verified", "completed", "approved"].includes(status)) {
         return "status-paid";
     }
 
-    if(
-        status === "pending" ||
-        status === "waiting"
-    ){
+    if (["pending", "waiting", "submitted"].includes(status)) {
         return "status-pending";
     }
 
-    if(
-        status === "processing"
-    ){
+    if (["processing", "under_review"].includes(status)) {
         return "status-blue";
     }
 
-    if(
-        status === "failed" ||
-        status === "refunded" ||
-        status === "rejected" ||
-        status === "cancelled"
-    ){
+    if (["failed", "refunded", "rejected", "cancelled"].includes(status)) {
         return "status-failed";
     }
 
     return "status-gray";
-
 }
 
+function badgeHtml(value) {
+    const label = value === null || value === undefined || value === ""
+        ? "Not Set"
+        : String(value);
 
-function badgeHtml(value){
+    const span = document.createElement("span");
+    span.className = "status-badge " + getBadgeClass(label);
+    span.textContent = label;
 
-    if(
-        value === null ||
-        value === undefined ||
-        value === ""
-    ){
-        return `
-            <span class="status-badge status-gray">
-                Not Set
-            </span>
-        `;
+    return span;
+}
+
+function setText(id, value) {
+    const element = $(id);
+
+    if (element) {
+        element.textContent =
+            value === null || value === undefined || value === ""
+                ? "—"
+                : String(value);
     }
-
-    return `
-        <span class="status-badge ${getBadgeClass(value)}">
-            ${escapeHtml(value)}
-        </span>
-    `;
-
 }
 
+function setBadge(id, value) {
+    const element = $(id);
+    if (element) element.replaceChildren(badgeHtml(value));
+}
 
-/* ================= NAVIGATION ================= */
-
-function openPage(page){
-
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-        users:"owner-users.html",
-        agencies:"owner-agencies.html",
-        companies:"owner-companies.html",
-        requests:"owner-requests.html",
-        payments:"owner-payments.html",
-        reports:"owner-reports.html",
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        "pending-approvals": "owner-pending-approvals.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        "request-details": "owner-request-details.html",
+        "payment-details": "owner-payment-details.html",
+        "agency-details": "owner-agency-details.html",
+        deliveries: "owner-deliveries.html",
+        repayments: "owner-repayments.html",
+        notifications: "owner-notifications.html",
+        slips: "owner-slips.html",
+        profile: "owner-profile.html",
+        settings: "owner-settings.html"
     };
 
-    if(pages[page]){
-
-        window.location.href =
-        pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
-
-document
-.querySelectorAll("[data-page]")
-.forEach(button => {
-
-    button.addEventListener(
-        "click",
-        function(){
-
-            openPage(
-                this.dataset.page
-            );
-
-        }
-    );
-
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", () => {
+        openPage(button.dataset.page);
+    });
 });
 
+$("menuBtn").addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("show");
+});
 
-/* ================= MOBILE ================= */
+overlay.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
+});
 
-menuBtn.addEventListener(
-    "click",
-    function(){
+$("notificationBtn").addEventListener("click", () => {
+    const panel = $("notificationPanel");
+    const willOpen = !panel.classList.contains("show");
 
-        sidebar.classList.toggle("open");
+    panel.classList.toggle("show", willOpen);
+    $("notificationBtn").setAttribute("aria-expanded", String(willOpen));
+});
 
-        overlay.classList.toggle("show");
-
+document.addEventListener("click", event => {
+    if (!event.target.closest(".notification-wrap")) {
+        $("notificationPanel").classList.remove("show");
+        $("notificationBtn").setAttribute("aria-expanded", "false");
     }
-);
+});
 
+async function loadPayment() {
+    const paymentId = getPaymentIdFromUrl();
 
-overlay.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.remove("open");
-
-        overlay.classList.remove("show");
-
-    }
-);
-
-
-/* ================= LOAD PAYMENT ================= */
-
-async function loadPayment(){
-
-    const paymentId =
-    getParam();
-
-    if(!paymentId){
-
-        showError(
-            "Payment ID missing. Please open this page from Owner Payments."
-        );
-
+    if (!paymentId) {
+        showError("Payment ID is missing. Open this page from Owner Payments.");
         return;
-
     }
 
+    showLoading();
 
-    loadingBox.style.display =
-    "block";
+    try {
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq("id", paymentId)
+            .maybeSingle();
 
-    content.style.display =
-    "none";
+        if (error) throw error;
 
-    errorBox.style.display =
-    "none";
-
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("payments")
-        .select("*")
-        .eq("id",paymentId)
-        .maybeSingle();
-
-
-        if(error){
-
-            console.error(error);
-
-            showError(
-                error.message
-            );
-
+        if (!data) {
+            showError("Payment record not found, or your account does not have permission to view it.");
             return;
-
         }
 
-
-        if(!data){
-
-            showError(
-                "Payment record not found."
-            );
-
-            return;
-
-        }
-
-
-        payment =
-        data;
-
+        payment = data;
 
         await loadRelatedData();
+        await renderPage();
 
-        renderPage();
-
-    }
-    catch(error){
-
-        console.error(
-            "Payment details error:",
-            error
-        );
-
+    } catch (error) {
+        console.error("Payment details error:", error);
         showError(
-            "Unable to load payment details."
+            error.message ||
+            "Unable to load payment details. Check Supabase permissions and database policies."
         );
-
     }
-
 }
 
-
-async function loadRelatedData(){
-
+async function loadRelatedData() {
     profile = null;
-
     request = null;
-
     agency = null;
 
+    if (payment?.user_id) {
+        /*
+         * This project uses profiles.id as the Supabase Auth UUID.
+         * If your schema uses auth_user_id instead, change this lookup.
+         */
+        const { data, error } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq("id", payment.user_id)
+            .maybeSingle();
 
-    /* ================= PROFILE ================= */
+        if (error) {
+            console.warn("Profile lookup:", error.message);
+        } else {
+            profile = data || null;
+        }
+    }
 
-    if(payment?.user_id){
+    if (payment?.request_id) {
+        const { data, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq("id", payment.request_id)
+            .maybeSingle();
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq(
-            "id",
-            payment.user_id
-        )
-        .maybeSingle();
+        if (error) {
+            console.warn("Request lookup:", error.message);
+        } else {
+            request = data || null;
+        }
+    }
 
-        if(!error){
+    if (request?.agency_id) {
+        const { data, error } = await supabaseClient
+            .from("agencies")
+            .select("*")
+            .eq("id", request.agency_id)
+            .maybeSingle();
 
-            profile =
-            data || null;
+        if (error) {
+            console.warn("Agency lookup:", error.message);
+        } else {
+            agency = data || null;
+        }
+    }
+}
 
+function renderPhoto(photo) {
+    const container = $("photoContainer");
+    container.replaceChildren();
+
+    if (!photo) {
+        const fallback = document.createElement("div");
+        fallback.className = "user-photo-fallback";
+        fallback.textContent = "👤";
+        container.appendChild(fallback);
+        return;
+    }
+
+    const img = document.createElement("img");
+    img.src = photo;
+    img.className = "user-photo";
+    img.alt = "User profile photo";
+
+    img.addEventListener("error", () => {
+        container.replaceChildren();
+
+        const fallback = document.createElement("div");
+        fallback.className = "user-photo-fallback";
+        fallback.textContent = "👤";
+        container.appendChild(fallback);
+    }, { once: true });
+
+    container.appendChild(img);
+}
+
+function getVerificationStatus() {
+    const value = String(payment?.verification_status || "").toLowerCase();
+
+    if (["approved", "rejected", "pending"].includes(value)) {
+        return value;
+    }
+
+    /*
+     * Older records with verified_at are treated as already verified.
+     * New approvals in this page set verification_status explicitly.
+     */
+    if (payment?.verified_at) {
+        return "approved";
+    }
+
+    return "pending";
+}
+
+function isFinalVerification() {
+    return ["approved", "rejected"].includes(getVerificationStatus());
+}
+
+function updateReviewUI() {
+    const status = getVerificationStatus();
+    const notice = $("reviewStatusNotice");
+    const approveButton = $("approvePaymentBtn");
+    const rejectButton = $("rejectPaymentBtn");
+    const note = $("reviewNote");
+
+    notice.className = "notice";
+
+    if (status === "approved") {
+        notice.classList.add("notice-approved");
+        notice.textContent =
+            "This payment has been approved. Check the transaction record and verification details below.";
+    } else if (status === "rejected") {
+        notice.classList.add("notice-rejected");
+        notice.textContent =
+            "This payment has been rejected. The saved verification note may contain the reason.";
+    } else {
+        notice.classList.add("notice-pending");
+        notice.textContent =
+            "Pending verification. Check the transaction in the actual receiving account before approving.";
+    }
+
+    const final = isFinalVerification();
+
+    approveButton.disabled = busy || final;
+    rejectButton.disabled = busy || final;
+    note.disabled = busy || final;
+
+    if (final) {
+        note.value = payment?.notes || note.value;
+    }
+
+    if (busy) {
+        approveButton.textContent = "Please wait...";
+        rejectButton.textContent = "Please wait...";
+    } else {
+        approveButton.textContent = status === "approved"
+            ? "✓ Payment Approved"
+            : "✓ Approve Payment";
+
+        rejectButton.textContent = status === "rejected"
+            ? "✕ Payment Rejected"
+            : "✕ Reject Payment";
+    }
+}
+
+function isImageFile(path) {
+    return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(path || "");
+}
+
+function isAbsoluteHttpUrl(value) {
+    return /^https?:\/\//i.test(String(value || ""));
+}
+
+async function renderScreenshot() {
+    $("screenshotWrap").style.display = "none";
+    $("screenshotEmpty").style.display = "none";
+    $("screenshotImage").style.display = "none";
+    $("screenshotFile").style.display = "none";
+
+    const notice = $("screenshotNotice");
+    notice.className = "notice notice-info";
+    notice.style.display = "block";
+    notice.textContent = "Checking for an uploaded payment screenshot...";
+
+    const path =
+        payment?.screenshot_path ||
+        payment?.payment_screenshot ||
+        payment?.screenshot_url ||
+        payment?.proof_image ||
+        request?.payment_screenshot_1 ||
+        request?.payment_screenshot_2 ||
+        request?.payment_screenshot_3 ||
+        "";
+
+    if (!path) {
+        notice.style.display = "none";
+        $("screenshotEmpty").style.display = "block";
+        return;
+    }
+
+    try {
+        let url = "";
+
+        if (isAbsoluteHttpUrl(path)) {
+            url = path;
+        } else {
+            /*
+             * Private Storage bucket:
+             * Owner needs a valid Storage SELECT policy for this object.
+             */
+            const { data, error } = await supabaseClient.storage
+                .from(PAYMENT_BUCKET)
+                .createSignedUrl(path, 300);
+
+            if (error) throw error;
+
+            url = data?.signedUrl || "";
         }
 
-    }
-
-
-    /* ================= REQUEST ================= */
-
-    if(payment?.request_id){
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*")
-        .eq(
-            "id",
-            payment.request_id
-        )
-        .maybeSingle();
-
-        if(!error){
-
-            request =
-            data || null;
-
+        if (!url) {
+            throw new Error("Could not create a screenshot viewing URL.");
         }
 
-    }
+        const image = $("screenshotImage");
+        const file = $("screenshotFile");
+        const openLink = $("openScreenshotBtn");
 
+        openLink.href = url;
+        $("screenshotWrap").style.display = "block";
 
-    /* ================= AGENCY ================= */
+        if (isImageFile(path)) {
+            image.src = url;
+            image.style.display = "block";
+            file.style.display = "none";
 
-    if(request?.agency_id){
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("agencies")
-        .select("*")
-        .eq(
-            "id",
-            request.agency_id
-        )
-        .maybeSingle();
-
-        if(!error){
-
-            agency =
-            data || null;
-
+            image.onerror = () => {
+                image.style.display = "none";
+                file.style.display = "block";
+                file.textContent =
+                    "The image could not be previewed. Use the button below to open the evidence file.";
+            };
+        } else {
+            image.removeAttribute("src");
+            file.style.display = "block";
+            file.textContent =
+                "Payment evidence is available. Open the file in a new tab to review it.";
         }
 
+        notice.style.display = "none";
+
+    } catch (error) {
+        console.warn("Screenshot loading:", error);
+
+        notice.style.display = "block";
+        notice.className = "notice notice-info";
+        notice.textContent =
+            "The screenshot path exists, but it could not be opened. Check the payment-screenshots bucket, exact file path, and Storage SELECT policy for authorized Owners.";
+
+        $("screenshotEmpty").style.display = "none";
+    }
+}
+
+async function renderPage() {
+    loadingBox.style.display = "none";
+    errorBox.style.display = "none";
+    content.style.display = "grid";
+
+    const userName = getUserName();
+    const mobile = getMobile();
+    const email = getEmail();
+    const paymentAmount = getPaymentAmount();
+
+    setText("userName", userName);
+    setText("userContact", mobile + " • " + email);
+    setText("paymentId", payment?.id);
+    setBadge("paymentStatus", payment?.payment_status || "pending");
+    setText("paymentAmount", formatMoney(paymentAmount));
+    setText("paymentDate", formatDateTime(payment?.payment_date || payment?.created_at));
+    setText("paymentMethod", payment?.payment_method || "—");
+    setText("transactionId", payment?.transaction_id || "—");
+    setText("paymentReference", payment?.payment_reference || "—");
+    setBadge("verificationStatus", getVerificationStatus());
+    setText(
+        "verifiedAt",
+        payment?.verified_at ? formatDateTime(payment.verified_at) : "Not Verified"
+    );
+    setText("verificationNote", payment?.notes || "—");
+
+    setText("userId", payment?.user_id || "—");
+    setText(
+        "egcUserId",
+        profile?.egc_user_id ||
+        profile?.user_code ||
+        profile?.customer_code ||
+        "Not available"
+    );
+    setText("fullName", userName);
+    setText("mobile", mobile);
+    setText("email", email);
+
+    setText("requestNumber", request?.request_number || "—");
+    setBadge("requestStatus", request?.status || request?.request_status || "—");
+    setBadge("requestOwnerApproval", request?.owner_approval || "—");
+    setBadge("requestPaymentStatus", request?.payment_status || "—");
+    setText("company", getCompanyName());
+    setText("agency", getAgencyName());
+    setText("quantity", getQuantity());
+    setText("state", request?.state || request?.state_name || "—");
+    setText("district", request?.district || request?.district_name || "—");
+    setText("city", request?.city || request?.city_name || "—");
+
+    setText("summaryPayment", formatMoney(paymentAmount));
+    setText("cylinderAmount", formatMoney(getCylinderAmount()));
+    setText("advanceAmount", formatMoney(getAdvanceAmount()));
+    setText("extraCharge", formatMoney(getExtraCharge()));
+    setText("requestTotal", formatMoney(getRequestTotal()));
+    setText("remainingAmount", formatMoney(getRemainingAmount()));
+
+    const verifiedPaid = (
+        String(payment?.payment_status || "").toLowerCase() === "paid" &&
+        getVerificationStatus() === "approved"
+    ) ? paymentAmount : 0;
+
+    setText("verifiedPaidAmount", formatMoney(verifiedPaid));
+
+    renderPhoto(getPhoto());
+
+    $("reviewNote").value = payment?.notes || "";
+    updateReviewUI();
+
+    const pending = !isFinalVerification();
+    $("notificationCount").textContent = pending ? "1" : "0";
+    $("paymentNotificationText").textContent = pending
+        ? "This payment is awaiting Owner verification."
+        : "This payment has already been reviewed.";
+
+    await renderScreenshot();
+}
+
+/*
+ * Append the Owner's note rather than deleting any existing customer note.
+ * "notes" is a known column in this project's payments table.
+ */
+function buildUpdatedNotes(oldNotes, ownerNote, decision) {
+    const oldText = String(oldNotes || "").trim();
+    const newText = String(ownerNote || "").trim();
+
+    if (!newText) {
+        return oldText || null;
     }
 
+    const prefix = decision === "approved"
+        ? "Owner verification note"
+        : "Owner rejection reason";
+
+    const entry = prefix + " (" + new Date().toLocaleString("en-IN") + "): " + newText;
+
+    return oldText ? oldText + "\n\n" + entry : entry;
 }
 
-
-/* ================= RENDER ================= */
-
-function renderPage(){
-
-    loadingBox.style.display =
-    "none";
-
-    errorBox.style.display =
-    "none";
-
-    content.style.display =
-    "grid";
-
-
-    const userName =
-    getUserName();
-
-    const mobile =
-    getMobile();
-
-    const email =
-    getEmail();
-
-    const photo =
-    getPhoto();
-
-    const paymentAmount =
-    getPaymentAmount();
-
-    const cylinderAmount =
-    getCylinderAmount();
-
-    const extraCharge =
-    getExtraCharge();
-
-    const requestTotal =
-    getRequestTotal();
-
-
-    document.getElementById(
-        "userName"
-    ).textContent =
-    userName;
-
-
-    document.getElementById(
-        "userContact"
-    ).textContent =
-    mobile +
-    " • " +
-    email;
-
-
-    document.getElementById(
-        "paymentId"
-    ).textContent =
-    payment?.id || "—";
-
-
-    document.getElementById(
-        "paymentStatus"
-    ).innerHTML =
-    badgeHtml(
-        payment?.payment_status ||
-        "Pending"
-    );
-
-
-    document.getElementById(
-        "paymentAmount"
-    ).textContent =
-    formatMoney(paymentAmount);
-
-
-    document.getElementById(
-        "paymentDate"
-    ).textContent =
-    formatDateTime(
-        payment?.payment_date ||
-        payment?.created_at
-    );
-
-
-    document.getElementById(
-        "paymentMethod"
-    ).textContent =
-    payment?.payment_method ||
-    "—";
-
-
-    document.getElementById(
-        "transactionId"
-    ).textContent =
-    payment?.transaction_id ||
-    "—";
-
-
-    document.getElementById(
-        "paymentReference"
-    ).textContent =
-    payment?.payment_reference ||
-    "—";
-
-
-    document.getElementById(
-        "verificationStatus"
-    ).innerHTML =
-    badgeHtml(
-        payment?.verification_status ||
-        (
-            payment?.verified_at
-            ? "Verified"
-            : "Pending"
-        )
-    );
-
-
-    document.getElementById(
-        "verifiedAt"
-    ).textContent =
-    payment?.verified_at
-    ? formatDateTime(
-        payment.verified_at
-    )
-    : "Not Verified";
-
-
-    document.getElementById(
-        "userId"
-    ).textContent =
-    payment?.user_id ||
-    "—";
-
-
-    document.getElementById(
-        "fullName"
-    ).textContent =
-    userName;
-
-
-    document.getElementById(
-        "mobile"
-    ).textContent =
-    mobile;
-
-
-    document.getElementById(
-        "email"
-    ).textContent =
-    email;
-
-
-    document.getElementById(
-        "requestNumber"
-    ).textContent =
-    request?.request_number ||
-    "—";
-
-
-    document.getElementById(
-        "requestStatus"
-    ).innerHTML =
-    badgeHtml(
-        request?.status ||
-        request?.request_status ||
-        "—"
-    );
-
-
-    document.getElementById(
-        "company"
-    ).textContent =
-    getCompanyName();
-
-
-    document.getElementById(
-        "agency"
-    ).textContent =
-    getAgencyName();
-
-
-    document.getElementById(
-        "quantity"
-    ).textContent =
-    getQuantity();
-
-
-    document.getElementById(
-        "state"
-    ).textContent =
-    request?.state ||
-    request?.state_name ||
-    "—";
-
-
-    document.getElementById(
-        "district"
-    ).textContent =
-    request?.district ||
-    request?.district_name ||
-    "—";
-
-
-    document.getElementById(
-        "city"
-    ).textContent =
-    request?.city ||
-    request?.city_name ||
-    "—";
-
-
-    document.getElementById(
-        "summaryPayment"
-    ).textContent =
-    formatMoney(paymentAmount);
-
-
-    document.getElementById(
-        "cylinderAmount"
-    ).textContent =
-    formatMoney(cylinderAmount);
-
-
-    document.getElementById(
-        "extraCharge"
-    ).textContent =
-    formatMoney(extraCharge);
-
-
-    document.getElementById(
-        "requestTotal"
-    ).textContent =
-    formatMoney(requestTotal);
-
-
-    document.getElementById(
-        "paidAmount"
-    ).textContent =
-    formatMoney(paymentAmount);
-
-
-    renderPhoto(photo);
-
-}
-
-
-/* ================= PHOTO ================= */
-
-function renderPhoto(photo){
-
-    const container =
-    document.getElementById(
-        "photoContainer"
-    );
-
-
-    if(photo){
-
-        container.innerHTML = `
-
-            <img
-                src="${escapeHtml(photo)}"
-                class="user-photo"
-                alt="User"
-                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-            >
-
-            <div
-                class="user-photo-fallback"
-                style="display:none;"
-            >
-                👤
-            </div>
-
-        `;
-
-    }
-    else{
-
-        container.innerHTML = `
-
-            <div class="user-photo-fallback">
-                👤
-            </div>
-
-        `;
-
+async function saveVerification(decision) {
+    if (busy) return;
+
+    if (!payment?.id) {
+        showToast("Payment Not Available", "Payment record ID is missing.");
+        return;
     }
 
-}
-
-
-/* ================= ERROR ================= */
-
-function showError(message){
-
-    loadingBox.style.display =
-    "none";
-
-    content.style.display =
-    "none";
-
-    errorBox.style.display =
-    "block";
-
-    errorBox.innerHTML = `
-        <strong>Unable to load payment.</strong>
-        <br><br>
-        ${escapeHtml(message || "Unknown error")}
-    `;
-
-}
-
-
-/* ================= QUICK ACTIONS ================= */
-
-function getPaymentId(){
-
-    return payment?.id || "";
-
-}
-
-
-function getRequestId(){
-
-    return (
-        payment?.request_id ||
-        request?.id ||
-        ""
-    );
-
-}
-
-
-backBtn.addEventListener(
-    "click",
-    function(){
-
-        window.location.href =
-        "owner-payments.html";
-
+    if (isFinalVerification()) {
+        showToast("Already Reviewed", "This payment already has a final verification status.");
+        return;
     }
-);
 
+    const note = $("reviewNote").value.trim();
+    const transactionId = String(payment?.transaction_id || "").trim();
 
-paymentsBtn.addEventListener(
-    "click",
-    function(){
-
-        window.location.href =
-        "owner-payments.html";
-
+    if (decision === "rejected" && !note) {
+        showToast("Reason Required", "Please enter a reason before rejecting this payment.");
+        $("reviewNote").focus();
+        return;
     }
-);
 
+    if (decision === "approved" && !transactionId) {
+        showToast(
+            "Transaction ID Missing",
+            "No transaction ID is recorded. Do not approve until you have independently verified the payment."
+        );
+        return;
+    }
 
-requestBtn.addEventListener(
-    "click",
-    function(){
+    if (decision === "approved") {
+        const confirmed = confirm(
+            "Have you independently confirmed that this transaction was received in the EGC receiving account? Approve this payment now?"
+        );
 
-        const requestId =
-        getRequestId();
+        if (!confirmed) return;
+    } else {
+        const confirmed = confirm(
+            "Are you sure you want to reject this payment? The rejection reason will be saved."
+        );
 
-        if(!requestId){
+        if (!confirmed) return;
+    }
+
+    busy = true;
+    updateReviewUI();
+
+    try {
+        /*
+         * Re-read the record before changing it.
+         * Only pending payments may be reviewed by this action.
+         */
+        const { data: latest, error: readError } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq("id", payment.id)
+            .maybeSingle();
+
+        if (readError) throw readError;
+
+        if (!latest) {
+            throw new Error("Payment record no longer exists or is not accessible.");
+        }
+
+        const latestVerification = String(
+            latest.verification_status ||
+            (latest.verified_at ? "approved" : "pending")
+        ).toLowerCase();
+
+        const latestPaymentStatus = String(latest.payment_status || "").toLowerCase();
+
+        if (
+            ["approved", "rejected"].includes(latestVerification) ||
+            latestPaymentStatus !== "pending"
+        ) {
+            payment = latest;
+            await loadRelatedData();
+            await renderPage();
 
             showToast(
-                "Request Not Available",
-                "Linked cylinder request ID is not available."
+                "Payment Already Changed",
+                "This payment is no longer pending. The latest record has been loaded."
             );
 
             return;
-
         }
 
+        const newPaymentStatus = decision === "approved" ? "paid" : "failed";
 
-        window.location.href =
-        "owner-request-details.html?request_id=" +
-        encodeURIComponent(
-            requestId
-        );
+        /*
+         * Important schema compatibility:
+         * payment_status values are paid, pending, failed, refunded.
+         * verification_status values are pending, approved, rejected.
+         *
+         * verified_at is intentionally not written because its existence
+         * has not been confirmed in the current database schema.
+         */
+        const updateData = {
+            payment_status: newPaymentStatus,
+            verification_status: decision
+        };
 
-    }
-);
+        const oldNotes = String(latest.notes || "").trim();
+        const newNotes = buildUpdatedNotes(oldNotes, note, decision);
 
+        if (newNotes !== (oldNotes || null)) {
+            updateData.notes = newNotes;
+        }
 
-slipBtn.addEventListener(
-    "click",
-    function(){
+        const { data: updated, error: updateError } = await supabaseClient
+            .from("payments")
+            .update(updateData)
+            .eq("id", payment.id)
+            .eq("payment_status", "pending")
+            .select("*")
+            .maybeSingle();
 
-        const paymentId =
-        getPaymentId();
+        if (updateError) {
+            throw updateError;
+        }
 
-        if(!paymentId){
-
-            showToast(
-                "Payment Not Available",
-                "Payment ID is not available."
+        if (!updated) {
+            throw new Error(
+                "No payment record was updated. It may have changed already, or Owner update permissions/RLS may be blocking this action."
             );
-
-            return;
-
         }
 
+        payment = updated;
 
-        window.location.href =
-        "owner-slip.html?payment_id=" +
-        encodeURIComponent(
-            paymentId
-        );
+        /*
+         * Keep the linked request's payment_status in sync, when allowed.
+         * This does NOT change cylinder_requests.status or owner_approval.
+         * If this second update fails, the payment decision is still saved.
+         */
+        let requestSyncFailed = false;
 
-    }
-);
+        if (request?.id) {
+            const { error: requestError } = await supabaseClient
+                .from("cylinder_requests")
+                .update({ payment_status: newPaymentStatus })
+                .eq("id", request.id);
 
-
-/* ================= LOGOUT ================= */
-
-logoutBtn.addEventListener(
-    "click",
-    async function(){
-
-        const confirmed =
-        confirm(
-            "Kya aap EGC Owner Panel se logout karna chahte hain?"
-        );
-
-
-        if(!confirmed){
-            return;
-        }
-
-
-        try{
-
-            await supabaseClient.auth.signOut();
-
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-        }
-        catch(error){
-
-            console.error(error);
-
-            showToast(
-                "Logout Failed",
-                "Please try again."
-            );
-
-        }
-
-    }
-);
-
-
-/* ================= ESC ================= */
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Escape"){
-
-            sidebar.classList.remove(
-                "open"
-            );
-
-            overlay.classList.remove(
-                "show"
-            );
-
-        }
-
-    }
-);
-
-
-/* ================= INITIALIZE ================= */
-
-async function init(){
-
-    try{
-
-        const {
-            data:{
-                session
+            if (requestError) {
+                requestSyncFailed = true;
+                console.warn(
+                    "Linked request payment-status update failed:",
+                    requestError
+                );
             }
-        } =
-        await supabaseClient.auth.getSession();
-
-
-        if(!session){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-            return;
-
         }
 
+        await loadRelatedData();
+        await renderPage();
+
+        if (decision === "approved") {
+            showToast(
+                "Payment Approved",
+                requestSyncFailed
+                    ? "Payment verified successfully, but the linked request payment status could not be synced. Check its RLS/schema."
+                    : "Payment verification is approved. Cylinder request approval remains separate."
+            );
+        } else {
+            showToast(
+                "Payment Rejected",
+                requestSyncFailed
+                    ? "Payment marked failed, but the linked request payment status could not be synced."
+                    : "Payment marked failed and the rejection reason was saved."
+            );
+        }
+
+    } catch (error) {
+        console.error("Payment verification error:", error);
+
+        showToast(
+            "Verification Failed",
+            error.message ||
+            "Could not update the payment. Check the database schema and Owner RLS policies."
+        );
+
+    } finally {
+        busy = false;
+        updateReviewUI();
+    }
+}
+
+$("approvePaymentBtn").addEventListener("click", () => {
+    saveVerification("approved");
+});
+
+$("rejectPaymentBtn").addEventListener("click", () => {
+    saveVerification("rejected");
+});
+
+$("refreshBtn").addEventListener("click", async () => {
+    if (busy) return;
+
+    await loadPayment();
+    showToast("Refreshed", "Payment details have been reloaded.");
+});
+
+function getRequestId() {
+    return payment?.request_id || request?.id || "";
+}
+
+$("backBtn").addEventListener("click", () => {
+    window.location.href = "owner-payments.html";
+});
+
+$("paymentsBtn").addEventListener("click", () => {
+    window.location.href = "owner-payments.html";
+});
+
+$("requestBtn").addEventListener("click", () => {
+    const requestId = getRequestId();
+
+    if (!requestId) {
+        showToast("Request Not Available", "Linked cylinder request ID is not available.");
+        return;
+    }
+
+    window.location.href =
+        "owner-request-details.html?request_id=" + encodeURIComponent(requestId);
+});
+
+$("slipBtn").addEventListener("click", () => {
+    if (!payment?.id) {
+        showToast("Payment Not Available", "Payment ID is not available.");
+        return;
+    }
+
+    window.location.href =
+        "owner-slip.html?payment_id=" + encodeURIComponent(payment.id);
+});
+
+$("logoutBtn").addEventListener("click", () => {
+    $("logoutModal").classList.add("show");
+    $("logoutModal").setAttribute("aria-hidden", "false");
+});
+
+$("logoutCancel").addEventListener("click", () => {
+    $("logoutModal").classList.remove("show");
+    $("logoutModal").setAttribute("aria-hidden", "true");
+});
+
+$("logoutModal").addEventListener("click", event => {
+    if (event.target === $("logoutModal")) {
+        $("logoutModal").classList.remove("show");
+        $("logoutModal").setAttribute("aria-hidden", "true");
+    }
+});
+
+$("logoutConfirm").addEventListener("click", async () => {
+    $("logoutConfirm").disabled = true;
+
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+
+        window.location.replace("owner-login.html");
+
+    } catch (error) {
+        console.error("Logout error:", error);
+        showToast("Logout Failed", error.message || "Please try again.");
+        $("logoutConfirm").disabled = false;
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        sidebar.classList.remove("open");
+        overlay.classList.remove("show");
+
+        $("notificationPanel").classList.remove("show");
+        $("notificationBtn").setAttribute("aria-expanded", "false");
+
+        $("logoutModal").classList.remove("show");
+        $("logoutModal").setAttribute("aria-hidden", "true");
+    }
+});
+
+async function init() {
+    if (!window.supabase) {
+        showError("Supabase library failed to load. Check your internet connection.");
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient.auth.getSession();
+
+        if (error) throw error;
+
+        currentSession = data?.session || null;
+
+        if (!currentSession) {
+            window.location.replace("owner-login.html");
+            return;
+        }
+
+        /*
+         * This confirms that a session exists; it does not establish Owner role.
+         * Actual Owner authorization must be enforced through Supabase RLS
+         * or trusted server-side role checks.
+         */
 
         await loadPayment();
 
+    } catch (error) {
+        console.error("Initialization error:", error);
+        showError(error.message || "Unable to initialize Payment Details page.");
     }
-    catch(error){
-
-        console.error(
-            "Initialization error:",
-            error
-        );
-
-        showError(
-            "Unable to initialize Payment Details page."
-        );
-
-    }
-
 }
 
-
 init();
-
 </script>
 
 </body>
