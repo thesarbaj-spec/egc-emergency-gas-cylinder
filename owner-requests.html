@@ -669,52 +669,94 @@ function formatMoney(value) {
 }
 
 function normalizeApproval(value) {
-    const status = String(value || "pending").trim().toLowerCase();
+    const status = String(value || "pending")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
 
-    if (["approved", "approve", "accepted", "success", "verified"].includes(status)) {
+    if (
+        ["approved", "approve", "accepted", "success", "verified", "paid"]
+            .includes(status)
+    ) {
         return "approved";
     }
 
-    if (["rejected", "reject", "declined", "failed"].includes(status)) {
+    if (
+        ["rejected", "reject", "declined", "failed", "cancelled"]
+            .includes(status)
+    ) {
         return "rejected";
+    }
+
+    if (
+        ["waiting_for_verification", "submitted", "under_review", "processing"]
+            .includes(status)
+    ) {
+        return "waiting_for_verification";
     }
 
     return "pending";
 }
 
 function displayStatusText(value) {
-    if (!value) return "Not Set";
+    const status = String(value || "pending")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
 
-    return String(value)
-        .replace(/[_-]+/g, " ")
+    const labels = {
+        pending: "Pending",
+        waiting_for_verification: "Waiting for Verification",
+        approved: "Approved",
+        rejected: "Rejected",
+        paid: "Paid",
+        unpaid: "Unpaid"
+    };
+
+    if (labels[status]) return labels[status];
+
+    return status
+        .replace(/_/g, " ")
         .split(/\s+/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 }
 
 function getBadgeClass(value) {
-    const status = String(value || "").trim().toLowerCase();
+    const status = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
 
     if (
         ["approved", "paid", "completed", "delivered", "accepted",
-         "success", "verified", "refunded"].includes(status) ||
-        status.includes("approved")
-    ) return "badge-green";
+         "success", "verified", "refunded"].includes(status)
+    ) {
+        return "badge-green";
+    }
+
+    if (status === "waiting_for_verification") {
+        return "badge-blue";
+    }
 
     if (
         ["pending", "waiting", "submitted", "unpaid", "due"].includes(status) ||
         status.includes("pending")
-    ) return "badge-yellow";
+    ) {
+        return "badge-yellow";
+    }
 
     if (
-        ["processing", "assigned", "ready", "out_for_delivery",
-         "out for delivery"].includes(status) ||
-        status.includes("processing")
-    ) return "badge-blue";
+        ["processing", "assigned", "ready", "out_for_delivery"].includes(status)
+    ) {
+        return "badge-blue";
+    }
 
     if (
         ["rejected", "failed", "cancelled", "declined"].includes(status)
-    ) return "badge-red";
+    ) {
+        return "badge-red";
+    }
 
     return "badge-gray";
 }
@@ -983,10 +1025,33 @@ function getPaymentAmount(request) {
 }
 
 function getPaymentApproval(request) {
-    return normalizeApproval(
-        request.latest_payment?.verification_status ||
-        request.payment_verification_status
-    );
+    const payment = request.latest_payment;
+
+    // Payment record nahi hai: abhi koi payment submit nahi hui.
+    if (!payment) {
+        return "pending";
+    }
+
+    const verification = String(
+        payment.verification_status || ""
+    ).trim().toLowerCase();
+
+    if (
+        ["approved", "approve", "accepted", "success", "verified"]
+            .includes(verification)
+    ) {
+        return "approved";
+    }
+
+    if (
+        ["rejected", "reject", "declined", "failed"]
+            .includes(verification)
+    ) {
+        return "rejected";
+    }
+
+    // Record tabhi waiting dikhayega jab payment submit ho chuki ho.
+    return "waiting_for_verification";
 }
 
 function getLatestPaymentStatus(request) {
@@ -1158,59 +1223,116 @@ function updateCounters() {
 }
 
 /* =========================================================
-   LOAD RELATED DATA
+   LOAD RELATED DATA — DIAGNOSTIC VERSION
    ========================================================= */
 
 async function attachRelatedData() {
     if (!requests.length) return;
 
     const userIds = [
-        ...new Set(requests.map(request => request.user_id).filter(Boolean))
+        ...new Set(
+            requests.map(request => request.user_id).filter(Boolean)
+        )
     ];
 
     const agencyIds = [
-        ...new Set(requests.map(request => request.agency_id).filter(Boolean))
+        ...new Set(
+            requests.map(request => request.agency_id).filter(Boolean)
+        )
     ];
 
-    const requestIds = requests.map(request => request.id).filter(Boolean);
+    const requestIds = [
+        ...new Set(
+            requests.map(request => request.id).filter(Boolean)
+        )
+    ];
 
     let profiles = [];
     let agencies = [];
     let payments = [];
 
+    /* LOAD PROFILES */
     if (userIds.length) {
         const { data, error } = await supabaseClient
             .from("profiles")
             .select("*")
             .in("id", userIds);
 
-        if (error) console.warn("Profiles unavailable:", error.message);
-        else profiles = data || [];
+        if (error) {
+            console.error(
+                "[EGC] Profiles loading failed:",
+                error.message,
+                error.code
+            );
+        } else {
+            profiles = data || [];
+        }
     }
 
+    /* LOAD AGENCIES */
     if (agencyIds.length) {
         const { data, error } = await supabaseClient
             .from("agencies")
             .select("*")
             .in("id", agencyIds);
 
-        if (error) console.warn("Agencies unavailable:", error.message);
-        else agencies = data || [];
+        if (error) {
+            console.error(
+                "[EGC] Agencies loading failed:",
+                error.message,
+                error.code
+            );
+        } else {
+            agencies = data || [];
+        }
     }
 
+    /* LOAD PAYMENTS */
     if (requestIds.length) {
+        console.log(
+            "[EGC] Loading payments for request IDs:",
+            requestIds
+        );
+
         const { data, error } = await supabaseClient
             .from("payments")
             .select("*")
             .in("request_id", requestIds)
             .order("created_at", { ascending: false });
 
-        if (error) console.warn("Payment records unavailable:", error.message);
-        else payments = data || [];
+        if (error) {
+            console.error("[EGC] Payment loading failed:", {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            });
+
+            payments = [];
+        } else {
+            payments = data || [];
+
+            console.log(
+                "[EGC] Payment records loaded:",
+                payments.map(payment => ({
+                    id: payment.id,
+                    request_id: payment.request_id,
+                    payment_status: payment.payment_status,
+                    verification_status: payment.verification_status
+                }))
+            );
+        }
     }
 
-    const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
-    const agencyMap = new Map(agencies.map(agency => [agency.id, agency]));
+    /* CREATE LOOKUP MAPS */
+    const profileMap = new Map(
+        profiles.map(profile => [profile.id, profile])
+    );
+
+    const agencyMap = new Map(
+        agencies.map(agency => [agency.id, agency])
+    );
+
     const paymentMap = new Map();
 
     for (const payment of payments) {
@@ -1219,14 +1341,22 @@ async function attachRelatedData() {
         }
     }
 
+    /* ATTACH RELATED DATA */
     requests = requests.map(request => ({
         ...request,
         profile: profileMap.get(request.user_id) || {},
         agency: agencyMap.get(request.agency_id) || {},
         latest_payment: paymentMap.get(request.id) || null
     }));
-}
 
+    console.log(
+        "[EGC] Request/payment matching:",
+        requests.map(request => ({
+            request_id: request.id,
+            payment_id: request.latest_payment?.id || null
+        }))
+    );
+}
 /* =========================================================
    LOAD REQUESTS
    ========================================================= */
@@ -1686,6 +1816,8 @@ function collectPaymentProofReferences(request) {
         ["Payment Screenshot", payment.screenshot_path],
         ["Payment Screenshot", payment.payment_screenshot],
         ["Payment Screenshot URL", payment.screenshot_url],
+        ["Payment Reference", payment.payment_reference],
+        ["Payment Proof", payment.payment_proof_url],
         ["Payment Screenshot 1", request.payment_screenshot_1],
         ["Payment Screenshot 2", request.payment_screenshot_2],
         ["Payment Screenshot 3", request.payment_screenshot_3],

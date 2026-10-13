@@ -569,15 +569,17 @@ input{
             >
                 Agency Email / Agency Code
             </label>
-
-            <input
-                type="text"
-                id="loginIdentity"
-                class="input"
-                placeholder="Enter agency email or agency code"
-                autocomplete="username"
-                required
-            >
+<input 
+    type="text" 
+    id="loginIdentity" 
+    class="input" 
+    name="agency_login_identity"
+    placeholder="Enter agency email or agency code" 
+    autocomplete="off"
+    autocapitalize="none"
+    spellcheck="false"
+    required 
+>
 
         </div>
 
@@ -592,14 +594,17 @@ input{
 
             <div class="input-wrap">
 
-                <input
-                    type="password"
-                    id="loginPassword"
-                    class="input password-input"
-                    placeholder="Enter password"
-                    autocomplete="current-password"
-                    required
-                >
+<input
+    type="password"
+    id="loginPassword"
+    class="input password-input"
+    name="agency_login_password"
+    placeholder="Enter password"
+    autocomplete="new-password"
+    autocapitalize="none"
+    spellcheck="false"
+    required
+>
 
                 <button
                     type="button"
@@ -1023,10 +1028,10 @@ input{
 
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
 
 const SUPABASE_URL =
     "https://szefvmvokkhvnzryodqu.supabase.co";
@@ -1034,11 +1039,21 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+
+            // Agency की session को User portal से अलग रखें।
+            storageKey: "egc-agency-auth",
+            storage: window.localStorage
+        }
+    }
+);
 
 
 /* =========================================================
@@ -1138,6 +1153,54 @@ const resetMessage =
     document.getElementById("resetMessage");
 
 
+ /* =========================================================
+   CLEAR AGENCY LOGIN DETAILS
+   PAGE LOAD + REFRESH + BACK/FORWARD
+========================================================= */
+
+function clearAgencyLoginFields() {
+    if (loginIdentity) {
+        loginIdentity.value = "";
+        loginIdentity.setAttribute("autocomplete", "off");
+    }
+
+    if (loginPassword) {
+        loginPassword.value = "";
+        loginPassword.type = "password";
+        loginPassword.setAttribute("autocomplete", "new-password");
+    }
+
+    if (showPassword) {
+        showPassword.textContent = "👁";
+    }
+}
+
+/* Clear immediately */
+clearAgencyLoginFields();
+
+/* Browser may autofill after initial page rendering */
+document.addEventListener("DOMContentLoaded", function () {
+    clearAgencyLoginFields();
+
+    setTimeout(clearAgencyLoginFields, 100);
+    setTimeout(clearAgencyLoginFields, 500);
+    setTimeout(clearAgencyLoginFields, 1000);
+});
+
+/* Clear when returning through browser Back/Forward */
+window.addEventListener("pageshow", function () {
+    clearAgencyLoginFields();
+
+    setTimeout(clearAgencyLoginFields, 100);
+    setTimeout(clearAgencyLoginFields, 500);
+});
+
+/* Clear when the page becomes visible again */
+document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+        clearAgencyLoginFields();
+    }
+});
 /* =========================================================
    MESSAGE HELPER
 ========================================================= */
@@ -1286,8 +1349,8 @@ async function getAgencyByCode(code){
         await supabaseClient
             .from("agencies")
             .select(
-                "id,agency_name,agency_code,mobile_number,email,address,is_active,status,lpg_company,state,district,city"
-            )
+    "id,agency_name,agency_code,mobile_number,email,address,is_active,status,lpg_company,state,district,city,login_password,owner_name"
+)
             .eq(
                 "agency_code",
                 normalizedCode

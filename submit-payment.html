@@ -319,7 +319,12 @@ button{cursor:pointer}
 
 <script>
 /* =========================================================
-   SUPABASE CONFIGURATION
+   EGC SUBMIT PAYMENT — UPDATED
+   Status flow:
+   No payment record      -> Pending
+   Payment submitted      -> Waiting for Verification
+   Owner approves         -> Approved
+   Owner rejects          -> Rejected
 ========================================================= */
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
@@ -340,6 +345,7 @@ let currentProfile = null;
 let currentRequest = null;
 let currentPayment = null;
 let allPayments = [];
+
 let paymentType = "initial";
 let payableAmount = INITIAL_PAYMENT_AMOUNT;
 let selectedPaymentAmountType = "full";
@@ -351,6 +357,10 @@ let toastTimer = null;
 function $(id) {
   return document.getElementById(id);
 }
+
+/* =========================================================
+   GENERAL HELPERS
+========================================================= */
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -370,8 +380,12 @@ function formatMoney(value) {
 
 function formatDateTime(value) {
   if (!value) return "—";
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
 
   return date.toLocaleString("en-IN", {
     day: "2-digit",
@@ -389,7 +403,9 @@ function showError(message) {
 }
 
 function showSuccess(message) {
-  $("successBox").textContent = message || "Payment submitted successfully.";
+  $("successBox").textContent =
+    message || "Payment submitted successfully.";
+
   $("successBox").style.display = "block";
   $("errorBox").style.display = "none";
 }
@@ -402,6 +418,7 @@ function clearMessages() {
 function toast(message) {
   $("toast").textContent = message || "";
   $("toast").classList.add("show");
+
   clearTimeout(toastTimer);
 
   toastTimer = setTimeout(() => {
@@ -418,14 +435,22 @@ function normalizeStatus(value) {
 
 function getRequestId() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("request_id") || params.get("request") || null;
+
+  return (
+    params.get("request_id") ||
+    params.get("request") ||
+    null
+  );
 }
 
 function getPaymentId() {
-  return new URLSearchParams(window.location.search).get("payment_id") || null;
+  return new URLSearchParams(window.location.search)
+    .get("payment_id") || null;
 }
 
-/* PAYMENT STATUS */
+/* =========================================================
+   PAYMENT STATUS HELPERS
+========================================================= */
 
 function getVerificationStatus(payment) {
   return normalizeStatus(
@@ -442,9 +467,21 @@ function getPaymentStatus(payment) {
 }
 
 function isRejectedPayment(payment) {
-  const rejected = ["rejected", "reject", "failed", "declined", "cancelled", "canceled"];
-  return rejected.includes(getVerificationStatus(payment)) ||
-         rejected.includes(getPaymentStatus(payment));
+  if (!payment) return false;
+
+  const rejectedStatuses = [
+    "rejected",
+    "reject",
+    "failed",
+    "declined",
+    "cancelled",
+    "canceled"
+  ];
+
+  return (
+    rejectedStatuses.includes(getVerificationStatus(payment)) ||
+    rejectedStatuses.includes(getPaymentStatus(payment))
+  );
 }
 
 function isApprovedPayment(payment) {
@@ -453,27 +490,92 @@ function isApprovedPayment(payment) {
   const verification = getVerificationStatus(payment);
   const status = getPaymentStatus(payment);
 
-  const verified = ["approved", "verified", "success", "successful", "completed"];
-  const paid = ["paid", "success", "successful", "completed"];
+  const verifiedStatuses = [
+    "approved",
+    "verified"
+  ];
 
-  return verified.includes(verification) && paid.includes(status);
+  const paidStatuses = [
+    "paid"
+  ];
+
+  return (
+    verifiedStatuses.includes(verification) &&
+    paidStatuses.includes(status)
+  );
 }
 
-function isPendingPayment(payment) {
-  if (!payment || isRejectedPayment(payment) || isApprovedPayment(payment)) {
+function isWaitingForVerification(payment) {
+  if (!payment || isApprovedPayment(payment) ||
+      isRejectedPayment(payment)) {
     return false;
   }
 
-  const pending = ["pending", "submitted", "under_review", "processing"];
-  return pending.includes(getVerificationStatus(payment)) ||
-         pending.includes(getPaymentStatus(payment));
+  const verification = getVerificationStatus(payment);
+
+  return [
+    "waiting_for_verification",
+    "pending",
+    "submitted",
+    "under_review",
+    "processing"
+  ].includes(verification);
+}
+
+function isPendingPayment(payment) {
+  return isWaitingForVerification(payment);
 }
 
 function isPaymentLocked(payment) {
-  return isPendingPayment(payment) || isApprovedPayment(payment);
+  /*
+    Approved payments are locked.
+    Payments waiting for verification are locked.
+    Rejected payments can be resubmitted.
+  */
+  return (
+    isWaitingForVerification(payment) ||
+    isApprovedPayment(payment)
+  );
 }
 
-/* PROFILE */
+function getPaymentDisplayStatus(payment) {
+  if (!payment) {
+    return {
+      label: "Pending",
+      className: "pending"
+    };
+  }
+
+  if (isApprovedPayment(payment)) {
+    return {
+      label: "Approved",
+      className: "approved"
+    };
+  }
+
+  if (isRejectedPayment(payment)) {
+    return {
+      label: "Rejected",
+      className: "rejected"
+    };
+  }
+
+  if (isWaitingForVerification(payment)) {
+    return {
+      label: "Waiting for Verification",
+      className: "pending"
+    };
+  }
+
+  return {
+    label: "Pending",
+    className: "pending"
+  };
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
 
 async function loadProfile() {
   const { data, error } = await supabaseClient
@@ -488,60 +590,89 @@ async function loadProfile() {
 
   currentProfile = data || null;
 
-  const name = currentProfile?.full_name ||
-               currentUser.user_metadata?.full_name ||
-               "EGC Customer";
+  const name =
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    "EGC Customer";
 
   $("topName").textContent = name;
-  $("topEmail").textContent = currentProfile?.email || currentUser.email || "";
 
-  const fallback = "https://ui-avatars.com/api/?name=" +
-    encodeURIComponent(name) + "&background=eaf5fc&color=0754a9";
+  $("topEmail").textContent =
+    currentProfile?.email ||
+    currentUser.email ||
+    "";
+
+  const fallback =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name) +
+    "&background=eaf5fc&color=0754a9";
 
   $("topPhoto").onerror = function () {
     this.onerror = null;
     this.src = fallback;
   };
 
-  $("topPhoto").src = currentProfile?.profile_photo || fallback;
+  $("topPhoto").src =
+    currentProfile?.profile_photo || fallback;
 }
 
-/* REQUEST LOADING */
+/* =========================================================
+   REQUEST LOADING
+========================================================= */
 
 async function loadRequest() {
   const requestId = getRequestId();
   const paymentId = getPaymentId();
 
   if (paymentId) {
-    const { data: payment, error: paymentError } = await supabaseClient
-      .from("payments")
-      .select("*")
-      .eq("id", paymentId)
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
+    const { data: payment, error: paymentError } =
+      await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("id", paymentId)
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
 
     if (paymentError) throw paymentError;
-    if (!payment) throw new Error("Payment record not found for this account.");
-    if (!payment.request_id) throw new Error("This payment is not linked to a cylinder request.");
+
+    if (!payment) {
+      throw new Error(
+        "Payment record not found for this account."
+      );
+    }
+
+    if (!payment.request_id) {
+      throw new Error(
+        "This payment is not linked to a cylinder request."
+      );
+    }
 
     currentPayment = payment;
 
-    const { data: request, error: requestError } = await supabaseClient
-      .from("cylinder_requests")
-      .select("*")
-      .eq("id", payment.request_id)
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
+    const { data: request, error: requestError } =
+      await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("id", payment.request_id)
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
 
     if (requestError) throw requestError;
-    if (!request) throw new Error("The linked cylinder request was not found.");
+
+    if (!request) {
+      throw new Error(
+        "The linked cylinder request was not found."
+      );
+    }
 
     currentRequest = request;
     return;
   }
 
   if (!requestId) {
-    throw new Error("Request ID is missing. Open this page using the Pay button on your Payments page.");
+    throw new Error(
+      "Request ID is missing. Open this page using the Pay button on your Payments page."
+    );
   }
 
   const { data: request, error } = await supabaseClient
@@ -552,7 +683,12 @@ async function loadRequest() {
     .maybeSingle();
 
   if (error) throw error;
-  if (!request) throw new Error("Cylinder request not found for your account.");
+
+  if (!request) {
+    throw new Error(
+      "Cylinder request not found for your account."
+    );
+  }
 
   currentRequest = request;
 }
@@ -571,8 +707,14 @@ function isOwnerApproved(request) {
     if (value === true) return true;
     if (value == null) continue;
 
-    if (["approved", "owner_approved", "approved_payment", "payment_required"]
-      .includes(normalizeStatus(value))) {
+    if (
+      [
+        "approved",
+        "owner_approved",
+        "approved_payment",
+        "payment_required"
+      ].includes(normalizeStatus(value))
+    ) {
       return true;
     }
   }
@@ -594,14 +736,20 @@ async function loadAllPayments() {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
+
   allPayments = data || [];
 }
 
-/* PAYMENT METADATA */
+/* =========================================================
+   PAYMENT METADATA
+========================================================= */
 
 function getPaymentMetadata(payment) {
   if (!payment?.notes) return {};
-  if (typeof payment.notes === "object") return payment.notes;
+
+  if (typeof payment.notes === "object") {
+    return payment.notes;
+  }
 
   try {
     return JSON.parse(payment.notes);
@@ -612,6 +760,7 @@ function getPaymentMetadata(payment) {
 
 function getStoredPaymentType(payment) {
   const metadata = getPaymentMetadata(payment);
+
   const type = normalizeStatus(
     payment?.payment_type ||
     payment?.type ||
@@ -622,32 +771,45 @@ function getStoredPaymentType(payment) {
 
   if (type.includes("repayment")) return "repayment";
   if (type.includes("initial")) return "initial";
+
   return "";
 }
 
 function getDeliveryDate() {
   if (!currentRequest) return null;
 
-  return currentRequest.delivery_date ||
+  return (
+    currentRequest.delivery_date ||
     currentRequest.cylinder_delivery_date ||
     currentRequest.delivered_at ||
     currentRequest.delivery_at ||
-    null;
+    null
+  );
 }
 
 function determinePaymentType() {
   const params = new URLSearchParams(window.location.search);
-  const requestedType = normalizeStatus(params.get("payment_type") || "");
 
-  if (requestedType === "initial" || requestedType === "repayment") {
+  const requestedType = normalizeStatus(
+    params.get("payment_type") || ""
+  );
+
+  if (
+    requestedType === "initial" ||
+    requestedType === "repayment"
+  ) {
     return requestedType;
   }
 
   if (currentPayment) {
     const storedType = getStoredPaymentType(currentPayment);
+
     if (storedType) return storedType;
 
-    if (Number(currentPayment.payment_amount) === INITIAL_PAYMENT_AMOUNT && !getDeliveryDate()) {
+    if (
+      Number(currentPayment.payment_amount) === INITIAL_PAYMENT_AMOUNT &&
+      !getDeliveryDate()
+    ) {
       return "initial";
     }
   }
@@ -655,7 +817,9 @@ function determinePaymentType() {
   return getDeliveryDate() ? "repayment" : "initial";
 }
 
-/* CALCULATIONS */
+/* =========================================================
+   PAYMENT CALCULATIONS
+========================================================= */
 
 function calculatePaidAmount() {
   return allPayments.reduce((total, payment) => {
@@ -667,12 +831,17 @@ function calculatePaidAmount() {
 
 function calculatePendingDays() {
   const deliveryDate = getDeliveryDate();
+
   if (!deliveryDate) return 0;
 
   const start = new Date(deliveryDate);
+
   if (Number.isNaN(start.getTime())) return 0;
 
-  return Math.max(0, Math.floor((Date.now() - start.getTime()) / 86400000));
+  return Math.max(
+    0,
+    Math.floor((Date.now() - start.getTime()) / 86400000)
+  );
 }
 
 function calculateExtraCharge(days) {
@@ -680,6 +849,7 @@ function calculateExtraCharge(days) {
   if (days <= 10) return 35;
   if (days <= 15) return 40;
   if (days <= 45) return 50;
+
   return 100;
 }
 
@@ -697,11 +867,15 @@ function getRequestAmount() {
 
 function calculatePayable() {
   const paid = calculatePaidAmount();
+
   pendingDays = calculatePendingDays();
   extraCharge = calculateExtraCharge(pendingDays);
 
   if (paymentType === "repayment") {
-    payableAmount = Math.max(0, getRequestAmount() - paid + extraCharge);
+    payableAmount = Math.max(
+      0,
+      getRequestAmount() - paid + extraCharge
+    );
   } else {
     payableAmount = INITIAL_PAYMENT_AMOUNT;
   }
@@ -709,60 +883,102 @@ function calculatePayable() {
   renderAmount();
 }
 
-/* RENDER */
+/* =========================================================
+   RENDER REQUEST
+========================================================= */
 
 function renderRequest() {
   if (!currentRequest) return;
 
   $("requestNumber").textContent =
     currentRequest.request_number ||
-    ("EGC Request #" + String(currentRequest.id).substring(0, 8));
+    (
+      "EGC Request #" +
+      String(currentRequest.id).substring(0, 8)
+    );
 
   $("requestDate").textContent =
-    "Submitted: " + formatDateTime(currentRequest.created_at);
+    "Submitted: " +
+    formatDateTime(currentRequest.created_at);
 
   const approved = isOwnerApproved(currentRequest);
 
-  $("approvalBadge").textContent = approved ? "Owner Approved" : "Approval Pending";
-  $("approvalBadge").style.background = approved ? "#e5f8ef" : "#fff3d0";
-  $("approvalBadge").style.color = approved ? "#087848" : "#a36b00";
+  $("approvalBadge").textContent = approved
+    ? "Owner Approved"
+    : "Approval Pending";
+
+  $("approvalBadge").style.background = approved
+    ? "#e5f8ef"
+    : "#fff3d0";
+
+  $("approvalBadge").style.color = approved
+    ? "#087848"
+    : "#a36b00";
 }
 
 function renderAmount() {
   const requestAmount = getRequestAmount();
   const paidAmount = calculatePaidAmount();
-  const remaining = Math.max(0, requestAmount - paidAmount);
 
-  $("requestAmount").textContent = "₹" + formatMoney(requestAmount);
-  $("alreadyPaid").textContent = "₹" + formatMoney(paidAmount);
-  $("remainingAmount").textContent = "₹" + formatMoney(remaining);
-  $("payableAmount").textContent = "₹" + formatMoney(payableAmount);
+  const remaining = Math.max(
+    0,
+    requestAmount - paidAmount
+  );
 
-  $("payableNote").textContent = paymentType === "initial"
-    ? "Initial EGC payment"
-    : "Remaining amount + applicable extra charge";
+  $("requestAmount").textContent =
+    "₹" + formatMoney(requestAmount);
+
+  $("alreadyPaid").textContent =
+    "₹" + formatMoney(paidAmount);
+
+  $("remainingAmount").textContent =
+    "₹" + formatMoney(remaining);
+
+  $("payableAmount").textContent =
+    "₹" + formatMoney(payableAmount);
+
+  $("payableNote").textContent =
+    paymentType === "initial"
+      ? "Initial EGC payment"
+      : "Remaining amount + applicable extra charge";
 
   if (paymentType === "repayment" && getDeliveryDate()) {
     $("repaymentDaysBox").style.display = "block";
+
     $("repaymentDaysBox").innerHTML =
       "<strong>Repayment calculation</strong><br>" +
-      "Cylinder delivered: " + escapeHtml(formatDateTime(getDeliveryDate())) +
-      "<br>Days since delivery: " + escapeHtml(String(pendingDays)) +
-      "<br>Remaining before charge: ₹" + formatMoney(remaining) +
-      "<br>Extra charge: ₹" + formatMoney(extraCharge);
+      "Cylinder delivered: " +
+      escapeHtml(formatDateTime(getDeliveryDate())) +
+      "<br>Days since delivery: " +
+      escapeHtml(String(pendingDays)) +
+      "<br>Remaining before charge: ₹" +
+      formatMoney(remaining) +
+      "<br>Extra charge: ₹" +
+      formatMoney(extraCharge);
   } else {
     $("repaymentDaysBox").style.display = "none";
   }
 
-  $("initialTypeCard").classList.toggle("active", paymentType === "initial");
-  $("repaymentTypeCard").classList.toggle("active", paymentType === "repayment");
+  $("initialTypeCard").classList.toggle(
+    "active",
+    paymentType === "initial"
+  );
 
-  // Keep full payment amount synchronized with the calculated payable amount.
+  $("repaymentTypeCard").classList.toggle(
+    "active",
+    paymentType === "repayment"
+  );
+
   if (selectedPaymentAmountType === "full") {
-    $("paymentAmountInput").value = payableAmount > 0 ? payableAmount.toFixed(2) : "";
+    $("paymentAmountInput").value =
+      payableAmount > 0
+        ? payableAmount.toFixed(2)
+        : "";
   }
 
-  $("paymentAmountInput").max = Math.max(0, payableAmount).toFixed(2);
+  $("paymentAmountInput").max =
+    Math.max(0, payableAmount).toFixed(2);
+
   updateAmountHelp();
 }
 
@@ -771,36 +987,58 @@ function updateAmountHelp() {
   const entered = Number(input.value || 0);
 
   if (selectedPaymentAmountType === "full") {
-    $("amountHelp").textContent = "Full payment is selected. The amount is filled automatically.";
-  } else {
-    const remaining = Math.max(0, payableAmount - entered);
     $("amountHelp").textContent =
-      "Enter any amount above ₹0 and up to ₹" + formatMoney(payableAmount) +
-      ". Remaining after this submission (before approval): ₹" + formatMoney(remaining) + ".";
+      "Full payment is selected. The amount is filled automatically.";
+  } else {
+    const remaining = Math.max(
+      0,
+      payableAmount - entered
+    );
+
+    $("amountHelp").textContent =
+      "Enter any amount above ₹0 and up to ₹" +
+      formatMoney(payableAmount) +
+      ". Remaining after this submission (before approval): ₹" +
+      formatMoney(remaining) + ".";
   }
 }
 
 function setPaymentAmountType(type) {
   selectedPaymentAmountType = type;
 
-  $("fullPaymentChoice").classList.toggle("active", type === "full");
-  $("partialPaymentChoice").classList.toggle("active", type === "partial");
+  $("fullPaymentChoice").classList.toggle(
+    "active",
+    type === "full"
+  );
+
+  $("partialPaymentChoice").classList.toggle(
+    "active",
+    type === "partial"
+  );
 
   $("paymentAmountInput").readOnly = type === "full";
 
   if (type === "full") {
-    $("paymentAmountInput").value = payableAmount > 0 ? payableAmount.toFixed(2) : "";
+    $("paymentAmountInput").value =
+      payableAmount > 0
+        ? payableAmount.toFixed(2)
+        : "";
   } else if (
     Number($("paymentAmountInput").value || 0) <= 0 ||
     Number($("paymentAmountInput").value || 0) >= payableAmount
   ) {
-    $("paymentAmountInput").value = payableAmount > 1
-      ? (Math.max(1, Math.floor(payableAmount / 2))).toFixed(2)
-      : "";
+    $("paymentAmountInput").value =
+      payableAmount > 1
+        ? Math.max(1, Math.floor(payableAmount / 2)).toFixed(2)
+        : "";
   }
 
   updateAmountHelp();
 }
+
+/* =========================================================
+   EXISTING PAYMENT STATUS
+========================================================= */
 
 function renderExistingPayment() {
   const wrapper = $("existingPaymentBox");
@@ -814,66 +1052,108 @@ function renderExistingPayment() {
   wrapper.style.display = "block";
   statusBox.style.display = "block";
 
-  let statusLabel = "Pending verification";
-  let statusClass = "pending";
-
-  if (isApprovedPayment(currentPayment)) {
-    statusLabel = "Approved";
-    statusClass = "approved";
-  } else if (isRejectedPayment(currentPayment)) {
-    statusLabel = "Rejected";
-    statusClass = "rejected";
-  }
+  const status = getPaymentDisplayStatus(currentPayment);
 
   const metadata = getPaymentMetadata(currentPayment);
-  const reason = currentPayment.owner_rejection_reason ||
+
+  const reason =
+    currentPayment.owner_rejection_reason ||
     currentPayment.rejection_reason ||
     metadata.owner_rejection_reason ||
     metadata.rejection_reason ||
     "";
 
   statusBox.innerHTML =
-    '<div class="status-row"><span class="status-label">Payment Amount</span><span class="status-value">₹' +
-    formatMoney(currentPayment.payment_amount) + '</span></div>' +
-    '<div class="status-row"><span class="status-label">Payment Type</span><span class="status-value">' +
-    escapeHtml(getStoredPaymentType(currentPayment) || "Payment") + '</span></div>' +
-    '<div class="status-row"><span class="status-label">Transaction ID</span><span class="status-value">' +
-    escapeHtml(currentPayment.transaction_id || "—") + '</span></div>' +
-    '<div class="status-row"><span class="status-label">Submitted</span><span class="status-value">' +
-    escapeHtml(formatDateTime(currentPayment.created_at || currentPayment.payment_date)) + '</span></div>' +
-    '<div class="status-row"><span class="status-label">Payment Status</span><span class="status-value ' +
-    statusClass + '">' + escapeHtml(statusLabel) + '</span></div>' +
+    '<div class="status-row">' +
+      '<span class="status-label">Payment Amount</span>' +
+      '<span class="status-value">₹' +
+      formatMoney(currentPayment.payment_amount) +
+      '</span>' +
+    '</div>' +
+
+    '<div class="status-row">' +
+      '<span class="status-label">Payment Type</span>' +
+      '<span class="status-value">' +
+      escapeHtml(
+        getStoredPaymentType(currentPayment) || "Payment"
+      ) +
+      '</span>' +
+    '</div>' +
+
+    '<div class="status-row">' +
+      '<span class="status-label">Transaction ID</span>' +
+      '<span class="status-value">' +
+      escapeHtml(currentPayment.transaction_id || "—") +
+      '</span>' +
+    '</div>' +
+
+    '<div class="status-row">' +
+      '<span class="status-label">Submitted</span>' +
+      '<span class="status-value">' +
+      escapeHtml(
+        formatDateTime(
+          currentPayment.created_at ||
+          currentPayment.payment_date
+        )
+      ) +
+      '</span>' +
+    '</div>' +
+
+    '<div class="status-row">' +
+      '<span class="status-label">Payment Status</span>' +
+      '<span class="status-value ' +
+      status.className + '">' +
+      escapeHtml(status.label) +
+      '</span>' +
+    '</div>' +
+
     (reason
-      ? '<div class="status-row"><span class="status-label">Rejection Reason</span><span class="status-value rejected">' +
-        escapeHtml(reason) + '</span></div>'
+      ? '<div class="status-row">' +
+          '<span class="status-label">Rejection Reason</span>' +
+          '<span class="status-value rejected">' +
+          escapeHtml(reason) +
+          '</span>' +
+        '</div>'
       : "");
 }
 
-/* FORM LOCKING */
+/* =========================================================
+   FORM LOCKING
+========================================================= */
 
 function disablePaymentForm(message) {
-  $("paymentForm").querySelectorAll("input,select,textarea,button[type='submit']")
-    .forEach(element => element.disabled = true);
+  $("paymentForm")
+    .querySelectorAll("input,select,textarea,button")
+    .forEach(element => {
+      element.disabled = true;
+    });
 
-  $("fullPaymentChoice").disabled = true;
-  $("partialPaymentChoice").disabled = true;
+  $("submitPaymentBtn").textContent =
+    isApprovedPayment(currentPayment)
+      ? "PAYMENT ALREADY APPROVED"
+      : "PAYMENT ALREADY SUBMITTED";
 
-  $("submitPaymentBtn").textContent = isApprovedPayment(currentPayment)
-    ? "PAYMENT ALREADY APPROVED"
-    : "PAYMENT ALREADY SUBMITTED";
-
-  if (message) showError(message);
+  if (message) {
+    showError(message);
+  }
 }
 
 function enablePaymentForm() {
-  $("paymentForm").querySelectorAll("input,select,textarea,button[type='submit']")
-    .forEach(element => element.disabled = false);
+  $("paymentForm")
+    .querySelectorAll("input,select,textarea,button")
+    .forEach(element => {
+      element.disabled = false;
+    });
 
-  $("paymentAmountInput").readOnly = selectedPaymentAmountType === "full";
+  $("paymentAmountInput").readOnly =
+    selectedPaymentAmountType === "full";
+
   $("submitPaymentBtn").textContent = "SUBMIT PAYMENT";
 }
 
-/* SCREENSHOT PREVIEW */
+/* =========================================================
+   SCREENSHOT PREVIEW
+========================================================= */
 
 $("paymentScreenshot").addEventListener("change", function () {
   clearMessages();
@@ -892,7 +1172,9 @@ $("paymentScreenshot").addEventListener("change", function () {
     return;
   }
 
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+  if (
+    !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+  ) {
     showError("Please select a JPG, PNG, or WEBP screenshot.");
     this.value = "";
     $("screenshotPreview").style.display = "none";
@@ -900,27 +1182,39 @@ $("paymentScreenshot").addEventListener("change", function () {
   }
 
   const reader = new FileReader();
+
   reader.onload = event => {
     $("screenshotPreview").src = event.target.result;
     $("screenshotPreview").style.display = "block";
   };
+
   reader.readAsDataURL(file);
 });
 
-/* UPLOAD SCREENSHOT */
+/* =========================================================
+   UPLOAD SCREENSHOT
+========================================================= */
 
 async function uploadScreenshot(file) {
-  if (!file) throw new Error("Payment screenshot is required.");
+  if (!file) {
+    throw new Error("Payment screenshot is required.");
+  }
 
   const extension = (file.name.split(".").pop() || "jpg")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
-  const safeUser = String(currentUser.id).replace(/[^a-zA-Z0-9_-]/g, "");
-  const safeRequest = String(currentRequest.id).replace(/[^a-zA-Z0-9_-]/g, "");
+  const safeUser = String(currentUser.id)
+    .replace(/[^a-zA-Z0-9_-]/g, "");
 
-  const path = safeUser + "/" + safeRequest + "/" +
-    Date.now() + "-" + Math.random().toString(36).substring(2, 8) +
+  const safeRequest = String(currentRequest.id)
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+
+  const path =
+    safeUser + "/" +
+    safeRequest + "/" +
+    Date.now() + "-" +
+    Math.random().toString(36).substring(2, 8) +
     "." + (extension || "jpg");
 
   const { error } = await supabaseClient
@@ -933,7 +1227,9 @@ async function uploadScreenshot(file) {
     });
 
   if (error) {
-    throw new Error("Payment screenshot upload failed: " + error.message);
+    throw new Error(
+      "Payment screenshot upload failed: " + error.message
+    );
   }
 
   const { data } = supabaseClient
@@ -948,8 +1244,10 @@ function buildPaymentNotes(amountType, amount) {
   return JSON.stringify({
     payment_type: paymentType,
     amount_type: amountType,
-    pending_days: paymentType === "repayment" ? pendingDays : 0,
-    extra_charge: paymentType === "repayment" ? extraCharge : 0,
+    pending_days:
+      paymentType === "repayment" ? pendingDays : 0,
+    extra_charge:
+      paymentType === "repayment" ? extraCharge : 0,
     delivery_date: getDeliveryDate(),
     calculated_payable: payableAmount,
     submitted_amount: amount,
@@ -957,20 +1255,27 @@ function buildPaymentNotes(amountType, amount) {
   });
 }
 
-/* NOTIFICATIONS */
+/* =========================================================
+   USER NOTIFICATION
+========================================================= */
 
 async function notifyOwnerAndAgency(payment) {
   const title = paymentType === "initial"
     ? "New Initial Payment Submitted"
     : "New Repayment Submitted";
 
-  const message = "Payment submitted: ₹" +
+  const message =
+    "Payment submitted: ₹" +
     formatMoney(payment.payment_amount) +
-    ". Transaction ID: " + (payment.transaction_id || "—");
+    ". Transaction ID: " +
+    (payment.transaction_id || "—") +
+    ". Waiting for Owner verification.";
 
-  // This creates the user's notification.
-  // Owner/Agency notifications require the existing secure backend/trigger
-  // or an authorized notification insert policy.
+  /*
+    This inserts a notification for the user.
+    Owner/Agency notification delivery must use the existing
+    secure backend, trigger, or authorized notification policy.
+  */
 
   try {
     const { error } = await supabaseClient
@@ -983,31 +1288,48 @@ async function notifyOwnerAndAgency(payment) {
         is_read: false
       });
 
-    if (error) console.warn("Notification warning:", error);
+    if (error) {
+      console.warn("Notification warning:", error);
+    }
   } catch (error) {
     console.warn("Notification warning:", error);
   }
 }
 
+/* =========================================================
+   REFRESH PAYMENT RECORDS
+========================================================= */
+
 async function refreshPaymentRecords() {
   await loadAllPayments();
+
+  /*
+    Prefer a payment that is currently waiting for verification
+    or already approved. Rejected payments do not block resubmission.
+  */
   return allPayments.find(isPaymentLocked) || null;
 }
 
-/* SUBMIT PAYMENT */
+/* =========================================================
+   SUBMIT PAYMENT
+========================================================= */
 
 async function submitPayment(event) {
   event.preventDefault();
+
   if (submittingPayment) return;
 
   clearMessages();
 
   if (!currentUser?.id || !currentRequest?.id) {
-    showError("Payment request information is missing. Return to Payments and open the correct request.");
+    showError(
+      "Payment request information is missing. Return to Payments and open the correct request."
+    );
     return;
   }
 
   const button = $("submitPaymentBtn");
+
   submittingPayment = true;
   button.disabled = true;
   button.textContent = "CHECKING PAYMENT...";
@@ -1027,18 +1349,31 @@ async function submitPayment(event) {
     }
 
     paymentType = determinePaymentType();
+
     calculatePayable();
 
     if (payableAmount <= 0) {
-      throw new Error("There is no payable amount for this request.");
+      throw new Error(
+        "There is no payable amount for this request."
+      );
     }
 
-    if (paymentType === "initial" && !isOwnerApproved(currentRequest)) {
-      throw new Error("This request is still waiting for Owner approval.");
+    if (
+      paymentType === "initial" &&
+      !isOwnerApproved(currentRequest)
+    ) {
+      throw new Error(
+        "This request is still waiting for Owner approval."
+      );
     }
 
-    if (paymentType === "repayment" && !getDeliveryDate()) {
-      throw new Error("Repayment can start after the cylinder delivery date is recorded.");
+    if (
+      paymentType === "repayment" &&
+      !getDeliveryDate()
+    ) {
+      throw new Error(
+        "Repayment can start after the cylinder delivery date is recorded."
+      );
     }
 
     const amount = Number($("paymentAmountInput").value);
@@ -1047,46 +1382,90 @@ async function submitPayment(event) {
     const screenshot = $("paymentScreenshot").files?.[0];
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error("Enter a valid payment amount greater than ₹0.");
+      throw new Error(
+        "Enter a valid payment amount greater than ₹0."
+      );
     }
 
     if (amount > payableAmount + 0.001) {
-      throw new Error("Payment amount cannot be greater than the current amount due (₹" +
-        formatMoney(payableAmount) + ").");
+      throw new Error(
+        "Payment amount cannot be greater than the current amount due (₹" +
+        formatMoney(payableAmount) + ")."
+      );
     }
 
-    if (selectedPaymentAmountType === "full" && Math.abs(amount - payableAmount) > 0.01) {
-      throw new Error("Full payment must equal the current amount due.");
+    if (
+      selectedPaymentAmountType === "full" &&
+      Math.abs(amount - payableAmount) > 0.01
+    ) {
+      throw new Error(
+        "Full payment must equal the current amount due."
+      );
     }
 
-    if (selectedPaymentAmountType === "partial" && amount >= payableAmount) {
-      throw new Error("For Partial Payment, enter an amount smaller than the current amount due.");
+    if (
+      selectedPaymentAmountType === "partial" &&
+      amount >= payableAmount
+    ) {
+      throw new Error(
+        "For Partial Payment, enter an amount smaller than the current amount due."
+      );
     }
 
-    if (!paymentMethod) throw new Error("Please select a payment method.");
-    if (!transactionId) throw new Error("Please enter the transaction ID / UTR.");
-    if (!screenshot) throw new Error("Payment screenshot is required.");
-    if (screenshot.size > 5 * 1024 * 1024) throw new Error("Screenshot must be 5 MB or smaller.");
-    if (!["image/jpeg", "image/png", "image/webp"].includes(screenshot.type)) {
-      throw new Error("Please select a JPG, PNG, or WEBP screenshot.");
+    if (!paymentMethod) {
+      throw new Error("Please select the payment method.");
+    }
+
+    if (!transactionId) {
+      throw new Error("Please enter the transaction ID / UTR.");
+    }
+
+    if (!screenshot) {
+      throw new Error("Payment screenshot is required.");
+    }
+
+    if (screenshot.size > 5 * 1024 * 1024) {
+      throw new Error("Screenshot must be 5 MB or smaller.");
+    }
+
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(screenshot.type)
+    ) {
+      throw new Error(
+        "Please select a JPG, PNG, or WEBP screenshot."
+      );
     }
 
     button.textContent = "UPLOADING SCREENSHOT...";
+
     const screenshotUrl = await uploadScreenshot(screenshot);
 
-    if (!screenshotUrl) throw new Error("Could not create screenshot URL.");
+    if (!screenshotUrl) {
+      throw new Error("Could not create screenshot URL.");
+    }
 
     button.textContent = "SAVING PAYMENT...";
 
+    /*
+      New submission:
+      payment_status      = pending
+      verification_status = waiting_for_verification
+
+      Owner must verify the transaction before payment can
+      count as approved/paid.
+    */
     const paymentData = {
       user_id: currentUser.id,
       request_id: currentRequest.id,
       payment_amount: Number(amount.toFixed(2)),
       payment_status: "pending",
+      verification_status: "waiting_for_verification",
       payment_date: new Date().toISOString(),
       payment_reference: screenshotUrl,
-      notes: buildPaymentNotes(selectedPaymentAmountType, amount),
-      verification_status: "pending",
+      notes: buildPaymentNotes(
+        selectedPaymentAmountType,
+        amount
+      ),
       payment_method: paymentMethod,
       transaction_id: transactionId
     };
@@ -1104,26 +1483,34 @@ async function submitPayment(event) {
     try {
       await loadAllPayments();
     } catch (refreshError) {
-      console.warn("Payment history refresh warning:", refreshError);
+      console.warn(
+        "Payment history refresh warning:",
+        refreshError
+      );
     }
+
+    renderExistingPayment();
 
     await notifyOwnerAndAgency(currentPayment);
 
     showSuccess(
       selectedPaymentAmountType === "full"
-        ? "Full payment submitted successfully. Owner verification is pending."
-        : "Partial payment submitted successfully. Owner verification is pending."
+        ? "Full payment submitted successfully. Status: Waiting for Verification."
+        : "Partial payment submitted successfully. Status: Waiting for Verification."
     );
 
     $("paymentForm").reset();
+
     $("screenshotPreview").style.display = "none";
 
-    renderExistingPayment();
+    /*
+      Lock the form after a successful submission.
+      User should not submit another payment while this
+      payment is waiting for verification.
+    */
+    disablePaymentForm();
 
-    button.textContent = "PAYMENT SUBMITTED";
-    button.disabled = true;
-
-    toast("Payment submitted successfully.");
+    toast("Payment submitted. Waiting for Owner verification.");
 
     setTimeout(() => {
       window.location.href = PAYMENT_HISTORY_URL;
@@ -1131,27 +1518,67 @@ async function submitPayment(event) {
 
   } catch (error) {
     console.error("Submit payment error:", error);
+
     showError(error.message || "Unable to submit payment.");
-    button.disabled = false;
-    button.textContent = "SUBMIT PAYMENT";
+
+    /*
+      If a payment was successfully submitted, do not unlock
+      the form just because a later refresh/notification failed.
+    */
+    if (
+      currentPayment &&
+      isPaymentLocked(currentPayment)
+    ) {
+      disablePaymentForm();
+    } else {
+      button.disabled = false;
+      button.textContent = "SUBMIT PAYMENT";
+    }
 
   } finally {
     submittingPayment = false;
   }
 }
 
-/* NAVIGATION */
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
-function goDashboard() { window.location.href = "dashboard.html"; }
-function requestCylinder() { window.location.href = "request-cylinder.html"; }
-function goRequests() { window.location.href = "my-requests.html"; }
-function goPayments() { window.location.href = "payments.html"; }
-function goNotifications() { window.location.href = "notifications.html"; }
-function goProfile() { window.location.href = "profile.html"; }
-function goSettings() { window.location.href = "settings.html"; }
-function goHelpSupport() { window.location.href = "help-support.html"; }
+function goDashboard() {
+  window.location.href = "dashboard.html";
+}
 
-/* LOGOUT */
+function requestCylinder() {
+  window.location.href = "request-cylinder.html";
+}
+
+function goRequests() {
+  window.location.href = "my-requests.html";
+}
+
+function goPayments() {
+  window.location.href = "payments.html";
+}
+
+function goNotifications() {
+  window.location.href = "notifications.html";
+}
+
+function goProfile() {
+  window.location.href = "profile.html";
+}
+
+function goSettings() {
+  window.location.href = "settings.html";
+}
+
+function goHelpSupport() {
+  window.location.href = "help-support.html";
+}
+
+/* =========================================================
+   LOGOUT
+========================================================= */
 
 function openLogoutPopup() {
   $("logoutOverlay").classList.add("show");
@@ -1159,7 +1586,13 @@ function openLogoutPopup() {
 }
 
 function closeLogoutPopup(event) {
-  if (event && event.target && event.target.id !== "logoutOverlay") return;
+  if (
+    event &&
+    event.target &&
+    event.target.id !== "logoutOverlay"
+  ) {
+    return;
+  }
 
   $("logoutOverlay").classList.remove("show");
   document.body.style.overflow = "";
@@ -1167,6 +1600,7 @@ function closeLogoutPopup(event) {
 
 async function confirmLogout() {
   const button = $("confirmLogoutBtn");
+
   button.disabled = true;
   button.textContent = "Logging out...";
 
@@ -1175,6 +1609,7 @@ async function confirmLogout() {
   if (error) {
     button.disabled = false;
     button.textContent = "Logout";
+
     toast(error.message || "Logout failed.");
     return;
   }
@@ -1183,7 +1618,9 @@ async function confirmLogout() {
 }
 
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") closeLogoutPopup();
+  if (event.key === "Escape") {
+    closeLogoutPopup();
+  }
 });
 
 supabaseClient.auth.onAuthStateChange(event => {
@@ -1192,7 +1629,9 @@ supabaseClient.auth.onAuthStateChange(event => {
   }
 });
 
-/* INITIALIZE */
+/* =========================================================
+   INITIALIZE PAGE
+========================================================= */
 
 async function initializePage() {
   try {
@@ -1211,23 +1650,29 @@ async function initializePage() {
     await loadRequest();
     await loadAllPayments();
 
-    const blockingPayment = allPayments.find(isPaymentLocked);
-
-    if (blockingPayment) {
-      currentPayment = blockingPayment;
+    /*
+      When opened using payment_id, keep that payment selected.
+      Otherwise use the newest payment that is waiting for
+      verification or approved.
+    */
+    if (!currentPayment) {
+      currentPayment =
+        allPayments.find(isPaymentLocked) || null;
     }
 
     paymentType = determinePaymentType();
+
     calculatePayable();
     renderRequest();
     renderExistingPayment();
 
-    if (blockingPayment) {
+    if (currentPayment && isPaymentLocked(currentPayment)) {
       disablePaymentForm(
-        isApprovedPayment(blockingPayment)
+        isApprovedPayment(currentPayment)
           ? "This payment is already approved. You do not need to pay again. Check Payments history."
-          : "This payment has already been submitted and is awaiting verification. Check Payments history."
+          : "This payment has been submitted and is waiting for Owner verification."
       );
+
       return;
     }
 
@@ -1236,13 +1681,21 @@ async function initializePage() {
 
   } catch (error) {
     console.error("Submit payment page error:", error);
-    showError(error.message || "Unable to load payment page.");
+
+    showError(
+      error.message || "Unable to load payment page."
+    );
   }
 }
 
-/* EVENT LISTENERS */
+/* =========================================================
+   EVENT LISTENERS
+========================================================= */
 
-$("paymentForm").addEventListener("submit", submitPayment);
+$("paymentForm").addEventListener(
+  "submit",
+  submitPayment
+);
 
 $("fullPaymentChoice").addEventListener("click", () => {
   setPaymentAmountType("full");
@@ -1257,7 +1710,11 @@ $("paymentAmountInput").addEventListener("input", () => {
 });
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializePage, { once: true });
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializePage,
+    { once: true }
+  );
 } else {
   initializePage();
 }

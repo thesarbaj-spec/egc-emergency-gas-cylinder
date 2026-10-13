@@ -435,8 +435,19 @@ if (!window.supabase) {
   document.body.innerHTML = "<p style='padding:30px;font-family:Arial'>Supabase library could not load. Please check your internet connection and refresh.</p>";
   throw new Error("Supabase JS failed to load");
 }
-
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: "egc-agency-auth",
+            storage: window.localStorage
+        }
+    }
+);
 
 let agencyId = null;
 let currentUserId = null;
