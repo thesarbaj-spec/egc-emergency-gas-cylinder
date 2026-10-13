@@ -2395,701 +2395,279 @@ tr.user-row:hover td{
     </div>
 
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
+"use strict";
 
 /* =========================================================
-   EGC OWNER - USERS / CUSTOMERS
-   COMPLETE CUSTOMER + DOCUMENT MANAGEMENT
+   EGC OWNER — USERS / CUSTOMERS
+   Shared Supabase authentication + customer management
 ========================================================= */
 
-
-/* =========================================================
-   SUPABASE
-========================================================= */
-
+/* SUPABASE */
 const SUPABASE_URL =
     "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+const OWNER_EMAIL = "egchelpsupport@gmail.com";
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+const DOCUMENT_BUCKET = "users-documents";
 
-
-/* =========================================================
-   OWNER
-========================================================= */
-
-const OWNER_EMAIL =
-    "egchelpsupport@gmail.com";
-
-
-/* =========================================================
-   STORAGE
-========================================================= */
-
-const DOCUMENT_BUCKET =
-    "users-documents";
-
-
-/* =========================================================
-   DOCUMENT DEFINITIONS
-========================================================= */
-
-const DOCUMENT_TYPES = [
-
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
     {
-        key: "aadhaar-front",
-        label: "Aadhaar Card Front",
-        icon: "🪪"
-    },
-
-    {
-        key: "aadhaar-back",
-        label: "Aadhaar Card Back",
-        icon: "🪪"
-    },
-
-    {
-        key: "pan-card",
-        label: "PAN Card",
-        icon: "💳"
-    },
-
-    {
-        key: "gas-passbook",
-        label: "Gas Passbook Photo",
-        icon: "📘"
+        auth: {
+            storageKey: OWNER_STORAGE_KEY,
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        }
     }
+);
 
+/* DOCUMENT TYPES */
+const DOCUMENT_TYPES = [
+    { key: "aadhaar-front", label: "Aadhaar Card Front", icon: "🪪" },
+    { key: "aadhaar-back", label: "Aadhaar Card Back", icon: "🪪" },
+    { key: "pan-card", label: "PAN Card", icon: "💳" },
+    { key: "gas-passbook", label: "Gas Passbook Photo", icon: "📘" }
 ];
 
-
-/* =========================================================
-   ELEMENTS
-========================================================= */
-
-const totalUsers =
-    document.getElementById("totalUsers");
-
-const showingUsers =
-    document.getElementById("showingUsers");
-
-const searchResults =
-    document.getElementById("searchResults");
-
-const userTableBody =
-    document.getElementById("userTableBody");
-
-const searchInput =
-    document.getElementById("searchInput");
-
-const clearSearch =
-    document.getElementById("clearSearch");
-
-const refreshBtn =
-    document.getElementById("refreshBtn");
-
-const backBtn =
-    document.getElementById("backBtn");
-
-const paginationInfo =
-    document.getElementById("paginationInfo");
-
-const paginationButtons =
-    document.getElementById("paginationButtons");
-
-const menuBtn =
-    document.getElementById("menuBtn");
-
-const sidebar =
-    document.getElementById("sidebar");
-
-const overlay =
-    document.getElementById("overlay");
-
-const userModal =
-    document.getElementById("userModal");
-
-const userModalClose =
-    document.getElementById("userModalClose");
-
-const closeDetailBtn =
-    document.getElementById("closeDetailBtn");
-
-const userModalBody =
-    document.getElementById("userModalBody");
-
-const logoutBtn =
-    document.getElementById("logoutBtn");
-
-const logoutModal =
-    document.getElementById("logoutModal");
-
-const logoutCancel =
-    document.getElementById("logoutCancel");
-
-const logoutConfirm =
-    document.getElementById("logoutConfirm");
-
-const documentViewer =
-    document.getElementById("documentViewer");
-
-const documentViewerTitle =
-    document.getElementById("documentViewerTitle");
-
-const documentViewerContent =
-    document.getElementById("documentViewerContent");
-
-const documentViewerClose =
-    document.getElementById("documentViewerClose");
-
-
-/* =========================================================
-   DATA
-========================================================= */
+/* ELEMENTS */
+const totalUsers = document.getElementById("totalUsers");
+const showingUsers = document.getElementById("showingUsers");
+const searchResults = document.getElementById("searchResults");
+const userTableBody = document.getElementById("userTableBody");
+const searchInput = document.getElementById("searchInput");
+const clearSearch = document.getElementById("clearSearch");
+const refreshBtn = document.getElementById("refreshBtn");
+const backBtn = document.getElementById("backBtn");
+const paginationInfo = document.getElementById("paginationInfo");
+const paginationButtons = document.getElementById("paginationButtons");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const userModal = document.getElementById("userModal");
+const userModalClose = document.getElementById("userModalClose");
+const closeDetailBtn = document.getElementById("closeDetailBtn");
+const userModalBody = document.getElementById("userModalBody");
+const logoutBtn = document.getElementById("logoutBtn");
+const logoutModal = document.getElementById("logoutModal");
+const logoutCancel = document.getElementById("logoutCancel");
+const logoutConfirm = document.getElementById("logoutConfirm");
+const documentViewer = document.getElementById("documentViewer");
+const documentViewerTitle = document.getElementById("documentViewerTitle");
+const documentViewerContent = document.getElementById("documentViewerContent");
 
 let allUsers = [];
-
 let filteredUsers = [];
-
 let currentPage = 1;
-
 const USERS_PER_PAGE = 10;
 
-
-/* =========================================================
-   CURRENT USER
-========================================================= */
-
 let currentViewedUser = null;
-
 let currentEditingUser = null;
-
-
-/* =========================================================
-   EDIT DOCUMENT STATE
-
-   Each document can contain:
-   - Existing storage path
-   - New File selected from folder
-   - New camera File
-   - Remove request
-========================================================= */
-
-let editDocuments = {
-
-    "aadhaar-front": {
-        file: null,
-        existingPath: null,
-        remove: false
-    },
-
-    "aadhaar-back": {
-        file: null,
-        existingPath: null,
-        remove: false
-    },
-
-    "pan-card": {
-        file: null,
-        existingPath: null,
-        remove: false
-    },
-
-    "gas-passbook": {
-        file: null,
-        existingPath: null,
-        remove: false
-    }
-
-};
-
-
-/* =========================================================
-   CAMERA STATE
-========================================================= */
-
 let cameraStream = null;
-
 let cameraFacingMode = "environment";
-
 let currentCameraDocument = null;
+let isSavingUser = false;
+let isDeletingUser = false;
+let isLoggingOut = false;
+let realtimeChannel = null;
+let authCheckInProgress = false;
 
+function createEmptyEditDocuments() {
+    return {
+        "aadhaar-front": { file: null, existingPath: null, remove: false },
+        "aadhaar-back": { file: null, existingPath: null, remove: false },
+        "pan-card": { file: null, existingPath: null, remove: false },
+        "gas-passbook": { file: null, existingPath: null, remove: false }
+    };
+}
 
-/* =========================================================
-   SAFE HTML
-========================================================= */
+let editDocuments = createEmptyEditDocuments();
 
-function escapeHtml(value){
-
+/* SAFE HTML */
+function escapeHtml(value) {
     return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
+/* USER HELPERS */
+function getUserId(user) {
+    if (user?.user_code) return String(user.user_code).trim();
+    return user?.id ? String(user.id) : "—";
+}
 
-/* =========================================================
-   USER ID
-========================================================= */
+function getDatabaseUserId(user) {
+    return user?.id ? String(user.id) : "";
+}
 
-function getUserId(user){
+function getUserName(user) {
+    return user?.full_name || user?.name || user?.username || "Unnamed Customer";
+}
 
-    if(user && user.user_code){
+function getUserPhone(user) {
+    return user?.mobile || user?.phone || user?.phone_number || "—";
+}
 
-        return String(
-            user.user_code
-        ).trim();
+function getUserRole(user) {
+    return user?.role || "customer";
+}
 
+function getUserDate(user) {
+    return user?.created_at || user?.joined_at || null;
+}
+
+function getUserStatus(user) {
+    if (user?.is_active !== undefined && user.is_active !== null) {
+        return user.is_active ? "Active" : "Inactive";
     }
 
-    return user && user.id
-        ? String(user.id)
-        : "—";
-
-}
-
-
-/* =========================================================
-   REAL DATABASE ID
-========================================================= */
-
-function getDatabaseUserId(user){
-
-    return user && user.id
-        ? String(user.id)
-        : "";
-
-}
-
-
-/* =========================================================
-   USER NAME
-========================================================= */
-
-function getUserName(user){
-
-    return (
-        user?.full_name ||
-        user?.name ||
-        user?.username ||
-        "Unnamed Customer"
-    );
-
-}
-
-
-/* =========================================================
-   USER PHONE
-========================================================= */
-
-function getUserPhone(user){
-
-    return (
-        user?.mobile ||
-        user?.phone ||
-        user?.phone_number ||
-        "—"
-    );
-
-}
-
-
-/* =========================================================
-   USER ROLE
-========================================================= */
-
-function getUserRole(user){
-
-    return (
-        user?.role ||
-        "customer"
-    );
-
-}
-
-
-/* =========================================================
-   USER DATE
-========================================================= */
-
-function getUserDate(user){
-
-    return (
-        user?.created_at ||
-        user?.joined_at ||
-        null
-    );
-
-}
-
-
-/* =========================================================
-   USER STATUS
-========================================================= */
-
-function getUserStatus(user){
-
-    if(
-        user &&
-        user.is_active !== undefined &&
-        user.is_active !== null
-    ){
-
-        return user.is_active
-            ? "Active"
-            : "Inactive";
-
-    }
-
-    if(
-        user &&
-        user.status !== undefined &&
-        user.status !== null
-    ){
-
-        return String(
-            user.status
-        );
-
+    if (user?.status !== undefined && user.status !== null) {
+        return String(user.status);
     }
 
     return "Active";
-
 }
 
-
-/* =========================================================
-   STATUS BOOLEAN
-========================================================= */
-
-function getStatusBoolean(user){
-
-    if(
-        user &&
-        user.is_active !== undefined &&
-        user.is_active !== null
-    ){
-
-        return Boolean(
-            user.is_active
-        );
-
+function getStatusBoolean(user) {
+    if (user?.is_active !== undefined && user.is_active !== null) {
+        return Boolean(user.is_active);
     }
 
-    return (
-        String(
-            user?.status || "active"
-        ).toLowerCase() === "active"
-    );
-
+    return String(user?.status || "active").toLowerCase() === "active";
 }
 
+function formatDate(value) {
+    if (!value) return "—";
 
-/* =========================================================
-   FORMAT DATE
-========================================================= */
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
 
-function formatDate(value){
-
-    if(!value){
-
-        return "—";
-
-    }
-
-    const date =
-        new Date(value);
-
-    if(
-        Number.isNaN(
-            date.getTime()
-        )
-    ){
-
-        return String(value);
-
-    }
-
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
 
-
-/* =========================================================
-   INITIAL
-========================================================= */
-
-function getInitial(name){
-
-    const text =
-        String(name || "U").trim();
-
-    return text
-        .charAt(0)
-        .toUpperCase();
-
+function getInitial(name) {
+    return String(name || "U").trim().charAt(0).toUpperCase();
 }
 
+function showMessage(message) {
+    window.alert(message);
+}
 
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function openPage(page){
-
+/* NAVIGATION */
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-        users:"owner-users.html",
-        agencies:"owner-agencies.html",
-        companies:"owner-companies.html",
-        requests:"owner-requests.html",
-        payments:"owner-payments.html",
-        reports:"owner-reports.html",
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        settings: "owner-settings.html"
     };
 
-    if(pages[page]){
-
-        window.location.href =
-            pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
 
-document
-.querySelectorAll("[data-page]")
-.forEach(function(button){
+        openPage(button.dataset.page);
 
-    button.addEventListener(
-        "click",
-        function(){
-
-            openPage(
-                this.dataset.page
-            );
-
-            if(sidebar){
-
-                sidebar.classList.remove(
-                    "open"
-                );
-
-            }
-
-            if(overlay){
-
-                overlay.classList.remove(
-                    "show"
-                );
-
-            }
-
-        }
-    );
-
+        sidebar?.classList.remove("open");
+        overlay?.classList.remove("show");
+    });
 });
 
+/* MOBILE MENU */
+menuBtn?.addEventListener("click", () => {
+    sidebar?.classList.toggle("open");
+    overlay?.classList.toggle("show");
+});
 
-/* =========================================================
-   MOBILE MENU
-========================================================= */
+overlay?.addEventListener("click", () => {
+    sidebar?.classList.remove("open");
+    overlay?.classList.remove("show");
+});
 
-if(menuBtn){
+/* OWNER AUTHENTICATION
+   IMPORTANT: This storageKey must match owner-login.html
+   and every other protected Owner page.
+*/
+async function checkOwnerSession() {
+    if (authCheckInProgress) return false;
+    authCheckInProgress = true;
 
-    menuBtn.addEventListener(
-        "click",
-        function(){
+    try {
+        const { data, error } = await supabaseClient.auth.getSession();
 
-            if(sidebar){
+        if (error) throw error;
 
-                sidebar.classList.toggle(
-                    "open"
-                );
+        const session = data?.session;
 
-            }
-
-            if(overlay){
-
-                overlay.classList.toggle(
-                    "show"
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-if(overlay){
-
-    overlay.addEventListener(
-        "click",
-        function(){
-
-            if(sidebar){
-
-                sidebar.classList.remove(
-                    "open"
-                );
-
-            }
-
-            overlay.classList.remove(
-                "show"
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   OWNER SESSION
-========================================================= */
-
-async function checkOwnerSession(){
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient.auth.getSession();
-
-
-        if(error){
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+        if (!session?.access_token || !session?.user) {
+            window.location.replace("owner-login.html");
             return false;
-
         }
 
+        const { data: userData, error: userError } =
+            await supabaseClient.auth.getUser(session.access_token);
 
-        if(
-            !data ||
-            !data.session ||
-            !data.session.user
-        ){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+        if (userError || !userData?.user) {
+            console.error("Owner session validation failed:", userError);
+            await supabaseClient.auth.signOut();
+            window.location.replace("owner-login.html");
             return false;
-
         }
 
-
-        const sessionUser =
-            data.session.user;
-
-
-        const sessionEmail =
-            String(
-                sessionUser.email || ""
-            )
+        const email = String(userData.user.email || "")
             .trim()
             .toLowerCase();
 
-
-        if(
-            sessionEmail !==
-            OWNER_EMAIL.toLowerCase()
-        ){
-
+        if (email !== OWNER_EMAIL.toLowerCase()) {
+            console.error("Unauthorized Owner account.");
             await supabaseClient.auth.signOut();
-
-            alert(
-                "This account is not authorized for the EGC Owner Panel."
-            );
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+            showMessage("This account is not authorized for the EGC Owner Panel.");
+            window.location.replace("owner-login.html");
             return false;
-
         }
 
-
         return true;
-
-    }
-    catch(error){
-
-        console.error(
-            "Session check error:",
-            error
-        );
-
-        window.location.replace(
-            "owner-login.html"
-        );
-
+    } catch (error) {
+        console.error("Owner session check failed:", error);
+        window.location.replace("owner-login.html");
         return false;
-
+    } finally {
+        authCheckInProgress = false;
     }
-
 }
 
-
-/* =========================================================
-   LOAD CUSTOMERS
-========================================================= */
-
-async function loadUsers(){
-
-    if(refreshBtn){
-
+/* LOAD CUSTOMERS */
+async function loadUsers() {
+    if (refreshBtn) {
         refreshBtn.disabled = true;
-
-        refreshBtn.classList.add(
-            "loading"
-        );
-
-        refreshBtn.textContent =
-            "↻ Loading...";
-
+        refreshBtn.classList.add("loading");
+        refreshBtn.textContent = "↻ Loading...";
     }
 
-
-    if(userTableBody){
-
+    if (userTableBody) {
         userTableBody.innerHTML = `
             <tr>
                 <td colspan="7">
@@ -3098,5566 +2676,1452 @@ async function loadUsers(){
                         Loading customers...
                     </div>
                 </td>
-            </tr>
-        `;
-
+            </tr>`;
     }
 
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
+    try {
+        const { data, error } = await supabaseClient
             .from("profiles")
             .select("*")
-            .eq("role","customer")
-            .order(
-                "created_at",
-                {
-                    ascending:false
-                }
-            );
+            .eq("role", "customer")
+            .order("created_at", { ascending: false });
 
+        if (error) throw error;
 
-        if(error){
-
-            console.error(
-                "Customer loading error:",
-                error
-            );
-
-            allUsers = [];
-
-            filteredUsers = [];
-
-
-            if(userTableBody){
-
-                userTableBody.innerHTML = `
-                    <tr>
-                        <td
-                            colspan="7"
-                            class="empty"
-                        >
-                            <strong>
-                                Unable to load customers.
-                            </strong>
-
-                            <br><br>
-
-                            <span style="font-size:11px;">
-                                ${escapeHtml(
-                                    error.message ||
-                                    "Supabase error"
-                                )}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-
-            }
-
-
-            updateCounters();
-
-            return;
-
-        }
-
-
-        allUsers =
-            Array.isArray(data)
-                ? data.filter(
-                    function(user){
-
-                        return String(
-                            user.role || ""
-                        ).toLowerCase() ===
-                        "customer";
-
-                    }
-                )
-                : [];
-
-
-        applySearch();
-
-    }
-    catch(error){
-
-        console.error(
-            "Unexpected customer error:",
-            error
-        );
-
-        allUsers = [];
-
-        filteredUsers = [];
-
-
-        if(userTableBody){
-
-            userTableBody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="7"
-                        class="empty"
-                    >
-                        Something went wrong while loading customers.
-
-                        <br><br>
-
-                        <span style="font-size:11px;">
-                            ${escapeHtml(
-                                error?.message ||
-                                "Unknown error"
-                            )}
-                        </span>
-                    </td>
-                </tr>
-            `;
-
-        }
-
-
-        updateCounters();
-
-    }
-    finally{
-
-        if(refreshBtn){
-
-            refreshBtn.disabled = false;
-
-            refreshBtn.classList.remove(
-                "loading"
-            );
-
-            refreshBtn.textContent =
-                "↻ Refresh";
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   SEARCH
-========================================================= */
-
-function applySearch(){
-
-    if(!searchInput){
-
-        filteredUsers =
-            [...allUsers];
-
-        currentPage = 1;
-
-        renderUsers();
-
-        updateCounters();
-
-        return;
-
-    }
-
-
-    const query =
-        searchInput.value
-            .trim()
-            .toLowerCase();
-
-
-    if(!query){
-
-        filteredUsers =
-            [...allUsers];
-
-    }
-    else{
-
-        filteredUsers =
-            allUsers.filter(
-                function(user){
-
-                    const searchableText = [
-
-                        getUserId(user),
-
-                        getUserName(user),
-
-                        getUserPhone(user),
-
-                        getUserRole(user),
-
-                        getUserStatus(user),
-
-                        user.email,
-                        user.mobile,
-                        user.phone
-
-                    ]
-                    .map(
-                        value =>
-                            String(
-                                value ?? ""
-                            ).toLowerCase()
-                    )
-                    .join(" ");
-
-
-                    return searchableText.includes(
-                        query
-                    );
-
-                }
-            );
-
-    }
-
-
-    currentPage = 1;
-
-    renderUsers();
-
-    updateCounters();
-
-}
-
-
-/* =========================================================
-   RENDER USER TABLE
-========================================================= */
-
-function renderUsers(){
-
-    if(!userTableBody){
-
-        return;
-
-    }
-
-
-    const total =
-        filteredUsers.length;
-
-
-    const start =
-        (currentPage - 1) *
-        USERS_PER_PAGE;
-
-
-    const end =
-        start +
-        USERS_PER_PAGE;
-
-
-    const pageUsers =
-        filteredUsers.slice(
-            start,
-            end
-        );
-
-
-    if(total === 0){
-
-        userTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="7"
-                    class="empty"
-                >
-                    ${
-                        allUsers.length === 0
-                        ? "No customer accounts registered yet."
-                        : "No customers found for your search."
-                    }
-                </td>
-            </tr>
-        `;
-
-
-        renderPagination();
-
-        return;
-
-    }
-
-
-    userTableBody.innerHTML =
-        "";
-
-
-    pageUsers.forEach(
-        function(user){
-
-            const tr =
-                document.createElement(
-                    "tr"
-                );
-
-
-            tr.className =
-                "user-row";
-
-
-            const userId =
-                getUserId(user);
-
-            const name =
-                getUserName(user);
-
-            const phone =
-                getUserPhone(user);
-
-            const status =
-                getUserStatus(user);
-
-            const date =
-                formatDate(
-                    getUserDate(user)
-                );
-
-
-            const statusLower =
-                String(
-                    status
-                ).toLowerCase();
-
-
-            let statusClass =
-                "active";
-
-
-            if(
-                statusLower === "inactive" ||
-                statusLower === "blocked" ||
-                statusLower === "disabled"
-            ){
-
-                statusClass =
-                    "inactive";
-
-            }
-
-
-            tr.innerHTML = `
-
-                <td>
-                    <span class="user-id">
-                        ${escapeHtml(userId)}
-                    </span>
-                </td>
-
-                <td>
-
-                    <div class="user-name">
-                        ${escapeHtml(name)}
-                    </div>
-
-                </td>
-
-                <td>
-
-                    <div class="user-phone">
-                        ${escapeHtml(phone)}
-                    </div>
-
-                </td>
-
-                <td>
-
-                    <span class="role-badge role-customer">
-                        CUSTOMER
-                    </span>
-
-                </td>
-
-                <td>
-
-                    <span class="user-status ${statusClass}">
-                        ●
-                        ${escapeHtml(status)}
-                    </span>
-
-                </td>
-
-                <td>
-
-                    <div class="date-text">
-                        ${escapeHtml(date)}
-                    </div>
-
-                </td>
-
-                <td>
-
-                    <div
-                        class="user-action-buttons"
-                    >
-
-                        <button
-                            type="button"
-                            class="view-user-btn egc-action-btn egc-view-btn"
-                            title="View Customer"
-                        >
-                            <span>👁️</span>
-                            <span>View</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            class="edit-user-btn egc-action-btn egc-edit-btn"
-                            title="Edit Customer"
-                        >
-                            <span>✏️</span>
-                            <span>Edit</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            class="delete-user-btn egc-action-btn egc-delete-btn"
-                            title="Delete Customer"
-                        >
-                            <span>🗑️</span>
-                            <span>Delete</span>
-                        </button>
-
-                    </div>
-
-                </td>
-
-            `;
-
-
-            const viewButton =
-                tr.querySelector(
-                    ".view-user-btn"
-                );
-
-
-            const editButton =
-                tr.querySelector(
-                    ".edit-user-btn"
-                );
-
-
-            const deleteButton =
-                tr.querySelector(
-                    ".delete-user-btn"
-                );
-
-
-            if(viewButton){
-
-                viewButton.addEventListener(
-                    "click",
-                    function(event){
-
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-                        openUserDetails(
-                            user
-                        );
-
-                    }
-                );
-
-            }
-
-
-            if(editButton){
-
-                editButton.addEventListener(
-                    "click",
-                    function(event){
-
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-                        openEditUser(
-                            user
-                        );
-
-                    }
-                );
-
-            }
-
-
-            if(deleteButton){
-
-                deleteButton.addEventListener(
-                    "click",
-                    function(event){
-
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-                        deleteUser(
-                            user
-                        );
-
-                    }
-                );
-
-            }
-
-
-            userTableBody.appendChild(
-                tr
-            );
-
-        }
-    );
-
-
-    renderPagination();
-
-}
-
-
-/* =========================================================
-   ACTION BUTTON CSS
-========================================================= */
-
-function injectActionButtonStyles(){
-
-    if(
-        document.getElementById(
-            "egcUserActionStyles"
-        )
-    ){
-
-        return;
-
-    }
-
-
-    const style =
-        document.createElement(
-            "style"
-        );
-
-
-    style.id =
-        "egcUserActionStyles";
-
-
-    style.textContent = `
-
-        .user-action-buttons{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:flex-start !important;
-            gap:7px !important;
-            flex-wrap:wrap !important;
-            min-width:210px !important;
-        }
-
-        .egc-action-btn{
-            appearance:none !important;
-            -webkit-appearance:none !important;
-            border:1px solid transparent !important;
-            outline:none !important;
-            box-sizing:border-box !important;
-            min-height:36px !important;
-            height:36px !important;
-            padding:0 12px !important;
-            border-radius:8px !important;
-            font-family:inherit !important;
-            font-size:12px !important;
-            font-weight:800 !important;
-            line-height:1 !important;
-            cursor:pointer !important;
-            display:inline-flex !important;
-            align-items:center !important;
-            justify-content:center !important;
-            gap:6px !important;
-            white-space:nowrap !important;
-            transition:
-                transform .15s ease,
-                box-shadow .15s ease,
-                background .15s ease !important;
-        }
-
-        .egc-action-btn:hover{
-            transform:translateY(-1px) !important;
-        }
-
-        .egc-view-btn{
-            background:#eef7ff !important;
-            color:#0871c3 !important;
-            border-color:#cfe5f7 !important;
-        }
-
-        .egc-edit-btn{
-            background:#fff6df !important;
-            color:#a96700 !important;
-            border-color:#f3d795 !important;
-        }
-
-        .egc-delete-btn{
-            background:#fff0f1 !important;
-            color:#d63b46 !important;
-            border-color:#f2c8cc !important;
-        }
-
-        #editUserModal.egc-edit-overlay{
-            position:fixed !important;
-            inset:0 !important;
-            width:100vw !important;
-            height:100vh !important;
-            z-index:99999 !important;
-            background:rgba(3,28,43,.62) !important;
-            display:none !important;
-            align-items:center !important;
-            justify-content:center !important;
-            padding:15px !important;
-            box-sizing:border-box !important;
-            overflow-y:auto !important;
-            backdrop-filter:blur(3px) !important;
-        }
-
-        #editUserModal.egc-edit-overlay.show{
-            display:flex !important;
-        }
-
-        #editUserModal .egc-edit-box{
-            width:min(760px,100%) !important;
-            max-height:94vh !important;
-            overflow:hidden !important;
-            background:#fff !important;
-            border-radius:16px !important;
-            box-shadow:0 25px 70px rgba(0,0,0,.28) !important;
-            border:1px solid #dceaf4 !important;
-            display:flex !important;
-            flex-direction:column !important;
-        }
-
-        .egc-edit-header{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:space-between !important;
-            padding:17px 20px !important;
-            border-bottom:1px solid #e7eef4 !important;
-            flex-shrink:0 !important;
-        }
-
-        .egc-edit-title{
-            color:#06477f !important;
-            font-size:19px !important;
-            font-weight:900 !important;
-        }
-
-        .egc-edit-subtitle{
-            color:#8294a3 !important;
-            font-size:11px !important;
-            font-weight:600 !important;
-            margin-top:4px !important;
-        }
-
-        .egc-edit-close{
-            width:36px !important;
-            height:36px !important;
-            border:0 !important;
-            border-radius:9px !important;
-            background:#f1f6fa !important;
-            color:#547083 !important;
-            font-size:24px !important;
-            cursor:pointer !important;
-        }
-
-        .egc-edit-body{
-            padding:20px !important;
-            overflow-y:auto !important;
-            flex:1 1 auto !important;
-        }
-
-        .egc-edit-grid{
-            display:grid !important;
-            grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-            gap:13px !important;
-        }
-
-        .egc-edit-field-wrap{
-            min-width:0 !important;
-        }
-
-        .egc-edit-label{
-            display:block !important;
-            margin-bottom:6px !important;
-            color:#06477f !important;
-            font-size:11px !important;
-            font-weight:900 !important;
-        }
-
-        .egc-edit-input,
-        .egc-edit-select{
-            width:100% !important;
-            height:43px !important;
-            padding:0 12px !important;
-            box-sizing:border-box !important;
-            border:1px solid #d3e1eb !important;
-            border-radius:9px !important;
-            background:#fff !important;
-            color:#173f5f !important;
-            font-family:inherit !important;
-            font-size:13px !important;
-            font-weight:600 !important;
-            outline:none !important;
-        }
-
-        .egc-edit-input:focus,
-        .egc-edit-select:focus{
-            border-color:#0871c3 !important;
-            box-shadow:0 0 0 3px rgba(8,113,195,.10) !important;
-        }
-
-        .egc-readonly{
-            background:#f4f8fb !important;
-            color:#6b8191 !important;
-            cursor:not-allowed !important;
-        }
-
-        .egc-document-section{
-            margin-top:22px !important;
-            padding-top:20px !important;
-            border-top:1px solid #e4edf3 !important;
-        }
-
-        .egc-document-heading{
-            color:#06477f !important;
-            font-size:17px !important;
-            font-weight:900 !important;
-            margin-bottom:4px !important;
-        }
-
-        .egc-document-subheading{
-            color:#8093a2 !important;
-            font-size:11px !important;
-            font-weight:600 !important;
-            margin-bottom:14px !important;
-        }
-
-        .egc-document-card{
-            border:1px solid #dce8f0 !important;
-            border-radius:11px !important;
-            padding:12px !important;
-            margin-bottom:10px !important;
-            background:#fbfdff !important;
-        }
-
-        .egc-document-top{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:space-between !important;
-            gap:10px !important;
-            margin-bottom:9px !important;
-        }
-
-        .egc-document-name{
-            color:#164b70 !important;
-            font-size:12px !important;
-            font-weight:900 !important;
-        }
-
-        .egc-document-status{
-            font-size:10px !important;
-            font-weight:800 !important;
-            color:#6d8494 !important;
-        }
-
-        .egc-document-preview{
-            display:none !important;
-            width:100% !important;
-            height:120px !important;
-            border-radius:8px !important;
-            object-fit:cover !important;
-            border:1px solid #d9e5ec !important;
-            margin-bottom:9px !important;
-            background:#eef5f9 !important;
-        }
-
-        .egc-document-preview.show{
-            display:block !important;
-        }
-
-        .egc-document-buttons{
-            display:flex !important;
-            flex-wrap:wrap !important;
-            gap:7px !important;
-        }
-
-        .egc-doc-btn{
-            appearance:none !important;
-            border:1px solid #d1e0ea !important;
-            background:#fff !important;
-            color:#285d7f !important;
-            border-radius:8px !important;
-            min-height:34px !important;
-            padding:0 10px !important;
-            font-size:10px !important;
-            font-weight:800 !important;
-            cursor:pointer !important;
-        }
-
-        .egc-doc-btn:hover{
-            background:#eef7fc !important;
-        }
-
-        .egc-doc-camera{
-            background:#eaf5ff !important;
-            color:#0871c3 !important;
-            border-color:#cbe2f3 !important;
-        }
-
-        .egc-doc-remove{
-            background:#fff0f1 !important;
-            color:#d63b46 !important;
-            border-color:#f0c8cd !important;
-        }
-
-        .egc-edit-footer{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:flex-end !important;
-            gap:10px !important;
-            padding:14px 20px !important;
-            border-top:1px solid #e7eef4 !important;
-            background:#fbfdff !important;
-            flex-shrink:0 !important;
-        }
-
-        .egc-cancel-btn,
-        .egc-save-btn{
-            height:42px !important;
-            padding:0 18px !important;
-            border-radius:9px !important;
-            font-family:inherit !important;
-            font-size:12px !important;
-            font-weight:900 !important;
-            cursor:pointer !important;
-        }
-
-        .egc-cancel-btn{
-            border:1px solid #d5e2eb !important;
-            background:#fff !important;
-            color:#526f82 !important;
-        }
-
-        .egc-save-btn{
-            border:1px solid #0871c3 !important;
-            background:#0871c3 !important;
-            color:#fff !important;
-            min-width:145px !important;
-        }
-
-        .egc-save-btn:disabled{
-            opacity:.55 !important;
-            cursor:not-allowed !important;
-        }
-
-        #egcCameraModal{
-            position:fixed !important;
-            inset:0 !important;
-            z-index:100000 !important;
-            background:rgba(0,0,0,.78) !important;
-            display:none !important;
-            align-items:center !important;
-            justify-content:center !important;
-            padding:15px !important;
-        }
-
-        #egcCameraModal.show{
-            display:flex !important;
-        }
-
-        .egc-camera-box{
-            width:min(600px,100%) !important;
-            background:#071d2b !important;
-            border-radius:16px !important;
-            overflow:hidden !important;
-            box-shadow:0 25px 80px rgba(0,0,0,.45) !important;
-        }
-
-        .egc-camera-header{
-            display:flex !important;
-            align-items:center !important;
-            justify-content:space-between !important;
-            padding:14px 16px !important;
-            color:#fff !important;
-        }
-
-        .egc-camera-title{
-            font-size:15px !important;
-            font-weight:900 !important;
-        }
-
-        .egc-camera-close{
-            width:35px !important;
-            height:35px !important;
-            border:0 !important;
-            border-radius:8px !important;
-            background:rgba(255,255,255,.1) !important;
-            color:#fff !important;
-            font-size:21px !important;
-            cursor:pointer !important;
-        }
-
-        .egc-camera-video-wrap{
-            width:100% !important;
-            aspect-ratio:4/3 !important;
-            background:#000 !important;
-            overflow:hidden !important;
-        }
-
-        #egcCameraVideo{
-            width:100% !important;
-            height:100% !important;
-            object-fit:cover !important;
-            display:block !important;
-        }
-
-        .egc-camera-status{
-            text-align:center !important;
-            color:#c7dce9 !important;
-            font-size:10px !important;
-            padding:10px 12px !important;
-        }
-
-        .egc-camera-controls{
-            display:flex !important;
-            justify-content:center !important;
-            gap:9px !important;
-            padding:12px !important;
-            flex-wrap:wrap !important;
-        }
-
-        .egc-camera-btn{
-            min-height:40px !important;
-            padding:0 14px !important;
-            border-radius:9px !important;
-            border:1px solid rgba(255,255,255,.15) !important;
-            background:#fff !important;
-            color:#164b70 !important;
-            font-size:11px !important;
-            font-weight:900 !important;
-            cursor:pointer !important;
-        }
-
-        .egc-camera-capture{
-            background:#0871c3 !important;
-            color:#fff !important;
-            border-color:#0871c3 !important;
-            min-width:125px !important;
-        }
-
-        .egc-camera-switch{
-            background:#15394d !important;
-            color:#fff !important;
-        }
-
-        .egc-camera-cancel{
-            background:#2a1f23 !important;
-            color:#ffccd0 !important;
-        }
-
-        .egc-view-document-grid{
-            display:grid !important;
-            grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-            gap:10px !important;
-            margin-top:12px !important;
-        }
-
-        .egc-view-document-card{
-            border:1px solid #dce8f0 !important;
-            border-radius:10px !important;
-            padding:11px !important;
-            background:#fbfdff !important;
-        }
-
-        .egc-view-document-title{
-            color:#164b70 !important;
-            font-size:11px !important;
-            font-weight:900 !important;
-            margin-bottom:7px !important;
-        }
-
-        .egc-view-document-btn{
-            border:1px solid #cfe1ec !important;
-            background:#eef7ff !important;
-            color:#0871c3 !important;
-            border-radius:7px !important;
-            padding:7px 10px !important;
-            font-size:10px !important;
-            font-weight:800 !important;
-            cursor:pointer !important;
-        }
-
-        @media(max-width:700px){
-
-            #editUserModal.egc-edit-overlay{
-                padding:8px !important;
-            }
-
-            #editUserModal .egc-edit-box{
-                max-height:96vh !important;
-                border-radius:13px !important;
-            }
-
-            .egc-edit-body{
-                padding:14px !important;
-            }
-
-            .egc-edit-grid{
-                grid-template-columns:1fr !important;
-            }
-
-            .egc-document-buttons{
-                gap:5px !important;
-            }
-
-            .egc-doc-btn{
-                flex:1 1 auto !important;
-            }
-
-            .egc-edit-footer{
-                padding:11px 14px !important;
-            }
-
-            .egc-cancel-btn,
-            .egc-save-btn{
-                flex:1 !important;
-            }
-
-            .egc-view-document-grid{
-                grid-template-columns:1fr !important;
-            }
-
-            .user-action-buttons{
-                min-width:0 !important;
-            }
-
-            .egc-action-btn{
-                min-height:33px !important;
-                height:33px !important;
-                padding:0 8px !important;
-                font-size:10px !important;
-            }
-
-        }
-
-    `;
-
-
-    document.head.appendChild(
-        style
-    );
-
-}
-
-
-injectActionButtonStyles();
-
-
-/* =========================================================
-   COUNTERS
-========================================================= */
-
-function updateCounters(){
-
-    if(totalUsers){
-
-        totalUsers.textContent =
-            allUsers.length;
-
-    }
-
-
-    if(searchResults){
-
-        searchResults.textContent =
-            filteredUsers.length;
-
-    }
-
-
-    if(
-        !showingUsers ||
-        !paginationInfo
-    ){
-
-        return;
-
-    }
-
-
-    if(filteredUsers.length === 0){
-
-        showingUsers.textContent =
-            "0";
-
-        paginationInfo.textContent =
-            "Showing 0 customers";
-
-        return;
-
-    }
-
-
-    const start =
-        (
-            (currentPage - 1) *
-            USERS_PER_PAGE
-        ) + 1;
-
-
-    const end =
-        Math.min(
-            currentPage *
-            USERS_PER_PAGE,
-            filteredUsers.length
-        );
-
-
-    showingUsers.textContent =
-        end - start + 1;
-
-
-    paginationInfo.textContent =
-        "Showing " +
-        start +
-        "–" +
-        end +
-        " of " +
-        filteredUsers.length +
-        " customers";
-
-}
-
-
-/* =========================================================
-   PAGINATION
-========================================================= */
-
-function renderPagination(){
-
-    if(!paginationButtons){
-
-        return;
-
-    }
-
-
-    paginationButtons.innerHTML =
-        "";
-
-
-    const totalPages =
-        Math.ceil(
-            filteredUsers.length /
-            USERS_PER_PAGE
-        );
-
-
-    if(totalPages <= 1){
-
-        updateCounters();
-
-        return;
-
-    }
-
-
-    const previous =
-        document.createElement(
-            "button"
-        );
-
-
-    previous.className =
-        "page-btn";
-
-    previous.type =
-        "button";
-
-    previous.textContent =
-        "‹";
-
-    previous.disabled =
-        currentPage === 1;
-
-
-    previous.addEventListener(
-        "click",
-        function(){
-
-            if(currentPage > 1){
-
-                currentPage--;
-
-                renderUsers();
-
-                updateCounters();
-
-                window.scrollTo({
-                    top:0,
-                    behavior:"smooth"
-                });
-
-            }
-
-        }
-    );
-
-
-    paginationButtons.appendChild(
-        previous
-    );
-
-
-    let startPage =
-        Math.max(
-            1,
-            currentPage - 2
-        );
-
-
-    let endPage =
-        Math.min(
-            totalPages,
-            startPage + 4
-        );
-
-
-    if(
-        endPage - startPage < 4
-    ){
-
-        startPage =
-            Math.max(
-                1,
-                endPage - 4
-            );
-
-    }
-
-
-    for(
-        let page = startPage;
-        page <= endPage;
-        page++
-    ){
-
-        const button =
-            document.createElement(
-                "button"
-            );
-
-
-        button.className =
-            "page-btn";
-
-        button.type =
-            "button";
-
-        button.textContent =
-            page;
-
-
-        if(page === currentPage){
-
-            button.classList.add(
-                "active"
-            );
-
-        }
-
-
-        button.addEventListener(
-            "click",
-            function(){
-
-                currentPage =
-                    page;
-
-                renderUsers();
-
-                updateCounters();
-
-            }
-        );
-
-
-        paginationButtons.appendChild(
-            button
-        );
-
-    }
-
-
-    const next =
-        document.createElement(
-            "button"
-        );
-
-
-    next.className =
-        "page-btn";
-
-    next.type =
-        "button";
-
-    next.textContent =
-        "›";
-
-    next.disabled =
-        currentPage === totalPages;
-
-
-    next.addEventListener(
-        "click",
-        function(){
-
-            if(
-                currentPage <
-                totalPages
-            ){
-
-                currentPage++;
-
-                renderUsers();
-
-                updateCounters();
-
-            }
-
-        }
-    );
-
-
-    paginationButtons.appendChild(
-        next
-    );
-
-
-    updateCounters();
-
-}
-
-
-/* =========================================================
-   DOCUMENT FOLDER
-========================================================= */
-
-function getDocumentFolder(user){
-
-    const userId =
-        getDatabaseUserId(
-            user
-        );
-
-    if(!userId){
-
-        return null;
-
-    }
-
-    return userId;
-
-}
-
-
-/* =========================================================
-   DOCUMENT PATH
-========================================================= */
-
-function getDocumentPath(
-    user,
-    documentKey
-){
-
-    const folder =
-        getDocumentFolder(
-            user
-        );
-
-    if(!folder){
-
-        return null;
-
-    }
-
-    return (
-        folder +
-        "/" +
-        documentKey +
-        ".jpg"
-    );
-
-}
-
-
-/* =========================================================
-   LIST USER DOCUMENTS
-========================================================= */
-
-async function listUserDocuments(user){
-
-    const folder =
-        getDocumentFolder(
-            user
-        );
-
-
-    if(!folder){
-
-        return [];
-
-    }
-
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-            .storage
-            .from(
-                DOCUMENT_BUCKET
-            )
-            .list(
-                folder,
-                {
-                    limit:100,
-                    offset:0,
-                    sortBy:{
-                        column:"name",
-                        order:"asc"
-                    }
-                }
-            );
-
-
-        if(error){
-
-            console.error(
-                "Document list error:",
-                error
-            );
-
-            return [];
-
-        }
-
-
-        return Array.isArray(data)
-            ? data.filter(
-                item =>
-                    item &&
-                    item.name
+        allUsers = Array.isArray(data)
+            ? data.filter(user =>
+                String(user.role || "").toLowerCase() === "customer"
             )
             : [];
 
-    }
-    catch(error){
+        applySearch();
+    } catch (error) {
+        console.error("Customer loading error:", error);
 
-        console.error(
-            "Document list exception:",
-            error
-        );
+        allUsers = [];
+        filteredUsers = [];
 
-        return [];
-
-    }
-
-}
-
-
-/* =========================================================
-   SIGNED URL
-========================================================= */
-
-async function getDocumentUrl(path){
-
-    if(!path){
-
-        return null;
-
-    }
-
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-            .storage
-            .from(
-                DOCUMENT_BUCKET
-            )
-            .createSignedUrl(
-                path,
-                60 * 10
-            );
-
-
-        if(error){
-
-            console.error(
-                "Signed URL error:",
-                error
-            );
-
-            return null;
-
+        if (userTableBody) {
+            userTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty">
+                        <strong>Unable to load customers.</strong>
+                        <br><br>
+                        <span style="font-size:11px;">
+                            ${escapeHtml(error?.message || "Supabase error")}
+                        </span>
+                    </td>
+                </tr>`;
         }
 
-
-        return data?.signedUrl ||
-            null;
-
-    }
-    catch(error){
-
-        console.error(
-            "Signed URL exception:",
-            error
-        );
-
-        return null;
-
-    }
-
-}
-
-
-/* =========================================================
-   FIND EXISTING DOCUMENT
-========================================================= */
-
-function findDocumentFile(
-    files,
-    documentKey
-){
-
-    if(!Array.isArray(files)){
-
-        return null;
-
-    }
-
-
-    return files.find(
-        function(file){
-
-            return String(
-                file.name || ""
-            ).toLowerCase() ===
-            (
-                documentKey +
-                ".jpg"
-            ).toLowerCase();
-
+        updateCounters();
+    } finally {
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.classList.remove("loading");
+            refreshBtn.textContent = "↻ Refresh";
         }
-    ) || null;
-
+    }
 }
 
+/* SEARCH */
+function applySearch() {
+    const query = String(searchInput?.value || "").trim().toLowerCase();
 
-/* =========================================================
-   DELETE SINGLE DOCUMENT
-========================================================= */
+    filteredUsers = !query
+        ? [...allUsers]
+        : allUsers.filter(user => {
+            const searchableText = [
+                getUserId(user),
+                getUserName(user),
+                getUserPhone(user),
+                getUserRole(user),
+                getUserStatus(user),
+                user.email,
+                user.mobile,
+                user.phone
+            ].map(value => String(value ?? "").toLowerCase()).join(" ");
 
-async function removeStorageDocument(
-    path
-){
+            return searchableText.includes(query);
+        });
 
-    if(!path){
-
-        return {
-            success:true
-        };
-
-    }
-
-
-    try{
-
-        const {
-            error
-        } =
-        await supabaseClient
-            .storage
-            .from(
-                DOCUMENT_BUCKET
-            )
-            .remove([
-                path
-            ]);
-
-
-        if(error){
-
-            console.error(
-                "Storage remove error:",
-                error
-            );
-
-            return {
-                success:false,
-                error:error
-            };
-
-        }
-
-
-        return {
-            success:true
-        };
-
-    }
-    catch(error){
-
-        console.error(
-            "Storage remove exception:",
-            error
-        );
-
-        return {
-            success:false,
-            error:error
-        };
-
-    }
-
+    currentPage = 1;
+    renderUsers();
+    updateCounters();
 }
 
-
-/* =========================================================
-   UPLOAD DOCUMENT
-
-   IMPORTANT:
-   First remove old file.
-   Then upload new file.
-========================================================= */
-
-async function uploadUserDocument(
-    user,
-    documentKey,
-    file
-){
-
-    if(!user || !file){
-
-        return {
-            success:false,
-            error:new Error(
-                "Document file missing."
-            )
-        };
-
-    }
-
-
-    const path =
-        getDocumentPath(
-            user,
-            documentKey
-        );
-
-
-    if(!path){
-
-        return {
-            success:false,
-            error:new Error(
-                "User ID missing."
-            )
-        };
-
-    }
-
-
-    try{
-
-        /*
-        -----------------------------------------------------
-        REMOVE OLD FILE
-        -----------------------------------------------------
-        */
-
-        const oldFileResult =
-            await removeStorageDocument(
-                path
-            );
-
-
-        if(!oldFileResult.success){
-
-            return {
-                success:false,
-                error:
-                    oldFileResult.error ||
-                    new Error(
-                        "Old document could not be removed."
-                    )
-            };
-
-        }
-
-
-        /*
-        -----------------------------------------------------
-        UPLOAD NEW FILE
-        -----------------------------------------------------
-        */
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-            .storage
-            .from(
-                DOCUMENT_BUCKET
-            )
-            .upload(
-                path,
-                file,
-                {
-                    cacheControl:"3600",
-                    contentType:
-                        file.type ||
-                        "image/jpeg",
-                    upsert:false
-                }
-            );
-
-
-        if(error){
-
-            console.error(
-                "Document upload error:",
-                error
-            );
-
-            return {
-                success:false,
-                error:error
-            };
-
-        }
-
-
-        return {
-            success:true,
-            data:data
-        };
-
-    }
-    catch(error){
-
-        console.error(
-            "Document upload exception:",
-            error
-        );
-
-        return {
-            success:false,
-            error:error
-        };
-
-    }
-
-}
-
-
-/* =========================================================
-   DELETE DOCUMENT FROM VIEW
-========================================================= */
-
-async function deleteViewedDocument(
-    path,
-    label
-){
-
-    const confirmed =
-        window.confirm(
-            "Kya aap " +
-            label +
-            " remove karna chahte hain?"
-        );
-
-
-    if(!confirmed){
-
-        return;
-
-    }
-
-
-    const result =
-        await removeStorageDocument(
-            path
-        );
-
-
-    if(!result.success){
-
-        alert(
-            "Document remove nahi ho paya.\n\n" +
-            (
-                result.error?.message ||
-                "Storage error"
-            )
-        );
-
-        return;
-
-    }
-
-
-    if(currentViewedUser){
-
-        renderUserDocuments(
-            currentViewedUser
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   OPEN DOCUMENT
-========================================================= */
-
-async function openDocument(
-    path,
-    label
-){
-
-    if(!documentViewer){
-
-        return;
-
-    }
-
-
-    if(documentViewerTitle){
-
-        documentViewerTitle.textContent =
-            label;
-
-    }
-
-
-    if(documentViewerContent){
-
-        documentViewerContent.innerHTML = `
-            <div class="documents-loading">
-                Loading document...
-            </div>
-        `;
-
-    }
-
-
-    documentViewer.classList.add(
-        "show"
-    );
-
-
-    document.body.style.overflow =
-        "hidden";
-
-
-    const url =
-        await getDocumentUrl(
-            path
-        );
-
-
-    if(!url){
-
-        if(documentViewerContent){
-
-            documentViewerContent.innerHTML = `
-                <div class="document-empty">
-                    Document view nahi ho pa raha.
-                </div>
-            `;
-
-        }
-
-        return;
-
-    }
-
-
-    const extension =
-        String(path)
-            .split(".")
-            .pop()
-            .toLowerCase();
-
-
-    if(extension === "pdf"){
-
-        documentViewerContent.innerHTML = `
-            <iframe
-                src="${escapeHtml(url)}"
-                title="${escapeHtml(label)}"
-            ></iframe>
-        `;
-
-    }
-    else{
-
-        documentViewerContent.innerHTML = `
-            <img
-                src="${escapeHtml(url)}"
-                alt="${escapeHtml(label)}"
-                style="
-                    max-width:100%;
-                    max-height:75vh;
-                    object-fit:contain;
-                    border-radius:10px;
-                "
-            >
-        `;
-
-    }
-
-}
-
-
-/* =========================================================
-   CLOSE DOCUMENT VIEWER
-========================================================= */
-
-function closeDocumentViewer(){
-
-    if(documentViewer){
-
-        documentViewer.classList.remove(
-            "show"
-        );
-
-    }
-
-
-    if(documentViewerContent){
-
-        documentViewerContent.innerHTML =
-            "";
-
-    }
-
-
-    document.body.style.overflow =
-        "";
-
-}
-
-
-if(documentViewerClose){
-
-    documentViewerClose.addEventListener(
-        "click",
-        closeDocumentViewer
-    );
-
-}
-
-
-if(documentViewer){
-
-    documentViewer.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                documentViewer
-            ){
-
-                closeDocumentViewer();
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   RENDER USER DOCUMENTS IN VIEW
-========================================================= */
-
-async function renderUserDocuments(
-    user
-){
-
-    const documentsContainer =
-        document.getElementById(
-            "documentsContainer"
-        );
-
-
-    if(!documentsContainer){
-
-        return;
-
-    }
-
-
-    documentsContainer.innerHTML = `
-        <div class="documents-loading">
-            <div class="spinner"></div>
-            Loading documents...
-        </div>
-    `;
-
-
-    const files =
-        await listUserDocuments(
-            user
-        );
-
-
-    let html =
-        `
-        <div class="egc-view-document-grid">
-        `;
-
-
-    DOCUMENT_TYPES.forEach(
-        function(documentType){
-
-            const file =
-                findDocumentFile(
-                    files,
-                    documentType.key
-                );
-
-
-            if(file){
-
-                const path =
-                    getDocumentPath(
-                        user,
-                        documentType.key
-                    );
-
-
-                html += `
-
-                    <div class="egc-view-document-card">
-
-                        <div class="egc-view-document-title">
-                            ${documentType.icon}
-                            ${escapeHtml(
-                                documentType.label
-                            )}
-                        </div>
-
-                        <div
-                            style="
-                                color:#4b8a68;
-                                font-size:10px;
-                                font-weight:800;
-                                margin-bottom:8px;
-                            "
-                        >
-                            ● Uploaded
-                        </div>
-
-                        <button
-                            type="button"
-                            class="egc-view-document-btn"
-                            data-document-view-path="${escapeHtml(path)}"
-                            data-document-view-label="${escapeHtml(
-                                documentType.label
-                            )}"
-                        >
-                            View
-                        </button>
-
-                        <button
-                            type="button"
-                            class="egc-view-document-btn"
-                            style="
-                                margin-left:5px;
-                                color:#d63b46;
-                                background:#fff0f1;
-                                border-color:#f0c8cd;
-                            "
-                            data-document-remove-path="${escapeHtml(path)}"
-                            data-document-remove-label="${escapeHtml(
-                                documentType.label
-                            )}"
-                        >
-                            Remove
-                        </button>
-
-                    </div>
-
-                `;
-
-            }
-            else{
-
-                html += `
-
-                    <div class="egc-view-document-card">
-
-                        <div class="egc-view-document-title">
-                            ${documentType.icon}
-                            ${escapeHtml(
-                                documentType.label
-                            )}
-                        </div>
-
-                        <div
-                            style="
-                                color:#91a1af;
-                                font-size:10px;
-                                font-weight:800;
-                            "
-                        >
-                            — Not uploaded
-                        </div>
-
-                    </div>
-
-                `;
-
-            }
-
-        }
-    );
-
-
-    html += `
-        </div>
-    `;
-
-
-    documentsContainer.innerHTML =
-        html;
-
-
-    documentsContainer
-        .querySelectorAll(
-            "[data-document-view-path]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        openDocument(
-                            this.dataset.documentViewPath,
-                            this.dataset.documentViewLabel
-                        );
-
+/* RENDER CUSTOMER TABLE */
+function renderUsers() {
+    if (!userTableBody) return;
+
+    const total = filteredUsers.length;
+    const start = (currentPage - 1) * USERS_PER_PAGE;
+    const pageUsers = filteredUsers.slice(start, start + USERS_PER_PAGE);
+
+    if (total === 0) {
+        userTableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty">
+                    ${
+                        allUsers.length === 0
+                            ? "No customer accounts registered yet."
+                            : "No customers found for your search."
                     }
-                );
+                </td>
+            </tr>`;
 
-            }
-        );
-
-
-    documentsContainer
-        .querySelectorAll(
-            "[data-document-remove-path]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    async function(){
-
-                        await deleteViewedDocument(
-                            this.dataset.documentRemovePath,
-                            this.dataset.documentRemoveLabel
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   VIEW USER DETAILS
-
-   ONLY:
-   1. User ID
-   2. Customer
-   3. Phone
-   4. Role
-   5. Status
-   6. Joined
-
-   PLUS DOCUMENTS
-========================================================= */
-
-function openUserDetails(
-    user
-){
-
-    currentViewedUser =
-        user;
-
-
-    const userId =
-        getUserId(user);
-
-    const name =
-        getUserName(user);
-
-    const phone =
-        getUserPhone(user);
-
-    const role =
-        getUserRole(user);
-
-    const status =
-        getUserStatus(user);
-
-    const joined =
-        formatDate(
-            getUserDate(user)
-        );
-
-
-    if(!userModalBody){
-
+        renderPagination();
         return;
-
     }
 
+    userTableBody.innerHTML = "";
 
-    userModalBody.innerHTML = `
+    pageUsers.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.className = "user-row";
 
-        <div
-            style="
-                display:flex;
-                align-items:center;
-                gap:12px;
-                margin-bottom:18px;
-            "
-        >
+        const status = getUserStatus(user);
+        const statusLower = status.toLowerCase();
+        const statusClass =
+            ["inactive", "blocked", "disabled"].includes(statusLower)
+                ? "inactive"
+                : "active";
 
-            <div class="profile-avatar">
-                ${escapeHtml(
-                    getInitial(name)
-                )}
-            </div>
+        tr.innerHTML = `
+            <td><span class="user-id">${escapeHtml(getUserId(user))}</span></td>
+            <td><div class="user-name">${escapeHtml(getUserName(user))}</div></td>
+            <td><div class="user-phone">${escapeHtml(getUserPhone(user))}</div></td>
+            <td><span class="role-badge role-customer">CUSTOMER</span></td>
+            <td><span class="user-status ${statusClass}">● ${escapeHtml(status)}</span></td>
+            <td><div class="date-text">${escapeHtml(formatDate(getUserDate(user)))}</div></td>
+            <td>
+                <div class="user-action-buttons">
+                    <button type="button" class="view-user-btn egc-action-btn egc-view-btn" title="View Customer">
+                        <span>👁️</span><span>View</span>
+                    </button>
+                    <button type="button" class="edit-user-btn egc-action-btn egc-edit-btn" title="Edit Customer">
+                        <span>✏️</span><span>Edit</span>
+                    </button>
+                    <button type="button" class="delete-user-btn egc-action-btn egc-delete-btn" title="Delete Customer">
+                        <span>🗑️</span><span>Delete</span>
+                    </button>
+                </div>`;
 
-            <div>
+        tr.querySelector(".view-user-btn")
+            .addEventListener("click", () => openUserDetails(user));
 
-                <div
-                    style="
-                        color:#06477f;
-                        font-size:17px;
-                        font-weight:900;
-                    "
-                >
-                    ${escapeHtml(name)}
-                </div>
+        tr.querySelector(".edit-user-btn")
+            .addEventListener("click", () => openEditUser(user));
 
-                <div
-                    style="
-                        color:#8294a3;
-                        font-size:10px;
-                        font-weight:700;
-                    "
-                >
-                    Customer Profile
-                </div>
+        tr.querySelector(".delete-user-btn")
+            .addEventListener("click", () => deleteUser(user));
 
-            </div>
+        userTableBody.appendChild(tr);
+    });
 
-        </div>
+    renderPagination();
+}
 
+/* ACTION BUTTON / EDIT / CAMERA CSS */
+function injectActionButtonStyles() {
+    if (document.getElementById("egcUserActionStyles")) return;
 
-        <div class="details-grid">
+    const style = document.createElement("style");
+    style.id = "egcUserActionStyles";
 
-            <div class="detail-box">
+    style.textContent = `
+        .user-action-buttons{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;min-width:210px!important}
+        .egc-action-btn{appearance:none!important;border:1px solid transparent!important;box-sizing:border-box!important;min-height:36px!important;padding:0 12px!important;border-radius:8px!important;font-family:inherit!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;white-space:nowrap!important}
+        .egc-view-btn{background:#eef7ff!important;color:#0871c3!important;border-color:#cfe5f7!important}
+        .egc-edit-btn{background:#fff6df!important;color:#a96700!important;border-color:#f3d795!important}
+        .egc-delete-btn{background:#fff0f1!important;color:#d63b46!important;border-color:#f2c8cc!important}
+        #editUserModal.egc-edit-overlay{position:fixed!important;inset:0!important;z-index:99999!important;background:rgba(3,28,43,.62)!important;display:none!important;align-items:center!important;justify-content:center!important;padding:15px!important;box-sizing:border-box!important;overflow-y:auto!important;backdrop-filter:blur(3px)!important}
+        #editUserModal.egc-edit-overlay.show{display:flex!important}
+        #editUserModal .egc-edit-box{width:min(760px,100%)!important;max-height:94vh!important;overflow:hidden!important;background:#fff!important;border-radius:16px!important;box-shadow:0 25px 70px rgba(0,0,0,.28)!important;display:flex!important;flex-direction:column!important}
+        .egc-edit-header{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:17px 20px!important;border-bottom:1px solid #e7eef4!important;flex-shrink:0!important}
+        .egc-edit-title{color:#06477f!important;font-size:19px!important;font-weight:900!important}
+        .egc-edit-subtitle{color:#8294a3!important;font-size:11px!important;margin-top:4px!important}
+        .egc-edit-close{width:36px!important;height:36px!important;border:0!important;border-radius:9px!important;background:#f1f6fa!important;color:#547083!important;font-size:24px!important;cursor:pointer!important}
+        .egc-edit-body{padding:20px!important;overflow-y:auto!important;flex:1 1 auto!important}
+        .egc-edit-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:13px!important}
+        .egc-edit-field-wrap{min-width:0!important}
+        .egc-edit-label{display:block!important;margin-bottom:6px!important;color:#06477f!important;font-size:11px!important;font-weight:900!important}
+        .egc-edit-input,.egc-edit-select{width:100%!important;height:43px!important;padding:0 12px!important;box-sizing:border-box!important;border:1px solid #d3e1eb!important;border-radius:9px!important;background:#fff!important;color:#173f5f!important;font-family:inherit!important;font-size:13px!important;outline:none!important}
+        .egc-readonly{background:#f4f8fb!important;color:#6b8191!important;cursor:not-allowed!important}
+        .egc-document-section{margin-top:22px!important;padding-top:20px!important;border-top:1px solid #e4edf3!important}
+        .egc-document-heading{color:#06477f!important;font-size:17px!important;font-weight:900!important;margin-bottom:4px!important}
+        .egc-document-subheading{color:#8093a2!important;font-size:11px!important;margin-bottom:14px!important}
+        .egc-document-card{border:1px solid #dce8f0!important;border-radius:11px!important;padding:12px!important;margin-bottom:10px!important;background:#fbfdff!important}
+        .egc-document-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin-bottom:9px!important}
+        .egc-document-name{color:#164b70!important;font-size:12px!important;font-weight:900!important}
+        .egc-document-status{font-size:10px!important;font-weight:800!important;color:#6d8494!important}
+        .egc-document-preview{display:none!important;width:100%!important;height:120px!important;border-radius:8px!important;object-fit:cover!important;border:1px solid #d9e5ec!important;margin-bottom:9px!important;background:#eef5f9!important}
+        .egc-document-preview.show{display:block!important}
+        .egc-document-buttons{display:flex!important;flex-wrap:wrap!important;gap:7px!important}
+        .egc-doc-btn{appearance:none!important;border:1px solid #d1e0ea!important;background:#fff!important;color:#285d7f!important;border-radius:8px!important;min-height:38px!important;padding:0 10px!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important}
+        .egc-doc-camera{background:#eaf5ff!important;color:#0871c3!important}
+        .egc-doc-remove{background:#fff0f1!important;color:#d63b46!important}
+        .egc-edit-footer{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;padding:14px 20px!important;border-top:1px solid #e7eef4!important;background:#fbfdff!important}
+        .egc-cancel-btn,.egc-save-btn{min-height:42px!important;padding:0 18px!important;border-radius:9px!important;font-family:inherit!important;font-size:12px!important;font-weight:900!important;cursor:pointer!important}
+        .egc-cancel-btn{border:1px solid #d5e2eb!important;background:#fff!important;color:#526f82!important}
+        .egc-save-btn{border:1px solid #0871c3!important;background:#0871c3!important;color:#fff!important;min-width:145px!important}
+        #egcCameraModal{position:fixed!important;inset:0!important;z-index:100000!important;background:rgba(0,0,0,.78)!important;display:none!important;align-items:center!important;justify-content:center!important;padding:15px!important}
+        #egcCameraModal.show{display:flex!important}
+        .egc-camera-box{width:min(600px,100%)!important;background:#071d2b!important;border-radius:16px!important;overflow:hidden!important}
+        .egc-camera-header{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:14px 16px!important;color:#fff!important}
+        .egc-camera-title{font-size:15px!important;font-weight:900!important}
+        .egc-camera-close{width:35px!important;height:35px!important;border:0!important;border-radius:8px!important;background:rgba(255,255,255,.1)!important;color:#fff!important;font-size:21px!important;cursor:pointer!important}
+        .egc-camera-video-wrap{width:100%!important;aspect-ratio:4/3!important;background:#000!important;overflow:hidden!important}
+        #egcCameraVideo{width:100%!important;height:100%!important;object-fit:contain!important;display:block!important}
+        .egc-camera-status{text-align:center!important;color:#c7dce9!important;font-size:11px!important;padding:10px 12px!important}
+        .egc-camera-controls{display:flex!important;justify-content:center!important;gap:9px!important;padding:12px!important;flex-wrap:wrap!important}
+        .egc-camera-btn{min-height:42px!important;padding:0 14px!important;border-radius:9px!important;border:1px solid rgba(255,255,255,.15)!important;background:#fff!important;color:#164b70!important;font-size:11px!important;font-weight:900!important;cursor:pointer!important}
+        .egc-camera-capture{background:#0871c3!important;color:#fff!important;border-color:#0871c3!important}
+        .egc-camera-switch{background:#15394d!important;color:#fff!important}
+        .egc-camera-cancel{background:#2a1f23!important;color:#ffccd0!important}
+        .egc-view-document-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:12px!important}
+        .egc-view-document-card{border:1px solid #dce8f0!important;border-radius:10px!important;padding:11px!important;background:#fbfdff!important}
+        .egc-view-document-title{color:#164b70!important;font-size:11px!important;font-weight:900!important;margin-bottom:7px!important}
+        .egc-view-document-btn{border:1px solid #cfe1ec!important;background:#eef7ff!important;color:#0871c3!important;border-radius:7px!important;padding:8px 10px!important;font-size:10px!important;font-weight:800!important;cursor:pointer!important}
+        @media(max-width:700px){
+            #editUserModal.egc-edit-overlay{padding:8px!important}
+            #editUserModal .egc-edit-box{max-height:96vh!important;border-radius:13px!important}
+            .egc-edit-body{padding:14px!important}
+            .egc-edit-grid{grid-template-columns:1fr!important}
+            .egc-document-buttons{gap:5px!important}
+            .egc-doc-btn{flex:1 1 auto!important}
+            .egc-edit-footer{padding:11px 14px!important}
+            .egc-cancel-btn,.egc-save-btn{flex:1!important}
+            .egc-view-document-grid{grid-template-columns:1fr!important}
+            .user-action-buttons{min-width:0!important}
+            .egc-action-btn{min-height:36px!important;padding:0 8px!important;font-size:10px!important}
+        }`;
 
-                <div class="detail-label">
-                    User ID
-                </div>
+    document.head.appendChild(style);
+}
 
-                <div class="detail-value">
-                    ${escapeHtml(userId)}
-                </div>
+injectActionButtonStyles();
 
-            </div>
+/* COUNTERS */
+function updateCounters() {
+    if (totalUsers) totalUsers.textContent = allUsers.length;
+    if (searchResults) searchResults.textContent = filteredUsers.length;
 
+    if (!showingUsers || !paginationInfo) return;
 
-            <div class="detail-box">
-
-                <div class="detail-label">
-                    Customer
-                </div>
-
-                <div class="detail-value">
-                    ${escapeHtml(name)}
-                </div>
-
-            </div>
-
-
-            <div class="detail-box">
-
-                <div class="detail-label">
-                    Phone
-                </div>
-
-                <div class="detail-value">
-                    ${escapeHtml(phone)}
-                </div>
-
-            </div>
-
-
-            <div class="detail-box">
-
-                <div class="detail-label">
-                    Role
-                </div>
-
-                <div class="detail-value">
-                    ${escapeHtml(role)}
-                </div>
-
-            </div>
-
-
-            <div class="detail-box">
-
-                <div class="detail-label">
-                    Status
-                </div>
-
-                <div class="detail-value">
-                    ${escapeHtml(status)}
-                </div>
-
-            </div>
-
-
-            <div class="detail-box">
-
-                <div class="detail-label">
-                    Joined
-                </div>
-
-                <div class="detail-value">
-                    ${escapeHtml(joined)}
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="documents-section">
-
-            <div class="documents-header">
-
-                <div class="documents-title">
-                    Documents
-                </div>
-
-                <div class="documents-subtitle">
-                    Customer uploaded documents
-                </div>
-
-            </div>
-
-
-            <div
-                id="documentsContainer"
-                class="document-list"
-            >
-
-                <div class="documents-loading">
-                    <div class="spinner"></div>
-                    Loading documents...
-                </div>
-
-            </div>
-
-        </div>
-
-    `;
-
-
-    if(userModal){
-
-        userModal.classList.add(
-            "show"
-        );
-
+    if (!filteredUsers.length) {
+        showingUsers.textContent = "0";
+        paginationInfo.textContent = "Showing 0 customers";
+        return;
     }
 
+    const start = (currentPage - 1) * USERS_PER_PAGE + 1;
+    const end = Math.min(currentPage * USERS_PER_PAGE, filteredUsers.length);
 
-    document.body.style.overflow =
-        "hidden";
-
-
-    renderUserDocuments(
-        user
-    );
-
+    showingUsers.textContent = end - start + 1;
+    paginationInfo.textContent =
+        `Showing ${start}–${end} of ${filteredUsers.length} customers`;
 }
 
+/* PAGINATION */
+function renderPagination() {
+    if (!paginationButtons) return;
 
-/* =========================================================
-   CLOSE USER MODAL
-========================================================= */
+    paginationButtons.innerHTML = "";
 
-function closeUserModal(){
+    const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
 
-    if(userModal){
-
-        userModal.classList.remove(
-            "show"
-        );
-
+    if (totalPages <= 1) {
+        updateCounters();
+        return;
     }
 
+    const addPageButton = (label, page, disabled = false, active = false) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "page-btn";
+        button.textContent = label;
+        button.disabled = disabled;
 
-    currentViewedUser =
-        null;
+        if (active) button.classList.add("active");
 
+        button.addEventListener("click", () => {
+            currentPage = page;
+            renderUsers();
+            updateCounters();
+        });
 
-    document.body.style.overflow =
-        "";
-
-}
-
-
-if(userModalClose){
-
-    userModalClose.addEventListener(
-        "click",
-        closeUserModal
-    );
-
-}
-
-
-if(closeDetailBtn){
-
-    closeDetailBtn.addEventListener(
-        "click",
-        closeUserModal
-    );
-
-}
-
-
-if(userModal){
-
-    userModal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                userModal
-            ){
-
-                closeUserModal();
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   RESET EDIT DOCUMENT STATE
-========================================================= */
-
-function resetEditDocuments(){
-
-    editDocuments = {
-
-        "aadhaar-front": {
-            file:null,
-            existingPath:null,
-            remove:false
-        },
-
-        "aadhaar-back": {
-            file:null,
-            existingPath:null,
-            remove:false
-        },
-
-        "pan-card": {
-            file:null,
-            existingPath:null,
-            remove:false
-        },
-
-        "gas-passbook": {
-            file:null,
-            existingPath:null,
-            remove:false
-        }
-
+        paginationButtons.appendChild(button);
     };
 
-}
+    addPageButton("‹", Math.max(1, currentPage - 1), currentPage === 1);
 
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
 
-/* =========================================================
-   CREATE EDIT MODAL
-========================================================= */
-
-function ensureEditModal(){
-
-    let modal =
-        document.getElementById(
-            "editUserModal"
-        );
-
-
-    if(modal){
-
-        return modal;
-
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
     }
 
+    for (let page = startPage; page <= endPage; page++) {
+        addPageButton(String(page), page, false, page === currentPage);
+    }
 
-    modal =
-        document.createElement(
-            "div"
-        );
+    addPageButton("›", Math.min(totalPages, currentPage + 1), currentPage === totalPages);
 
+    updateCounters();
+}
 
-    modal.id =
-        "editUserModal";
+/* STORAGE HELPERS */
+function getDocumentFolder(user) {
+    return getDatabaseUserId(user) || null;
+}
 
-    modal.className =
-        "egc-edit-overlay";
+function getDocumentPath(user, documentKey) {
+    const folder = getDocumentFolder(user);
+    if (!folder) return null;
+    return `${folder}/${documentKey}.jpg`;
+}
 
+async function listUserDocuments(user) {
+    const folder = getDocumentFolder(user);
+    if (!folder) return [];
+
+    try {
+        const { data, error } = await supabaseClient
+            .storage
+            .from(DOCUMENT_BUCKET)
+            .list(folder, {
+                limit: 100,
+                offset: 0,
+                sortBy: { column: "name", order: "asc" }
+            });
+
+        if (error) throw error;
+
+        return Array.isArray(data) ? data.filter(file => file?.name) : [];
+    } catch (error) {
+        console.error("Document list error:", error);
+        return [];
+    }
+}
+
+async function getDocumentUrl(path) {
+    if (!path) return null;
+
+    try {
+        const { data, error } = await supabaseClient
+            .storage
+            .from(DOCUMENT_BUCKET)
+            .createSignedUrl(path, 600);
+
+        if (error) throw error;
+
+        return data?.signedUrl || null;
+    } catch (error) {
+        console.error("Signed URL error:", error);
+        return null;
+    }
+}
+
+function findDocumentFile(files, documentKey) {
+    if (!Array.isArray(files)) return null;
+
+    return files.find(file =>
+        String(file?.name || "").toLowerCase() ===
+        `${documentKey}.jpg`.toLowerCase()
+    ) || null;
+}
+
+async function removeStorageDocument(path) {
+    if (!path) return { success: true };
+
+    try {
+        const { error } = await supabaseClient
+            .storage
+            .from(DOCUMENT_BUCKET)
+            .remove([path]);
+
+        if (error) throw error;
+
+        return { success: true };
+    } catch (error) {
+        console.error("Storage remove error:", error);
+        return { success: false, error };
+    }
+}
+
+async function uploadUserDocument(user, documentKey, file) {
+    if (!user || !file) {
+        return { success: false, error: new Error("Document file missing.") };
+    }
+
+    const path = getDocumentPath(user, documentKey);
+
+    if (!path) {
+        return { success: false, error: new Error("User ID missing.") };
+    }
+
+    try {
+        // Replace the existing file, if present.
+        const { error } = await supabaseClient
+            .storage
+            .from(DOCUMENT_BUCKET)
+            .upload(path, file, {
+                cacheControl: "3600",
+                contentType: file.type || "image/jpeg",
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        return { success: true, data: { path } };
+    } catch (error) {
+        console.error("Document upload error:", error);
+        return { success: false, error };
+    }
+}
+
+/* DOCUMENT VIEWER */
+async function openDocument(path, label) {
+    if (!documentViewer || !documentViewerContent) return;
+
+    documentViewerTitle && (documentViewerTitle.textContent = label);
+
+    documentViewerContent.innerHTML = `
+        <div class="documents-loading">Loading document...</div>`;
+
+    documentViewer.classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    const url = await getDocumentUrl(path);
+
+    if (!url) {
+        documentViewerContent.innerHTML = `
+            <div class="document-empty">
+                Document view nahi ho pa raha. Storage permissions check karein.
+            </div>`;
+        return;
+    }
+
+    const extension = String(path).split(".").pop().toLowerCase();
+
+    if (extension === "pdf") {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.title = label;
+        documentViewerContent.replaceChildren(iframe);
+    } else {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = label;
+        img.style.cssText =
+            "max-width:100%;max-height:75vh;object-fit:contain;border-radius:10px";
+        documentViewerContent.replaceChildren(img);
+    }
+}
+
+function closeDocumentViewer() {
+    documentViewer?.classList.remove("show");
+
+    if (documentViewerContent) {
+        documentViewerContent.innerHTML = "";
+    }
+
+    document.body.style.overflow = "";
+}
+
+document.getElementById("documentViewerClose")
+    ?.addEventListener("click", closeDocumentViewer);
+
+documentViewer?.addEventListener("click", event => {
+    if (event.target === documentViewer) closeDocumentViewer();
+});
+
+/* VIEW CUSTOMER DOCUMENTS */
+async function renderUserDocuments(user) {
+    const container = document.getElementById("documentsContainer");
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="documents-loading">
+            <div class="spinner"></div> Loading documents...
+        </div>`;
+
+    const files = await listUserDocuments(user);
+    const grid = document.createElement("div");
+    grid.className = "egc-view-document-grid";
+
+    DOCUMENT_TYPES.forEach(type => {
+        const file = findDocumentFile(files, type.key);
+        const card = document.createElement("div");
+        card.className = "egc-view-document-card";
+
+        const title = document.createElement("div");
+        title.className = "egc-view-document-title";
+        title.textContent = `${type.icon} ${type.label}`;
+        card.appendChild(title);
+
+        const status = document.createElement("div");
+        status.style.cssText = "font-size:10px;font-weight:800;margin-bottom:8px";
+        status.style.color = file ? "#4b8a68" : "#91a1af";
+        status.textContent = file ? "● Uploaded" : "— Not uploaded";
+        card.appendChild(status);
+
+        if (file) {
+            const path = `${getDocumentFolder(user)}/${file.name}`;
+
+            const view = document.createElement("button");
+            view.type = "button";
+            view.className = "egc-view-document-btn";
+            view.textContent = "View";
+            view.addEventListener("click", () => openDocument(path, type.label));
+            card.appendChild(view);
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "egc-view-document-btn";
+            remove.textContent = "Remove";
+            remove.style.cssText =
+                "margin-left:5px;color:#d63b46;background:#fff0f1;border-color:#f0c8cd";
+
+            remove.addEventListener("click", async () => {
+                if (!window.confirm(`Kya aap ${type.label} remove karna chahte hain?`)) {
+                    return;
+                }
+
+                const result = await removeStorageDocument(path);
+
+                if (!result.success) {
+                    showMessage("Document remove nahi ho paya.\n\n" +
+                        (result.error?.message || "Storage error"));
+                    return;
+                }
+
+                await renderUserDocuments(user);
+            });
+
+            card.appendChild(remove);
+        }
+
+        grid.appendChild(card);
+    });
+
+    container.replaceChildren(grid);
+}
+
+/* VIEW CUSTOMER */
+function openUserDetails(user) {
+    currentViewedUser = user;
+
+    if (!userModalBody) return;
+
+    userModalBody.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+            <div class="profile-avatar">${escapeHtml(getInitial(getUserName(user)))}</div>
+            <div>
+                <div style="color:#06477f;font-size:17px;font-weight:900">
+                    ${escapeHtml(getUserName(user))}
+                </div>
+                <div style="color:#8294a3;font-size:10px;font-weight:700">
+                    Customer Profile
+                </div>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-box">
+                <div class="detail-label">User ID</div>
+                <div class="detail-value">${escapeHtml(getUserId(user))}</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-label">Customer</div>
+                <div class="detail-value">${escapeHtml(getUserName(user))}</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-label">Phone</div>
+                <div class="detail-value">${escapeHtml(getUserPhone(user))}</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-label">Role</div>
+                <div class="detail-value">${escapeHtml(getUserRole(user))}</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-label">Status</div>
+                <div class="detail-value">${escapeHtml(getUserStatus(user))}</div>
+            </div>
+            <div class="detail-box">
+                <div class="detail-label">Joined</div>
+                <div class="detail-value">${escapeHtml(formatDate(getUserDate(user)))}</div>
+            </div>
+        </div>
+
+        <div class="documents-section">
+            <div class="documents-header">
+                <div class="documents-title">Documents</div>
+                <div class="documents-subtitle">Customer uploaded documents</div>
+            </div>
+            <div id="documentsContainer" class="document-list">
+                <div class="documents-loading">
+                    <div class="spinner"></div> Loading documents...
+                </div>
+            </div>
+        </div>`;
+
+    userModal?.classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    renderUserDocuments(user);
+}
+
+function closeUserModal() {
+    userModal?.classList.remove("show");
+    currentViewedUser = null;
+    document.body.style.overflow = "";
+}
+
+userModalClose?.addEventListener("click", closeUserModal);
+closeDetailBtn?.addEventListener("click", closeUserModal);
+
+userModal?.addEventListener("click", event => {
+    if (event.target === userModal) closeUserModal();
+});
+
+/* EDIT DOCUMENT STATE */
+function resetEditDocuments() {
+    editDocuments = createEmptyEditDocuments();
+}
+
+/* CREATE EDIT MODAL */
+function ensureEditModal() {
+    let modal = document.getElementById("editUserModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "editUserModal";
+    modal.className = "egc-edit-overlay";
 
     modal.innerHTML = `
-
-        <div
-            class="egc-edit-box"
-            role="dialog"
-            aria-modal="true"
-        >
-
+        <div class="egc-edit-box" role="dialog" aria-modal="true" aria-label="Edit Customer">
             <div class="egc-edit-header">
-
                 <div>
-
-                    <div class="egc-edit-title">
-                        Edit Customer
-                    </div>
-
-                    <div class="egc-edit-subtitle">
-                        Update customer details and documents
-                    </div>
-
+                    <div class="egc-edit-title">Edit Customer</div>
+                    <div class="egc-edit-subtitle">Update customer details and documents</div>
                 </div>
-
-
-                <button
-                    type="button"
-                    id="editUserModalClose"
-                    class="egc-edit-close"
-                >
-                    ×
-                </button>
-
+                <button type="button" id="editUserModalClose" class="egc-edit-close" aria-label="Close">×</button>
             </div>
-
-
-            <div
-                id="editUserModalBody"
-                class="egc-edit-body"
-            >
-            </div>
-
-
+            <div id="editUserModalBody" class="egc-edit-body"></div>
             <div class="egc-edit-footer">
-
-                <button
-                    type="button"
-                    id="editUserCancel"
-                    class="egc-cancel-btn"
-                >
-                    Cancel
-                </button>
-
-
-                <button
-                    type="button"
-                    id="editUserSave"
-                    class="egc-save-btn"
-                >
-                    Save Changes
-                </button>
-
+                <button type="button" id="editUserCancel" class="egc-cancel-btn">Cancel</button>
+                <button type="button" id="editUserSave" class="egc-save-btn">Save Changes</button>
             </div>
+        </div>`;
 
-        </div>
+    document.body.appendChild(modal);
 
-    `;
+    modal.querySelector("#editUserModalClose")
+        .addEventListener("click", closeEditUser);
 
+    modal.querySelector("#editUserCancel")
+        .addEventListener("click", closeEditUser);
 
-    document.body.appendChild(
-        modal
-    );
+    modal.querySelector("#editUserSave")
+        .addEventListener("click", saveEditedUser);
 
-
-    const closeButton =
-        modal.querySelector(
-            "#editUserModalClose"
-        );
-
-
-    const cancelButton =
-        modal.querySelector(
-            "#editUserCancel"
-        );
-
-
-    const saveButton =
-        modal.querySelector(
-            "#editUserSave"
-        );
-
-
-    if(closeButton){
-
-        closeButton.addEventListener(
-            "click",
-            closeEditUser
-        );
-
-    }
-
-
-    if(cancelButton){
-
-        cancelButton.addEventListener(
-            "click",
-            closeEditUser
-        );
-
-    }
-
-
-    if(saveButton){
-
-        saveButton.addEventListener(
-            "click",
-            saveEditedUser
-        );
-
-    }
-
-
-    modal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                modal
-            ){
-
-                closeEditUser();
-
-            }
-
-        }
-    );
-
+    modal.addEventListener("click", event => {
+        if (event.target === modal) closeEditUser();
+    });
 
     return modal;
-
 }
 
+async function openEditUser(user) {
+    if (!user) return;
 
-/* =========================================================
-   GET DOCUMENT STATUS
-========================================================= */
-
-async function getExistingDocumentPath(
-    user,
-    documentKey
-){
-
-    const path =
-        getDocumentPath(
-            user,
-            documentKey
-        );
-
-
-    if(!path){
-
-        return null;
-
-    }
-
-
-    const files =
-        await listUserDocuments(
-            user
-        );
-
-
-    const file =
-        findDocumentFile(
-            files,
-            documentKey
-        );
-
-
-    return file
-        ? path
-        : null;
-
-}
-
-
-/* =========================================================
-   BUILD DOCUMENT CARD
-========================================================= */
-
-function buildEditDocumentCard(
-    documentType
-){
-
-    const state =
-        editDocuments[
-            documentType.key
-        ];
-
-
-    const hasExisting =
-        Boolean(
-            state.existingPath
-        );
-
-
-    return `
-
-        <div
-            class="egc-document-card"
-            data-doc-card="${escapeHtml(
-                documentType.key
-            )}"
-        >
-
-            <div class="egc-document-top">
-
-                <div class="egc-document-name">
-
-                    ${documentType.icon}
-                    ${escapeHtml(
-                        documentType.label
-                    )}
-
-                </div>
-
-                <div
-                    class="egc-document-status"
-                    data-doc-status="${escapeHtml(
-                        documentType.key
-                    )}"
-                >
-                    ${
-                        hasExisting
-                        ? "Uploaded"
-                        : "Not uploaded"
-                    }
-                </div>
-
-            </div>
-
-
-            <img
-                class="egc-document-preview"
-                data-doc-preview="${escapeHtml(
-                    documentType.key
-                )}"
-                alt="${escapeHtml(
-                    documentType.label
-                )}"
-            >
-
-
-            <div class="egc-document-buttons">
-
-                <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    data-doc-input="${escapeHtml(
-                        documentType.key
-                    )}"
-                >
-
-
-                <button
-                    type="button"
-                    class="egc-doc-btn"
-                    data-doc-folder="${escapeHtml(
-                        documentType.key
-                    )}"
-                >
-                    📁 Folder
-                </button>
-
-
-                <button
-                    type="button"
-                    class="egc-doc-btn egc-doc-camera"
-                    data-doc-front="${escapeHtml(
-                        documentType.key
-                    )}"
-                >
-                    📷 Camera
-                </button>
-
-
-                <button
-                    type="button"
-                    class="egc-doc-btn egc-doc-remove"
-                    data-doc-remove="${escapeHtml(
-                        documentType.key
-                    )}"
-                >
-                    Remove Photo
-                </button>
-
-            </div>
-
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================================
-   OPEN EDIT USER
-========================================================= */
-
-async function openEditUser(
-    user
-){
-
-    if(!user){
-
-        return;
-
-    }
-
-
-    currentEditingUser =
-        user;
-
-
+    currentEditingUser = user;
     resetEditDocuments();
 
+    const modal = ensureEditModal();
+    const body = document.getElementById("editUserModalBody");
 
-    const modal =
-        ensureEditModal();
-
-
-    const body =
-        document.getElementById(
-            "editUserModalBody"
-        );
-
-
-    if(!modal || !body){
-
-        alert(
-            "Edit window open nahi ho pa rahi."
-        );
-
+    if (!modal || !body) {
+        showMessage("Edit window open nahi ho pa rahi.");
         return;
-
     }
 
+    const existingFiles = await listUserDocuments(user);
 
-    const userId =
-        getUserId(user);
-
-    const name =
-        getUserName(user);
-
-    const phone =
-        getUserPhone(user);
-
-    const role =
-        getUserRole(user);
-
-    const status =
-        getStatusBoolean(user);
-
-    const joined =
-        formatDate(
-            getUserDate(user)
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    LOAD EXISTING DOCUMENT PATHS
-    ---------------------------------------------------------
-    */
-
-    const existingFiles =
-        await listUserDocuments(
-            user
-        );
-
-
-    DOCUMENT_TYPES.forEach(
-        function(documentType){
-
-            const file =
-                findDocumentFile(
-                    existingFiles,
-                    documentType.key
-                );
-
-
-            if(file){
-
-                editDocuments[
-                    documentType.key
-                ].existingPath =
-                    getDocumentPath(
-                        user,
-                        documentType.key
-                    );
-
-            }
-
+    DOCUMENT_TYPES.forEach(type => {
+        if (findDocumentFile(existingFiles, type.key)) {
+            editDocuments[type.key].existingPath =
+                getDocumentPath(user, type.key);
         }
-    );
+    });
 
+    const documentCards = DOCUMENT_TYPES.map(type => {
+        const state = editDocuments[type.key];
 
-    let documentsHtml =
-        "";
-
-
-    DOCUMENT_TYPES.forEach(
-        function(documentType){
-
-            documentsHtml +=
-                buildEditDocumentCard(
-                    documentType
-                );
-
-        }
-    );
-
+        return `
+            <div class="egc-document-card" data-doc-card="${escapeHtml(type.key)}">
+                <div class="egc-document-top">
+                    <div class="egc-document-name">
+                        ${type.icon} ${escapeHtml(type.label)}
+                    </div>
+                    <div class="egc-document-status" data-doc-status="${escapeHtml(type.key)}">
+                        ${state.existingPath ? "Uploaded" : "Not uploaded"}
+                    </div>
+                </div>
+                <img class="egc-document-preview"
+                     data-doc-preview="${escapeHtml(type.key)}"
+                     alt="${escapeHtml(type.label)}">
+                <div class="egc-document-buttons">
+                    <input type="file" accept="image/*" hidden
+                           data-doc-input="${escapeHtml(type.key)}">
+                    <button type="button" class="egc-doc-btn"
+                            data-doc-folder="${escapeHtml(type.key)}">📁 Folder</button>
+                    <button type="button" class="egc-doc-btn egc-doc-camera"
+                            data-doc-front="${escapeHtml(type.key)}">📷 Camera</button>
+                    <button type="button" class="egc-doc-btn egc-doc-remove"
+                            data-doc-remove="${escapeHtml(type.key)}">Remove Photo</button>
+                </div>
+            </div>`;
+    }).join("");
 
     body.innerHTML = `
-
         <div class="egc-edit-grid">
-
             <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    User ID
-                </label>
-
-                <input
-                    type="text"
-                    class="egc-edit-input egc-readonly"
-                    value="${escapeHtml(userId)}"
-                    readonly
-                >
-
+                <label class="egc-edit-label">User ID</label>
+                <input class="egc-edit-input egc-readonly"
+                       value="${escapeHtml(getUserId(user))}" readonly>
             </div>
-
-
             <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    Customer
-                </label>
-
-                <input
-                    type="text"
-                    class="egc-edit-input"
-                    data-edit-key="full_name"
-                    value="${escapeHtml(name)}"
-                >
-
+                <label class="egc-edit-label">Customer</label>
+                <input class="egc-edit-input" data-edit-key="full_name"
+                       value="${escapeHtml(getUserName(user))}">
             </div>
-
-
             <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    Phone
-                </label>
-
-                <input
-                    type="text"
-                    class="egc-edit-input"
-                    data-edit-key="mobile"
-                    value="${escapeHtml(
-                        phone === "—"
-                        ? ""
-                        : phone
-                    )}"
-                >
-
+                <label class="egc-edit-label">Phone</label>
+                <input class="egc-edit-input" data-edit-key="mobile"
+                       value="${escapeHtml(getUserPhone(user) === "—" ? "" : getUserPhone(user))}">
             </div>
-
-
             <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    Role
-                </label>
-
-                <select
-                    class="egc-edit-select"
-                    data-edit-key="role"
-                >
-
-                    <option
-                        value="customer"
-                        ${
-                            String(role).toLowerCase() ===
-                            "customer"
-                            ? "selected"
-                            : ""
-                        }
-                    >
-                        customer
-                    </option>
-
-                    <option
-                        value="agency"
-                        ${
-                            String(role).toLowerCase() ===
-                            "agency"
-                            ? "selected"
-                            : ""
-                        }
-                    >
-                        agency
-                    </option>
-
-                    <option
-                        value="owner"
-                        ${
-                            String(role).toLowerCase() ===
-                            "owner"
-                            ? "selected"
-                            : ""
-                        }
-                    >
-                        owner
-                    </option>
-
+                <label class="egc-edit-label">Role</label>
+                <input class="egc-edit-input egc-readonly"
+                       value="${escapeHtml(getUserRole(user))}" readonly>
+            </div>
+            <div class="egc-edit-field-wrap">
+                <label class="egc-edit-label">Status</label>
+                <select class="egc-edit-select" data-edit-key="is_active">
+                    <option value="true" ${getStatusBoolean(user) ? "selected" : ""}>Active</option>
+                    <option value="false" ${!getStatusBoolean(user) ? "selected" : ""}>Inactive</option>
                 </select>
-
             </div>
-
-
             <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    Status
-                </label>
-
-                <select
-                    class="egc-edit-select"
-                    data-edit-key="is_active"
-                >
-
-                    <option
-                        value="true"
-                        ${
-                            status
-                            ? "selected"
-                            : ""
-                        }
-                    >
-                        Active
-                    </option>
-
-                    <option
-                        value="false"
-                        ${
-                            !status
-                            ? "selected"
-                            : ""
-                        }
-                    >
-                        Inactive
-                    </option>
-
-                </select>
-
+                <label class="egc-edit-label">Joined</label>
+                <input class="egc-edit-input egc-readonly"
+                       value="${escapeHtml(formatDate(getUserDate(user)))}" readonly>
             </div>
-
-
-            <div class="egc-edit-field-wrap">
-
-                <label class="egc-edit-label">
-                    Joined
-                </label>
-
-                <input
-                    type="text"
-                    class="egc-edit-input egc-readonly"
-                    value="${escapeHtml(joined)}"
-                    readonly
-                >
-
-            </div>
-
         </div>
-
-
         <div class="egc-document-section">
-
-            <div class="egc-document-heading">
-                Document Upload
-            </div>
-
+            <div class="egc-document-heading">Document Upload</div>
             <div class="egc-document-subheading">
-                Camera ya Folder se document select karein.
-                Existing document replace karne par purani file remove hogi.
+                Camera ya Folder se document select karein. Save karne par changes apply honge.
             </div>
+            ${documentCards}
+        </div>`;
 
-            ${documentsHtml}
-
-        </div>
-
-    `;
-
-
-    modal.classList.add(
-        "show"
-    );
-
-
-    document.body.style.overflow =
-        "hidden";
-
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden";
 
     attachEditDocumentEvents();
 
+    for (const type of DOCUMENT_TYPES) {
+        const state = editDocuments[type.key];
+        if (!state.existingPath) continue;
 
-}
-
-
-/* =========================================================
-   ATTACH DOCUMENT EVENTS
-========================================================= */
-
-function attachEditDocumentEvents(){
-
-    const modal =
-        document.getElementById(
-            "editUserModal"
+        const url = await getDocumentUrl(state.existingPath);
+        const preview = modal.querySelector(
+            `[data-doc-preview="${type.key}"]`
         );
 
-
-    if(!modal){
-
-        return;
-
-    }
-
-
-    /*
-    ---------------------------------------------------------
-    FOLDER BUTTONS
-    ---------------------------------------------------------
-    */
-
-    modal
-        .querySelectorAll(
-            "[data-doc-folder]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        const key =
-                            this.dataset.docFolder;
-
-
-                        const input =
-                            modal.querySelector(
-                                `[data-doc-input="${key}"]`
-                            );
-
-
-                        if(input){
-
-                            input.click();
-
-                        }
-
-                    }
-                );
-
-            }
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    FILE INPUT CHANGE
-    ---------------------------------------------------------
-    */
-
-    modal
-        .querySelectorAll(
-            "[data-doc-input]"
-        )
-        .forEach(
-            function(input){
-
-                input.addEventListener(
-                    "change",
-                    function(){
-
-                        const key =
-                            this.dataset.docInput;
-
-
-                        const file =
-                            this.files &&
-                            this.files[0];
-
-
-                        if(!file){
-
-                            return;
-
-                        }
-
-
-                        handleSelectedDocument(
-                            key,
-                            file
-                        );
-
-
-                        this.value =
-                            "";
-
-                    }
-                );
-
-            }
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    FRONT CAMERA
-    ---------------------------------------------------------
-    */
-
-    modal
-        .querySelectorAll(
-            "[data-doc-front]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        openDocumentCamera(
-                            this.dataset.docFront,
-                            "user"
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    BACK CAMERA
-    ---------------------------------------------------------
-    */
-
-    modal
-        .querySelectorAll(
-            "[data-doc-back]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        openDocumentCamera(
-                            this.dataset.docBack,
-                            "environment"
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    REMOVE PHOTO
-    ---------------------------------------------------------
-    */
-
-    modal
-        .querySelectorAll(
-            "[data-doc-remove]"
-        )
-        .forEach(
-            function(button){
-
-                button.addEventListener(
-                    "click",
-                    function(){
-
-                        removeEditDocumentPreview(
-                            this.dataset.docRemove
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    SHOW EXISTING PREVIEWS
-    ---------------------------------------------------------
-    */
-
-    DOCUMENT_TYPES.forEach(
-        async function(documentType){
-
-            const state =
-                editDocuments[
-                    documentType.key
-                ];
-
-
-            if(!state.existingPath){
-
-                return;
-
-            }
-
-
-            const url =
-                await getDocumentUrl(
-                    state.existingPath
-                );
-
-
-            if(url){
-
-                const preview =
-                    modal.querySelector(
-                        `[data-doc-preview="${documentType.key}"]`
-                    );
-
-
-                if(preview){
-
-                    preview.src =
-                        url;
-
-                    preview.classList.add(
-                        "show"
-                    );
-
-                }
-
-            }
-
+        if (url && preview && currentEditingUser?.id === user.id) {
+            preview.src = url;
+            preview.classList.add("show");
         }
-    );
-
+    }
 }
 
+/* EDIT DOCUMENT EVENTS */
+function attachEditDocumentEvents() {
+    const modal = document.getElementById("editUserModal");
+    if (!modal) return;
 
-/* =========================================================
-   HANDLE SELECTED DOCUMENT
-========================================================= */
+    modal.querySelectorAll("[data-doc-folder]").forEach(button => {
+        button.addEventListener("click", () => {
+            modal.querySelector(
+                `[data-doc-input="${button.dataset.docFolder}"]`
+            )?.click();
+        });
+    });
 
-function handleSelectedDocument(
-    key,
-    file
-){
+    modal.querySelectorAll("[data-doc-input]").forEach(input => {
+        input.addEventListener("change", () => {
+            const file = input.files?.[0];
+            if (file) handleSelectedDocument(input.dataset.docInput, file);
+            input.value = "";
+        });
+    });
 
-    if(!file){
+    modal.querySelectorAll("[data-doc-front]").forEach(button => {
+        button.addEventListener("click", () => {
+            openDocumentCamera(button.dataset.docFront, "environment");
+        });
+    });
 
-        return;
-
-    }
-
-
-    if(
-        !file.type ||
-        !file.type.startsWith(
-            "image/"
-        )
-    ){
-
-        alert(
-            "Please image file select karein."
-        );
-
-        return;
-
-    }
-
-
-    editDocuments[key].file =
-        file;
-
-    editDocuments[key].remove =
-        false;
-
-
-    showEditDocumentPreview(
-        key,
-        file
-    );
-
+    modal.querySelectorAll("[data-doc-remove]").forEach(button => {
+        button.addEventListener("click", () => {
+            removeEditDocumentPreview(button.dataset.docRemove);
+        });
+    });
 }
 
+/* SELECT DOCUMENT */
+function handleSelectedDocument(key, file) {
+    if (!editDocuments[key]) return;
 
-/* =========================================================
-   SHOW NEW DOCUMENT PREVIEW
-========================================================= */
-
-function showEditDocumentPreview(
-    key,
-    file
-){
-
-    const modal =
-        document.getElementById(
-            "editUserModal"
-        );
-
-
-    if(!modal){
-
+    if (!file.type || !file.type.startsWith("image/")) {
+        showMessage("Please image file select karein.");
         return;
-
     }
 
-
-    const preview =
-        modal.querySelector(
-            `[data-doc-preview="${key}"]`
-        );
-
-
-    const status =
-        modal.querySelector(
-            `[data-doc-status="${key}"]`
-        );
-
-
-    if(!preview){
-
+    if (file.size > 15 * 1024 * 1024) {
+        showMessage("Image file 15 MB se chhoti honi chahiye.");
         return;
-
     }
 
+    editDocuments[key].file = file;
+    editDocuments[key].remove = false;
 
-    const url =
-        URL.createObjectURL(
-            file
-        );
-
-
-    preview.src =
-        url;
-
-    preview.classList.add(
-        "show"
-    );
-
-
-    if(status){
-
-        status.textContent =
-            "New photo selected";
-
-    }
-
+    showEditDocumentPreview(key, file);
 }
 
+function showEditDocumentPreview(key, file) {
+    const modal = document.getElementById("editUserModal");
+    const preview = modal?.querySelector(`[data-doc-preview="${key}"]`);
+    const status = modal?.querySelector(`[data-doc-status="${key}"]`);
 
-/* =========================================================
-   REMOVE EDIT DOCUMENT
-========================================================= */
+    if (!preview) return;
 
-function removeEditDocumentPreview(
-    key
-){
-
-    if(!editDocuments[key]){
-
-        return;
-
+    if (preview.dataset.objectUrl) {
+        URL.revokeObjectURL(preview.dataset.objectUrl);
     }
 
+    const url = URL.createObjectURL(file);
+    preview.dataset.objectUrl = url;
+    preview.src = url;
+    preview.classList.add("show");
 
-    editDocuments[key].file =
-        null;
-
-    editDocuments[key].remove =
-        true;
-
-
-    const modal =
-        document.getElementById(
-            "editUserModal"
-        );
-
-
-    if(!modal){
-
-        return;
-
-    }
-
-
-    const preview =
-        modal.querySelector(
-            `[data-doc-preview="${key}"]`
-        );
-
-
-    const status =
-        modal.querySelector(
-            `[data-doc-status="${key}"]`
-        );
-
-
-    if(preview){
-
-        preview.src =
-            "";
-
-        preview.classList.remove(
-            "show"
-        );
-
-    }
-
-
-    if(status){
-
-        status.textContent =
-            "Will be removed";
-
-    }
-
+    if (status) status.textContent = "New photo selected";
 }
 
+function removeEditDocumentPreview(key) {
+    const state = editDocuments[key];
+    if (!state) return;
 
-/* =========================================================
-   CAMERA MODAL
-========================================================= */
-
-function ensureCameraModal(){
-
-    let modal =
-        document.getElementById(
-            "egcCameraModal"
-        );
-
-
-    if(modal){
-
-        return modal;
-
+    if (!state.existingPath && !state.file) {
+        showMessage("Is document ke liye koi uploaded photo nahi hai.");
+        return;
     }
 
+    state.file = null;
+    state.remove = true;
 
-    modal =
-        document.createElement(
-            "div"
-        );
+    const modal = document.getElementById("editUserModal");
+    const preview = modal?.querySelector(`[data-doc-preview="${key}"]`);
+    const status = modal?.querySelector(`[data-doc-status="${key}"]`);
 
+    if (preview) {
+        if (preview.dataset.objectUrl) {
+            URL.revokeObjectURL(preview.dataset.objectUrl);
+            delete preview.dataset.objectUrl;
+        }
 
-    modal.id =
-        "egcCameraModal";
+        preview.src = "";
+        preview.classList.remove("show");
+    }
 
+    if (status) status.textContent = "Will be removed";
+}
+
+/* CAMERA MODAL */
+function ensureCameraModal() {
+    let modal = document.getElementById("egcCameraModal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "egcCameraModal";
 
     modal.innerHTML = `
-
         <div class="egc-camera-box">
-
             <div class="egc-camera-header">
-
-                <div
-                    id="egcCameraTitle"
-                    class="egc-camera-title"
-                >
-                    Camera
-                </div>
-
-                <button
-                    type="button"
-                    id="egcCameraClose"
-                    class="egc-camera-close"
-                >
-                    ×
-                </button>
-
+                <div id="egcCameraTitle" class="egc-camera-title">Camera</div>
+                <button type="button" id="egcCameraClose" class="egc-camera-close">×</button>
             </div>
-
-
             <div class="egc-camera-video-wrap">
-
-                <video
-                    id="egcCameraVideo"
-                    autoplay
-                    playsinline
-                    muted
-                ></video>
-
+                <video id="egcCameraVideo" autoplay playsinline muted></video>
             </div>
-
-
-            <div
-                id="egcCameraStatus"
-                class="egc-camera-status"
-            >
-                Opening camera...
-            </div>
-
-
+            <div id="egcCameraStatus" class="egc-camera-status">Opening camera...</div>
             <div class="egc-camera-controls">
-
-                <button
-                    type="button"
-                    id="egcCameraSwitch"
-                    class="egc-camera-btn egc-camera-switch"
-                >
-                    🔄 Switch
-                </button>
-
-                <button
-                    type="button"
-                    id="egcCameraCapture"
-                    class="egc-camera-btn egc-camera-capture"
-                >
-                    📸 Capture
-                </button>
-
-                <button
-                    type="button"
-                    id="egcCameraCancel"
-                    class="egc-camera-btn egc-camera-cancel"
-                >
-                    Cancel
-                </button>
-
+                <button type="button" id="egcCameraSwitch" class="egc-camera-btn egc-camera-switch">🔄 Switch</button>
+                <button type="button" id="egcCameraCapture" class="egc-camera-btn egc-camera-capture">📸 Capture</button>
+                <button type="button" id="egcCameraCancel" class="egc-camera-btn egc-camera-cancel">Cancel</button>
             </div>
+        </div>`;
 
-        </div>
+    document.body.appendChild(modal);
 
-    `;
+    modal.querySelector("#egcCameraClose")
+        .addEventListener("click", closeDocumentCamera);
 
+    modal.querySelector("#egcCameraCancel")
+        .addEventListener("click", closeDocumentCamera);
 
-    document.body.appendChild(
-        modal
-    );
+    modal.querySelector("#egcCameraSwitch")
+        .addEventListener("click", switchDocumentCamera);
 
-
-    document
-        .getElementById(
-            "egcCameraClose"
-        )
-        .addEventListener(
-            "click",
-            closeDocumentCamera
-        );
-
-
-    document
-        .getElementById(
-            "egcCameraCancel"
-        )
-        .addEventListener(
-            "click",
-            closeDocumentCamera
-        );
-
-
-    document
-        .getElementById(
-            "egcCameraSwitch"
-        )
-        .addEventListener(
-            "click",
-            switchDocumentCamera
-        );
-
-
-    document
-        .getElementById(
-            "egcCameraCapture"
-        )
-        .addEventListener(
-            "click",
-            captureDocumentPhoto
-        );
-
+    modal.querySelector("#egcCameraCapture")
+        .addEventListener("click", captureDocumentPhoto);
 
     return modal;
-
 }
 
+async function openDocumentCamera(documentKey, facingMode) {
+    currentCameraDocument = documentKey;
+    cameraFacingMode = facingMode || "environment";
 
-/* =========================================================
-   OPEN CAMERA
-========================================================= */
+    const modal = ensureCameraModal();
+    const title = document.getElementById("egcCameraTitle");
+    const status = document.getElementById("egcCameraStatus");
 
-async function openDocumentCamera(
-    documentKey,
-    facingMode
-){
+    const type = DOCUMENT_TYPES.find(item => item.key === documentKey);
+    if (title) title.textContent = type?.label || "Camera";
 
-    currentCameraDocument =
-        documentKey;
+    if (status) status.textContent = "Opening camera...";
 
-
-    cameraFacingMode =
-        facingMode ||
-        "environment";
-
-
-    const modal =
-        ensureCameraModal();
-
-
-    const title =
-        document.getElementById(
-            "egcCameraTitle"
-        );
-
-
-    const status =
-        document.getElementById(
-            "egcCameraStatus"
-        );
-
-
-    if(title){
-
-        const documentType =
-            DOCUMENT_TYPES.find(
-                item =>
-                    item.key ===
-                    documentKey
-            );
-
-
-        title.textContent =
-            documentType
-            ? documentType.label
-            : "Camera";
-
-    }
-
-
-    if(status){
-
-        status.textContent =
-            cameraFacingMode === "user"
-            ? "Front camera opening..."
-            : "Back camera opening...";
-
-    }
-
-
-    modal.classList.add(
-        "show"
-    );
-
-
+    modal.classList.add("show");
     await startDocumentCamera();
-
 }
 
-
-/* =========================================================
-   START CAMERA
-========================================================= */
-
-async function startDocumentCamera(){
-
-    const video =
-        document.getElementById(
-            "egcCameraVideo"
-        );
-
-
-    const status =
-        document.getElementById(
-            "egcCameraStatus"
-        );
-
+async function startDocumentCamera() {
+    const video = document.getElementById("egcCameraVideo");
+    const status = document.getElementById("egcCameraStatus");
 
     stopDocumentCameraStream();
 
-
-    if(
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ){
-
-        if(status){
-
-            status.textContent =
-                "Camera is not supported in this browser.";
-
+    if (!navigator.mediaDevices?.getUserMedia) {
+        if (status) {
+            status.textContent = "Camera unavailable. Use HTTPS or localhost and allow camera access.";
         }
-
         return;
-
     }
 
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: cameraFacingMode },
+                width: { ideal: 1280 },
+                height: { ideal: 1280 }
+            },
+            audio: false
+        });
 
-    try{
-
-        cameraStream =
-            await navigator.mediaDevices
-                .getUserMedia({
-
-                    video:{
-                        facingMode:{
-                            exact:
-                                cameraFacingMode
-                        },
-
-                        width:{
-                            ideal:1280
-                        },
-
-                        height:{
-                            ideal:1280
-                        }
-                    },
-
-                    audio:false
-
-                });
-
-
-        if(video){
-
-            video.srcObject =
-                cameraStream;
-
+        if (video) {
+            video.srcObject = cameraStream;
             await video.play();
-
         }
 
-
-        if(status){
-
-            status.textContent =
-                cameraFacingMode === "user"
+        if (status) {
+            status.textContent = cameraFacingMode === "user"
                 ? "Front camera active"
                 : "Back camera active";
-
         }
+    } catch (error) {
+        console.error("Camera error:", error);
 
+        if (status) {
+            status.textContent =
+                "Camera permission denied or camera unavailable. Check browser permission.";
+        }
     }
-    catch(error){
-
-        console.error(
-            "Camera error:",
-            error
-        );
-
-
-        /*
-        -----------------------------------------------------
-        SOME DEVICES DON'T ACCEPT exact FACING MODE.
-        TRY IDEAL MODE.
-        -----------------------------------------------------
-        */
-
-        try{
-
-            cameraStream =
-                await navigator.mediaDevices
-                    .getUserMedia({
-
-                        video:{
-                            facingMode:{
-                                ideal:
-                                    cameraFacingMode
-                            }
-                        },
-
-                        audio:false
-
-                    });
-
-
-            if(video){
-
-                video.srcObject =
-                    cameraStream;
-
-                await video.play();
-
-            }
-
-
-            if(status){
-
-                status.textContent =
-                    cameraFacingMode === "user"
-                    ? "Front camera active"
-                    : "Back camera active";
-
-            }
-
-        }
-        catch(secondError){
-
-            console.error(
-                "Camera fallback error:",
-                secondError
-            );
-
-
-            if(status){
-
-                status.textContent =
-                    "Camera permission denied or camera unavailable.";
-
-            }
-
-        }
-
-    }
-
 }
 
+async function switchDocumentCamera() {
+    cameraFacingMode = cameraFacingMode === "environment" ? "user" : "environment";
 
-/* =========================================================
-   SWITCH CAMERA
-========================================================= */
-
-async function switchDocumentCamera(){
-
-    cameraFacingMode =
-        cameraFacingMode === "environment"
-        ? "user"
-        : "environment";
-
-
-    const status =
-        document.getElementById(
-            "egcCameraStatus"
-        );
-
-
-    if(status){
-
-        status.textContent =
-            "Switching camera...";
-    }
-
+    const status = document.getElementById("egcCameraStatus");
+    if (status) status.textContent = "Switching camera...";
 
     await startDocumentCamera();
-
 }
 
+function captureDocumentPhoto() {
+    const video = document.getElementById("egcCameraVideo");
+    const status = document.getElementById("egcCameraStatus");
 
-/* =========================================================
-   CAPTURE PHOTO
-========================================================= */
+    if (!video?.videoWidth || !video?.videoHeight) {
+        if (status) status.textContent = "Camera is not ready yet.";
+        return;
+    }
 
-function captureDocumentPhoto(){
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    const video =
-        document.getElementById(
-            "egcCameraVideo"
-        );
+    const context = canvas.getContext("2d");
+    if (!context) {
+        if (status) status.textContent = "Photo capture failed.";
+        return;
+    }
 
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const status =
-        document.getElementById(
-            "egcCameraStatus"
-        );
-
-
-    if(
-        !video ||
-        !video.videoWidth ||
-        !video.videoHeight
-    ){
-
-        if(status){
-
-            status.textContent =
-                "Camera is not ready yet.";
-
+    canvas.toBlob(blob => {
+        if (!blob) {
+            if (status) status.textContent = "Photo capture failed.";
+            return;
         }
 
-        return;
+        const file = new File([blob], `${currentCameraDocument || "document"}.jpg`, {
+            type: "image/jpeg"
+        });
 
-    }
+        if (currentCameraDocument) {
+            handleSelectedDocument(currentCameraDocument, file);
+        }
 
-
-    const canvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    canvas.width =
-        video.videoWidth;
-
-    canvas.height =
-        video.videoHeight;
-
-
-    const context =
-        canvas.getContext(
-            "2d"
-        );
-
-
-    /*
-    ---------------------------------------------------------
-    FRONT CAMERA MIRROR FIX
-    ---------------------------------------------------------
-    */
-
-    if(
-        cameraFacingMode ===
-        "user"
-    ){
-
-        context.translate(
-            canvas.width,
-            0
-        );
-
-        context.scale(
-            -1,
-            1
-        );
-
-    }
-
-
-    context.drawImage(
-        video,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-
-    canvas.toBlob(
-        function(blob){
-
-            if(!blob){
-
-                if(status){
-
-                    status.textContent =
-                        "Photo capture failed.";
-
-                }
-
-                return;
-
-            }
-
-
-            const file =
-                new File(
-                    [blob],
-                    "camera-photo.jpg",
-                    {
-                        type:"image/jpeg"
-                    }
-                );
-
-
-            if(currentCameraDocument){
-
-                handleSelectedDocument(
-                    currentCameraDocument,
-                    file
-                );
-
-            }
-
-
-            closeDocumentCamera();
-
-        },
-        "image/jpeg",
-        0.90
-    );
-
+        closeDocumentCamera();
+    }, "image/jpeg", 0.9);
 }
 
-
-/* =========================================================
-   STOP CAMERA
-========================================================= */
-
-function stopDocumentCameraStream(){
-
-    if(cameraStream){
-
-        cameraStream
-            .getTracks()
-            .forEach(
-                function(track){
-
-                    track.stop();
-
-                }
-            );
-
-        cameraStream =
-            null;
-
+function stopDocumentCameraStream() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
     }
 
-
-    const video =
-        document.getElementById(
-            "egcCameraVideo"
-        );
-
-
-    if(video){
-
-        video.srcObject =
-            null;
-
-    }
-
+    const video = document.getElementById("egcCameraVideo");
+    if (video) video.srcObject = null;
 }
 
-
-/* =========================================================
-   CLOSE CAMERA
-========================================================= */
-
-function closeDocumentCamera(){
-
+function closeDocumentCamera() {
     stopDocumentCameraStream();
-
-
-    const modal =
-        document.getElementById(
-            "egcCameraModal"
-        );
-
-
-    if(modal){
-
-        modal.classList.remove(
-            "show"
-        );
-
-    }
-
-
-    currentCameraDocument =
-        null;
-
+    document.getElementById("egcCameraModal")?.classList.remove("show");
+    currentCameraDocument = null;
 }
 
-
-/* =========================================================
-   CLOSE EDIT USER
-========================================================= */
-
-function closeEditUser(){
-
+/* CLOSE EDIT */
+function closeEditUser() {
     closeDocumentCamera();
 
+    const modal = document.getElementById("editUserModal");
 
-    const modal =
-        document.getElementById(
-            "editUserModal"
-        );
+    modal?.querySelectorAll("[data-doc-preview]").forEach(preview => {
+        if (preview.dataset.objectUrl) {
+            URL.revokeObjectURL(preview.dataset.objectUrl);
+        }
+    });
 
+    modal?.classList.remove("show");
 
-    if(modal){
+    currentEditingUser = null;
+    resetEditDocuments();
 
-        modal.classList.remove(
-            "show"
-        );
-
-    }
-
-
-    currentEditingUser =
-        null;
-
-
-    document.body.style.overflow =
-        "";
-
+    document.body.style.overflow = "";
 }
 
-
-/* =========================================================
-   BUILD PROFILE UPDATE
-========================================================= */
-
-function getEditProfileUpdates(){
-
-    const modal =
-        document.getElementById(
-            "editUserModal"
-        );
-
-
-    if(!modal){
-
-        return {};
-
-    }
-
+/* PROFILE UPDATE FIELDS */
+function getEditProfileUpdates() {
+    const modal = document.getElementById("editUserModal");
+    if (!modal) return {};
 
     const updates = {};
+    const nameInput = modal.querySelector('[data-edit-key="full_name"]');
+    const phoneInput = modal.querySelector('[data-edit-key="mobile"]');
+    const statusInput = modal.querySelector('[data-edit-key="is_active"]');
 
-
-    const nameInput =
-        modal.querySelector(
-            '[data-edit-key="full_name"]'
-        );
-
-
-    const phoneInput =
-        modal.querySelector(
-            '[data-edit-key="mobile"]'
-        );
-
-
-    const roleInput =
-        modal.querySelector(
-            '[data-edit-key="role"]'
-        );
-
-
-    const statusInput =
-        modal.querySelector(
-            '[data-edit-key="is_active"]'
-        );
-
-
-    if(nameInput){
-
-        updates.full_name =
-            nameInput.value.trim();
-
-    }
-
-
-    if(phoneInput){
-
-        updates.mobile =
-            phoneInput.value.trim();
-
-    }
-
-
-    if(roleInput){
-
-        updates.role =
-            roleInput.value;
-
-    }
-
-
-    if(statusInput){
-
-        updates.is_active =
-            statusInput.value ===
-            "true";
-
-    }
-
+    if (nameInput) updates.full_name = nameInput.value.trim();
+    if (phoneInput) updates.mobile = phoneInput.value.trim();
+    if (statusInput) updates.is_active = statusInput.value === "true";
 
     return updates;
-
 }
 
+/* SAVE EDITED CUSTOMER */
+async function saveEditedUser() {
+    if (!currentEditingUser || isSavingUser) return;
 
-/* =========================================================
-   SAVE EDITED USER
+    const saveButton = document.getElementById("editUserSave");
+    const profileUpdates = getEditProfileUpdates();
 
-   IMPORTANT:
-   NO .single()
-========================================================= */
-
-async function saveEditedUser(){
-
-    if(!currentEditingUser){
-
+    if (!profileUpdates.full_name) {
+        showMessage("Customer ka naam khaali nahi ho sakta.");
         return;
-
     }
 
-
-    const saveButton =
-        document.getElementById(
-            "editUserSave"
-        );
-
-
-    const profileUpdates =
-        getEditProfileUpdates();
-
-
-    if(
-        Object.keys(
-            profileUpdates
-        ).length === 0
-    ){
-
-        alert(
-            "Customer details nahi mili."
-        );
-
+    if (!profileUpdates.mobile) {
+        showMessage("Phone number khaali nahi ho sakta.");
         return;
-
     }
 
+    isSavingUser = true;
 
-    if(saveButton){
-
-        saveButton.disabled =
-            true;
-
-        saveButton.textContent =
-            "Saving...";
-
+    if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
     }
 
+    try {
+        const userId = currentEditingUser.id;
 
-    try{
-
-        const userId =
-            currentEditingUser.id;
-
-
-        /*
-        =====================================================
-        STEP 1
-        UPDATE PROFILE
-
-        NO .single()
-        =====================================================
-        */
-
-        const {
-            error:
-                profileError,
-            count:
-                updatedCount
-        } =
-        await supabaseClient
+        const { error: profileError } = await supabaseClient
             .from("profiles")
-            .update(
-                profileUpdates,
-                {
-                    count:"exact"
-                }
-            )
-            .eq(
-                "id",
-                userId
-            );
+            .update(profileUpdates)
+            .eq("id", userId);
 
+        if (profileError) throw profileError;
 
-        if(profileError){
+        const documentErrors = [];
 
-            console.error(
-                "Profile update error:",
-                profileError
-            );
+        for (const type of DOCUMENT_TYPES) {
+            const state = editDocuments[type.key];
 
+            if (state.remove && state.existingPath) {
+                const result = await removeStorageDocument(state.existingPath);
 
-            alert(
-                "Customer details update nahi ho paayi.\n\n" +
-                profileError.message
-            );
-
-
-            return;
-
-        }
-
-
-        /*
-        =====================================================
-        STEP 2
-        DOCUMENT CHANGES
-        =====================================================
-        */
-
-        let documentErrors = [];
-
-
-        for(
-            const documentType
-            of DOCUMENT_TYPES
-        ){
-
-            const key =
-                documentType.key;
-
-
-            const state =
-                editDocuments[key];
-
-
-            /*
-            -------------------------------------------------
-            REMOVE REQUEST
-            -------------------------------------------------
-            */
-
-            if(
-                state.remove &&
-                state.existingPath
-            ){
-
-                const removeResult =
-                    await removeStorageDocument(
-                        state.existingPath
-                    );
-
-
-                if(
-                    !removeResult.success
-                ){
-
+                if (!result.success) {
                     documentErrors.push(
-                        documentType.label +
-                        ": " +
-                        (
-                            removeResult.error?.message ||
-                            "Remove failed"
-                        )
+                        `${type.label}: ${result.error?.message || "Remove failed"}`
                     );
-
+                } else {
+                    state.existingPath = null;
                 }
-
-
-                state.existingPath =
-                    null;
-
             }
 
+            if (state.file) {
+                const result = await uploadUserDocument(
+                    currentEditingUser,
+                    type.key,
+                    state.file
+                );
 
-            /*
-            -------------------------------------------------
-            NEW FILE
-            -------------------------------------------------
-            */
-
-            if(state.file){
-
-                const uploadResult =
-                    await uploadUserDocument(
-                        currentEditingUser,
-                        key,
-                        state.file
-                    );
-
-
-                if(
-                    !uploadResult.success
-                ){
-
+                if (!result.success) {
                     documentErrors.push(
-                        documentType.label +
-                        ": " +
-                        (
-                            uploadResult.error?.message ||
-                            "Upload failed"
-                        )
+                        `${type.label}: ${result.error?.message || "Upload failed"}`
                     );
-
                 }
-
             }
-
         }
 
+        const index = allUsers.findIndex(user => String(user.id) === String(userId));
 
-        /*
-        =====================================================
-        STEP 3
-        UPDATE LOCAL USER
-        =====================================================
-        */
-
-        const index =
-            allUsers.findIndex(
-                function(user){
-
-                    return String(
-                        user.id
-                    ) ===
-                    String(
-                        userId
-                    );
-
-                }
-            );
-
-
-        if(index !== -1){
-
-            allUsers[index] =
-                {
-                    ...allUsers[index],
-                    ...profileUpdates
-                };
-
+        if (index !== -1) {
+            allUsers[index] = { ...allUsers[index], ...profileUpdates };
         }
-
-
-        /*
-        =====================================================
-        CLOSE
-        =====================================================
-        */
 
         closeEditUser();
-
-
-        /*
-        =====================================================
-        REFRESH TABLE
-        =====================================================
-        */
-
         await loadUsers();
 
-
-        /*
-        =====================================================
-        RESULT
-        =====================================================
-        */
-
-        if(
-            documentErrors.length > 0
-        ){
-
-            alert(
-                "Customer details update ho gayi hain.\n\n" +
-                "Lekin kuch documents me problem aayi:\n\n" +
+        if (documentErrors.length) {
+            showMessage(
+                "Customer details update ho gayi hain, lekin kuch documents mein problem aayi:\n\n" +
                 documentErrors.join("\n")
             );
-
+        } else {
+            showMessage("Customer details successfully updated.");
         }
-        else{
-
-            alert(
-                "Customer details successfully updated."
-            );
-
-        }
-
-    }
-    catch(error){
-
-        console.error(
-            "Save customer exception:",
-            error
-        );
-
-
-        alert(
+    } catch (error) {
+        console.error("Save customer error:", error);
+        showMessage(
             "Customer details update nahi ho paayi.\n\n" +
-            (
-                error?.message ||
-                "Unknown error"
-            )
+            (error?.message || "Unknown error")
         );
+    } finally {
+        isSavingUser = false;
 
-    }
-    finally{
-
-        if(saveButton){
-
-            saveButton.disabled =
-                false;
-
-            saveButton.textContent =
-                "Save Changes";
-
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Save Changes";
         }
-
     }
-
 }
 
+/* DELETE CUSTOMER DOCUMENTS */
+async function deleteAllUserDocuments(user) {
+    const folder = getDocumentFolder(user);
+    if (!folder) return true;
 
-/* =========================================================
-   DELETE ALL USER DOCUMENTS
-========================================================= */
+    try {
+        const files = await listUserDocuments(user);
+        if (!files.length) return true;
 
-async function deleteAllUserDocuments(
-    user
-){
+        const paths = files.map(file => `${folder}/${file.name}`);
 
-    const folder =
-        getDocumentFolder(
-            user
-        );
-
-
-    if(!folder){
-
-        return true;
-
-    }
-
-
-    try{
-
-        const files =
-            await listUserDocuments(
-                user
-            );
-
-
-        if(
-            !Array.isArray(files) ||
-            files.length === 0
-        ){
-
-            return true;
-
-        }
-
-
-        const paths =
-            files.map(
-                function(file){
-
-                    return (
-                        folder +
-                        "/" +
-                        file.name
-                    );
-
-                }
-            );
-
-
-        const {
-            error
-        } =
-        await supabaseClient
+        const { error } = await supabaseClient
             .storage
-            .from(
-                DOCUMENT_BUCKET
-            )
-            .remove(
-                paths
-            );
+            .from(DOCUMENT_BUCKET)
+            .remove(paths);
 
-
-        if(error){
-
-            console.error(
-                "Documents delete error:",
-                error
-            );
-
-            return false;
-
-        }
-
+        if (error) throw error;
 
         return true;
-
-    }
-    catch(error){
-
-        console.error(
-            "Document cleanup error:",
-            error
-        );
-
+    } catch (error) {
+        console.error("Document cleanup error:", error);
         return false;
-
     }
-
 }
 
+/* DELETE CUSTOMER PROFILE */
+async function deleteUser(user) {
+    if (!user || isDeletingUser) return;
 
-/* =========================================================
-   DELETE USER
-========================================================= */
+    const confirmed = window.confirm(
+        "Delete Customer?\n\n" +
+        "Name: " + getUserName(user) + "\n" +
+        "User ID: " + getUserId(user) + "\n\n" +
+        "Customer profile aur uploaded documents permanently delete honge.\n\n" +
+        "This action cannot be undone."
+    );
 
-async function deleteUser(
-    user
-){
+    if (!confirmed) return;
 
-    if(!user){
+    isDeletingUser = true;
 
-        return;
+    try {
+        const documentsDeleted = await deleteAllUserDocuments(user);
 
-    }
-
-
-    const name =
-        getUserName(user);
-
-
-    const userId =
-        getUserId(user);
-
-
-    const confirmed =
-        window.confirm(
-            "Delete Customer?\n\n" +
-            "Name: " +
-            name +
-            "\n" +
-            "User ID: " +
-            userId +
-            "\n\n" +
-            "Customer profile aur uploaded documents permanently delete honge.\n\n" +
-            "This action cannot be undone."
-        );
-
-
-    if(!confirmed){
-
-        return;
-
-    }
-
-
-    try{
-
-        const documentsDeleted =
-            await deleteAllUserDocuments(
-                user
-            );
-
-
-        const {
-            error
-        } =
-        await supabaseClient
+        const { error } = await supabaseClient
             .from("profiles")
             .delete()
-            .eq(
-                "id",
-                user.id
-            );
+            .eq("id", user.id);
 
+        if (error) throw error;
 
-        if(error){
+        allUsers = allUsers.filter(
+            item => String(item.id) !== String(user.id)
+        );
 
-            console.error(
-                "User delete error:",
-                error
-            );
+        const totalPages = Math.max(
+            1,
+            Math.ceil(allUsers.length / USERS_PER_PAGE)
+        );
 
-
-            alert(
-                "Customer delete nahi ho paya.\n\n" +
-                error.message
-            );
-
-            return;
-
-        }
-
-
-        allUsers =
-            allUsers.filter(
-                function(item){
-
-                    return String(
-                        item.id
-                    ) !==
-                    String(
-                        user.id
-                    );
-
-                }
-            );
-
-
-        const totalPages =
-            Math.max(
-                1,
-                Math.ceil(
-                    allUsers.length /
-                    USERS_PER_PAGE
-                )
-            );
-
-
-        if(
-            currentPage >
-            totalPages
-        ){
-
-            currentPage =
-                totalPages;
-
-        }
-
+        if (currentPage > totalPages) currentPage = totalPages;
 
         applySearch();
 
-
-        if(documentsDeleted){
-
-            alert(
-                "Customer successfully deleted."
+        if (documentsDeleted) {
+            showMessage("Customer profile successfully deleted.");
+        } else {
+            showMessage(
+                "Customer profile delete ho gaya hai, lekin kuch documents remove nahi ho paaye. Storage check karein."
             );
-
         }
-        else{
+    } catch (error) {
+        console.error("Customer delete error:", error);
 
-            alert(
-                "Customer profile delete ho gaya hai, lekin documents remove nahi ho paaye."
-            );
-
-        }
-
-    }
-    catch(error){
-
-        console.error(
-            "Delete exception:",
-            error
-        );
-
-
-        alert(
+        showMessage(
             "Customer delete nahi ho paya.\n\n" +
-            (
-                error?.message ||
-                "Unknown error"
-            )
+            (error?.message || "Unknown error")
         );
+    } finally {
+        isDeletingUser = false;
+    }
+}
 
+/* SEARCH EVENTS */
+searchInput?.addEventListener("input", applySearch);
+
+clearSearch?.addEventListener("click", () => {
+    if (!searchInput) return;
+
+    searchInput.value = "";
+    applySearch();
+    searchInput.focus();
+});
+
+refreshBtn?.addEventListener("click", loadUsers);
+
+backBtn?.addEventListener("click", () => {
+    window.location.href = "owner-dashboard.html";
+});
+
+/* LOGOUT */
+logoutBtn?.addEventListener("click", () => {
+    sidebar?.classList.remove("open");
+    overlay?.classList.remove("show");
+
+    logoutModal?.classList.add("show");
+    document.body.style.overflow = "hidden";
+});
+
+function closeLogoutModal() {
+    logoutModal?.classList.remove("show");
+    document.body.style.overflow = "";
+}
+
+logoutCancel?.addEventListener("click", closeLogoutModal);
+
+logoutModal?.addEventListener("click", event => {
+    if (event.target === logoutModal) closeLogoutModal();
+});
+
+logoutConfirm?.addEventListener("click", async () => {
+    if (isLoggingOut) return;
+
+    isLoggingOut = true;
+    logoutConfirm.disabled = true;
+    logoutConfirm.textContent = "Logging out...";
+
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) throw error;
+
+        window.location.replace("owner-login.html");
+    } catch (error) {
+        console.error("Logout error:", error);
+
+        showMessage("Logout failed.\n\n" + (error?.message || "Please try again."));
+
+        isLoggingOut = false;
+        logoutConfirm.disabled = false;
+        logoutConfirm.textContent = "Logout";
+    }
+});
+
+/* ESC KEY */
+document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+
+    const cameraModal = document.getElementById("egcCameraModal");
+    const editModal = document.getElementById("editUserModal");
+
+    if (cameraModal?.classList.contains("show")) {
+        closeDocumentCamera();
+        return;
     }
 
-}
-
-
-/* =========================================================
-   SEARCH EVENTS
-========================================================= */
-
-if(searchInput){
-
-    searchInput.addEventListener(
-        "input",
-        applySearch
-    );
-
-}
-
-
-if(clearSearch){
-
-    clearSearch.addEventListener(
-        "click",
-        function(){
-
-            if(searchInput){
-
-                searchInput.value =
-                    "";
-
-                applySearch();
-
-                searchInput.focus();
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   REFRESH
-========================================================= */
-
-if(refreshBtn){
-
-    refreshBtn.addEventListener(
-        "click",
-        loadUsers
-    );
-
-}
-
-
-/* =========================================================
-   BACK
-========================================================= */
-
-if(backBtn){
-
-    backBtn.addEventListener(
-        "click",
-        function(){
-
-            window.location.href =
-                "owner-dashboard.html";
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-if(logoutBtn){
-
-    logoutBtn.addEventListener(
-        "click",
-        function(){
-
-            if(sidebar){
-
-                sidebar.classList.remove(
-                    "open"
-                );
-
-            }
-
-            if(overlay){
-
-                overlay.classList.remove(
-                    "show"
-                );
-
-            }
-
-            if(logoutModal){
-
-                logoutModal.classList.add(
-                    "show"
-                );
-
-            }
-
-            document.body.style.overflow =
-                "hidden";
-
-        }
-    );
-
-}
-
-
-if(logoutCancel){
-
-    logoutCancel.addEventListener(
-        "click",
-        function(){
-
-            if(logoutModal){
-
-                logoutModal.classList.remove(
-                    "show"
-                );
-
-            }
-
-            document.body.style.overflow =
-                "";
-
-        }
-    );
-
-}
-
-
-if(logoutModal){
-
-    logoutModal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                logoutModal
-            ){
-
-                logoutModal.classList.remove(
-                    "show"
-                );
-
-                document.body.style.overflow =
-                    "";
-
-            }
-
-        }
-    );
-
-}
-
-
-if(logoutConfirm){
-
-    logoutConfirm.addEventListener(
-        "click",
-        async function(){
-
-            logoutConfirm.disabled =
-                true;
-
-            logoutConfirm.textContent =
-                "Logging out...";
-
-
-            try{
-
-                const {
-                    error
-                } =
-                await supabaseClient.auth.signOut();
-
-
-                if(error){
-
-                    console.error(
-                        "Logout error:",
-                        error
-                    );
-
-
-                    logoutConfirm.disabled =
-                        false;
-
-                    logoutConfirm.textContent =
-                        "Logout";
-
-
-                    alert(
-                        "Logout failed. Please try again."
-                    );
-
-                    return;
-
-                }
-
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
-            }
-            catch(error){
-
-                console.error(
-                    "Logout exception:",
-                    error
-                );
-
-
-                logoutConfirm.disabled =
-                    false;
-
-                logoutConfirm.textContent =
-                    "Logout";
-
-
-                alert(
-                    "Logout failed. Please try again."
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   ESC KEY
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(
-            event.key !==
-            "Escape"
-        ){
-
-            return;
-
-        }
-
-
-        const cameraModal =
-            document.getElementById(
-                "egcCameraModal"
-            );
-
-
-        if(
-            cameraModal &&
-            cameraModal.classList.contains(
-                "show"
-            )
-        ){
-
-            closeDocumentCamera();
-
-            return;
-
-        }
-
-
-        const editModal =
-            document.getElementById(
-                "editUserModal"
-            );
-
-
-        if(
-            editModal &&
-            editModal.classList.contains(
-                "show"
-            )
-        ){
-
-            closeEditUser();
-
-            return;
-
-        }
-
-
-        if(
-            documentViewer &&
-            documentViewer.classList.contains(
-                "show"
-            )
-        ){
-
-            closeDocumentViewer();
-
-            return;
-
-        }
-
-
-        if(
-            userModal &&
-            userModal.classList.contains(
-                "show"
-            )
-        ){
-
-            closeUserModal();
-
-            return;
-
-        }
-
-
-        if(
-            logoutModal &&
-            logoutModal.classList.contains(
-                "show"
-            )
-        ){
-
-            logoutModal.classList.remove(
-                "show"
-            );
-
-            document.body.style.overflow =
-                "";
-
-        }
-
+    if (editModal?.classList.contains("show")) {
+        closeEditUser();
+        return;
     }
-);
 
+    if (documentViewer?.classList.contains("show")) {
+        closeDocumentViewer();
+        return;
+    }
 
-/* =========================================================
-   REALTIME
-========================================================= */
+    if (userModal?.classList.contains("show")) {
+        closeUserModal();
+        return;
+    }
 
-function startUserRealtime(){
+    if (logoutModal?.classList.contains("show")) {
+        closeLogoutModal();
+    }
+});
 
-    try{
+/* REALTIME CUSTOMER UPDATES */
+function startUserRealtime() {
+    try {
+        if (realtimeChannel) {
+            supabaseClient.removeChannel(realtimeChannel);
+            realtimeChannel = null;
+        }
 
-        const channel =
-            supabaseClient
-                .channel(
-                    "owner-customers-realtime"
-                );
+        realtimeChannel = supabaseClient
+            .channel("owner-customers-realtime")
+            .on("postgres_changes", {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            }, payload => {
+                const newUser = payload.new || null;
+                const oldUser = payload.old || null;
+                const changedId = newUser?.id || oldUser?.id;
 
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"INSERT",
-                schema:"public",
-                table:"profiles"
-            },
-            function(payload){
-
-                if(!payload.new){
-
+                if (!changedId) {
+                    loadUsers();
                     return;
-
                 }
 
-
-                if(
-                    String(
-                        payload.new.role || ""
-                    ).toLowerCase() !==
-                    "customer"
-                ){
-
-                    return;
-
-                }
-
-
-                const exists =
-                    allUsers.some(
-                        function(user){
-
-                            return String(
-                                user.id
-                            ) ===
-                            String(
-                                payload.new.id
-                            );
-
-                        }
+                if (payload.eventType === "DELETE") {
+                    allUsers = allUsers.filter(
+                        user => String(user.id) !== String(changedId)
                     );
-
-
-                if(!exists){
-
-                    allUsers.unshift(
-                        payload.new
-                    );
-
                     applySearch();
-
-                }
-
-            }
-        );
-
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"UPDATE",
-                schema:"public",
-                table:"profiles"
-            },
-            function(payload){
-
-                if(!payload.new){
-
                     return;
-
                 }
 
+                const isCustomer =
+                    String(newUser?.role || "").toLowerCase() === "customer";
 
-                const updated =
-                    payload.new;
-
-
-                const index =
-                    allUsers.findIndex(
-                        function(user){
-
-                            return String(
-                                user.id
-                            ) ===
-                            String(
-                                updated.id
-                            );
-
-                        }
-                    );
-
-
-                if(
-                    String(
-                        updated.role || ""
-                    ).toLowerCase() !==
-                    "customer"
-                ){
-
-                    if(index !== -1){
-
-                        allUsers.splice(
-                            index,
-                            1
-                        );
-
-                        applySearch();
-
-                    }
-
-                    return;
-
-                }
-
-
-                if(index !== -1){
-
-                    allUsers[index] =
-                        updated;
-
-                }
-                else{
-
-                    allUsers.unshift(
-                        updated
-                    );
-
-                }
-
-
-                applySearch();
-
-            }
-        );
-
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"DELETE",
-                schema:"public",
-                table:"profiles"
-            },
-            function(payload){
-
-                const deleted =
-                    payload.old || {};
-
-
-                allUsers =
-                    allUsers.filter(
-                        function(user){
-
-                            return String(
-                                user.id
-                            ) !==
-                            String(
-                                deleted.id
-                            );
-
-                        }
-                    );
-
-
-                applySearch();
-
-            }
-        );
-
-
-        channel.subscribe(
-            function(status){
-
-                console.log(
-                    "EGC Customer realtime:",
-                    status
+                const index = allUsers.findIndex(
+                    user => String(user.id) === String(changedId)
                 );
 
-            }
-        );
+                if (!isCustomer) {
+                    if (index !== -1) allUsers.splice(index, 1);
+                    applySearch();
+                    return;
+                }
 
+                if (index !== -1) {
+                    allUsers[index] = newUser;
+                } else {
+                    allUsers.unshift(newUser);
+                }
 
-        window.egcUsersRealtime =
-            channel;
+                allUsers.sort((a, b) =>
+                    new Date(b.created_at || 0) - new Date(a.created_at || 0)
+                );
 
+                applySearch();
+            })
+            .subscribe((status, error) => {
+                console.log("EGC Customer realtime:", status);
+
+                if (error) {
+                    console.warn("Customer realtime detail:", error);
+                }
+            });
+    } catch (error) {
+        console.warn("Realtime initialization error:", error);
     }
-    catch(error){
-
-        console.warn(
-            "Realtime error:",
-            error
-        );
-
-    }
-
 }
 
-
-/* =========================================================
-   AUTH STATE
-========================================================= */
-
-supabaseClient.auth.onAuthStateChange(
-    function(event){
-
-        if(
-            event ===
-            "SIGNED_OUT"
-        ){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-        }
-
+/* AUTH STATE
+   Do not redirect on INITIAL_SESSION or TOKEN_REFRESHED.
+   Explicit sign-out should return the user to login.
+*/
+supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") {
+        window.location.replace("owner-login.html");
     }
-);
+});
 
+/* INITIALIZE */
+async function initUsersPage() {
+    const sessionOK = await checkOwnerSession();
 
-/* =========================================================
-   INITIALIZE
-========================================================= */
+    if (!sessionOK) return;
 
-async function initUsersPage(){
-
-    try{
-
-        const sessionOK =
-            await checkOwnerSession();
-
-
-        if(!sessionOK){
-
-            return;
-
-        }
-
-
-        await loadUsers();
-
-
-        startUserRealtime();
-
-    }
-    catch(error){
-
-        console.error(
-            "Users page initialization error:",
-            error
-        );
-
-    }
-
+    await loadUsers();
+    startUserRealtime();
 }
-
-
-/* =========================================================
-   START
-========================================================= */
 
 initUsersPage();
 
 </script>
-
 </body>
 </html>

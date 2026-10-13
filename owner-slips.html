@@ -2465,9 +2465,9 @@ body{
 </div>
 
 <script>
-
 /* =========================================================
-   SUPABASE
+   EGC OWNER SLIPS
+   SUPABASE CONFIGURATION
 ========================================================= */
 
 const SUPABASE_URL =
@@ -2476,43 +2476,48 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY
-    );
+const OWNER_STORAGE_KEY = "egc-owner-auth";
 
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        }
+    }
+);
 
 /* =========================================================
-   CONFIG
+   CONFIGURATION
 ========================================================= */
 
 const PAYMENTS_PER_PAGE = 10;
 
 const PAYMENT_TABLE = "payments";
-
 const REQUEST_TABLE = "cylinder_requests";
-
 const PROFILE_TABLE = "profiles";
-
 
 /* =========================================================
    STATE
 ========================================================= */
 
 let allPayments = [];
-
 let filteredPayments = [];
 
 let currentPage = 1;
-
 let currentPayment = null;
-
 let paymentsRealtimeChannel = null;
 
+let isLoadingPayments = false;
+let isSigningOut = false;
+let isPrinting = false;
 
 /* =========================================================
-   DOM
+   DOM ELEMENTS
 ========================================================= */
 
 const menuBtn =
@@ -2587,175 +2592,133 @@ const logoutCancel =
 const logoutConfirm =
     document.getElementById("logoutConfirm");
 
-
 /* =========================================================
-   UTILITY
+   SAFE HTML
 ========================================================= */
 
-function escapeHtml(value){
-
+function escapeHtml(value) {
     return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-
-function getValue(
-    object,
-    keys,
-    fallback = ""
-){
-
-    if(!object){
+function getValue(object, keys, fallback = "") {
+    if (!object) {
         return fallback;
     }
 
-    for(const key of keys){
-
-        if(
+    for (const key of keys) {
+        if (
             object[key] !== undefined &&
             object[key] !== null &&
             object[key] !== ""
-        ){
-
+        ) {
             return object[key];
-
         }
-
     }
 
     return fallback;
-
 }
 
-
-function getInitial(name){
-
-    const text =
-        String(name || "C").trim();
-
-    return (
-        text.charAt(0) || "C"
-    ).toUpperCase();
-
+function getInitial(name) {
+    const text = String(name || "C").trim();
+    return (text.charAt(0) || "C").toUpperCase();
 }
-
 
 /* =========================================================
-   DATE
+   DATE HELPERS
 ========================================================= */
 
-function formatDateTime(value){
-
-    if(!value){
+function formatDateTime(value) {
+    if (!value) {
         return "—";
     }
 
     const date = new Date(value);
 
-    if(Number.isNaN(date.getTime())){
+    if (Number.isNaN(date.getTime())) {
         return String(value);
     }
 
-    return date.toLocaleString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric",
-            hour:"2-digit",
-            minute:"2-digit"
-        }
-    );
-
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
-
-function formatDate(value){
-
-    if(!value){
+function formatDate(value) {
+    if (!value) {
         return "—";
     }
 
     const date = new Date(value);
 
-    if(Number.isNaN(date.getTime())){
+    if (Number.isNaN(date.getTime())) {
         return String(value);
     }
 
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
-
 
 /* =========================================================
    CURRENCY
 ========================================================= */
 
-function formatAmount(value){
+function formatAmount(value) {
+    const amount = Number(value || 0);
 
-    const amount =
-        Number(value || 0);
+    if (!Number.isFinite(amount)) {
+        return "₹0.00";
+    }
 
-    return "₹" +
-        amount.toLocaleString(
-            "en-IN",
-            {
-                minimumFractionDigits:2,
-                maximumFractionDigits:2
-            }
-        );
-
+    return "₹" + amount.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
-
 /* =========================================================
-   STATUS
+   STATUS NORMALIZATION
 ========================================================= */
 
-function normalizeStatus(payment){
-
-    const raw =
-        String(
-            getValue(
-                payment,
-                [
-                    "status",
-                    "payment_status",
-                    "transaction_status"
-                ],
-                "pending"
-            )
+function normalizeStatus(payment) {
+    const raw = String(
+        getValue(
+            payment,
+            [
+                "status",
+                "payment_status",
+                "transaction_status"
+            ],
+            "pending"
         )
-        .toLowerCase()
-        .trim();
+    ).toLowerCase().trim();
 
-    if(
+    if (
         [
             "paid",
             "success",
             "successful",
             "completed",
-            "complete"
+            "complete",
+            "verified",
+            "approved"
         ].includes(raw)
-    ){
-
+    ) {
         return "paid";
-
     }
 
-    if(
+    if (
         [
             "failed",
             "failure",
@@ -2763,38 +2726,30 @@ function normalizeStatus(payment){
             "canceled",
             "rejected"
         ].includes(raw)
-    ){
-
+    ) {
         return "failed";
-
     }
 
     return "pending";
-
 }
 
-
-function statusLabel(status){
-
-    if(status === "paid"){
+function statusLabel(status) {
+    if (status === "paid") {
         return "Paid";
     }
 
-    if(status === "failed"){
+    if (status === "failed") {
         return "Failed";
     }
 
     return "Pending";
-
 }
-
 
 /* =========================================================
    PAYMENT FIELD HELPERS
 ========================================================= */
 
-function getUserId(payment){
-
+function getUserId(payment) {
     return getValue(
         payment,
         [
@@ -2804,12 +2759,9 @@ function getUserId(payment){
         ],
         ""
     );
-
 }
 
-
-function getRequestId(payment){
-
+function getRequestId(payment) {
     return getValue(
         payment,
         [
@@ -2819,12 +2771,9 @@ function getRequestId(payment){
         ],
         ""
     );
-
 }
 
-
-function getPaymentId(payment){
-
+function getPaymentId(payment) {
     return getValue(
         payment,
         [
@@ -2837,12 +2786,9 @@ function getPaymentId(payment){
         ],
         "—"
     );
-
 }
 
-
-function getPaymentAmount(payment){
-
+function getPaymentAmount(payment) {
     return getValue(
         payment,
         [
@@ -2853,12 +2799,9 @@ function getPaymentAmount(payment){
         ],
         0
     );
-
 }
 
-
-function getPaymentDate(payment){
-
+function getPaymentDate(payment) {
     return getValue(
         payment,
         [
@@ -2869,12 +2812,9 @@ function getPaymentDate(payment){
         ],
         null
     );
-
 }
 
-
-function getPaymentReference(payment){
-
+function getPaymentReference(payment) {
     return getValue(
         payment,
         [
@@ -2887,12 +2827,9 @@ function getPaymentReference(payment){
         ],
         "—"
     );
-
 }
 
-
-function getPaymentMethod(payment){
-
+function getPaymentMethod(payment) {
     return getValue(
         payment,
         [
@@ -2902,32 +2839,25 @@ function getPaymentMethod(payment){
         ],
         "UPI"
     );
-
 }
 
-
 /* =========================================================
-   CUSTOMER DATA
+   CUSTOMER DETAILS
 ========================================================= */
 
-function getCustomerName(payment){
-
+function getCustomerName(payment) {
     return getValue(
         payment,
         [
             "customer_name",
             "full_name",
-            "name",
-            "profiles_full_name"
+            "name"
         ],
         "Customer"
     );
-
 }
 
-
-function getCustomerPhone(payment){
-
+function getCustomerPhone(payment) {
     return getValue(
         payment,
         [
@@ -2938,262 +2868,11 @@ function getCustomerPhone(payment){
         ],
         "—"
     );
-
 }
 
-
-/* =========================================================
-   AUTH
-========================================================= */
-
-async function checkOwnerSession(){
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-            .auth
-            .getSession();
-
-        if(error){
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-            return false;
-
-        }
-
-        if(!data?.session){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-            return false;
-
-        }
-
-        return true;
-
-    }
-    catch(error){
-
-        console.error(
-            "Session exception:",
-            error
-        );
-
-        window.location.replace(
-            "owner-login.html"
-        );
-
-        return false;
-
-    }
-
-}
-
-
-/* =========================================================
-   ENRICH PAYMENT DATA
-   PAYMENT -> PROFILE + REQUEST
-========================================================= */
-
-async function enrichPayments(payments){
-
-    if(!Array.isArray(payments) || !payments.length){
-        return [];
-    }
-
-    const userIds = [
-        ...new Set(
-            payments
-                .map(payment => getUserId(payment))
-                .filter(Boolean)
-        )
-    ];
-
-    const requestIds = [
-        ...new Set(
-            payments
-                .map(payment => getRequestId(payment))
-                .filter(Boolean)
-        )
-    ];
-
-    let profiles = [];
-
-    let requests = [];
-
-
-    /* -----------------------------------------------------
-       LOAD PROFILES
-    ----------------------------------------------------- */
-
-    if(userIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from(PROFILE_TABLE)
-                .select("*")
-                .in("id",userIds);
-
-            if(!error && Array.isArray(data)){
-                profiles = data;
-            }
-            else if(error){
-                console.warn(
-                    "Profiles lookup warning:",
-                    error
-                );
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Profiles lookup exception:",
-                error
-            );
-
-        }
-
-    }
-
-
-    /* -----------------------------------------------------
-       LOAD REQUESTS
-    ----------------------------------------------------- */
-
-    if(requestIds.length){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from(REQUEST_TABLE)
-                .select("*")
-                .in("id",requestIds);
-
-            if(!error && Array.isArray(data)){
-                requests = data;
-            }
-            else if(error){
-                console.warn(
-                    "Requests lookup warning:",
-                    error
-                );
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Requests lookup exception:",
-                error
-            );
-
-        }
-
-    }
-
-
-    const profileMap = new Map();
-
-    profiles.forEach(profile => {
-
-        if(profile?.id){
-
-            profileMap.set(
-                String(profile.id),
-                profile
-            );
-
-        }
-
-    });
-
-
-    const requestMap = new Map();
-
-    requests.forEach(request => {
-
-        if(request?.id){
-
-            requestMap.set(
-                String(request.id),
-                request
-            );
-
-        }
-
-    });
-
-
-    return payments.map(payment => {
-
-        const userId =
-            getUserId(payment);
-
-        const requestId =
-            getRequestId(payment);
-
-        const profile =
-            profileMap.get(
-                String(userId)
-            );
-
-        const request =
-            requestMap.get(
-                String(requestId)
-            );
-
-
-        return {
-
-            ...payment,
-
-            __profile:profile || null,
-
-            __request:request || null
-
-        };
-
-    });
-
-}
-
-
-/* =========================================================
-   SMART CUSTOMER NAME
-========================================================= */
-
-function getFinalCustomerName(payment){
-
-    const profile =
-        payment.__profile;
-
-    const request =
-        payment.__request;
-
+function getFinalCustomerName(payment) {
+    const profile = payment.__profile;
+    const request = payment.__request;
 
     return getValue(
         payment,
@@ -3215,22 +2894,15 @@ function getFinalCustomerName(payment){
                     "full_name",
                     "name"
                 ],
-                "Customer"
+                getCustomerName(payment)
             )
         )
     );
-
 }
 
-
-function getFinalCustomerPhone(payment){
-
-    const profile =
-        payment.__profile;
-
-    const request =
-        payment.__request;
-
+function getFinalCustomerPhone(payment) {
+    const profile = payment.__profile;
+    const request = payment.__request;
 
     return getValue(
         payment,
@@ -3259,1119 +2931,687 @@ function getFinalCustomerPhone(payment){
             )
         )
     );
-
 }
 
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
+
+async function checkOwnerSession() {
+    try {
+        const { data, error } =
+            await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error("Session error:", error);
+            window.location.replace("owner-login.html");
+            return false;
+        }
+
+        if (!data?.session?.user) {
+            window.location.replace("owner-login.html");
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Session exception:", error);
+        window.location.replace("owner-login.html");
+        return false;
+    }
+}
+
+/* =========================================================
+   ENRICH PAYMENTS WITH PROFILES AND REQUESTS
+========================================================= */
+
+async function enrichPayments(payments) {
+    if (!Array.isArray(payments) || payments.length === 0) {
+        return [];
+    }
+
+    const userIds = [
+        ...new Set(
+            payments
+                .map(payment => getUserId(payment))
+                .filter(Boolean)
+                .map(String)
+        )
+    ];
+
+    const requestIds = [
+        ...new Set(
+            payments
+                .map(payment => getRequestId(payment))
+                .filter(Boolean)
+                .map(String)
+        )
+    ];
+
+    let profiles = [];
+    let requests = [];
+
+    /* Load matching profiles */
+
+    if (userIds.length > 0) {
+        try {
+            const { data, error } = await supabaseClient
+                .from(PROFILE_TABLE)
+                .select("*")
+                .in("id", userIds);
+
+            if (error) {
+                console.warn("Profiles lookup warning:", error);
+            } else {
+                profiles = data || [];
+            }
+        } catch (error) {
+            console.warn("Profiles lookup exception:", error);
+        }
+    }
+
+    /* Load matching cylinder requests */
+
+    if (requestIds.length > 0) {
+        try {
+            const { data, error } = await supabaseClient
+                .from(REQUEST_TABLE)
+                .select("*")
+                .in("id", requestIds);
+
+            if (error) {
+                console.warn("Requests lookup warning:", error);
+            } else {
+                requests = data || [];
+            }
+        } catch (error) {
+            console.warn("Requests lookup exception:", error);
+        }
+    }
+
+    const profileMap = new Map();
+
+    profiles.forEach(profile => {
+        if (profile?.id) {
+            profileMap.set(String(profile.id), profile);
+        }
+    });
+
+    const requestMap = new Map();
+
+    requests.forEach(request => {
+        if (request?.id) {
+            requestMap.set(String(request.id), request);
+        }
+    });
+
+    return payments.map(payment => {
+        const userId = getUserId(payment);
+        const requestId = getRequestId(payment);
+
+        return {
+            ...payment,
+            __profile: profileMap.get(String(userId)) || null,
+            __request: requestMap.get(String(requestId)) || null
+        };
+    });
+}
 
 /* =========================================================
    LOAD PAYMENTS
 ========================================================= */
 
-async function loadPayments(){
-
-    if(paymentsBody){
-
-        paymentsBody.innerHTML = `
-
-            <tr>
-
-                <td
-                    colspan="7"
-                    class="egc-loading"
-                >
-
-                    <div class="egc-spinner"></div>
-
-                    Loading payment slips...
-
-                </td>
-
-            </tr>
-
-        `;
-
+async function loadPayments() {
+    if (isLoadingPayments) {
+        return;
     }
 
+    if (!paymentsBody) {
+        console.error("paymentsBody element not found.");
+        return;
+    }
 
-    try{
+    isLoadingPayments = true;
 
-        let paymentResult =
-            await supabaseClient
-                .from(PAYMENT_TABLE)
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending:false
-                    }
-                );
+    paymentsBody.innerHTML = `
+        <tr>
+            <td colspan="7" class="egc-loading">
+                <div class="egc-spinner"></div>
+                Loading payment slips...
+            </td>
+        </tr>
+    `;
 
+    try {
+        let paymentRows = [];
+        let paymentResult = await supabaseClient
+            .from(PAYMENT_TABLE)
+            .select("*")
+            .order("created_at", {
+                ascending: false
+            });
 
-        /* -------------------------------------------------
-           PRIMARY SOURCE: payments TABLE
-        ------------------------------------------------- */
-
-        if(!paymentResult.error){
-
-            allPayments =
-                Array.isArray(paymentResult.data)
-                    ? paymentResult.data
-                    : [];
-
-        }
-
-        /* -------------------------------------------------
-           FALLBACK: cylinder_requests
-        ------------------------------------------------- */
-
-        else{
-
+        if (!paymentResult.error) {
+            paymentRows = paymentResult.data || [];
+        } else {
             console.warn(
-                "Payments table load failed. Checking request payments:",
+                "Payments table load failed:",
                 paymentResult.error
             );
 
+            /*
+             * Fallback is used only if the payments query fails.
+             * It does not merge the two tables, preventing duplicates.
+             */
 
-            const requestResult =
-                await supabaseClient
-                    .from(REQUEST_TABLE)
-                    .select("*")
-                    .order(
-                        "created_at",
-                        {
-                            ascending:false
-                        }
-                    );
+            const requestResult = await supabaseClient
+                .from(REQUEST_TABLE)
+                .select("*")
+                .order("created_at", {
+                    ascending: false
+                });
 
-
-            if(requestResult.error){
-
+            if (requestResult.error) {
                 throw requestResult.error;
-
             }
 
-
-            allPayments =
-                Array.isArray(requestResult.data)
-                    ? requestResult.data.filter(
-                        item => {
-
-                            return (
-                                item.payment_id ||
-                                item.transaction_id ||
-                                item.paid_amount ||
-                                item.payment_amount ||
-                                item.payment_status ||
-                                item.payment_date
-                            );
-
-                        }
-                    )
-                    : [];
-
+            paymentRows = (requestResult.data || []).filter(item => {
+                return Boolean(
+                    item.payment_id ||
+                    item.transaction_id ||
+                    item.paid_amount ||
+                    item.payment_amount ||
+                    item.payment_status ||
+                    item.payment_date
+                );
+            });
         }
 
-
-        /* -------------------------------------------------
-           MATCH USER + REQUEST DATA
-        ------------------------------------------------- */
-
-        allPayments =
-            await enrichPayments(
-                allPayments
-            );
-
+        allPayments = await enrichPayments(paymentRows);
 
         currentPage = 1;
 
         applyFilters();
-
-    }
-    catch(error){
-
-        console.error(
-            "Load payments error:",
-            error
-        );
-
+    } catch (error) {
+        console.error("Load payments error:", error);
 
         allPayments = [];
-
         filteredPayments = [];
 
-
-        if(paymentsBody){
-
-            paymentsBody.innerHTML = `
-
-                <tr>
-
-                    <td
-                        colspan="7"
-                        class="egc-empty"
-                    >
-
-                        Payment slips load nahi ho paaye.
-
-                        <br><br>
-
-                        ${escapeHtml(
-                            error?.message ||
-                            "Database error"
-                        )}
-
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-
+        paymentsBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="egc-empty">
+                    Unable to load payment slips.
+                    <br><br>
+                    ${escapeHtml(
+                        error?.message || "Database error"
+                    )}
+                </td>
+            </tr>
+        `;
 
         updateStats();
-
         renderPagination();
-
+    } finally {
+        isLoadingPayments = false;
     }
-
 }
 
-
 /* =========================================================
-   FILTER
+   FILTER PAYMENTS
 ========================================================= */
 
-function applyFilters(){
-
-    const search =
-        String(
-            searchInput?.value || ""
-        )
+function applyFilters() {
+    const search = String(searchInput?.value || "")
         .trim()
         .toLowerCase();
 
+    const selectedStatus = String(
+        statusFilter?.value || "all"
+    ).toLowerCase();
 
-    const selectedStatus =
-        String(
-            statusFilter?.value || "all"
-        )
-        .toLowerCase();
+    filteredPayments = allPayments.filter(payment => {
+        const status = normalizeStatus(payment);
 
+        if (
+            selectedStatus !== "all" &&
+            status !== selectedStatus
+        ) {
+            return false;
+        }
 
-    filteredPayments =
-        allPayments.filter(
-            payment => {
+        if (!search) {
+            return true;
+        }
 
-                const status =
-                    normalizeStatus(payment);
+        const searchable = [
+            getFinalCustomerName(payment),
+            getFinalCustomerPhone(payment),
+            getUserId(payment),
+            getRequestId(payment),
+            getPaymentId(payment),
+            getPaymentReference(payment),
+            getPaymentMethod(payment)
+        ]
+            .map(value => String(value || ""))
+            .join(" ")
+            .toLowerCase();
 
-
-                if(
-                    selectedStatus !== "all" &&
-                    status !== selectedStatus
-                ){
-
-                    return false;
-
-                }
-
-
-                if(!search){
-                    return true;
-                }
-
-
-                const searchable = [
-
-                    getFinalCustomerName(payment),
-
-                    getFinalCustomerPhone(payment),
-
-                    getUserId(payment),
-
-                    getRequestId(payment),
-
-                    getPaymentId(payment),
-
-                    getPaymentReference(payment),
-
-                    getValue(
-                        payment,
-                        [
-                            "payment_reference",
-                            "reference",
-                            "transaction_reference"
-                        ],
-                        ""
-                    )
-
-                ]
-                .join(" ")
-                .toLowerCase();
-
-
-                return searchable.includes(search);
-
-            }
-        );
-
+        return searchable.includes(search);
+    });
 
     currentPage = 1;
 
     renderPayments();
-
     updateStats();
-
     renderPagination();
-
 }
 
-
 /* =========================================================
-   STATS
+   STATISTICS
 ========================================================= */
 
-function updateStats(){
-
-    const total =
-        allPayments.length;
-
+function updateStats() {
+    const total = allPayments.length;
 
     let paid = 0;
-
     let pending = 0;
-
     let amount = 0;
 
-
     allPayments.forEach(payment => {
+        const status = normalizeStatus(payment);
 
-        const status =
-            normalizeStatus(payment);
-
-
-        if(status === "paid"){
-
+        if (status === "paid") {
             paid++;
 
-            amount +=
-                Number(
-                    getPaymentAmount(payment)
-                ) || 0;
+            const numericAmount =
+                Number(getPaymentAmount(payment));
 
-        }
-        else if(status === "pending"){
-
+            if (Number.isFinite(numericAmount)) {
+                amount += numericAmount;
+            }
+        } else if (status === "pending") {
             pending++;
-
         }
-
     });
 
-
-    if(totalPayments){
+    if (totalPayments) {
         totalPayments.textContent = total;
     }
 
-    if(paidPayments){
+    if (paidPayments) {
         paidPayments.textContent = paid;
     }
 
-    if(pendingPayments){
+    if (pendingPayments) {
         pendingPayments.textContent = pending;
     }
 
-    if(totalAmount){
-        totalAmount.textContent =
-            formatAmount(amount);
+    if (totalAmount) {
+        totalAmount.textContent = formatAmount(amount);
     }
-
 }
 
-
 /* =========================================================
-   RENDER PAYMENTS
+   RENDER PAYMENTS TABLE
 ========================================================= */
 
-function renderPayments(){
-
-    if(!paymentsBody){
+function renderPayments() {
+    if (!paymentsBody) {
         return;
     }
 
-
-    if(!filteredPayments.length){
-
+    if (filteredPayments.length === 0) {
         paymentsBody.innerHTML = `
-
             <tr>
-
-                <td
-                    colspan="7"
-                    class="egc-empty"
-                >
-
+                <td colspan="7" class="egc-empty">
                     No payment slips found.
-
                 </td>
-
             </tr>
-
         `;
 
         return;
-
     }
 
-
     const start =
-        (
-            currentPage - 1
-        ) *
-        PAYMENTS_PER_PAGE;
+        (currentPage - 1) * PAYMENTS_PER_PAGE;
 
+    const pageItems = filteredPayments.slice(
+        start,
+        start + PAYMENTS_PER_PAGE
+    );
 
-    const end =
-        Math.min(
-            start + PAYMENTS_PER_PAGE,
-            filteredPayments.length
-        );
+    paymentsBody.innerHTML = pageItems.map(payment => {
+        const name = getFinalCustomerName(payment);
+        const phone = getFinalCustomerPhone(payment);
+        const requestId = getRequestId(payment) || "—";
+        const paymentId = getPaymentId(payment);
+        const amount = getPaymentAmount(payment);
+        const status = normalizeStatus(payment);
+        const date = formatDateTime(getPaymentDate(payment));
 
+        return `
+            <tr>
+                <td>
+                    <div class="egc-customer">
+                        <div class="egc-avatar">
+                            ${escapeHtml(getInitial(name))}
+                        </div>
 
-    const pageItems =
-        filteredPayments.slice(
-            start,
-            end
-        );
-
-
-    paymentsBody.innerHTML =
-        pageItems.map(
-            payment => {
-
-                const originalIndex =
-                    allPayments.indexOf(
-                        payment
-                    );
-
-
-                const name =
-                    getFinalCustomerName(
-                        payment
-                    );
-
-
-                const phone =
-                    getFinalCustomerPhone(
-                        payment
-                    );
-
-
-                const requestId =
-                    getRequestId(
-                        payment
-                    ) || "—";
-
-
-                const paymentId =
-                    getPaymentId(
-                        payment
-                    );
-
-
-                const amount =
-                    getPaymentAmount(
-                        payment
-                    );
-
-
-                const status =
-                    normalizeStatus(
-                        payment
-                    );
-
-
-                const date =
-                    formatDateTime(
-                        getPaymentDate(
-                            payment
-                        )
-                    );
-
-
-                return `
-
-                    <tr>
-
-                        <td>
-
-                            <div class="egc-customer">
-
-                                <div class="egc-avatar">
-                                    ${escapeHtml(
-                                        getInitial(name)
-                                    )}
-                                </div>
-
-                                <div>
-
-                                    <div class="egc-customer-name">
-                                        ${escapeHtml(name)}
-                                    </div>
-
-                                    <div class="egc-customer-phone">
-                                        ${escapeHtml(phone)}
-                                    </div>
-
-                                </div>
-
+                        <div>
+                            <div class="egc-customer-name">
+                                ${escapeHtml(name)}
                             </div>
 
-                        </td>
-
-
-                        <td>
-
-                            <div class="egc-id">
-                                ${escapeHtml(requestId)}
+                            <div class="egc-customer-phone">
+                                ${escapeHtml(phone)}
                             </div>
+                        </div>
+                    </div>
+                </td>
 
-                        </td>
+                <td>
+                    <div class="egc-id">
+                        ${escapeHtml(requestId)}
+                    </div>
+                </td>
 
+                <td>
+                    <div class="egc-id">
+                        ${escapeHtml(paymentId)}
+                    </div>
+                </td>
 
-                        <td>
+                <td>
+                    <div class="egc-amount">
+                        ${formatAmount(amount)}
+                    </div>
+                </td>
 
-                            <div class="egc-id">
-                                ${escapeHtml(paymentId)}
-                            </div>
+                <td>
+                    <span class="egc-status ${status}">
+                        ${statusLabel(status)}
+                    </span>
+                </td>
 
-                        </td>
+                <td>
+                    ${escapeHtml(date)}
+                </td>
 
+                <td>
+                    <button
+                        type="button"
+                        class="egc-action-btn"
+                        data-view-payment="${escapeHtml(payment.id)}"
+                    >
+                        View
+                    </button>
 
-                        <td>
-
-                            <div class="egc-amount">
-                                ${formatAmount(amount)}
-                            </div>
-
-                        </td>
-
-
-                        <td>
-
-                            <span
-                                class="egc-status ${status}"
-                            >
-                                ${statusLabel(status)}
-                            </span>
-
-                        </td>
-
-
-                        <td>
-                            ${escapeHtml(date)}
-                        </td>
-
-
-                        <td>
-
-                            <button
-                                type="button"
-                                class="egc-action-btn"
-                                data-view-payment="${originalIndex}"
-                            >
-                                View
-                            </button>
-
-
-                            <button
-                                type="button"
-                                class="egc-action-btn print"
-                                data-print-payment="${originalIndex}"
-                            >
-                                Print
-                            </button>
-
-                        </td>
-
-                    </tr>
-
-                `;
-
-            }
-        )
-        .join("");
-
-
-    paymentsBody
-        .querySelectorAll(
-            "[data-view-payment]"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                function(){
-
-                    const index =
-                        Number(
-                            this.dataset.viewPayment
-                        );
-
-                    openPaymentModal(
-                        allPayments[index]
-                    );
-
-                }
-            );
-
-        });
-
-
-    paymentsBody
-        .querySelectorAll(
-            "[data-print-payment]"
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                "click",
-                function(){
-
-                    const index =
-                        Number(
-                            this.dataset.printPayment
-                        );
-
-                    printPaymentSlip(
-                        allPayments[index]
-                    );
-
-                }
-            );
-
-        });
-
+                    <button
+                        type="button"
+                        class="egc-action-btn print"
+                        data-print-payment="${escapeHtml(payment.id)}"
+                    >
+                        Print
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
 
+/* =========================================================
+   TABLE ACTIONS
+========================================================= */
+
+if (paymentsBody) {
+    paymentsBody.addEventListener("click", function(event) {
+        const viewButton = event.target.closest(
+            "[data-view-payment]"
+        );
+
+        const printButton = event.target.closest(
+            "[data-print-payment]"
+        );
+
+        if (viewButton) {
+            const id = viewButton.dataset.viewPayment;
+
+            const payment = filteredPayments.find(item =>
+                String(item.id) === String(id)
+            );
+
+            if (payment) {
+                openPaymentModal(payment);
+            }
+        }
+
+        if (printButton) {
+            const id = printButton.dataset.printPayment;
+
+            const payment = filteredPayments.find(item =>
+                String(item.id) === String(id)
+            );
+
+            if (payment) {
+                printPaymentSlip(payment);
+            }
+        }
+    });
+}
 
 /* =========================================================
    PAGINATION
 ========================================================= */
 
-function renderPagination(){
-
-    if(
-        !paginationButtons ||
-        !paginationInfo
-    ){
-
+function renderPagination() {
+    if (!paginationButtons || !paginationInfo) {
         return;
-
     }
-
 
     paginationButtons.innerHTML = "";
 
-
-    if(filteredPayments.length === 0){
-
-        paginationInfo.textContent =
-            "Showing 0 payments";
-
+    if (filteredPayments.length === 0) {
+        paginationInfo.textContent = "Showing 0 payments";
         return;
-
     }
 
+    const totalPages = Math.ceil(
+        filteredPayments.length / PAYMENTS_PER_PAGE
+    );
 
-    const totalPages =
-        Math.ceil(
-            filteredPayments.length /
-            PAYMENTS_PER_PAGE
-        );
-
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
 
     const start =
-        (
-            currentPage - 1
-        ) *
-        PAYMENTS_PER_PAGE +
-        1;
+        (currentPage - 1) * PAYMENTS_PER_PAGE + 1;
 
-
-    const end =
-        Math.min(
-            currentPage *
-            PAYMENTS_PER_PAGE,
-            filteredPayments.length
-        );
-
+    const end = Math.min(
+        currentPage * PAYMENTS_PER_PAGE,
+        filteredPayments.length
+    );
 
     paginationInfo.textContent =
-        "Showing " +
-        start +
-        "–" +
-        end +
-        " of " +
-        filteredPayments.length +
-        " payments";
+        `Showing ${start}–${end} of ${filteredPayments.length} payments`;
 
-
-    if(totalPages <= 1){
+    if (totalPages <= 1) {
         return;
     }
 
-
-    const previous =
-        document.createElement("button");
-
-
-    previous.type = "button";
-
-    previous.className =
-        "egc-page-btn";
-
-    previous.textContent = "‹";
-
-    previous.disabled =
-        currentPage === 1;
-
-
-    previous.addEventListener(
-        "click",
-        function(){
-
-            if(currentPage > 1){
-
-                currentPage--;
-
-                renderPayments();
-
-                renderPagination();
-
-            }
-
-        }
-    );
-
-
-    paginationButtons.appendChild(
-        previous
-    );
-
-
-    let startPage =
-        Math.max(
-            1,
-            currentPage - 2
-        );
-
-
-    let endPage =
-        Math.min(
-            totalPages,
-            startPage + 4
-        );
-
-
-    if(
-        endPage - startPage < 4
-    ){
-
-        startPage =
-            Math.max(
-                1,
-                endPage - 4
-            );
-
-    }
-
-
-    for(
-        let page = startPage;
-        page <= endPage;
-        page++
-    ){
-
-        const button =
-            document.createElement("button");
-
+    function createPageButton(label, page, disabled = false, active = false) {
+        const button = document.createElement("button");
 
         button.type = "button";
+        button.className = "egc-page-btn";
+        button.textContent = label;
+        button.disabled = disabled;
 
-        button.className =
-            "egc-page-btn";
-
-
-        if(page === currentPage){
-
-            button.classList.add(
-                "active"
-            );
-
+        if (active) {
+            button.classList.add("active");
         }
 
-
-        button.textContent = page;
-
-
-        button.addEventListener(
-            "click",
-            function(){
-
-                currentPage = page;
-
-                renderPayments();
-
-                renderPagination();
-
+        button.addEventListener("click", function() {
+            if (page < 1 || page > totalPages) {
+                return;
             }
-        );
 
+            currentPage = page;
 
-        paginationButtons.appendChild(
-            button
-        );
+            renderPayments();
+            renderPagination();
+        });
 
+        paginationButtons.appendChild(button);
     }
 
-
-    const next =
-        document.createElement("button");
-
-
-    next.type = "button";
-
-    next.className =
-        "egc-page-btn";
-
-    next.textContent = "›";
-
-    next.disabled =
-        currentPage === totalPages;
-
-
-    next.addEventListener(
-        "click",
-        function(){
-
-            if(
-                currentPage <
-                totalPages
-            ){
-
-                currentPage++;
-
-                renderPayments();
-
-                renderPagination();
-
-            }
-
-        }
+    createPageButton(
+        "‹",
+        currentPage - 1,
+        currentPage === 1
     );
 
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
 
-    paginationButtons.appendChild(
-        next
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let page = startPage; page <= endPage; page++) {
+        createPageButton(
+            String(page),
+            page,
+            false,
+            page === currentPage
+        );
+    }
+
+    createPageButton(
+        "›",
+        currentPage + 1,
+        currentPage === totalPages
     );
-
 }
-
 
 /* =========================================================
    PAYMENT MODAL
 ========================================================= */
 
-function openPaymentModal(payment){
-
-    if(
-        !payment ||
-        !paymentModal ||
-        !paymentDetails
-    ){
-
+function openPaymentModal(payment) {
+    if (!payment || !paymentModal || !paymentDetails) {
         return;
-
     }
-
 
     currentPayment = payment;
 
+    const name = getFinalCustomerName(payment);
+    const phone = getFinalCustomerPhone(payment);
+    const userId = getUserId(payment) || "—";
+    const requestId = getRequestId(payment) || "—";
+    const paymentId = getPaymentId(payment);
+    const amount = getPaymentAmount(payment);
+    const status = normalizeStatus(payment);
+    const paymentDate = getPaymentDate(payment);
+    const reference = getPaymentReference(payment);
+    const method = getPaymentMethod(payment);
 
-    const name =
-        getFinalCustomerName(
-            payment
-        );
+    const request = payment.__request || {};
+    const profile = payment.__profile || {};
 
+    const state = getValue(request, ["state"], "—");
+    const district = getValue(request, ["district"], "—");
+    const city = getValue(request, ["city"], "—");
 
-    const phone =
-        getFinalCustomerPhone(
-            payment
-        );
+    const lpgCompany = getValue(
+        request,
+        ["lpg_company", "gas_company", "company"],
+        "—"
+    );
 
+    const agency = getValue(
+        request,
+        ["lpg_agency", "gas_agency", "agency_name", "agency"],
+        "—"
+    );
 
-    const userId =
-        getUserId(payment) || "—";
+    const email = getValue(
+        payment,
+        ["email"],
+        getValue(profile, ["email"], "—")
+    );
 
+    const titleElement =
+        document.getElementById("paymentModalTitle");
 
-    const requestId =
-        getRequestId(payment) || "—";
+    const subtitleElement =
+        document.getElementById("paymentModalSubtitle");
 
-
-    const paymentId =
-        getPaymentId(payment);
-
-
-    const amount =
-        getPaymentAmount(payment);
-
-
-    const status =
-        normalizeStatus(payment);
-
-
-    const paymentDate =
-        getPaymentDate(payment);
-
-
-    const reference =
-        getPaymentReference(payment);
-
-
-    const method =
-        getPaymentMethod(payment);
-
-
-    const request =
-        payment.__request || {};
-
-
-    const profile =
-        payment.__profile || {};
-
-
-    const state =
-        getValue(
-            request,
-            ["state"],
-            "—"
-        );
-
-
-    const district =
-        getValue(
-            request,
-            ["district"],
-            "—"
-        );
-
-
-    const city =
-        getValue(
-            request,
-            ["city"],
-            "—"
-        );
-
-
-    const lpgCompany =
-        getValue(
-            request,
-            [
-                "lpg_company",
-                "gas_company",
-                "company"
-            ],
-            "—"
-        );
-
-
-    const agency =
-        getValue(
-            request,
-            [
-                "lpg_agency",
-                "gas_agency",
-                "agency_name",
-                "agency"
-            ],
-            "—"
-        );
-
-
-    const email =
-        getValue(
-            payment,
-            ["email"],
-            getValue(
-                profile,
-                ["email"],
-                "—"
-            )
-        );
-
-
-    if(
-        document.getElementById(
-            "paymentModalTitle"
-        )
-    ){
-
-        document.getElementById(
-            "paymentModalTitle"
-        ).textContent =
-            status === "paid"
-                ? "Payment Receipt"
-                : "Payment Details";
-
+    if (titleElement) {
+        titleElement.textContent =
+            status === "paid" ? "Payment Receipt" : "Payment Details";
     }
 
-
-    if(
-        document.getElementById(
-            "paymentModalSubtitle"
-        )
-    ){
-
-        document.getElementById(
-            "paymentModalSubtitle"
-        ).textContent =
-            name +
-            " • " +
-            statusLabel(status);
-
+    if (subtitleElement) {
+        subtitleElement.textContent =
+            `${name} • ${statusLabel(status)}`;
     }
-
 
     paymentDetails.innerHTML = `
-
         <div class="egc-detail-grid">
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Customer
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(name)}
-                </div>
-
+                <div class="egc-detail-label">Customer</div>
+                <div class="egc-detail-value">${escapeHtml(name)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Mobile
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(phone)}
-                </div>
-
+                <div class="egc-detail-label">Mobile</div>
+                <div class="egc-detail-value">${escapeHtml(phone)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Email
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(email)}
-                </div>
-
+                <div class="egc-detail-label">Email</div>
+                <div class="egc-detail-value">${escapeHtml(email)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    User ID
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(userId)}
-                </div>
-
+                <div class="egc-detail-label">User ID</div>
+                <div class="egc-detail-value">${escapeHtml(userId)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Request ID
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(requestId)}
-                </div>
-
+                <div class="egc-detail-label">Request ID</div>
+                <div class="egc-detail-value">${escapeHtml(requestId)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Payment ID
-                </div>
-
-                <div class="egc-detail-value">
-                    ${escapeHtml(paymentId)}
-                </div>
-
+                <div class="egc-detail-label">Payment ID</div>
+                <div class="egc-detail-value">${escapeHtml(paymentId)}</div>
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Status
-                </div>
-
+                <div class="egc-detail-label">Status</div>
                 <div class="egc-detail-value">
-
-                    <span
-                        class="egc-status ${status}"
-                    >
+                    <span class="egc-status ${status}">
                         ${statusLabel(status)}
                     </span>
-
                 </div>
-
             </div>
 
-
             <div class="egc-detail-box">
-
-                <div class="egc-detail-label">
-                    Amount
-                </div>
-
+                <div class="egc-detail-label">Amount</div>
                 <div class="egc-detail-value amount">
                     ${formatAmount(amount)}
                 </div>
-
             </div>
-
         </div>
 
-
-        <div
-            id="slipPrintArea"
-            class="egc-slip-box"
-        >
-
+        <div id="slipPrintArea" class="egc-slip-box">
             <div class="egc-slip-head">
-
                 <img
                     src="assets/EGC - Emergency Gas Cylinder logo.png"
                     class="egc-slip-logo"
-                    alt="EGC"
+                    alt="EGC Logo"
                 >
 
                 <div class="egc-slip-heading">
@@ -4382,944 +3622,483 @@ function openPaymentModal(payment){
                     Short-Term Emergency LPG Finance
                 </div>
 
-                <span
-                    class="egc-slip-status ${status}"
-                >
+                <span class="egc-slip-status ${status}">
                     ${statusLabel(status)}
                 </span>
-
             </div>
-
 
             <div class="egc-slip-body">
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Customer
-                    </span>
-
-                    <span>
-                        ${escapeHtml(name)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Mobile
-                    </span>
-
-                    <span>
-                        ${escapeHtml(phone)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Email
-                    </span>
-
-                    <span>
-                        ${escapeHtml(email)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        User ID
-                    </span>
-
-                    <span>
-                        ${escapeHtml(userId)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Request ID
-                    </span>
-
-                    <span>
-                        ${escapeHtml(requestId)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Payment ID
-                    </span>
-
-                    <span>
-                        ${escapeHtml(paymentId)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Payment Method
-                    </span>
-
-                    <span>
-                        ${escapeHtml(method)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Transaction Reference
-                    </span>
-
-                    <span>
-                        ${escapeHtml(reference)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        State
-                    </span>
-
-                    <span>
-                        ${escapeHtml(state)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        District
-                    </span>
-
-                    <span>
-                        ${escapeHtml(district)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        City
-                    </span>
-
-                    <span>
-                        ${escapeHtml(city)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        LPG Company
-                    </span>
-
-                    <span>
-                        ${escapeHtml(lpgCompany)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        LPG Agency
-                    </span>
-
-                    <span>
-                        ${escapeHtml(agency)}
-                    </span>
-
-                </div>
-
-
-                <div class="egc-slip-row">
-
-                    <span>
-                        Payment Date
-                    </span>
-
-                    <span>
-                        ${escapeHtml(
-                            formatDateTime(
-                                paymentDate
-                            )
-                        )}
-                    </span>
-
-                </div>
-
+                ${createSlipRow("Customer", name)}
+                ${createSlipRow("Mobile", phone)}
+                ${createSlipRow("Email", email)}
+                ${createSlipRow("User ID", userId)}
+                ${createSlipRow("Request ID", requestId)}
+                ${createSlipRow("Payment ID", paymentId)}
+                ${createSlipRow("Payment Method", method)}
+                ${createSlipRow("Transaction Reference", reference)}
+                ${createSlipRow("State", state)}
+                ${createSlipRow("District", district)}
+                ${createSlipRow("City", city)}
+                ${createSlipRow("LPG Company", lpgCompany)}
+                ${createSlipRow("LPG Agency", agency)}
+                ${createSlipRow("Payment Date", formatDateTime(paymentDate))}
 
                 <div class="egc-slip-total">
-
-                    <span>
-                        Amount Paid
-                    </span>
-
-                    <span>
-                        ${formatAmount(amount)}
-                    </span>
-
+                    <span>Amount Paid</span>
+                    <span>${formatAmount(amount)}</span>
                 </div>
-
 
                 <div class="egc-slip-note">
-
-                    This receipt is generated by EGC
-                    Emergency Gas Cylinder.
-
+                    This receipt is generated by EGC Emergency Gas Cylinder.
+                    The displayed payment status reflects the database record.
                 </div>
-
             </div>
-
         </div>
-
     `;
 
-
     paymentModal.classList.add("show");
-
     document.body.style.overflow = "hidden";
-
 }
 
+/* =========================================================
+   RECEIPT ROW HELPER
+========================================================= */
+
+function createSlipRow(label, value) {
+    return `
+        <div class="egc-slip-row">
+            <span>${escapeHtml(label)}</span>
+            <span>${escapeHtml(value)}</span>
+        </div>
+    `;
+}
 
 /* =========================================================
    CLOSE PAYMENT MODAL
 ========================================================= */
 
-function closePaymentModal(){
-
-    if(paymentModal){
-
-        paymentModal.classList.remove(
-            "show"
-        );
-
+function closePaymentModal() {
+    if (paymentModal) {
+        paymentModal.classList.remove("show");
     }
 
     currentPayment = null;
 
-    document.body.style.overflow = "";
-
+    if (!logoutModal?.classList.contains("show")) {
+        document.body.style.overflow = "";
+    }
 }
 
-
-if(paymentModalClose){
-
+if (paymentModalClose) {
     paymentModalClose.addEventListener(
         "click",
         closePaymentModal
     );
-
 }
 
-
-if(paymentCloseBtn){
-
+if (paymentCloseBtn) {
     paymentCloseBtn.addEventListener(
         "click",
         closePaymentModal
     );
-
 }
 
-
-if(paymentModal){
-
-    paymentModal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                paymentModal
-            ){
-
-                closePaymentModal();
-
-            }
-
+if (paymentModal) {
+    paymentModal.addEventListener("click", function(event) {
+        if (event.target === paymentModal) {
+            closePaymentModal();
         }
-    );
-
+    });
 }
-
 
 /* =========================================================
-   PRINT
+   PRINT RECEIPT
 ========================================================= */
 
-function printPaymentSlip(payment){
-
-    if(!payment){
+function printPaymentSlip(payment) {
+    if (!payment || isPrinting) {
         return;
     }
 
     openPaymentModal(payment);
 
-    setTimeout(
-        function(){
+    isPrinting = true;
 
+    setTimeout(() => {
+        try {
             window.print();
-
-        },
-        300
-    );
-
-}
-
-
-if(printSlipBtn){
-
-    printSlipBtn.addEventListener(
-        "click",
-        function(){
-
-            if(currentPayment){
-
-                window.print();
-
-            }
-
+        } finally {
+            isPrinting = false;
         }
-    );
-
+    }, 350);
 }
 
+if (printSlipBtn) {
+    printSlipBtn.addEventListener("click", function() {
+        if (currentPayment) {
+            printPaymentSlip(currentPayment);
+        }
+    });
+}
 
 /* =========================================================
-   MOBILE MENU
+   MOBILE SIDEBAR
 ========================================================= */
 
-function closeMobileMenu(){
-
-    if(sidebar){
-
-        sidebar.classList.remove(
-            "open"
-        );
-
+function closeMobileMenu() {
+    if (sidebar) {
+        sidebar.classList.remove("open");
     }
 
-    if(overlay){
-
-        overlay.classList.remove(
-            "show"
-        );
-
+    if (overlay) {
+        overlay.classList.remove("show");
     }
-
 }
 
-
-if(menuBtn){
-
-    menuBtn.addEventListener(
-        "click",
-        function(){
-
-            if(sidebar){
-
-                sidebar.classList.toggle(
-                    "open"
-                );
-
-            }
-
-            if(overlay){
-
-                overlay.classList.toggle(
-                    "show"
-                );
-
-            }
-
+if (menuBtn) {
+    menuBtn.addEventListener("click", function() {
+        if (sidebar) {
+            sidebar.classList.toggle("open");
         }
-    );
 
+        if (overlay) {
+            overlay.classList.toggle("show");
+        }
+    });
 }
 
-
-if(overlay){
-
-    overlay.addEventListener(
-        "click",
-        closeMobileMenu
-    );
-
+if (overlay) {
+    overlay.addEventListener("click", closeMobileMenu);
 }
-
 
 /* =========================================================
    NAVIGATION
 ========================================================= */
 
-function goToPage(page){
-
+function goToPage(page) {
     closeMobileMenu();
-
     window.location.href = page;
-
 }
-
 
 const dashboardBtn =
-    document.getElementById(
-        "dashboardBtn"
-    );
+    document.getElementById("dashboardBtn");
 
 const customersBtn =
-    document.getElementById(
-        "customersBtn"
-    );
+    document.getElementById("customersBtn");
 
 const agenciesBtn =
-    document.getElementById(
-        "agenciesBtn"
-    );
+    document.getElementById("agenciesBtn");
 
 const requestsBtn =
-    document.getElementById(
-        "requestsBtn"
-    );
+    document.getElementById("requestsBtn");
 
 const settingsBtn =
-    document.getElementById(
-        "settingsBtn"
-    );
+    document.getElementById("settingsBtn");
 
-
-if(dashboardBtn){
-
-    dashboardBtn.addEventListener(
-        "click",
-        function(){
-
-            goToPage(
-                "owner-dashboard.html"
-            );
-
-        }
-    );
-
+if (dashboardBtn) {
+    dashboardBtn.addEventListener("click", function() {
+        goToPage("owner-dashboard.html");
+    });
 }
 
-
-if(customersBtn){
-
-    customersBtn.addEventListener(
-        "click",
-        function(){
-
-            goToPage(
-                "owner-users.html"
-            );
-
-        }
-    );
-
+if (customersBtn) {
+    customersBtn.addEventListener("click", function() {
+        goToPage("owner-users.html");
+    });
 }
 
-
-if(agenciesBtn){
-
-    agenciesBtn.addEventListener(
-        "click",
-        function(){
-
-            goToPage(
-                "owner-agencies.html"
-            );
-
-        }
-    );
-
+if (agenciesBtn) {
+    agenciesBtn.addEventListener("click", function() {
+        goToPage("owner-agencies.html");
+    });
 }
 
-
-if(requestsBtn){
-
-    requestsBtn.addEventListener(
-        "click",
-        function(){
-
-            goToPage(
-                "owner-requests.html"
-            );
-
-        }
-    );
-
+if (requestsBtn) {
+    requestsBtn.addEventListener("click", function() {
+        goToPage("owner-cylinder-requests.html");
+    });
 }
 
-
-if(settingsBtn){
-
-    settingsBtn.addEventListener(
-        "click",
-        function(){
-
-            goToPage(
-                "owner-settings.html"
-            );
-
-        }
-    );
-
+if (settingsBtn) {
+    settingsBtn.addEventListener("click", function() {
+        goToPage("owner-settings.html");
+    });
 }
 
-
-if(backBtn){
-
-    backBtn.addEventListener(
-        "click",
-        function(){
-
-            window.location.href =
-                "owner-dashboard.html";
-
-        }
-    );
-
+if (backBtn) {
+    backBtn.addEventListener("click", function() {
+        goToPage("owner-dashboard.html");
+    });
 }
-
 
 /* =========================================================
-   SEARCH
+   SEARCH AND STATUS FILTER
 ========================================================= */
 
-if(searchInput){
-
-    searchInput.addEventListener(
-        "input",
-        applyFilters
-    );
-
+if (searchInput) {
+    searchInput.addEventListener("input", applyFilters);
 }
 
-
-if(statusFilter){
-
-    statusFilter.addEventListener(
-        "change",
-        applyFilters
-    );
-
+if (statusFilter) {
+    statusFilter.addEventListener("change", applyFilters);
 }
 
-
-if(clearSearch){
-
-    clearSearch.addEventListener(
-        "click",
-        function(){
-
-            if(searchInput){
-
-                searchInput.value = "";
-
-            }
-
-            if(statusFilter){
-
-                statusFilter.value = "all";
-
-            }
-
-            applyFilters();
-
+if (clearSearch) {
+    clearSearch.addEventListener("click", function() {
+        if (searchInput) {
+            searchInput.value = "";
         }
-    );
 
+        if (statusFilter) {
+            statusFilter.value = "all";
+        }
+
+        applyFilters();
+    });
 }
-
 
 /* =========================================================
    REFRESH
 ========================================================= */
 
-if(refreshBtn){
-
-    refreshBtn.addEventListener(
-        "click",
-        async function(){
-
-            refreshBtn.disabled = true;
-
-            refreshBtn.textContent =
-                "Loading...";
-
-
-            try{
-
-                await loadPayments();
-
-            }
-            finally{
-
-                refreshBtn.disabled = false;
-
-                refreshBtn.textContent =
-                    "↻ Refresh";
-
-            }
-
+if (refreshBtn) {
+    refreshBtn.addEventListener("click", async function() {
+        if (isLoadingPayments) {
+            return;
         }
-    );
 
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Loading...";
+
+        try {
+            await loadPayments();
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = "↻ Refresh";
+        }
+    });
 }
-
 
 /* =========================================================
-   LOGOUT
+   LOGOUT MODAL
 ========================================================= */
 
-if(logoutBtn){
+function openLogoutModal() {
+    closeMobileMenu();
 
-    logoutBtn.addEventListener(
-        "click",
-        function(){
-
-            closeMobileMenu();
-
-            if(logoutModal){
-
-                logoutModal.classList.add(
-                    "show"
-                );
-
-            }
-
-            document.body.style.overflow =
-                "hidden";
-
+    if (logoutModal) {
+        logoutModal.classList.add("show");
+        document.body.style.overflow = "hidden";
+    } else {
+        if (window.confirm("Are you sure you want to logout?")) {
+            performLogout();
         }
-    );
-
+    }
 }
 
+function closeLogoutModal() {
+    if (logoutModal) {
+        logoutModal.classList.remove("show");
+    }
 
-if(logoutCancel){
-
-    logoutCancel.addEventListener(
-        "click",
-        function(){
-
-            if(logoutModal){
-
-                logoutModal.classList.remove(
-                    "show"
-                );
-
-            }
-
-            document.body.style.overflow = "";
-
-        }
-    );
-
+    if (!paymentModal?.classList.contains("show")) {
+        document.body.style.overflow = "";
+    }
 }
 
-
-if(logoutModal){
-
-    logoutModal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                logoutModal
-            ){
-
-                logoutModal.classList.remove(
-                    "show"
-                );
-
-                document.body.style.overflow = "";
-
-            }
-
-        }
-    );
-
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", openLogoutModal);
 }
 
-
-if(logoutConfirm){
-
-    logoutConfirm.addEventListener(
-        "click",
-        async function(){
-
-            logoutConfirm.disabled = true;
-
-            logoutConfirm.textContent =
-                "Logging out...";
-
-
-            try{
-
-                const {
-                    error
-                } =
-                await supabaseClient
-                    .auth
-                    .signOut();
-
-
-                if(error){
-
-                    throw error;
-
-                }
-
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
-            }
-            catch(error){
-
-                console.error(
-                    "Logout error:",
-                    error
-                );
-
-
-                logoutConfirm.disabled = false;
-
-                logoutConfirm.textContent =
-                    "Logout";
-
-
-                alert(
-                    "Logout failed.\n\n" +
-                    (
-                        error?.message ||
-                        "Please try again."
-                    )
-                );
-
-            }
-
-        }
-    );
-
+if (logoutCancel) {
+    logoutCancel.addEventListener("click", closeLogoutModal);
 }
 
+if (logoutModal) {
+    logoutModal.addEventListener("click", function(event) {
+        if (event.target === logoutModal) {
+            closeLogoutModal();
+        }
+    });
+}
 
 /* =========================================================
-   REALTIME
+   PERFORM LOGOUT
 ========================================================= */
 
-function startPaymentsRealtime(){
+async function performLogout() {
+    if (isSigningOut) {
+        return;
+    }
 
-    try{
+    isSigningOut = true;
 
-        if(paymentsRealtimeChannel){
+    if (logoutConfirm) {
+        logoutConfirm.disabled = true;
+        logoutConfirm.textContent = "Logging out...";
+    }
 
-            supabaseClient
-                .removeChannel(
-                    paymentsRealtimeChannel
-                );
+    try {
+        const { error } = await supabaseClient.auth.signOut();
 
+        if (error) {
+            throw error;
         }
 
+        stopPaymentsRealtime();
 
-        paymentsRealtimeChannel =
-            supabaseClient
-                .channel(
-                    "owner-payments-realtime"
-                );
+        window.location.replace("owner-login.html");
+    } catch (error) {
+        console.error("Logout error:", error);
 
+        isSigningOut = false;
 
-        paymentsRealtimeChannel.on(
-            "postgres_changes",
-            {
-                event:"*",
-                schema:"public",
-                table:PAYMENT_TABLE
-            },
-            function(){
+        if (logoutConfirm) {
+            logoutConfirm.disabled = false;
+            logoutConfirm.textContent = "Logout";
+        }
 
-                loadPayments();
-
-            }
+        alert(
+            "Logout failed.\n\n" +
+            (error?.message || "Please try again.")
         );
+    }
+}
 
+if (logoutConfirm) {
+    logoutConfirm.addEventListener("click", performLogout);
+}
 
-        paymentsRealtimeChannel.subscribe(
-            function(status){
+/* =========================================================
+   REALTIME SUBSCRIPTION
+========================================================= */
 
+function stopPaymentsRealtime() {
+    if (!paymentsRealtimeChannel) {
+        return;
+    }
+
+    const channel = paymentsRealtimeChannel;
+    paymentsRealtimeChannel = null;
+
+    supabaseClient.removeChannel(channel).catch(error => {
+        console.warn("Realtime cleanup warning:", error);
+    });
+}
+
+function startPaymentsRealtime() {
+    stopPaymentsRealtime();
+
+    try {
+        paymentsRealtimeChannel = supabaseClient
+            .channel("owner-payments-realtime")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: PAYMENT_TABLE
+                },
+                function() {
+                    loadPayments();
+                }
+            )
+            .subscribe(function(status) {
                 console.log(
                     "EGC Owner payments realtime:",
                     status
                 );
-
-            }
-        );
-
+            });
+    } catch (error) {
+        console.warn("Payment realtime error:", error);
     }
-    catch(error){
-
-        console.warn(
-            "Payment realtime error:",
-            error
-        );
-
-    }
-
 }
-
 
 /* =========================================================
    AUTH STATE
 ========================================================= */
 
-supabaseClient
-    .auth
-    .onAuthStateChange(
-        function(event){
-
-            if(
-                event ===
-                "SIGNED_OUT"
-            ){
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
+const { data: authListener } =
+    supabaseClient.auth.onAuthStateChange(
+        function(event, session) {
+            if (event === "SIGNED_OUT" && !isSigningOut) {
+                stopPaymentsRealtime();
+                window.location.replace("owner-login.html");
+                return;
             }
 
+            if (
+                event === "SIGNED_IN" ||
+                event === "TOKEN_REFRESHED"
+            ) {
+                if (session) {
+                    console.log(
+                        "EGC Owner session active:",
+                        session.user.id
+                    );
+                }
+            }
         }
     );
 
-
 /* =========================================================
-   ESC KEY
+   ESCAPE KEY
 ========================================================= */
 
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key !== "Escape"){
-            return;
-        }
-
-
-        if(
-            paymentModal &&
-            paymentModal.classList.contains(
-                "show"
-            )
-        ){
-
-            closePaymentModal();
-
-            return;
-
-        }
-
-
-        if(
-            logoutModal &&
-            logoutModal.classList.contains(
-                "show"
-            )
-        ){
-
-            logoutModal.classList.remove(
-                "show"
-            );
-
-            document.body.style.overflow = "";
-
-            return;
-
-        }
-
-
-        closeMobileMenu();
-
+document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") {
+        return;
     }
-);
 
+    if (paymentModal?.classList.contains("show")) {
+        closePaymentModal();
+        return;
+    }
+
+    if (logoutModal?.classList.contains("show")) {
+        closeLogoutModal();
+        return;
+    }
+
+    closeMobileMenu();
+});
 
 /* =========================================================
    INITIALIZE
 ========================================================= */
 
-async function initOwnerSlips(){
+async function initOwnerSlips() {
+    try {
+        const sessionOK = await checkOwnerSession();
 
-    try{
-
-        const sessionOK =
-            await checkOwnerSession();
-
-
-        if(!sessionOK){
+        if (!sessionOK) {
             return;
         }
 
-
         await loadPayments();
 
-
         startPaymentsRealtime();
-
-    }
-    catch(error){
-
+    } catch (error) {
         console.error(
             "Owner slips initialization error:",
             error
         );
-
     }
-
 }
-
-
-/* =========================================================
-   START
-========================================================= */
 
 initOwnerSlips();
 
+/* =========================================================
+   CLEANUP
+========================================================= */
+
+window.addEventListener("pagehide", function() {
+    stopPaymentsRealtime();
+
+    if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+    }
+});
 </script>
 
 </body>

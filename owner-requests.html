@@ -551,13 +551,40 @@ tbody tr:hover{background:#fbfdff}
     <div class="toast-text" id="toastText"></div>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
 
-/* Supabase project configuration */
+/* =========================================================
+   EGC OWNER REQUESTS
+   Photo + Private Storage Document Fix
+   ========================================================= */
+
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
+/* Confirm this bucket name against Supabase Storage. */
+const EGC_DOCUMENT_BUCKET = "users-documents";
+const EGC_SIGNED_URL_TTL = 3600;
+
+if (!window.supabase) {
+    throw new Error("Supabase library failed to load.");
+}
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        }
+    }
+);
 
 const $ = id => document.getElementById(id);
 
@@ -566,145 +593,455 @@ let currentOwnerId = null;
 let toastTimer = null;
 let realtimeChannel = null;
 let loadingRequests = false;
+let requestsReloadQueued = false;
+let pageInitialized = false;
+let redirectStarted = false;
 
-const requestTableBody = $("requestTableBody");
-const appModal = $("appModal");
-const modalTitle = $("modalTitle");
-const modalSubtitle = $("modalSubtitle");
-const modalContent = $("modalContent");
+/* Cache signed URLs only for the current page session. */
+const signedUrlCache = new Map();
+
+const requestTableBody =
+    $("requestTableBody") ||
+    $("requestsBody") ||
+    $("requestsTableBody");
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
 
 function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    })[ch]);
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    })[character]);
 }
 
 function showToast(title, message) {
-    $("toastTitle").textContent = title || "Notification";
-    $("toastText").textContent = message || "";
-    $("toast").classList.add("show");
+    const titleEl = $("toastTitle");
+    const textEl = $("toastText");
+    const toast = $("toast");
+
+    if (!titleEl || !textEl || !toast) {
+        console.log(title || "Notification", message || "");
+        return;
+    }
+
+    titleEl.textContent = title || "Notification";
+    textEl.textContent = message || "";
+    toast.classList.add("show");
+
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => $("toast").classList.remove("show"), 4500);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 4500);
 }
 
 function formatDate(value) {
     if (!value) return "—";
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? "—" :
-        d.toLocaleString("en-IN", {
-            day:"2-digit",month:"short",year:"numeric"
-        });
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
 
 function formatMoney(value) {
-    const n = Number(value);
-    if (value === null || value === undefined || value === "" || !Number.isFinite(n)) return "₹0.00";
-    return "₹" + n.toLocaleString("en-IN", {
-        minimumFractionDigits:2,maximumFractionDigits:2
+    const number = Number(value);
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        !Number.isFinite(number)
+    ) {
+        return "₹0.00";
+    }
+
+    return "₹" + number.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
 }
 
 function normalizeApproval(value) {
-    const v = String(value || "pending").trim().toLowerCase();
-    if (["approved","approve","accepted","success","verified"].includes(v)) return "approved";
-    if (["rejected","reject","declined","failed"].includes(v)) return "rejected";
+    const status = String(value || "pending").trim().toLowerCase();
+
+    if (["approved", "approve", "accepted", "success", "verified"].includes(status)) {
+        return "approved";
+    }
+
+    if (["rejected", "reject", "declined", "failed"].includes(status)) {
+        return "rejected";
+    }
+
     return "pending";
 }
 
 function displayStatusText(value) {
     if (!value) return "Not Set";
-    return String(value).split(/[\s_-]+/)
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+
+    return String(value)
+        .replace(/[_-]+/g, " ")
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
 }
 
 function getBadgeClass(value) {
-    const v = String(value || "").toLowerCase();
-    if (["approved","paid","completed","delivered","accepted","success","verified"].includes(v) || v.includes("approved")) return "badge-green";
-    if (["pending","waiting","submitted","unpaid","due"].includes(v) || v.includes("pending")) return "badge-yellow";
-    if (["processing","assigned","ready","out for delivery"].includes(v) || v.includes("processing")) return "badge-blue";
-    if (["rejected","failed","cancelled","declined"].includes(v) || v.includes("rejected")) return "badge-red";
+    const status = String(value || "").trim().toLowerCase();
+
+    if (
+        ["approved", "paid", "completed", "delivered", "accepted",
+         "success", "verified", "refunded"].includes(status) ||
+        status.includes("approved")
+    ) return "badge-green";
+
+    if (
+        ["pending", "waiting", "submitted", "unpaid", "due"].includes(status) ||
+        status.includes("pending")
+    ) return "badge-yellow";
+
+    if (
+        ["processing", "assigned", "ready", "out_for_delivery",
+         "out for delivery"].includes(status) ||
+        status.includes("processing")
+    ) return "badge-blue";
+
+    if (
+        ["rejected", "failed", "cancelled", "declined"].includes(status)
+    ) return "badge-red";
+
     return "badge-gray";
 }
 
 function badgeHtml(value) {
-    return `<span class="badge ${getBadgeClass(value)}">${escapeHtml(displayStatusText(value || "pending"))}</span>`;
+    return `<span class="badge ${getBadgeClass(value)}">${escapeHtml(
+        displayStatusText(value || "pending")
+    )}</span>`;
 }
 
 function getRequestStatusClass(status) {
-    const v = String(status || "pending").toLowerCase();
-    if (v === "processing") return "processing";
-    if (v === "completed" || v === "delivered") return "completed";
-    if (v === "cancelled" || v === "rejected") return "cancelled";
+    const value = String(status || "pending").toLowerCase();
+
+    if (value === "processing") return "processing";
+    if (value === "completed" || value === "delivered") return "completed";
+    if (value === "cancelled" || value === "rejected") return "cancelled";
+
     return "pending";
 }
 
-function getUserId(r) {
-    return r.egc_user_code || r.profile?.egc_user_id || r.profile?.user_code || r.user_id || "—";
+function getUserId(request) {
+    return (
+        request.egc_user_code ||
+        request.profile?.egc_user_id ||
+        request.profile?.user_code ||
+        request.user_id ||
+        "—"
+    );
 }
 
-function getUserName(r) {
-    return r.customer_name || r.profile?.full_name || r.profile?.name || "User";
+function getUserName(request) {
+    return (
+        request.customer_name ||
+        request.profile?.full_name ||
+        request.profile?.name ||
+        "User"
+    );
 }
 
-function getUserMobile(r) {
-    return r.customer_mobile || r.profile?.mobile || r.profile?.phone || "—";
+function getUserMobile(request) {
+    return (
+        request.customer_mobile ||
+        request.profile?.mobile ||
+        request.profile?.phone ||
+        "—"
+    );
 }
 
-function getUserEmail(r) {
-    return r.customer_email || r.profile?.email || "—";
+function getUserEmail(request) {
+    return request.customer_email || request.profile?.email || "—";
 }
 
-function getUserPhoto(r) {
-    return r.profile_photo || r.profile?.profile_photo || r.profile?.photo_url || "";
+/* =========================================================
+   STORAGE PATH + SIGNED URL RESOLVER
+   ========================================================= */
+
+/*
+ Supports:
+ - Existing public URL
+ - Existing signed URL
+ - users-documents/UUID/file.jpg
+ - UUID/file.jpg
+ - A relative Storage path
+ - data:image/... values
+
+ A Storage path is not itself an image URL.
+ Private objects need a signed URL, and Storage permissions
+ must permit the current Owner session to create one.
+*/
+
+function parseStorageReference(reference) {
+    if (typeof reference !== "string") return null;
+
+    const value = reference.trim();
+    if (!value) return null;
+
+    if (/^data:image\//i.test(value)) {
+        return { type: "data", url: value };
+    }
+
+    if (/^https?:\/\//i.test(value)) {
+        let url;
+
+        try {
+            url = new URL(value);
+        } catch {
+            return null;
+        }
+
+        const match = url.pathname.match(
+            /\/storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)/
+        );
+
+        if (!match) {
+            return { type: "external", url: value };
+        }
+
+        let bucket;
+        let path;
+
+        try {
+            bucket = decodeURIComponent(match[2]);
+            path = decodeURIComponent(match[3]);
+        } catch {
+            bucket = match[2];
+            path = match[3];
+        }
+
+        return {
+            type: match[1] === "public" ? "public-storage" : "private-storage",
+            url: value,
+            bucket,
+            path: path.split("?")[0]
+        };
+    }
+
+    let path = value.replace(/^\/+/, "");
+    let bucket = EGC_DOCUMENT_BUCKET;
+
+    if (path.startsWith("storage/v1/object/")) {
+        const match = path.match(
+            /^storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)$/
+        );
+
+        if (match) {
+            bucket = decodeURIComponent(match[2]);
+            path = decodeURIComponent(match[3]);
+        }
+    } else if (path.startsWith(bucket + "/")) {
+        path = path.slice(bucket.length + 1);
+    }
+
+    return {
+        type: "storage-path",
+        bucket,
+        path: path.split("?")[0]
+    };
 }
 
-function getAgencyName(r) {
-    const a = r.agency || {};
-    return a.agency_name || a.name || r.agency_name || (r.agency_id ? r.agency_id : "Not assigned");
+async function resolveStorageUrl(reference) {
+    const parsed = parseStorageReference(reference);
+    if (!parsed) return null;
+
+    if (parsed.type === "data" || parsed.type === "external") {
+        return parsed.url;
+    }
+
+    if (parsed.type === "public-storage") {
+        return parsed.url;
+    }
+
+    const bucket = parsed.bucket || EGC_DOCUMENT_BUCKET;
+    const path = parsed.path;
+
+    if (!path) return null;
+
+    const cacheKey = `${bucket}:${path}`;
+    const cached = signedUrlCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now() + 60000) {
+        return cached.url;
+    }
+
+    try {
+const cleanPath = path
+    .replace(/^\/+/, "")
+    .replace(/\/+/g, "/");
+
+const { data, error } = await supabaseClient.storage
+    .from(bucket)
+    .createSignedUrl(cleanPath, EGC_SIGNED_URL_TTL);
+
+        if (error) {
+            console.warn("Could not create signed URL:", {
+                bucket,
+                path,
+                message: error.message
+            });
+            return null;
+        }
+
+        if (!data?.signedUrl) return null;
+
+        signedUrlCache.set(cacheKey, {
+            url: data.signedUrl,
+            expiresAt: Date.now() + EGC_SIGNED_URL_TTL * 1000
+        });
+
+        return data.signedUrl;
+    } catch (error) {
+        console.error("Storage URL resolution failed:", error);
+        return null;
+    }
 }
 
-function getCompanyName(r) {
-    return r.lpg_company || r.company_name || r.agency?.lpg_company || "—";
+/*
+ Try candidate database fields in order.
+ Do not invent a path from the user's UUID; only resolve
+ actual values that exist in the database.
+*/
+async function resolveFirstDocumentValue(values) {
+    for (const value of values) {
+        if (typeof value !== "string" || !value.trim()) continue;
+
+        const url = await resolveStorageUrl(value);
+        if (url) return { original: value.trim(), url };
+    }
+
+    return null;
 }
 
-function getCity(r) {
-    return r.city || r.district || r.profile?.city || "—";
+function getUserPhotoReference(request) {
+    return [
+        request.profile_photo,
+        request.profile?.profile_photo,
+        request.profile?.photo_url,
+        request.profile?.avatar_url,
+        request.customer_photo
+    ];
 }
 
-function getPaymentAmount(r) {
-    for (const key of ["total_payable","total_amount","cylinder_amount","advance_amount"]) {
-        if (r[key] !== null && r[key] !== undefined && r[key] !== "") {
-            const n = Number(r[key]);
-            if (Number.isFinite(n)) return n;
+async function getResolvedUserPhoto(request) {
+    return resolveFirstDocumentValue(getUserPhotoReference(request));
+}
+
+function getAgencyName(request) {
+    const agency = request.agency || {};
+
+    return (
+        agency.agency_name ||
+        agency.name ||
+        request.agency_name ||
+        (request.agency_id ? request.agency_id : "Not assigned")
+    );
+}
+
+function getCompanyName(request) {
+    return (
+        request.lpg_company ||
+        request.company_name ||
+        request.agency?.lpg_company ||
+        "—"
+    );
+}
+
+function getCity(request) {
+    return request.city || request.district || request.profile?.city || "—";
+}
+
+function getPaymentAmount(request) {
+    for (const key of [
+        "total_payable",
+        "total_amount",
+        "cylinder_amount",
+        "advance_amount"
+    ]) {
+        const value = request[key];
+
+        if (value !== null && value !== undefined && value !== "") {
+            const number = Number(value);
+            if (Number.isFinite(number)) return number;
         }
     }
+
     return 0;
 }
 
-function getPaymentApproval(r) {
-    return normalizeApproval(r.payment_verification_status);
+function getPaymentApproval(request) {
+    return normalizeApproval(
+        request.latest_payment?.verification_status ||
+        request.payment_verification_status
+    );
 }
+
+function getLatestPaymentStatus(request) {
+    return (
+        request.latest_payment?.payment_status ||
+        request.payment_status ||
+        "pending"
+    );
+}
+
+function getLatestPaymentAmount(request) {
+    const value = request.latest_payment?.payment_amount;
+
+    if (value !== null && value !== undefined && value !== "") {
+        return Number(value) || 0;
+    }
+
+    return getPaymentAmount(request);
+}
+
+function getLatestPaymentReference(request) {
+    return (
+        request.latest_payment?.transaction_id ||
+        request.latest_payment?.payment_reference ||
+        request.payment_transaction_id ||
+        request.payment_reference ||
+        "Not provided"
+    );
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
 
 function openPage(page) {
     const pages = {
-        dashboard:"owner-dashboard.html",
-        users:"owner-users.html",
-        agencies:"owner-agencies.html",
-        companies:"owner-companies.html",
-        "pending-approvals":"owner-pending-approvals.html",
-        requests:"owner-requests.html",
-        payments:"owner-payments.html",
-        reports:"owner-reports.html",
-        "request-details":"owner-request-details.html",
-        "payment-details":"owner-payment-details.html",
-        "agency-details":"owner-agency-details.html",
-        deliveries:"owner-deliveries.html",
-        repayments:"owner-repayments.html",
-        notifications:"owner-notifications.html",
-        slips:"owner-slips.html",
-        profile:"owner-profile.html",
-        settings:"owner-settings.html"
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        "pending-approvals": "owner-pending-approvals.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        "request-details": "owner-request-details.html",
+        "payment-details": "owner-payment-details.html",
+        "agency-details": "owner-agency-details.html",
+        deliveries: "owner-deliveries.html",
+        repayments: "owner-repayments.html",
+        notifications: "owner-notifications.html",
+        slips: "owner-slips.html",
+        profile: "owner-profile.html",
+        settings: "owner-settings.html"
     };
+
     if (pages[page]) window.location.href = pages[page];
 }
 
@@ -712,131 +1049,273 @@ document.querySelectorAll("[data-page]").forEach(button => {
     button.addEventListener("click", () => openPage(button.dataset.page));
 });
 
-$("menuBtn").addEventListener("click", () => {
-    $("sidebar").classList.toggle("open");
-    $("overlay").classList.toggle("show");
-});
+if ($("menuBtn")) {
+    $("menuBtn").addEventListener("click", () => {
+        $("sidebar")?.classList.toggle("open");
+        $("overlay")?.classList.toggle("show");
+    });
+}
 
-$("overlay").addEventListener("click", () => {
-    $("sidebar").classList.remove("open");
-    $("overlay").classList.remove("show");
-});
+if ($("overlay")) {
+    $("overlay").addEventListener("click", () => {
+        $("sidebar")?.classList.remove("open");
+        $("overlay")?.classList.remove("show");
+    });
+}
+
+/* =========================================================
+   OWNER AUTHENTICATION
+   ========================================================= */
 
 async function getCurrentOwner() {
-    const {data,error} = await supabaseClient.auth.getUser();
+    const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
-    return data?.user || null;
+
+    if (!data?.session?.user) return null;
+
+    const { data: userData, error: userError } =
+        await supabaseClient.auth.getUser();
+
+    if (userError) throw userError;
+
+    return userData?.user || null;
+}
+
+function redirectToOwnerLogin(message) {
+    if (redirectStarted) return;
+    redirectStarted = true;
+
+    if (message) showToast("Owner Login Required", message);
+
+    setTimeout(() => {
+        window.location.replace("owner-login.html");
+    }, 1000);
 }
 
 async function requireOwner() {
     try {
         const user = await getCurrentOwner();
-        currentOwnerId = user?.id || null;
 
         if (!user) {
-            showToast("Login Required","Please login to the EGC Owner Panel.");
-            setTimeout(() => window.location.replace("owner-login.html"), 1000);
+            currentOwnerId = null;
+
+            console.error("EGC Owner Auth: no active session.", {
+                expectedStorageKey: OWNER_STORAGE_KEY,
+                currentOrigin: window.location.origin
+            });
+
+            redirectToOwnerLogin(
+                "Your Owner session was not found. Please log in again."
+            );
+
             return null;
         }
+
+        currentOwnerId = user.id;
         return user;
     } catch (error) {
-        console.error("Session error:", error);
-        showToast("Session Error", error.message || "Please login again.");
-        setTimeout(() => window.location.replace("owner-login.html"), 1200);
+        console.error("EGC Owner Auth verification failed:", error);
+
+        showToast(
+            "Session Verification Failed",
+            error?.message || "Could not verify the current session."
+        );
+
+        redirectToOwnerLogin();
         return null;
     }
 }
 
+/* =========================================================
+   COUNTERS
+   ========================================================= */
+
 function updateCounters() {
-    $("totalRequests").textContent = requests.length;
-    $("pendingRequests").textContent = requests.filter(r =>
-        normalizeApproval(r.owner_approval) === "pending" &&
-        String(r.status || "pending").toLowerCase() !== "cancelled"
-    ).length;
-    $("processingRequests").textContent = requests.filter(r =>
-        String(r.status || "").toLowerCase() === "processing"
-    ).length;
-    $("completedRequests").textContent = requests.filter(r =>
-        ["completed","delivered"].includes(String(r.status || "").toLowerCase())
-    ).length;
+    if ($("totalRequests")) {
+        $("totalRequests").textContent = requests.length;
+    }
+
+    if ($("pendingRequests")) {
+        $("pendingRequests").textContent = requests.filter(request =>
+            normalizeApproval(request.owner_approval) === "pending" &&
+            String(request.status || "pending").toLowerCase() !== "cancelled"
+        ).length;
+    }
+
+    if ($("processingRequests")) {
+        $("processingRequests").textContent = requests.filter(request =>
+            String(request.status || "").toLowerCase() === "processing"
+        ).length;
+    }
+
+    if ($("completedRequests")) {
+        $("completedRequests").textContent = requests.filter(request =>
+            ["completed", "delivered"].includes(
+                String(request.status || "").toLowerCase()
+            )
+        ).length;
+    }
 }
+
+/* =========================================================
+   LOAD RELATED DATA
+   ========================================================= */
 
 async function attachRelatedData() {
     if (!requests.length) return;
 
-    const userIds = [...new Set(requests.map(r => r.user_id).filter(Boolean))];
-    const agencyIds = [...new Set(requests.map(r => r.agency_id).filter(Boolean))];
+    const userIds = [
+        ...new Set(requests.map(request => request.user_id).filter(Boolean))
+    ];
+
+    const agencyIds = [
+        ...new Set(requests.map(request => request.agency_id).filter(Boolean))
+    ];
+
+    const requestIds = requests.map(request => request.id).filter(Boolean);
 
     let profiles = [];
     let agencies = [];
+    let payments = [];
 
     if (userIds.length) {
-        const {data,error} = await supabaseClient
-            .from("profiles").select("*").in("id",userIds);
+        const { data, error } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .in("id", userIds);
 
         if (error) console.warn("Profiles unavailable:", error.message);
         else profiles = data || [];
     }
 
     if (agencyIds.length) {
-        const {data,error} = await supabaseClient
-            .from("agencies").select("*").in("id",agencyIds);
+        const { data, error } = await supabaseClient
+            .from("agencies")
+            .select("*")
+            .in("id", agencyIds);
 
         if (error) console.warn("Agencies unavailable:", error.message);
         else agencies = data || [];
     }
 
-    const profileMap = new Map(profiles.map(p => [p.id,p]));
-    const agencyMap = new Map(agencies.map(a => [a.id,a]));
+    if (requestIds.length) {
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .in("request_id", requestIds)
+            .order("created_at", { ascending: false });
 
-    requests = requests.map(r => ({
-        ...r,
-        profile:profileMap.get(r.user_id) || {},
-        agency:agencyMap.get(r.agency_id) || {}
+        if (error) console.warn("Payment records unavailable:", error.message);
+        else payments = data || [];
+    }
+
+    const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
+    const agencyMap = new Map(agencies.map(agency => [agency.id, agency]));
+    const paymentMap = new Map();
+
+    for (const payment of payments) {
+        if (!paymentMap.has(payment.request_id)) {
+            paymentMap.set(payment.request_id, payment);
+        }
+    }
+
+    requests = requests.map(request => ({
+        ...request,
+        profile: profileMap.get(request.user_id) || {},
+        agency: agencyMap.get(request.agency_id) || {},
+        latest_payment: paymentMap.get(request.id) || null
     }));
 }
 
+/* =========================================================
+   LOAD REQUESTS
+   ========================================================= */
+
 async function loadRequests() {
-    if (loadingRequests) return;
+    if (loadingRequests) {
+        requestsReloadQueued = true;
+        return;
+    }
+
     loadingRequests = true;
-    requestTableBody.innerHTML =
-        '<tr><td colspan="18" class="loading">Loading requests...</td></tr>';
+
+    if (requestTableBody) {
+        requestTableBody.innerHTML =
+            '<tr><td colspan="18" class="loading">Loading requests...</td></tr>';
+    }
 
     try {
-        const {data,error} = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .select("*")
-            .order("created_at",{ascending:false});
+            .order("created_at", { ascending: false });
 
         if (error) throw error;
 
         requests = data || [];
         await attachRelatedData();
+
         updateCounters();
         renderRequests();
     } catch (error) {
         console.error("Request loading error:", error);
-        requestTableBody.innerHTML =
-            `<tr><td colspan="18" class="empty">Unable to load requests.<br>${escapeHtml(error.message || "Check Supabase permissions and database columns.")}</td></tr>`;
+
+        if (requestTableBody) {
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td colspan="18" class="empty">
+                        Unable to load requests.<br>
+                        ${escapeHtml(error.message || "Check Supabase permissions and database columns.")}
+                    </td>
+                </tr>`;
+        }
+
+        showToast(
+            "Requests Could Not Load",
+            error.message || "Check your database permissions."
+        );
     } finally {
         loadingRequests = false;
+
+        if (requestsReloadQueued) {
+            requestsReloadQueued = false;
+            void loadRequests();
+        }
     }
 }
 
-function renderRequests() {
-    const search = $("searchInput").value.trim().toLowerCase();
-    const filter = $("statusFilter").value.trim().toLowerCase();
+/* =========================================================
+   REQUEST TABLE
+   ========================================================= */
 
-    const filtered = requests.filter(r => {
+function renderRequests() {
+    if (!requestTableBody) return;
+
+    const search = ($("searchInput")?.value || "").trim().toLowerCase();
+    const filter = ($("statusFilter")?.value || "").trim().toLowerCase();
+
+    const filtered = requests.filter(request => {
         const text = [
-            getUserId(r),r.request_number,getUserName(r),getUserMobile(r),
-            getUserEmail(r),getCompanyName(r),getAgencyName(r),getCity(r),
-            r.status,r.payment_status,r.payment_verification_status,
-            r.owner_approval,r.agency_status,r.delivery_status
+            getUserId(request),
+            request.request_number,
+            getUserName(request),
+            getUserMobile(request),
+            getUserEmail(request),
+            getCompanyName(request),
+            getAgencyName(request),
+            getCity(request),
+            request.status,
+            getLatestPaymentStatus(request),
+            getPaymentApproval(request),
+            request.owner_approval,
+            request.agency_status,
+            request.delivery_status
         ].join(" ").toLowerCase();
 
-        const status = String(r.status || "pending").toLowerCase();
-        return (!search || text.includes(search)) && (!filter || status === filter);
+        const status = String(request.status || "pending").toLowerCase();
+
+        return (!search || text.includes(search)) &&
+            (!filter || status === filter);
     });
 
     if (!filtered.length) {
@@ -845,165 +1324,265 @@ function renderRequests() {
         return;
     }
 
-    requestTableBody.innerHTML = filtered.map(r => {
-        const photo = getUserPhoto(r);
-        const ownerApproval = normalizeApproval(r.owner_approval);
-        const paymentApproval = getPaymentApproval(r);
-        const id = escapeHtml(r.id);
+    requestTableBody.innerHTML = filtered.map(request => {
+        const ownerApproval = normalizeApproval(request.owner_approval);
+        const paymentApproval = getPaymentApproval(request);
+        const id = escapeHtml(request.id);
 
-        const photoHtml = photo
-            ? `<img src="${escapeHtml(photo)}" class="user-photo" alt="User photo" data-preview="${escapeHtml(photo)}">`
-            : '<div class="user-photo-fallback">👤</div>';
-
+        /*
+         The photo resolver is asynchronous, so the row starts with
+         a placeholder. Once the signed URL is ready, it is inserted.
+        */
         return `
-        <tr>
-            <td><div class="request-number">${escapeHtml(r.request_number || r.id)}</div></td>
-            <td><span class="user-id">${escapeHtml(getUserId(r))}</span></td>
-            <td>
-                <div class="user-box">
-                    ${photoHtml}
-                    <div>
-                        <div class="user-name">${escapeHtml(getUserName(r))}</div>
-                        <div class="user-email">${escapeHtml(getUserEmail(r))}</div>
+            <tr>
+                <td><div class="request-number">${escapeHtml(request.request_number || request.id)}</div></td>
+                <td><span class="user-id">${escapeHtml(getUserId(request))}</span></td>
+                <td>
+                    <div class="user-box">
+                        <div class="user-photo-fallback" data-user-photo="${id}">👤</div>
+                        <div>
+                            <div class="user-name">${escapeHtml(getUserName(request))}</div>
+                            <div class="user-email">${escapeHtml(getUserEmail(request))}</div>
+                        </div>
                     </div>
-                </div>
-            </td>
-            <td>${escapeHtml(getUserMobile(r))}</td>
-            <td>${escapeHtml(getUserEmail(r))}</td>
-            <td>${escapeHtml(getCompanyName(r))}</td>
-            <td>${escapeHtml(getAgencyName(r))}</td>
-            <td>${escapeHtml(getCity(r))}</td>
-            <td>${formatDate(r.created_at || r.request_date)}</td>
-            <td>${escapeHtml(r.quantity ?? 1)}</td>
-            <td class="money">${formatMoney(getPaymentAmount(r))}</td>
-            <td>${badgeHtml(r.payment_status || "pending")}</td>
-            <td>${badgeHtml(paymentApproval)}</td>
-            <td>${badgeHtml(ownerApproval)}</td>
-            <td>${badgeHtml(r.agency_status || "waiting")}</td>
-            <td>${badgeHtml(r.delivery_status || "pending")}</td>
-            <td><span class="status ${getRequestStatusClass(r.status)}">${escapeHtml(displayStatusText(r.status || "Pending"))}</span></td>
-            <td>
-                <div class="action-wrap">
-                    <button class="action-btn details-btn" type="button"
-                        data-action="documents" data-id="${id}" title="View documents">👁️</button>
-
-                    <button class="action-btn approve-action-btn" type="button"
-                        data-action="request-approval" data-id="${id}" title="Request approval">✅ Request</button>
-
-                    <button class="action-btn payment-action-btn" type="button"
-                        data-action="payment-approval" data-id="${id}" title="Payment approval">💳 Payment</button>
-
-                    <button class="action-btn edit-btn" type="button"
-                        data-action="edit" data-id="${id}" title="Edit request">✏️</button>
-
-                    <button class="action-btn delete-btn" type="button"
-                        data-action="delete" data-id="${id}" title="Delete request">🗑️</button>
-                </div>
-            </td>
-        </tr>`;
+                </td>
+                <td>${escapeHtml(getUserMobile(request))}</td>
+                <td>${escapeHtml(getUserEmail(request))}</td>
+                <td>${escapeHtml(getCompanyName(request))}</td>
+                <td>${escapeHtml(getAgencyName(request))}</td>
+                <td>${escapeHtml(getCity(request))}</td>
+                <td>${formatDate(request.created_at || request.request_date)}</td>
+                <td>${escapeHtml(request.quantity ?? 1)}</td>
+                <td class="money">${formatMoney(getLatestPaymentAmount(request))}</td>
+                <td>${badgeHtml(getLatestPaymentStatus(request))}</td>
+                <td>${badgeHtml(paymentApproval)}</td>
+                <td>${badgeHtml(ownerApproval)}</td>
+                <td>${badgeHtml(request.agency_status || "waiting")}</td>
+                <td>${badgeHtml(request.delivery_status || "pending")}</td>
+                <td>
+                    <span class="status ${getRequestStatusClass(request.status)}">
+                        ${escapeHtml(displayStatusText(request.status || "Pending"))}
+                    </span>
+                </td>
+                <td>
+                    <div class="action-wrap">
+                        <button class="action-btn details-btn" type="button" data-action="documents" data-id="${id}" title="View documents">👁️</button>
+                        <button class="action-btn approve-action-btn" type="button" data-action="request-approval" data-id="${id}" title="Request approval">✅ Request</button>
+                        <button class="action-btn payment-action-btn" type="button" data-action="payment-approval" data-id="${id}" title="Payment approval">💳 Payment</button>
+                        <button class="action-btn edit-btn" type="button" data-action="edit" data-id="${id}" title="Edit request">✏️</button>
+                        <button class="action-btn delete-btn" type="button" data-action="delete" data-id="${id}" title="Delete request">🗑️</button>
+                    </div>
+                </td>
+            </tr>`;
     }).join("");
 
-    requestTableBody.querySelectorAll("img.user-photo").forEach(img => {
+    /*
+     Resolve customer profile photos after the table is rendered.
+    */
+    filtered.forEach(async request => {
+        const placeholder = requestTableBody.querySelector(
+            `[data-user-photo="${CSS.escape(String(request.id))}"]`
+        );
+
+        if (!placeholder) return;
+
+        const resolved = await getResolvedUserPhoto(request);
+
+        if (!resolved || !placeholder.isConnected) return;
+
+        const img = document.createElement("img");
+        img.className = "user-photo";
+        img.alt = "User photo";
+        img.src = resolved.url;
+        img.dataset.preview = resolved.url;
+
         img.addEventListener("error", () => {
-            const fallback = document.createElement("div");
-            fallback.className = "user-photo-fallback";
-            fallback.textContent = "👤";
-            img.replaceWith(fallback);
-        }, {once:true});
+            img.replaceWith(makePhotoFallback());
+        }, { once: true });
+
+        placeholder.replaceWith(img);
     });
 }
 
-$("searchInput").addEventListener("input", renderRequests);
-$("statusFilter").addEventListener("change", renderRequests);
+function makePhotoFallback() {
+    const div = document.createElement("div");
+    div.className = "user-photo-fallback";
+    div.textContent = "👤";
+    return div;
+}
 
-requestTableBody.addEventListener("click", event => {
-    const preview = event.target.closest("[data-preview]");
-    if (preview) {
-        showImagePreview(preview.dataset.preview);
+if ($("searchInput")) {
+    $("searchInput").addEventListener("input", renderRequests);
+}
+
+if ($("statusFilter")) {
+    $("statusFilter").addEventListener("change", renderRequests);
+}
+
+if (requestTableBody) {
+    requestTableBody.addEventListener("click", event => {
+        const preview = event.target.closest("[data-preview]");
+
+        if (preview) {
+            showImagePreview(preview.dataset.preview);
+            return;
+        }
+
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+
+        const request = requests.find(
+            item => String(item.id) === String(button.dataset.id)
+        );
+
+        if (!request) return;
+
+        switch (button.dataset.action) {
+            case "documents":
+                void openDocumentsModal(request);
+                break;
+            case "request-approval":
+                openRequestApprovalModal(request);
+                break;
+            case "payment-approval":
+                void openPaymentApprovalModal(request);
+                break;
+            case "edit":
+                openEditModal(request);
+                break;
+            case "delete":
+                openDeleteModal(request);
+                break;
+        }
+    });
+}
+
+/* =========================================================
+   GENERAL MODAL
+   ========================================================= */
+
+function openModal(title, subtitle, html) {
+    if (!$("appModal")) {
+        showToast("Modal Not Found", "Check the appModal element in your HTML.");
         return;
     }
 
-    const button = event.target.closest("[data-action]");
-    if (!button) return;
+    if ($("modalTitle")) $("modalTitle").textContent = title;
+    if ($("modalSubtitle")) $("modalSubtitle").textContent = subtitle || "";
+    if ($("modalContent")) $("modalContent").innerHTML = html;
 
-    const request = requests.find(r => String(r.id) === String(button.dataset.id));
-    if (!request) return;
-
-    switch (button.dataset.action) {
-        case "documents": openDocumentsModal(request); break;
-        case "request-approval": openRequestApprovalModal(request); break;
-        case "payment-approval": openPaymentApprovalModal(request); break;
-        case "edit": openEditModal(request); break;
-        case "delete": openDeleteModal(request); break;
-    }
-});
-
-function openModal(title,subtitle,html) {
-    modalTitle.textContent = title;
-    modalSubtitle.textContent = subtitle || "";
-    modalContent.innerHTML = html;
-    appModal.classList.add("show");
+    $("appModal").classList.add("show");
 }
 
 function closeModal() {
-    appModal.classList.remove("show");
-    modalContent.innerHTML = "";
+    $("appModal")?.classList.remove("show");
+
+    if ($("modalContent")) {
+        $("modalContent").innerHTML = "";
+    }
 }
 
-$("modalClose").addEventListener("click", closeModal);
-appModal.addEventListener("click", e => {
-    if (e.target === appModal) closeModal();
+if ($("modalClose")) {
+    $("modalClose").addEventListener("click", closeModal);
+}
+
+if ($("appModal")) {
+    $("appModal").addEventListener("click", event => {
+        if (event.target === $("appModal")) closeModal();
+    });
+}
+
+document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+
+    closeModal();
+    $("imageModal")?.classList.remove("show");
+    $("sidebar")?.classList.remove("open");
+    $("overlay")?.classList.remove("show");
+    $("logoutModal")?.classList.remove("show");
 });
 
-document.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
-        closeModal();
-        $("imageModal").classList.remove("show");
-        $("sidebar").classList.remove("open");
-        $("overlay").classList.remove("show");
-        $("logoutModal").classList.remove("show");
-    }
-});
+/* =========================================================
+   IMAGE PREVIEW
+   ========================================================= */
 
 function showImagePreview(src) {
-    if (!src) return;
+    if (!src || !$("largeImage") || !$("imageModal")) return;
+
+    $("largeImage").onerror = () => {
+        showToast(
+            "Image Could Not Open",
+            "The image URL may have expired or the Storage path may be incorrect."
+        );
+    };
+
     $("largeImage").src = src;
     $("imageModal").classList.add("show");
 }
 
-$("imageClose").addEventListener("click", () => {
-    $("imageModal").classList.remove("show");
-});
-$("imageModal").addEventListener("click", e => {
-    if (e.target === $("imageModal")) $("imageModal").classList.remove("show");
-});
-
-function userProfileCard(r) {
-    const photo = getUserPhoto(r);
-    return `
-    <div class="user-profile-view">
-        ${photo
-            ? `<img src="${escapeHtml(photo)}" alt="Customer photo" data-preview="${escapeHtml(photo)}">`
-            : '<div class="user-photo-fallback" style="width:88px;height:88px;font-size:30px">👤</div>'}
-        <div>
-            <h3>${escapeHtml(getUserName(r))}</h3>
-            <p>EGC User ID: ${escapeHtml(getUserId(r))}</p>
-            <p>${escapeHtml(getUserMobile(r))} · ${escapeHtml(getUserEmail(r))}</p>
-            <p>Request: ${escapeHtml(r.request_number || r.id)}</p>
-        </div>
-    </div>`;
+if ($("imageClose")) {
+    $("imageClose").addEventListener("click", () => {
+        $("imageModal")?.classList.remove("show");
+    });
 }
 
-/* -------------------------------------------------------
+if ($("imageModal")) {
+    $("imageModal").addEventListener("click", event => {
+        if (event.target === $("imageModal")) {
+            $("imageModal").classList.remove("show");
+        }
+    });
+}
+
+/* =========================================================
+   CUSTOMER PROFILE CARD
+   ========================================================= */
+
+function userProfileCard(request) {
+    return `
+        <div class="user-profile-view">
+            <div class="user-photo-fallback" data-customer-profile-photo="${escapeHtml(request.id)}"
+                 style="width:88px;height:88px;font-size:30px">👤</div>
+            <div>
+                <h3>${escapeHtml(getUserName(request))}</h3>
+                <p>EGC User ID: ${escapeHtml(getUserId(request))}</p>
+                <p>${escapeHtml(getUserMobile(request))} · ${escapeHtml(getUserEmail(request))}</p>
+                <p>Request: ${escapeHtml(request.request_number || request.id)}</p>
+            </div>
+        </div>`;
+}
+
+async function hydrateCustomerProfilePhoto(request) {
+    const placeholder = $("modalContent")?.querySelector(
+        `[data-customer-profile-photo="${CSS.escape(String(request.id))}"]`
+    );
+
+    if (!placeholder) return;
+
+    const resolved = await getResolvedUserPhoto(request);
+
+    if (!resolved || !placeholder.isConnected) return;
+
+    const img = document.createElement("img");
+    img.src = resolved.url;
+    img.alt = "Customer photo";
+    img.dataset.preview = resolved.url;
+
+    img.addEventListener("error", () => {
+        img.replaceWith(makePhotoFallback());
+    }, { once: true });
+
+    placeholder.replaceWith(img);
+}
+
+/* =========================================================
    REQUEST APPROVAL
-   This function updates owner_approval only.
-   It does not update payment_status or payment_verification_status.
-------------------------------------------------------- */
+   ========================================================= */
 
-function openRequestApprovalModal(r) {
-    const current = normalizeApproval(r.owner_approval);
+function openRequestApprovalModal(request) {
+    const current = normalizeApproval(request.owner_approval);
 
-    const html = userProfileCard(r) + `
+    const html = userProfileCard(request) + `
         <div class="payment-summary">
             <div class="summary-item">
                 <div class="summary-label">Current Request Approval</div>
@@ -1011,7 +1590,7 @@ function openRequestApprovalModal(r) {
             </div>
             <div class="summary-item">
                 <div class="summary-label">Current Payment Approval</div>
-                <div class="summary-value">${escapeHtml(displayStatusText(getPaymentApproval(r)))}</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(getPaymentApproval(request)))}</div>
             </div>
         </div>
 
@@ -1022,32 +1601,45 @@ function openRequestApprovalModal(r) {
 
         <div class="form-field" style="margin-top:14px">
             <label for="requestApprovalNote">Request Approval Note</label>
-            <textarea id="requestApprovalNote" placeholder="Write a note or rejection reason...">${escapeHtml(r.owner_note || "")}</textarea>
+            <textarea id="requestApprovalNote" placeholder="Write a note or rejection reason...">${escapeHtml(request.owner_note || "")}</textarea>
         </div>
 
         <div class="modal-note">
             This action changes only <b>owner_approval</b>. Payment verification remains unchanged.
         </div>`;
 
-    openModal("Request Approval", "Manage the cylinder request independently of payment approval.", html);
+    openModal(
+        "Request Approval",
+        "Manage the cylinder request independently of payment approval.",
+        html
+    );
 
-    $("approveRequestBtn").addEventListener("click", () => saveRequestApproval(r,"approved"));
-    $("rejectRequestBtn").addEventListener("click", () => saveRequestApproval(r,"rejected"));
+    void hydrateCustomerProfilePhoto(request);
+
+    $("approveRequestBtn")?.addEventListener("click", () => {
+        void saveRequestApproval(request, "approved");
+    });
+
+    $("rejectRequestBtn")?.addEventListener("click", () => {
+        void saveRequestApproval(request, "rejected");
+    });
 }
 
-async function saveRequestApproval(r,decision) {
-    const btn = $(decision === "approved" ? "approveRequestBtn" : "rejectRequestBtn");
-    if (!btn) return;
+async function saveRequestApproval(request, decision) {
+    const button = $(decision === "approved" ? "approveRequestBtn" : "rejectRequestBtn");
+    const otherButton = $(decision === "approved" ? "rejectRequestBtn" : "approveRequestBtn");
 
-    const note = $("requestApprovalNote").value.trim();
-    const otherBtn = $(decision === "approved" ? "rejectRequestBtn" : "approveRequestBtn");
-    btn.disabled = true;
-    if (otherBtn) otherBtn.disabled = true;
+    if (!button) return;
+
+    const note = $("requestApprovalNote")?.value.trim() || "";
+
+    button.disabled = true;
+    if (otherButton) otherButton.disabled = true;
 
     try {
         const payload = {
-            owner_approval:decision,
-            owner_note:note || null
+            owner_approval: decision,
+            owner_note: note || null
         };
 
         if (decision === "approved") {
@@ -1060,10 +1652,10 @@ async function saveRequestApproval(r,decision) {
             payload.rejection_reason = note || "Rejected by Owner";
         }
 
-        const {error} = await supabaseClient
+        const { error } = await supabaseClient
             .from("cylinder_requests")
             .update(payload)
-            .eq("id",r.id);
+            .eq("id", request.id);
 
         if (error) throw error;
 
@@ -1072,92 +1664,181 @@ async function saveRequestApproval(r,decision) {
             decision === "approved" ? "Request Approved" : "Request Rejected",
             "Request approval updated. Payment approval was not changed."
         );
+
         await loadRequests();
     } catch (error) {
         console.error("Request approval error:", error);
         showToast("Request Approval Failed", error.message || "Could not update request approval.");
-        btn.disabled = false;
-        if (otherBtn) otherBtn.disabled = false;
+
+        button.disabled = false;
+        if (otherButton) otherButton.disabled = false;
     }
 }
 
-/* -------------------------------------------------------
-   PAYMENT APPROVAL
-   This function updates payment_verification_status only.
-   payment_status is retained as the submitted/payment status.
-------------------------------------------------------- */
+/* =========================================================
+   PAYMENT PROOFS
+   ========================================================= */
 
-function collectPaymentProofs(r) {
-    const items = [];
-    const add = (label,url) => {
-        if (typeof url !== "string" || !url.trim()) return;
-        const value = url.trim();
-        if (/^https?:\/\//i.test(value) || value.startsWith("data:image/")) {
-            if (!items.some(x => x.url === value)) items.push({label,url:value});
-        }
-    };
+function collectPaymentProofReferences(request) {
+    const payment = request.latest_payment || {};
 
-    add("Payment Screenshot 1",r.payment_screenshot_1);
-    add("Payment Screenshot 2",r.payment_screenshot_2);
-    add("Payment Screenshot 3",r.payment_screenshot_3);
-    add("Payment Proof",r.payment_screenshot || r.payment_screenshot_url || r.payment_proof_url);
-    return items;
+    const fields = [
+        ["Payment Screenshot", payment.screenshot_path],
+        ["Payment Screenshot", payment.payment_screenshot],
+        ["Payment Screenshot URL", payment.screenshot_url],
+        ["Payment Screenshot 1", request.payment_screenshot_1],
+        ["Payment Screenshot 2", request.payment_screenshot_2],
+        ["Payment Screenshot 3", request.payment_screenshot_3],
+        ["Payment Proof", request.payment_screenshot],
+        ["Payment Proof URL", request.payment_screenshot_url],
+        ["Payment Proof", request.payment_proof_url]
+    ];
+
+    return uniqueDocumentReferences(fields);
 }
 
-function openPaymentApprovalModal(r) {
-    const current = getPaymentApproval(r);
-    const proofs = collectPaymentProofs(r);
+function uniqueDocumentReferences(fields) {
+    const result = [];
+    const seen = new Set();
 
-    const proofHtml = proofs.length
-        ? `<div class="payment-proof-grid">${proofs.map(p => `
-            <div class="payment-proof">
-                <img src="${escapeHtml(p.url)}" alt="${escapeHtml(p.label)}" data-preview="${escapeHtml(p.url)}">
-                <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.label)} ↗</a>
-            </div>`).join("")}</div>`
-        : `<div class="modal-note">No payment screenshot URL was found in the known payment screenshot fields. Confirm the payment through your trusted payment records before approving.</div>`;
+    for (const [label, value] of fields) {
+        if (typeof value !== "string" || !value.trim()) continue;
 
-    const html = userProfileCard(r) + `
+        const reference = value.trim();
+        const key = `${label}:${reference}`;
+
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        result.push({ label, reference });
+    }
+
+    return result;
+}
+
+async function resolveDocumentList(references) {
+    return Promise.all(references.map(async item => ({
+        label: item.label,
+        reference: item.reference,
+        url: await resolveStorageUrl(item.reference)
+    })));
+}
+
+function renderDocumentCards(documents, emptyMessage) {
+    const valid = documents.filter(item => item.url);
+
+    if (!valid.length) {
+        return `<div class="modal-note">${escapeHtml(emptyMessage)}</div>`;
+    }
+
+    return `
+        <div class="document-grid">
+            ${valid.map(document => {
+                const isPdf = /\.pdf(?:$|\?)/i.test(document.reference) ||
+                    /\.pdf(?:$|\?)/i.test(document.url);
+
+                return `
+                    <div class="document-card">
+                        ${
+                            isPdf
+                                ? `<div class="document-file-icon">📄</div>`
+                                : `<img src="${escapeHtml(document.url)}"
+                                        alt="${escapeHtml(document.label)}"
+                                        data-preview="${escapeHtml(document.url)}"
+                                        loading="lazy"
+                                        onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                                   <div class="document-load-error" style="display:none">Preview unavailable</div>`
+                        }
+                        <div class="document-caption">${escapeHtml(document.label)}</div>
+                        <a class="document-link"
+                           href="${escapeHtml(document.url)}"
+                           target="_blank" rel="noopener noreferrer">
+                            ${isPdf ? "Open PDF ↗" : "Open document ↗"}
+                        </a>
+                    </div>`;
+            }).join("")}
+        </div>`;
+}
+
+/* =========================================================
+   PAYMENT APPROVAL
+   ========================================================= */
+
+async function openPaymentApprovalModal(request) {
+    const payment = request.latest_payment;
+
+    const current = normalizeApproval(
+        payment?.verification_status ||
+        request.payment_verification_status
+    );
+
+    const html = userProfileCard(request) + `
+        <div id="paymentApprovalContent">
+            <div class="modal-note">Loading payment proofs...</div>
+        </div>`;
+
+    openModal(
+        "Payment Approval",
+        "Verify the submitted payment independently of the cylinder request.",
+        html
+    );
+
+    void hydrateCustomerProfilePhoto(request);
+
+    const proofs = await resolveDocumentList(collectPaymentProofReferences(request));
+
+    const content = $("paymentApprovalContent");
+    if (!content) return;
+
+    content.innerHTML = `
         <div class="payment-summary">
             <div class="summary-item">
-                <div class="summary-label">Payment Amount / Total Payable</div>
-                <div class="summary-value">${formatMoney(r.total_payable ?? r.advance_amount ?? r.total_amount)}</div>
+                <div class="summary-label">Payment Record ID</div>
+                <div class="summary-value">${escapeHtml(payment?.id || "No payment record")}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Payment Amount</div>
+                <div class="summary-value">${formatMoney(payment?.payment_amount ?? getPaymentAmount(request))}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Payment Status</div>
-                <div class="summary-value">${escapeHtml(displayStatusText(r.payment_status || "pending"))}</div>
+                <div class="summary-value">${escapeHtml(displayStatusText(payment?.payment_status || request.payment_status || "pending"))}</div>
             </div>
             <div class="summary-item">
-                <div class="summary-label">Payment Approval</div>
+                <div class="summary-label">Verification Status</div>
                 <div class="summary-value">${escapeHtml(displayStatusText(current))}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Payment Method</div>
-                <div class="summary-value">${escapeHtml(displayStatusText(r.payment_method || "Not provided"))}</div>
+                <div class="summary-value">${escapeHtml(payment?.payment_method || request.payment_method || "Not provided")}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Transaction ID</div>
-                <div class="summary-value">${escapeHtml(r.payment_transaction_id || "Not provided")}</div>
+                <div class="summary-value">${escapeHtml(payment?.transaction_id || request.payment_transaction_id || "Not provided")}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Payment Reference</div>
-                <div class="summary-value">${escapeHtml(r.payment_reference || "Not provided")}</div>
+                <div class="summary-value">${escapeHtml(payment?.payment_reference || request.payment_reference || "Not provided")}</div>
             </div>
             <div class="summary-item">
-                <div class="summary-label">Submitted At</div>
-                <div class="summary-value">${escapeHtml(r.payment_submitted_at ? formatDate(r.payment_submitted_at) : "Not provided")}</div>
+                <div class="summary-label">Payment Date</div>
+                <div class="summary-value">${escapeHtml(formatDate(payment?.payment_date || payment?.created_at || request.payment_submitted_at))}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Payment Note</div>
-                <div class="summary-value">${escapeHtml(r.payment_note || "—")}</div>
+                <div class="summary-value">${escapeHtml(payment?.notes || request.payment_note || "—")}</div>
             </div>
         </div>
 
+        ${renderDocumentCards(
+            proofs,
+            "No payment screenshot could be opened. Check the stored screenshot path, bucket name, and Storage permissions."
+        )}
+
         <div class="form-field">
             <label for="paymentApprovalNote">Payment Approval Note</label>
-            <textarea id="paymentApprovalNote" placeholder="Record payment verification details or rejection reason...">${escapeHtml(r.payment_approval_note || "")}</textarea>
+            <textarea id="paymentApprovalNote" placeholder="Verification details or rejection reason...">${escapeHtml(payment?.owner_rejection_reason || payment?.notes || request.payment_approval_note || "")}</textarea>
         </div>
-
-        ${proofHtml}
 
         <div class="approval-choice" style="margin-top:16px">
             <button type="button" class="approve-option" id="approvePaymentBtn">✅ Approve Payment</button>
@@ -1165,208 +1846,554 @@ function openPaymentApprovalModal(r) {
         </div>
 
         <div class="modal-note">
-            This action changes <b>payment_verification_status</b> only. It does not approve or reject the cylinder request and does not change <b>payment_status</b>.
+            Approval updates the selected row in <b>public.payments</b>.
+            Request approval is not changed.
+            ${payment ? "" : " No payment row was found, so approval is disabled."}
         </div>`;
 
-    openModal("Payment Approval", "Verify the submitted payment independently of the cylinder request.", html);
+    if (!payment?.id) {
+        if ($("approvePaymentBtn")) $("approvePaymentBtn").disabled = true;
+        if ($("rejectPaymentBtn")) $("rejectPaymentBtn").disabled = true;
+        return;
+    }
 
-    $("approvePaymentBtn").addEventListener("click", () => savePaymentApproval(r,"approved"));
-    $("rejectPaymentBtn").addEventListener("click", () => savePaymentApproval(r,"rejected"));
+    $("approvePaymentBtn")?.addEventListener("click", () => {
+        void savePaymentApproval(request, "approved");
+    });
+
+    $("rejectPaymentBtn")?.addEventListener("click", () => {
+        void savePaymentApproval(request, "rejected");
+    });
 }
 
-async function savePaymentApproval(r,decision) {
-    const btn = $(decision === "approved" ? "approvePaymentBtn" : "rejectPaymentBtn");
-    const otherBtn = $(decision === "approved" ? "rejectPaymentBtn" : "approvePaymentBtn");
-    if (!btn) return;
+async function savePaymentApproval(request, decision) {
+    const button = $(decision === "approved" ? "approvePaymentBtn" : "rejectPaymentBtn");
+    const otherButton = $(decision === "approved" ? "rejectPaymentBtn" : "approvePaymentBtn");
+    const payment = request.latest_payment;
 
-    btn.disabled = true;
-    if (otherBtn) otherBtn.disabled = true;
+    if (!button || !payment?.id) {
+        showToast("Payment Record Missing", "No payment record exists for this request.");
+        return;
+    }
 
-    const note = $("paymentApprovalNote").value.trim();
+    if (!currentOwnerId) {
+        showToast("Owner Session Missing", "Please sign in again before approving payments.");
+        return;
+    }
+
+    if (!["approved", "rejected"].includes(decision)) {
+        showToast("Invalid Decision", "The selected payment decision is invalid.");
+        return;
+    }
+
+    const note = $("paymentApprovalNote")?.value.trim() || "";
+
+    if (decision === "rejected" && !note) {
+        showToast("Rejection Reason Required", "Write the reason for rejecting this payment.");
+        $("paymentApprovalNote")?.focus();
+        return;
+    }
+
+    button.disabled = true;
+    if (otherButton) otherButton.disabled = true;
+
+    const timestamp = new Date().toISOString();
 
     try {
-        /*
-          Dedicated payment verification field.
-          payment_status and owner_approval are intentionally not updated here.
-        */
-        const payload = {
-            payment_verification_status:decision,
-            payment_verified_at:decision === "approved" ? new Date().toISOString() : null
-        };
+        const payload = decision === "approved"
+            ? {
+                payment_status: "paid",
+                verification_status: "approved",
+                verified_at: timestamp,
+                verified_by: currentOwnerId,
+                owner_approved_at: timestamp,
+                owner_approved_by: currentOwnerId,
+                owner_rejection_reason: null,
+                notes: note || payment.notes || null
+            }
+            : {
+                verification_status: "rejected",
+                owner_rejection_reason: note,
+                notes: note
+            };
 
-        const {error} = await supabaseClient
-            .from("cylinder_requests")
+        const { data, error } = await supabaseClient
+            .from("payments")
             .update(payload)
-            .eq("id",r.id);
+            .eq("id", payment.id)
+            .eq("request_id", request.id)
+            .select("id, payment_status, verification_status");
 
         if (error) throw error;
 
+        if (!data || data.length === 0) {
+            throw new Error(
+                "No payment row was updated. Check Owner permissions and Supabase Row Level Security policies."
+            );
+        }
+
         closeModal();
+
         showToast(
             decision === "approved" ? "Payment Approved" : "Payment Rejected",
-            "Payment verification updated. Request approval was not changed."
+            decision === "approved"
+                ? "Payment status is now paid and verification is approved."
+                : "Verification was rejected. The payment status was left unchanged."
         );
+
         await loadRequests();
+        await loadNotifications();
     } catch (error) {
         console.error("Payment approval error:", error);
-        showToast(
-            "Payment Approval Failed",
-            error.message || "Could not update payment verification. Check the SQL column and Supabase permissions."
+        showToast("Payment Approval Failed", error.message || "Could not update payment verification.");
+
+        button.disabled = false;
+        if (otherButton) otherButton.disabled = false;
+    }
+}
+
+/* =========================================================
+   CUSTOMER DOCUMENTS — FIXED
+   ========================================================= */
+function collectDocumentReferences(request) {
+    const payment = request.latest_payment || {};
+    const fields = [];
+
+    // Profile photo
+    fields.push(
+        ...getUserPhotoReference(request).map(value => [
+            "Profile Photo",
+            value
+        ])
+    );
+
+    // Existing document references stored in the database
+    fields.push(
+        ["Aadhaar Front", request.aadhaar_front_photo],
+        ["Aadhaar Front", request.aadhaar_front],
+        ["Aadhaar Front", request.aadhaar_front_path],
+        ["Aadhaar Front", request.aadhaar_front_url],
+
+        ["Aadhaar Back", request.aadhaar_back_photo],
+        ["Aadhaar Back", request.aadhaar_back],
+        ["Aadhaar Back", request.aadhaar_back_path],
+        ["Aadhaar Back", request.aadhaar_back_url],
+
+        ["PAN Photo", request.pan_photo],
+        ["PAN Photo", request.pan_card_photo],
+        ["PAN Document", request.pan_path],
+        ["PAN Document", request.pan_url],
+
+        ["Gas Passbook", request.gas_passbook_photo],
+        ["Gas Passbook", request.gas_passbook],
+        ["Gas Passbook", request.gas_passbook_path],
+
+        ["Payment Screenshot", payment.screenshot_path],
+        ["Payment Screenshot", payment.payment_screenshot],
+        ["Payment Screenshot", payment.screenshot_url],
+        ["Payment Screenshot 1", request.payment_screenshot_1],
+        ["Payment Screenshot 2", request.payment_screenshot_2],
+        ["Payment Screenshot 3", request.payment_screenshot_3],
+        ["Payment Proof", request.payment_screenshot],
+        ["Payment Proof URL", request.payment_screenshot_url],
+        ["Payment Proof", request.payment_proof_url]
+    );
+
+    /*
+     * Fallback: try the actual file paths shown in Storage.
+     * This is used only when the customer UUID exists.
+     */
+    const userId = request.user_id;
+
+    if (userId) {
+        const folder = String(userId).replace(/^\/+|\/+$/g, "");
+
+        fields.push(
+            ["Aadhaar Front", `${folder}/aadhaar-front.jpg`],
+            ["Aadhaar Back", `${folder}/aadhaar-back.jpg`],
+            ["PAN Photo", `${folder}/pan-card.jpg`],
+            ["Gas Passbook", `${folder}/gas-passbook.jpg`],
+            ["Profile Photo", `${folder}/profile.jpg`]
         );
-        btn.disabled = false;
-        if (otherBtn) otherBtn.disabled = false;
     }
+
+    return uniqueDocumentReferences(fields);
 }
 
-/* DOCUMENTS */
+/* =========================================================
+   CUSTOMER DETAILS + AGENCY DETAILS + DOCUMENTS
+   Keeps user photo and verification documents
+   ========================================================= */
 
-function collectDocumentLinks(r) {
-    const docs = [];
-    const fields = [
-        ["Profile Photo",r.profile_photo || r.profile?.profile_photo],
-        ["Aadhaar Front",r.aadhaar_front_photo],
-        ["Aadhaar Back",r.aadhaar_back_photo],
-        ["PAN Photo",r.pan_photo],
-        ["Gas Passbook",r.gas_passbook_photo],
-        ["Payment Screenshot 1",r.payment_screenshot_1],
-        ["Payment Screenshot 2",r.payment_screenshot_2],
-        ["Payment Screenshot 3",r.payment_screenshot_3]
-    ];
+async function openDocumentsModal(request) {
+    const requestId = String(request.id);
 
-    for (const [label,value] of fields) {
-        if (typeof value !== "string" || !value.trim()) continue;
-        const url = value.trim();
-        if (/^https?:\/\//i.test(url) || url.startsWith("data:image/")) {
-            if (!docs.some(d => d.url === url)) docs.push({label,url});
-        }
+    openModal(
+        "Customer Details",
+        "Customer information, selected agency and verification documents.",
+        `
+            ${userProfileCard(request)}
+            <div class="modal-note">
+                Loading customer details and documents...
+            </div>
+        `
+    );
+
+    // Load the user's profile photo.
+    void hydrateCustomerProfilePhoto(request);
+
+    // USER ADDRESS: use only the request's own address fields.
+    const addressParts = [
+        request.address,
+        request.city,
+        request.district,
+        request.state
+    ]
+        .map(value => String(value || "").trim())
+        .filter(Boolean);
+
+    const fullAddress = [...new Set(addressParts)].join(", ") ||
+        "Address not provided";
+
+    // AGENCY DETAILS: use only the linked agency record.
+    const agency = request.agency || {};
+
+    const agencyName =
+        agency.agency_name ||
+        agency.name ||
+        agency.business_name ||
+        request.agency_name ||
+        "Agency name unavailable";
+
+    const agencyMobile =
+        agency.mobile ||
+        agency.mobile_number ||
+        agency.phone ||
+        agency.contact_number ||
+        "Not available";
+
+    const agencyEmail =
+        agency.email ||
+        agency.contact_email ||
+        "Not available";
+
+    const agencyAddress =
+        agency.address ||
+        agency.full_address ||
+        agency.location ||
+        "Not available";
+
+    // Resolve the stored documents using the existing Storage helper.
+    const references = collectDocumentReferences(request);
+    const documents = await resolveDocumentList(references);
+
+    // Do not overwrite another modal opened while documents were loading.
+    if (
+        !$("appModal")?.classList.contains("show") ||
+        $("modalTitle")?.textContent !== "Customer Details" ||
+        String(request.id) !== requestId
+    ) {
+        return;
     }
-    return docs;
-}
 
-function openDocumentsModal(r) {
-    const docs = collectDocumentLinks(r);
-    const html = userProfileCard(r) + `
-        <div class="payment-summary">
-            <div class="summary-item"><div class="summary-label">State</div><div class="summary-value">${escapeHtml(r.state || "—")}</div></div>
-            <div class="summary-item"><div class="summary-label">District</div><div class="summary-value">${escapeHtml(r.district || "—")}</div></div>
-            <div class="summary-item"><div class="summary-label">Aadhaar</div><div class="summary-value">${escapeHtml(r.aadhaar || "Not provided")}</div></div>
-            <div class="summary-item"><div class="summary-label">PAN</div><div class="summary-value">${escapeHtml(r.pan || "Not provided")}</div></div>
-            <div class="summary-item"><div class="summary-label">Scheme</div><div class="summary-value">${escapeHtml(r.scheme_name || "—")}</div></div>
-            <div class="summary-item"><div class="summary-label">Address</div><div class="summary-value">${escapeHtml(r.address || "—")}</div></div>
-        </div>
-        ${docs.length ? `<div class="document-grid">${docs.map(d => `
-            <div class="document-card">
-                <img src="${escapeHtml(d.url)}" alt="${escapeHtml(d.label)}" data-preview="${escapeHtml(d.url)}">
-                <div class="document-caption">${escapeHtml(d.label)}</div>
-                <a class="document-link" href="${escapeHtml(d.url)}" target="_blank" rel="noopener noreferrer">Open document ↗</a>
-            </div>`).join("")}</div>`
-            : `<div class="modal-note">No accessible document URL was found. If these fields contain private Supabase Storage paths rather than public URLs, a signed URL must be generated using the correct bucket and path.</div>`}`;
+    const documentHtml = renderDocumentCards(
+        documents,
+        "No accessible documents found. Check the saved file paths, users-documents bucket and Storage permissions."
+    );
 
-    openModal("Customer Documents", "Customer profile and verification details.", html);
-}
-
-/* EDIT REQUEST
-   Keep the edit action limited to columns known to exist in the supplied schema.
-   Approval fields are intentionally not editable from this general form.
-*/
-
-function openEditModal(r) {
     const html = `
-    <form id="editForm">
-        <div class="form-grid">
-            <div class="form-field"><label for="edit_request_number">Request Number</label><input id="edit_request_number" value="${escapeHtml(r.request_number || "")}" disabled></div>
-            <div class="form-field"><label for="edit_customer_name">Customer Name</label><input id="edit_customer_name" value="${escapeHtml(r.customer_name || "")}"></div>
-            <div class="form-field"><label for="edit_customer_mobile">Mobile</label><input id="edit_customer_mobile" value="${escapeHtml(r.customer_mobile || "")}"></div>
-            <div class="form-field"><label for="edit_customer_email">Email</label><input id="edit_customer_email" type="email" value="${escapeHtml(r.customer_email || "")}"></div>
-            <div class="form-field"><label for="edit_lpg_company">LPG Company</label><input id="edit_lpg_company" value="${escapeHtml(r.lpg_company || "")}"></div>
-            <div class="form-field"><label for="edit_city">City</label><input id="edit_city" value="${escapeHtml(r.city || "")}"></div>
-            <div class="form-field"><label for="edit_quantity">Quantity</label><input id="edit_quantity" type="number" min="1" step="1" value="${escapeHtml(r.quantity ?? 1)}" required></div>
-            <div class="form-field"><label for="edit_total_amount">Total Amount (₹)</label><input id="edit_total_amount" type="number" min="0" step="0.01" value="${escapeHtml(r.total_amount ?? 0)}" required></div>
-            <div class="form-field"><label for="edit_status">Request Status</label>
-                <select id="edit_status">
-                    ${["Pending","Processing","Completed","Cancelled"].map(s =>
-                        `<option value="${s}" ${String(r.status || "Pending").toLowerCase() === s.toLowerCase() ? "selected" : ""}>${s}</option>`
-                    ).join("")}
-                </select>
+        <!-- USER DETAILS -->
+        <section class="customer-details-section">
+            <h3 style="margin:0 0 14px;">👤 User Details</h3>
+
+            ${userProfileCard(request)}
+
+            <div class="payment-summary">
+
+                <div class="summary-item">
+                    <div class="summary-label">Full Name</div>
+                    <div class="summary-value">
+                        ${escapeHtml(getUserName(request))}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">EGC User ID</div>
+                    <div class="summary-value">
+                        ${escapeHtml(getUserId(request))}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Mobile Number</div>
+                    <div class="summary-value">
+                        ${escapeHtml(getUserMobile(request))}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Email Address</div>
+                    <div class="summary-value">
+                        ${escapeHtml(getUserEmail(request))}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Full Address</div>
+                    <div class="summary-value">
+                        ${escapeHtml(fullAddress)}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">LPG Company</div>
+                    <div class="summary-value">
+                        ${escapeHtml(getCompanyName(request))}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Scheme</div>
+                    <div class="summary-value">
+                        ${escapeHtml(
+                            request.scheme_name ||
+                            request.scheme ||
+                            "Not provided"
+                        )}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Request Number</div>
+                    <div class="summary-value">
+                        ${escapeHtml(request.request_number || request.id)}
+                    </div>
+                </div>
+
             </div>
-            <div class="form-field"><label for="edit_agency_status">Agency Status</label>
-                <select id="edit_agency_status">
-                    ${["waiting","assigned","processing","ready","out_for_delivery","delivered"].map(s =>
-                        `<option value="${s}" ${String(r.agency_status || "waiting").toLowerCase() === s ? "selected" : ""}>${displayStatusText(s)}</option>`
-                    ).join("")}
-                </select>
+        </section>
+
+        <!-- SEPARATE AGENCY DETAILS -->
+        <section class="agency-details-section"
+                 style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;">
+
+            <h3 style="margin:0 0 14px;">🏢 Selected LPG Agency</h3>
+
+            <div class="payment-summary">
+
+                <div class="summary-item">
+                    <div class="summary-label">Agency Name</div>
+                    <div class="summary-value">
+                        ${escapeHtml(agencyName)}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Agency Mobile</div>
+                    <div class="summary-value">
+                        ${escapeHtml(agencyMobile)}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Agency Email</div>
+                    <div class="summary-value">
+                        ${escapeHtml(agencyEmail)}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Agency Address</div>
+                    <div class="summary-value">
+                        ${escapeHtml(agencyAddress)}
+                    </div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Selected Agency ID</div>
+                    <div class="summary-value">
+                        ${escapeHtml(request.agency_id || "Not assigned")}
+                    </div>
+                </div>
+
             </div>
-            <div class="form-field full"><label for="edit_address">Address</label><textarea id="edit_address">${escapeHtml(r.address || "")}</textarea></div>
-            <div class="form-field full"><label for="edit_owner_note">Owner Note</label><textarea id="edit_owner_note">${escapeHtml(r.owner_note || "")}</textarea></div>
-        </div>
-        <div class="modal-note">Request approval and payment approval are not editable in this form. Use their separate action buttons.</div>
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
-            <button type="submit" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
-        </div>
-    </form>`;
+
+            <div class="modal-note">
+                Agency details come from the agency linked to this request.
+                Missing agency information must be checked in the agencies table.
+            </div>
+        </section>
+
+        <!-- CUSTOMER DOCUMENTS -->
+        <section class="customer-documents-section"
+                 style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;">
+
+            <h3 style="margin:0 0 14px;">📄 Customer Documents</h3>
+
+            <p style="color:#64748b;font-size:13px;margin-bottom:16px;">
+                Profile photo, Aadhaar images, PAN document, gas passbook
+                and available payment proofs.
+            </p>
+
+            ${documentHtml}
+
+        </section>
+    `;
+
+    openModal(
+        "Customer Details",
+        "User information, selected agency and verification documents.",
+        html
+    );
+
+    // Restore the customer photo after the final modal HTML is rendered.
+    void hydrateCustomerProfilePhoto(request);
+}
+/* =========================================================
+   EDIT REQUEST
+   ========================================================= */
+
+function openEditModal(request) {
+    const html = `
+        <form id="editForm">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="edit_request_number">Request Number</label>
+                    <input id="edit_request_number" value="${escapeHtml(request.request_number || "")}" disabled>
+                </div>
+                <div class="form-field">
+                    <label for="edit_customer_name">Customer Name</label>
+                    <input id="edit_customer_name" value="${escapeHtml(request.customer_name || "")}">
+                </div>
+                <div class="form-field">
+                    <label for="edit_customer_mobile">Mobile</label>
+                    <input id="edit_customer_mobile" value="${escapeHtml(request.customer_mobile || "")}">
+                </div>
+                <div class="form-field">
+                    <label for="edit_customer_email">Email</label>
+                    <input id="edit_customer_email" type="email" value="${escapeHtml(request.customer_email || "")}">
+                </div>
+                <div class="form-field">
+                    <label for="edit_lpg_company">LPG Company</label>
+                    <input id="edit_lpg_company" value="${escapeHtml(request.lpg_company || "")}">
+                </div>
+                <div class="form-field">
+                    <label for="edit_city">City</label>
+                    <input id="edit_city" value="${escapeHtml(request.city || "")}">
+                </div>
+                <div class="form-field">
+                    <label for="edit_quantity">Quantity</label>
+                    <input id="edit_quantity" type="number" min="1" step="1" value="${escapeHtml(request.quantity ?? 1)}" required>
+                </div>
+                <div class="form-field">
+                    <label for="edit_total_amount">Total Amount (₹)</label>
+                    <input id="edit_total_amount" type="number" min="0" step="0.01" value="${escapeHtml(request.total_amount ?? 0)}" required>
+                </div>
+                <div class="form-field">
+                    <label for="edit_status">Request Status</label>
+                    <select id="edit_status">
+                        ${["Pending", "Processing", "Completed", "Cancelled"].map(status => `
+                            <option value="${status}" ${String(request.status || "Pending").toLowerCase() === status.toLowerCase() ? "selected" : ""}>${status}</option>
+                        `).join("")}
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="edit_agency_status">Agency Status</label>
+                    <select id="edit_agency_status">
+                        ${["waiting", "assigned", "processing", "ready", "out_for_delivery", "delivered"].map(status => `
+                            <option value="${status}" ${String(request.agency_status || "waiting").toLowerCase() === status ? "selected" : ""}>${displayStatusText(status)}</option>
+                        `).join("")}
+                    </select>
+                </div>
+                <div class="form-field full">
+                    <label for="edit_address">Address</label>
+                    <textarea id="edit_address">${escapeHtml(request.address || "")}</textarea>
+                </div>
+                <div class="form-field full">
+                    <label for="edit_owner_note">Owner Note</label>
+                    <textarea id="edit_owner_note">${escapeHtml(request.owner_note || "")}</textarea>
+                </div>
+            </div>
+
+            <div class="modal-note">
+                Request approval and payment verification are not editable here.
+                Use their separate action buttons.
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+            </div>
+        </form>`;
 
     openModal("Edit Request", "Update supported request details.", html);
 
-    $("editForm").addEventListener("submit", async e => {
-        e.preventDefault();
+    if (!$("editForm")) return;
+
+    $("editForm").addEventListener("submit", async event => {
+        event.preventDefault();
 
         const quantity = Number($("edit_quantity").value);
         const total = Number($("edit_total_amount").value);
 
         if (!Number.isInteger(quantity) || quantity < 1) {
-            showToast("Invalid Quantity","Quantity must be a whole number greater than zero.");
-            return;
-        }
-        if (!Number.isFinite(total) || total < 0) {
-            showToast("Invalid Amount","Total amount cannot be negative.");
+            showToast("Invalid Quantity", "Quantity must be a whole number greater than zero.");
             return;
         }
 
-        const btn = $("saveEditBtn");
-        btn.disabled = true;
+        if (!Number.isFinite(total) || total < 0) {
+            showToast("Invalid Amount", "Total amount cannot be negative.");
+            return;
+        }
+
+        const button = $("saveEditBtn");
+        if (!button) return;
+
+        button.disabled = true;
 
         const payload = {
-            customer_name:$("edit_customer_name").value.trim() || null,
-            customer_mobile:$("edit_customer_mobile").value.trim() || null,
-            customer_email:$("edit_customer_email").value.trim() || null,
-            lpg_company:$("edit_lpg_company").value.trim() || null,
-            city:$("edit_city").value.trim() || null,
+            customer_name: $("edit_customer_name").value.trim() || null,
+            customer_mobile: $("edit_customer_mobile").value.trim() || null,
+            customer_email: $("edit_customer_email").value.trim() || null,
+            lpg_company: $("edit_lpg_company").value.trim() || null,
+            city: $("edit_city").value.trim() || null,
             quantity,
-            total_amount:total,
-            status:$("edit_status").value,
-            agency_status:$("edit_agency_status").value,
-            address:$("edit_address").value.trim() || null,
-            owner_note:$("edit_owner_note").value.trim() || null,
-            updated_at:new Date().toISOString()
+            total_amount: total,
+            status: $("edit_status").value,
+            agency_status: $("edit_agency_status").value,
+            address: $("edit_address").value.trim() || null,
+            owner_note: $("edit_owner_note").value.trim() || null,
+            updated_at: new Date().toISOString()
         };
 
         try {
-            const {error} = await supabaseClient
+            const { error } = await supabaseClient
                 .from("cylinder_requests")
                 .update(payload)
-                .eq("id",r.id);
+                .eq("id", request.id);
 
             if (error) throw error;
 
             closeModal();
-            showToast("Request Updated","Request details saved successfully.");
+            showToast("Request Updated", "Request details saved successfully.");
             await loadRequests();
         } catch (error) {
             console.error("Edit error:", error);
-            showToast("Update Failed",error.message || "Could not update request.");
-            btn.disabled = false;
+            showToast("Update Failed", error.message || "Could not update request.");
+            button.disabled = false;
         }
     });
 }
 
-/* DELETE REQUEST */
+/* =========================================================
+   DELETE REQUEST
+   ========================================================= */
 
-function openDeleteModal(r) {
-    const html = userProfileCard(r) + `
+function openDeleteModal(request) {
+    const html = userProfileCard(request) + `
         <div class="modal-note">
             This permanently deletes the request row if Supabase permissions allow it.
-            Make sure you understand the consequences before deleting financial or delivery-related records.
+            Check related payment, financial and delivery records before proceeding.
         </div>
         <div class="modal-actions">
             <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
@@ -1374,133 +2401,239 @@ function openDeleteModal(r) {
         </div>`;
 
     openModal("Delete Request?", "Confirm carefully before deleting.", html);
+    void hydrateCustomerProfilePhoto(request);
 
-    $("confirmDeleteBtn").addEventListener("click", async () => {
-        const btn = $("confirmDeleteBtn");
-        btn.disabled = true;
+    $("confirmDeleteBtn")?.addEventListener("click", async () => {
+        const button = $("confirmDeleteBtn");
+        button.disabled = true;
 
         try {
-            const {error} = await supabaseClient
+            const { error } = await supabaseClient
                 .from("cylinder_requests")
                 .delete()
-                .eq("id",r.id);
+                .eq("id", request.id);
 
             if (error) throw error;
 
             closeModal();
-            showToast("Request Deleted","Request row deleted successfully.");
+            showToast("Request Deleted", "Request row deleted successfully.");
             await loadRequests();
         } catch (error) {
             console.error("Delete error:", error);
-            showToast("Delete Failed",error.message || "Delete blocked by database permissions or linked records.");
-            btn.disabled = false;
+            showToast("Delete Failed", error.message || "Delete blocked by permissions or linked records.");
+            button.disabled = false;
         }
     });
 }
 
-modalContent.addEventListener("click", event => {
-    const close = event.target.closest("[data-close-modal]");
-    if (close) closeModal();
+/* =========================================================
+   MODAL DELEGATED ACTIONS
+   ========================================================= */
 
-    const preview = event.target.closest("[data-preview]");
-    if (preview) showImagePreview(preview.dataset.preview);
-});
+if ($("modalContent")) {
+    $("modalContent").addEventListener("click", event => {
+        const closeButton = event.target.closest("[data-close-modal]");
 
-/* NOTIFICATIONS */
+        if (closeButton) {
+            closeModal();
+            return;
+        }
+
+        const preview = event.target.closest("[data-preview]");
+
+        if (preview) {
+            showImagePreview(preview.dataset.preview);
+        }
+    });
+}
+
+/* =========================================================
+   NOTIFICATIONS
+   ========================================================= */
 
 async function loadNotifications() {
     try {
-        const {data,error} = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("notifications")
             .select("*")
-            .order("created_at",{ascending:false})
+            .order("created_at", { ascending: false })
             .limit(8);
 
         if (error) throw error;
 
         const rows = data || [];
-        $("notificationCount").textContent = String(rows.length);
-        $("notificationHeadCount").textContent = rows.length + " New";
 
-        $("notificationList").innerHTML = rows.length ? rows.map(n => `
-            <div class="notification-item">
-                <div class="notification-icon">🔔</div>
-                <div>
-                    <div class="notification-title">${escapeHtml(n.title || n.heading || "EGC Notification")}</div>
-                    <div class="notification-text">${escapeHtml(n.message || n.body || n.description || "")}</div>
-                    <div class="notification-time">${formatDate(n.created_at)}</div>
-                </div>
-            </div>`).join("") : '<div class="notification-empty">No notifications found.</div>';
+        if ($("notificationCount")) {
+            $("notificationCount").textContent = String(rows.length);
+        }
+
+        if ($("notificationHeadCount")) {
+            $("notificationHeadCount").textContent = rows.length + " New";
+        }
+
+        if ($("notificationList")) {
+            $("notificationList").innerHTML = rows.length
+                ? rows.map(notification => `
+                    <div class="notification-item">
+                        <div class="notification-icon">🔔</div>
+                        <div>
+                            <div class="notification-title">
+                                ${escapeHtml(notification.title || notification.heading || "EGC Notification")}
+                            </div>
+                            <div class="notification-text">
+                                ${escapeHtml(notification.message || notification.body || notification.description || "")}
+                            </div>
+                            <div class="notification-time">${formatDate(notification.created_at)}</div>
+                        </div>
+                    </div>
+                `).join("")
+                : '<div class="notification-empty">No notifications found.</div>';
+        }
     } catch (error) {
-        console.warn("Notifications unavailable:",error.message || error);
-        $("notificationCount").textContent = "0";
-        $("notificationHeadCount").textContent = "0 New";
-        $("notificationList").innerHTML = '<div class="notification-empty">Notifications are not available.</div>';
+        console.warn("Notifications unavailable:", error.message || error);
+
+        if ($("notificationCount")) $("notificationCount").textContent = "0";
+        if ($("notificationHeadCount")) $("notificationHeadCount").textContent = "0 New";
+
+        if ($("notificationList")) {
+            $("notificationList").innerHTML =
+                '<div class="notification-empty">Notifications are not available.</div>';
+        }
     }
 }
 
-$("notificationBtn").addEventListener("click", () => {
-    $("notificationPanel").classList.toggle("show");
-});
+if ($("notificationBtn")) {
+    $("notificationBtn").addEventListener("click", () => {
+        $("notificationPanel")?.classList.toggle("show");
+    });
+}
 
-document.addEventListener("click", e => {
-    if (!e.target.closest(".notification-wrap")) {
-        $("notificationPanel").classList.remove("show");
+document.addEventListener("click", event => {
+    if (!event.target.closest(".notification-wrap")) {
+        $("notificationPanel")?.classList.remove("show");
     }
 });
 
-/* LOGOUT */
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
-$("logoutBtn").addEventListener("click", () => $("logoutModal").classList.add("show"));
-$("logoutCancel").addEventListener("click", () => $("logoutModal").classList.remove("show"));
+if ($("logoutBtn")) {
+    $("logoutBtn").addEventListener("click", () => {
+        $("logoutModal")?.classList.add("show");
+    });
+}
 
-$("logoutModal").addEventListener("click", e => {
-    if (e.target === $("logoutModal")) $("logoutModal").classList.remove("show");
-});
+if ($("logoutCancel")) {
+    $("logoutCancel").addEventListener("click", () => {
+        $("logoutModal")?.classList.remove("show");
+    });
+}
 
-$("logoutConfirm").addEventListener("click", async () => {
-    const btn = $("logoutConfirm");
-    btn.disabled = true;
+if ($("logoutModal")) {
+    $("logoutModal").addEventListener("click", event => {
+        if (event.target === $("logoutModal")) {
+            $("logoutModal").classList.remove("show");
+        }
+    });
+}
 
-    try {
-        const {error} = await supabaseClient.auth.signOut();
-        if (error) throw error;
-        window.location.replace("owner-login.html");
-    } catch (error) {
-        showToast("Logout Failed",error.message || "Please try again.");
-        btn.disabled = false;
-    }
-});
+if ($("logoutConfirm")) {
+    $("logoutConfirm").addEventListener("click", async () => {
+        const button = $("logoutConfirm");
+        button.disabled = true;
 
-/* REALTIME */
+        try {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) throw error;
+
+            window.location.replace("owner-login.html");
+        } catch (error) {
+            console.error("Logout error:", error);
+            showToast("Logout Failed", error.message || "Please try again.");
+            button.disabled = false;
+        }
+    });
+}
+
+/* =========================================================
+   REALTIME
+   ========================================================= */
 
 function startRealtime() {
     if (realtimeChannel) return;
 
     realtimeChannel = supabaseClient
         .channel("owner-requests-live")
-        .on("postgres_changes", {
-            event:"*",
-            schema:"public",
-            table:"cylinder_requests"
-        }, async payload => {
-            if (payload.eventType === "INSERT") {
-                showToast("New Cylinder Request","A new request was received.");
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            async payload => {
+                if (payload.eventType === "INSERT") {
+                    showToast("New Cylinder Request", "A new request was received.");
+                }
+
+                signedUrlCache.clear();
+                await loadRequests();
             }
-            await loadRequests();
-        })
-        .subscribe(status => console.log("EGC Owner Requests Realtime:",status));
+        )
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            async () => {
+                signedUrlCache.clear();
+                await loadRequests();
+            }
+        )
+        .subscribe(status => {
+            console.log("EGC Owner Requests Realtime:", status);
+        });
 }
 
+/* =========================================================
+   AUTH STATE
+   ========================================================= */
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT" && !redirectStarted) {
+        redirectToOwnerLogin("Your session has ended. Please log in again.");
+        return;
+    }
+
+    if (event === "TOKEN_REFRESHED" && session?.user) {
+        currentOwnerId = session.user.id;
+    }
+});
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
 async function init() {
+    if (pageInitialized) return;
+    pageInitialized = true;
+
     const owner = await requireOwner();
     if (!owner) return;
 
-    await Promise.all([loadRequests(),loadNotifications()]);
+    await Promise.all([
+        loadRequests(),
+        loadNotifications()
+    ]);
+
     startRealtime();
 }
 
-init();
+void init();
 </script>
+
 </body>
 </html>

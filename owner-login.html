@@ -491,33 +491,40 @@ input::placeholder {
 <script>
 "use strict";
 
+/* =====================================================
+   EGC OWNER AUTH CONFIGURATION
+   सभी Owner pages पर यही Auth configuration रखें।
+===================================================== */
+
 const SUPABASE_URL =
     "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-/*
- * IMPORTANT:
- * This client does not persist a session in this login page.
- * We also do not check an existing session and do not redirect
- * to the dashboard automatically.
- *
- * A successful login is used only to validate the credentials.
- * We then sign out this temporary client and navigate to the
- * dashboard. The dashboard must implement its own authentication.
- */
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY,
     {
         auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
         }
     }
 );
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
 
 const loginForm = document.getElementById("loginForm");
 const emailInput = document.getElementById("email");
@@ -533,82 +540,118 @@ const resetEmail = document.getElementById("resetEmail");
 const resetBtn = document.getElementById("resetBtn");
 const resetMessage = document.getElementById("resetMessage");
 
+/* =====================================================
+   MESSAGE HELPERS
+===================================================== */
+
 function showMessage(text, type) {
+    if (!message) return;
+
     message.className = "message " + type;
     message.textContent = text;
 }
 
 function clearMessage() {
+    if (!message) return;
+
     message.className = "message";
     message.textContent = "";
 }
 
 function showResetMessage(text, type) {
+    if (!resetMessage) return;
+
     resetMessage.className = "message " + type;
     resetMessage.textContent = text;
 }
 
 function clearResetMessage() {
+    if (!resetMessage) return;
+
     resetMessage.className = "message";
     resetMessage.textContent = "";
 }
 
-function clearLoginFields() {
-    emailInput.value = "";
-    passwordInput.value = "";
+/* =====================================================
+   PASSWORD FIELD
+===================================================== */
 
-    passwordInput.type = "password";
-    passwordToggle.textContent = "👁";
-    passwordToggle.setAttribute("aria-label", "Show password");
+function clearLoginFields() {
+    if (emailInput) {
+        emailInput.value = "";
+    }
+
+    if (passwordInput) {
+        passwordInput.value = "";
+        passwordInput.type = "password";
+    }
+
+    if (passwordToggle) {
+        passwordToggle.textContent = "👁";
+        passwordToggle.setAttribute(
+            "aria-label",
+            "Show password"
+        );
+    }
 }
 
-/*
- * Clear form values on initial page load and when the browser
- * restores this page from its back-forward cache.
- */
-clearLoginFields();
+if (passwordToggle && passwordInput) {
+    passwordToggle.addEventListener("click", function () {
+        const isHidden = passwordInput.type === "password";
 
-window.addEventListener("pageshow", function () {
-    clearLoginFields();
-});
+        passwordInput.type = isHidden ? "text" : "password";
+        passwordToggle.textContent = isHidden ? "🙈" : "👁";
 
-/* Show / hide password */
-passwordToggle.addEventListener("click", function () {
-    const isHidden = passwordInput.type === "password";
+        passwordToggle.setAttribute(
+            "aria-label",
+            isHidden ? "Hide password" : "Show password"
+        );
+    });
+}
 
-    passwordInput.type = isHidden ? "text" : "password";
-    passwordToggle.textContent = isHidden ? "🙈" : "👁";
-    passwordToggle.setAttribute(
-        "aria-label",
-        isHidden ? "Hide password" : "Show password"
-    );
-});
+/* =====================================================
+   FORGOT PASSWORD MODAL
+===================================================== */
 
-/* Open forgot password modal */
-forgotBtn.addEventListener("click", function () {
+function openForgotModal() {
     clearResetMessage();
 
-    resetEmail.value = emailInput.value.trim();
-    forgotModal.classList.add("show");
+    if (resetEmail && emailInput) {
+        resetEmail.value = emailInput.value.trim();
+    }
+
+    if (forgotModal) {
+        forgotModal.classList.add("show");
+    }
 
     setTimeout(function () {
-        resetEmail.focus();
+        if (resetEmail) resetEmail.focus();
     }, 100);
-});
+}
 
-/* Close modal */
 function closeForgotModal() {
-    forgotModal.classList.remove("show");
+    if (forgotModal) {
+        forgotModal.classList.remove("show");
+    }
+
     clearResetMessage();
 }
 
-modalClose.addEventListener("click", closeForgotModal);
+if (forgotBtn) {
+    forgotBtn.addEventListener("click", openForgotModal);
+}
 
-forgotModal.addEventListener("click", function (event) {
-    if (event.target === forgotModal) {
-        closeForgotModal();
-    }
-});
+if (modalClose) {
+    modalClose.addEventListener("click", closeForgotModal);
+}
+
+if (forgotModal) {
+    forgotModal.addEventListener("click", function (event) {
+        if (event.target === forgotModal) {
+            closeForgotModal();
+        }
+    });
+}
 
 document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
@@ -616,169 +659,314 @@ document.addEventListener("keydown", function (event) {
     }
 });
 
-/* Forgot password */
-resetBtn.addEventListener("click", async function () {
-    clearResetMessage();
+/* =====================================================
+   FORGOT PASSWORD REQUEST
+===================================================== */
 
-    const email = resetEmail.value.trim();
+if (resetBtn) {
+    resetBtn.addEventListener("click", async function () {
+        clearResetMessage();
 
-    if (!email) {
-        showResetMessage("Please enter your owner email.", "error");
-        resetEmail.focus();
-        return;
-    }
+        const email = resetEmail
+            ? resetEmail.value.trim()
+            : "";
 
-    if (!resetEmail.checkValidity()) {
-        showResetMessage("Please enter a valid email address.", "error");
-        resetEmail.focus();
-        return;
-    }
-
-    resetBtn.disabled = true;
-    resetBtn.textContent = "SENDING...";
-
-    try {
-        const resetPage = new URL(
-            "owner-reset-password.html",
-            window.location.href
-        ).href;
-
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(
-            email,
-            { redirectTo: resetPage }
-        );
-
-        if (error) {
-            throw error;
-        }
-
-        showResetMessage(
-            "If the account is eligible, a password reset email will be sent. Please check your inbox.",
-            "success"
-        );
-
-        resetBtn.textContent = "RESET LINK SENT";
-    } catch (error) {
-        console.error("Password reset error:", error);
-
-        showResetMessage(
-            error.message || "Unable to send reset link. Please try again.",
-            "error"
-        );
-
-        resetBtn.disabled = false;
-        resetBtn.textContent = "SEND RESET LINK";
-    }
-});
-
-/* Login */
-loginForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-    clearMessage();
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !emailInput.checkValidity()) {
-        showMessage("Please enter a valid owner email.", "error");
-        emailInput.focus();
-        return;
-    }
-
-    if (!password) {
-        showMessage("Please enter your password.", "error");
-        passwordInput.focus();
-        return;
-    }
-
-    loginBtn.disabled = true;
-    loginBtn.textContent = "SIGNING IN...";
-
-    try {
-        const { data, error } =
-            await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-
-        if (error) {
-            console.error("Supabase login error:", error);
-
-            let errorText = "Invalid owner email or password.";
-
-            const originalMessage = (error.message || "").toLowerCase();
-
-            if (originalMessage.includes("email not confirmed")) {
-                errorText = "This email is not confirmed in Supabase.";
-            } else if (
-                originalMessage.includes("network") ||
-                originalMessage.includes("fetch")
-            ) {
-                errorText = "Network error. Check your internet connection and try again.";
-            }
-
-            showMessage(errorText, "error");
-            loginBtn.disabled = false;
-            loginBtn.textContent = "LOGIN TO OWNER PANEL";
-            return;
-        }
-
-        if (!data || !data.user) {
-            showMessage("Login failed. Please try again.", "error");
-            loginBtn.disabled = false;
-            loginBtn.textContent = "LOGIN TO OWNER PANEL";
-            return;
-        }
-
-        /*
-         * This page deliberately does not save the login session.
-         * Remove the temporary authenticated session before navigating.
-         */
-        const { error: signOutError } =
-            await supabaseClient.auth.signOut();
-
-        if (signOutError) {
-            console.error("Temporary sign-out error:", signOutError);
-            showMessage(
-                "Could not complete secure login. Please try again.",
+        if (!email) {
+            showResetMessage(
+                "Please enter your owner email.",
                 "error"
             );
-            loginBtn.disabled = false;
-            loginBtn.textContent = "LOGIN TO OWNER PANEL";
+
+            if (resetEmail) resetEmail.focus();
             return;
         }
 
-        showMessage(
-            "Credentials verified. Opening the Owner Panel...",
-            "success"
-        );
+        if (!resetEmail.checkValidity()) {
+            showResetMessage(
+                "Please enter a valid email address.",
+                "error"
+            );
 
-        loginBtn.textContent = "OPENING DASHBOARD...";
+            resetEmail.focus();
+            return;
+        }
 
-        setTimeout(function () {
+        resetBtn.disabled = true;
+        resetBtn.textContent = "SENDING...";
+
+        try {
+            const resetPage = new URL(
+                "owner-reset-password.html",
+                window.location.href
+            ).href;
+
+            const { error } =
+                await supabaseClient.auth.resetPasswordForEmail(
+                    email,
+                    {
+                        redirectTo: resetPage
+                    }
+                );
+
+            if (error) {
+                throw error;
+            }
+
+            showResetMessage(
+                "If the account is eligible, a password reset email will be sent. Please check your inbox.",
+                "success"
+            );
+
+            resetBtn.textContent = "RESET LINK SENT";
+
+        } catch (error) {
+            console.error("Password reset error:", error);
+
+            showResetMessage(
+                error.message ||
+                "Unable to send reset link. Please try again.",
+                "error"
+            );
+
+            resetBtn.disabled = false;
+            resetBtn.textContent = "SEND RESET LINK";
+        }
+    });
+}
+
+/* =====================================================
+   EXISTING SESSION CHECK
+   If already logged in, open the dashboard.
+===================================================== */
+
+let sessionCheckRunning = false;
+
+async function checkExistingSession() {
+    if (sessionCheckRunning) return;
+
+    sessionCheckRunning = true;
+
+    try {
+        const {
+            data: { session },
+            error
+        } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error(
+                "Existing session check error:",
+                error
+            );
+            return;
+        }
+
+        if (session && session.user) {
+            console.log(
+                "EGC Owner session found. Opening dashboard."
+            );
+
             window.location.replace("owner-dashboard.html");
-        }, 500);
+        }
 
     } catch (error) {
-        console.error("Unexpected login error:", error);
-
-        showMessage(
-            error.message || "Something went wrong. Please try again.",
-            "error"
+        console.error(
+            "Session initialization error:",
+            error
         );
-
-        loginBtn.disabled = false;
-        loginBtn.textContent = "LOGIN TO OWNER PANEL";
+    } finally {
+        sessionCheckRunning = false;
     }
-});
+}
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+if (loginForm) {
+    loginForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        clearMessage();
+
+        const email = emailInput
+            ? emailInput.value.trim()
+            : "";
+
+        const password = passwordInput
+            ? passwordInput.value
+            : "";
+
+        if (!email || !emailInput.checkValidity()) {
+            showMessage(
+                "Please enter a valid owner email.",
+                "error"
+            );
+
+            if (emailInput) emailInput.focus();
+            return;
+        }
+
+        if (!password) {
+            showMessage(
+                "Please enter your password.",
+                "error"
+            );
+
+            if (passwordInput) passwordInput.focus();
+            return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = "SIGNING IN...";
+
+        try {
+            /*
+             * Important:
+             * Do not call signOut() after successful login.
+             * Supabase must persist the session for the next page.
+             */
+
+            const { data, error } =
+                await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+            if (error) {
+                console.error(
+                    "Supabase login error:",
+                    error
+                );
+
+                let errorText =
+                    "Invalid owner email or password.";
+
+                const originalMessage =
+                    (error.message || "").toLowerCase();
+
+                if (
+                    originalMessage.includes(
+                        "email not confirmed"
+                    )
+                ) {
+                    errorText =
+                        "This email is not confirmed in Supabase.";
+
+                } else if (
+                    originalMessage.includes("network") ||
+                    originalMessage.includes("fetch")
+                ) {
+                    errorText =
+                        "Network error. Check your internet connection and try again.";
+
+                } else if (
+                    originalMessage.includes("too many requests")
+                ) {
+                    errorText =
+                        "Too many attempts. Please wait and try again.";
+                }
+
+                showMessage(errorText, "error");
+
+                loginBtn.disabled = false;
+                loginBtn.textContent = "LOGIN TO OWNER PANEL";
+                return;
+            }
+
+            if (!data || !data.user || !data.session) {
+                showMessage(
+                    "Login did not create a valid session. Please try again.",
+                    "error"
+                );
+
+                loginBtn.disabled = false;
+                loginBtn.textContent = "LOGIN TO OWNER PANEL";
+                return;
+            }
+
+            /*
+             * Verify that the persisted session can be read.
+             */
+
+            const {
+                data: { session },
+                error: sessionError
+            } = await supabaseClient.auth.getSession();
+
+            if (sessionError || !session) {
+                console.error(
+                    "Session persistence verification failed:",
+                    sessionError
+                );
+
+                showMessage(
+                    "Login succeeded, but the session could not be verified. Please try again.",
+                    "error"
+                );
+
+                loginBtn.disabled = false;
+                loginBtn.textContent = "LOGIN TO OWNER PANEL";
+                return;
+            }
+
+            console.log(
+                "EGC Owner login successful.",
+                {
+                    userId: session.user.id,
+                    sessionPersisted: true,
+                    storageKey: OWNER_STORAGE_KEY
+                }
+            );
+
+            showMessage(
+                "Login successful. Opening the Owner Panel...",
+                "success"
+            );
+
+            loginBtn.textContent = "OPENING DASHBOARD...";
+
+            /*
+             * Allow the Supabase auth client to finish writing
+             * the session before navigating to the dashboard.
+             */
+
+            setTimeout(function () {
+                window.location.replace("owner-dashboard.html");
+            }, 500);
+
+        } catch (error) {
+            console.error(
+                "Unexpected login error:",
+                error
+            );
+
+            showMessage(
+                error.message ||
+                "Something went wrong. Please try again.",
+                "error"
+            );
+
+            loginBtn.disabled = false;
+            loginBtn.textContent = "LOGIN TO OWNER PANEL";
+        }
+    });
+}
+
+/* =====================================================
+   INITIALIZATION
+===================================================== */
 
 /*
- * Intentionally removed:
- * - checkExistingSession()
- * - automatic dashboard redirect on page load
- *
- * The login page will always show the login form.
+ * Do not clear the persisted Supabase session here.
+ * Clearing input fields does not require signing out.
  */
+
+window.addEventListener("pageshow", function () {
+    clearLoginFields();
+});
+
+checkExistingSession();
+
 </script>
 
 </body>

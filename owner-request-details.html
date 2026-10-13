@@ -1798,280 +1798,234 @@ textarea.form-control{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
+
+/* =====================================================
+   EGC OWNER AUTH CONFIGURATION
+   सभी Owner pages पर यही configuration रखें।
+===================================================== */
 
 const SUPABASE_URL =
     "https://szefvmvokkhvnzryodqu.supabase.co";
 
-const SUPABASE_ANON_KEY =
+const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+const OWNER_STORAGE_KEY = "egc-owner-auth";
 
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
+        }
+    }
+);
 
-const pageContent =
-    document.getElementById("pageContent");
+/* =====================================================
+   ELEMENTS
+===================================================== */
 
-const menuBtn =
-    document.getElementById("menuBtn");
+const pageContent = document.getElementById("pageContent");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const logoutBtn = document.getElementById("logoutBtn");
+const backBtn = document.getElementById("backBtn");
 
-const sidebar =
-    document.getElementById("sidebar");
+const editModal = document.getElementById("editModal");
+const editApproval = document.getElementById("editApproval");
+const editStatus = document.getElementById("editStatus");
+const editNote = document.getElementById("editNote");
+const editCancel = document.getElementById("editCancel");
+const editSave = document.getElementById("editSave");
 
-const overlay =
-    document.getElementById("overlay");
-
-const logoutBtn =
-    document.getElementById("logoutBtn");
-
-const backBtn =
-    document.getElementById("backBtn");
-
-const editModal =
-    document.getElementById("editModal");
-
-const editApproval =
-    document.getElementById("editApproval");
-
-const editStatus =
-    document.getElementById("editStatus");
-
-const editNote =
-    document.getElementById("editNote");
-
-const editCancel =
-    document.getElementById("editCancel");
-
-const editSave =
-    document.getElementById("editSave");
-
-const toast =
-    document.getElementById("toast");
-
-const toastTitle =
-    document.getElementById("toastTitle");
-
-const toastText =
-    document.getElementById("toastText");
-
+const toast = document.getElementById("toast");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
 
 let currentOwnerId = null;
 let currentRequest = null;
+let isSaving = false;
+let isInitializing = false;
 
+/* =====================================================
+   SAFE HTML
+===================================================== */
 
-function escapeHtml(value){
-
+function escapeHtml(value) {
     return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
+/* =====================================================
+   TOAST
+===================================================== */
 
-function showToast(title,text){
+function showToast(title, text) {
+    if (!toast || !toastTitle || !toastText) {
+        console.log(title, text);
+        return;
+    }
 
-    toastTitle.textContent =
-        title || "Notification";
-
-    toastText.textContent =
-        text || "";
-
+    toastTitle.textContent = title || "Notification";
+    toastText.textContent = text || "";
     toast.classList.add("show");
 
-    clearTimeout(
-        window.egcToastTimer
-    );
+    clearTimeout(window.egcToastTimer);
 
-    window.egcToastTimer =
-        setTimeout(
-            function(){
-
-                toast.classList.remove("show");
-
-            },
-            4500
-        );
-
+    window.egcToastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 4500);
 }
 
+/* =====================================================
+   FORMATTING
+===================================================== */
 
-function formatDate(value){
+function formatDate(value) {
+    if (!value) return "—";
 
-    if(!value){
-        return "—";
-    }
+    const date = new Date(value);
 
-    const date =
-        new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
 
-    if(Number.isNaN(date.getTime())){
-        return "—";
-    }
-
-    return date.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
 
+function formatDateTime(value) {
+    if (!value) return "—";
 
-function formatDateTime(value){
+    const date = new Date(value);
 
-    if(!value){
-        return "—";
-    }
+    if (Number.isNaN(date.getTime())) return "—";
 
-    const date =
-        new Date(value);
-
-    if(Number.isNaN(date.getTime())){
-        return "—";
-    }
-
-    return date.toLocaleString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric",
-            hour:"2-digit",
-            minute:"2-digit"
-        }
-    );
-
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 }
 
-
-function formatMoney(value){
-
-    const number =
-        Number(value);
-
-    if(
+function formatMoney(value) {
+    if (
         value === null ||
         value === undefined ||
-        value === "" ||
-        Number.isNaN(number)
-    ){
+        value === ""
+    ) {
         return "₹0.00";
     }
 
-    return "₹" +
-        number.toLocaleString(
-            "en-IN",
-            {
-                minimumFractionDigits:2,
-                maximumFractionDigits:2
-            }
-        );
+    const number = Number(value);
 
+    if (!Number.isFinite(number)) return "₹0.00";
+
+    return "₹" + number.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
+function normalizeApproval(value) {
+    const approval = String(value || "pending")
+        .trim()
+        .toLowerCase();
 
-function normalizeApproval(value){
-
-    const v =
-        String(value || "pending")
-            .trim()
-            .toLowerCase();
-
-    if(v === "approved"){
-        return "approved";
-    }
-
-    if(v === "rejected"){
-        return "rejected";
-    }
+    if (approval === "approved") return "approved";
+    if (approval === "rejected") return "rejected";
 
     return "pending";
-
 }
 
+function approvalLabel(value) {
+    const approval = normalizeApproval(value);
 
-function approvalLabel(value){
-
-    const approval =
-        normalizeApproval(value);
-
-    if(approval === "approved"){
-        return "Approved";
-    }
-
-    if(approval === "rejected"){
-        return "Rejected";
-    }
+    if (approval === "approved") return "Approved";
+    if (approval === "rejected") return "Rejected";
 
     return "Pending";
-
 }
 
+function displayText(value) {
+    const text = String(value || "");
 
-function badgeClass(value){
+    if (!text) return "Not Set";
 
-    const v =
-        String(value || "")
-            .toLowerCase();
+    return text
+        .split(" ")
+        .map(word =>
+            word.charAt(0).toUpperCase() +
+            word.slice(1).toLowerCase()
+        )
+        .join(" ");
+}
 
-    if(
-        v.includes("approved") ||
-        v === "paid" ||
-        v === "completed" ||
-        v === "delivered" ||
-        v === "accepted"
-    ){
+function badgeClass(value) {
+    const status = String(value || "").toLowerCase();
+
+    if (
+        status.includes("approved") ||
+        status === "paid" ||
+        status === "completed" ||
+        status === "delivered" ||
+        status === "accepted"
+    ) {
         return "badge-green";
     }
 
-    if(
-        v.includes("pending") ||
-        v === "waiting" ||
-        v === "preparing"
-    ){
+    if (
+        status.includes("pending") ||
+        status === "waiting" ||
+        status === "preparing"
+    ) {
         return "badge-yellow";
     }
 
-    if(
-        v.includes("processing") ||
-        v.includes("out for")
-    ){
+    if (
+        status.includes("processing") ||
+        status.includes("out for")
+    ) {
         return "badge-blue";
     }
 
-    if(
-        v.includes("rejected") ||
-        v.includes("failed") ||
-        v.includes("cancelled")
-    ){
+    if (
+        status.includes("rejected") ||
+        status.includes("failed") ||
+        status.includes("cancelled")
+    ) {
         return "badge-red";
     }
 
     return "badge-gray";
-
 }
 
-
-function badgeHtml(value){
-
-    if(
+function badgeHtml(value) {
+    if (
         value === null ||
         value === undefined ||
         value === ""
-    ){
+    ) {
         return `
-            <span class="badge badge-gray">
-                Not Set
-            </span>
+            <span class="badge badge-gray">Not Set</span>
         `;
     }
 
@@ -2080,37 +2034,14 @@ function badgeHtml(value){
             ${escapeHtml(displayText(value))}
         </span>
     `;
-
 }
 
+/* =====================================================
+   NAVIGATION
+===================================================== */
 
-function displayText(value){
-
-    const text =
-        String(value || "");
-
-    if(!text){
-        return "Not Set";
-    }
-
-    return text
-        .split(" ")
-        .map(
-            word =>
-                word.charAt(0).toUpperCase() +
-                word.slice(1).toLowerCase()
-        )
-        .join(" ");
-
-}
-
-
-function getRequestId(){
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
+function getRequestId() {
+    const params = new URLSearchParams(window.location.search);
 
     return (
         params.get("id") ||
@@ -2118,222 +2049,314 @@ function getRequestId(){
         params.get("requestId") ||
         ""
     );
-
 }
 
-
-function goToRequests(){
-
-    window.location.href =
-        "owner-requests.html";
-
+function goToRequests() {
+    window.location.href = "owner-requests.html";
 }
 
-
-function openPage(page){
-
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-
-        users:"owner-users.html",
-
-        agencies:"owner-agencies.html",
-
-        companies:"owner-companies.html",
-
-        requests:"owner-requests.html",
-
-        payments:"owner-payments.html",
-
-        reports:"owner-reports.html",
-
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        settings: "owner-settings.html"
     };
 
-    if(pages[page]){
-
-        window.location.href =
-            pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
+document.querySelectorAll("[data-page]").forEach(button => {
+    button.addEventListener("click", function () {
+        openPage(this.dataset.page);
+    });
+});
 
-document
-    .querySelectorAll("[data-page]")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            function(){
-
-                openPage(
-                    this.dataset.page
-                );
-
-            }
-        );
-
+if (menuBtn && sidebar && overlay) {
+    menuBtn.addEventListener("click", function () {
+        sidebar.classList.toggle("open");
+        overlay.classList.toggle("show");
     });
 
-
-menuBtn.addEventListener(
-    "click",
-    function(){
-
-        sidebar.classList.toggle("open");
-
-        overlay.classList.toggle("show");
-
-    }
-);
-
-
-overlay.addEventListener(
-    "click",
-    function(){
-
+    overlay.addEventListener("click", function () {
         sidebar.classList.remove("open");
-
         overlay.classList.remove("show");
-
-    }
-);
-
-
-backBtn.addEventListener(
-    "click",
-    goToRequests
-);
-
-
-async function getCurrentOwner(){
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient.auth.getUser();
-
-        if(error){
-
-            console.error(
-                "Owner session error:",
-                error
-            );
-
-            return null;
-
-        }
-
-        if(data && data.user){
-
-            currentOwnerId =
-                data.user.id;
-
-            return data.user;
-
-        }
-
-        return null;
-
-    }
-    catch(error){
-
-        console.error(error);
-
-        return null;
-
-    }
-
+    });
 }
 
+if (backBtn) {
+    backBtn.addEventListener("click", goToRequests);
+}
 
-async function requireOwner(){
+/* =====================================================
+   OWNER SESSION
+===================================================== */
 
-    const owner =
-        await getCurrentOwner();
+async function getCurrentOwner() {
+    try {
+        const {
+            data: { session },
+            error
+        } = await supabaseClient.auth.getSession();
 
-    if(!owner){
+        if (error) {
+            console.error("Owner session error:", error);
+            return null;
+        }
 
+        if (!session || !session.user) {
+            return null;
+        }
+
+        currentOwnerId = session.user.id;
+
+        return session.user;
+    } catch (error) {
+        console.error("Owner session check failed:", error);
+        return null;
+    }
+}
+
+async function requireOwner() {
+    const owner = await getCurrentOwner();
+
+    if (!owner) {
         showToast(
             "Owner Login Required",
-            "Please login to the EGC Owner Panel."
+            "Your session is missing or expired. Please login again."
         );
 
-        setTimeout(
-            function(){
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
-            },
-            1000
-        );
+        setTimeout(() => {
+            window.location.replace("owner-login.html");
+        }, 800);
 
         return null;
-
     }
 
     return owner;
-
 }
 
+/* =====================================================
+   USER / AGENCY RELATED DATA
+===================================================== */
 
-async function loadRequest(){
+async function attachRelatedData() {
+    if (!currentRequest) return;
 
-    const requestId =
-        getRequestId();
+    let profile = {};
+    let agency = {};
 
-    if(!requestId){
+    if (currentRequest.user_id) {
+        try {
+            const { data, error } = await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("id", currentRequest.user_id)
+                .maybeSingle();
 
+            if (error) {
+                console.warn("Profile loading error:", error.message);
+            } else if (data) {
+                profile = data;
+            }
+        } catch (error) {
+            console.warn("Profile loading error:", error);
+        }
+    }
+
+    if (currentRequest.agency_id) {
+        try {
+            const { data, error } = await supabaseClient
+                .from("agencies")
+                .select("*")
+                .eq("id", currentRequest.agency_id)
+                .maybeSingle();
+
+            if (error) {
+                console.warn("Agency loading error:", error.message);
+            } else if (data) {
+                agency = data;
+            }
+        } catch (error) {
+            console.warn("Agency loading error:", error);
+        }
+    }
+
+    currentRequest.profile = profile;
+    currentRequest.agency = agency;
+}
+
+function getUserName() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.full_name ||
+        profile.name ||
+        profile.username ||
+        profile.display_name ||
+        "User"
+    );
+}
+
+function getUserId() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.user_code ||
+        currentRequest?.user_code ||
+        currentRequest?.user_id ||
+        "—"
+    );
+}
+
+function getMobile() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.mobile ||
+        profile.phone ||
+        profile.mobile_number ||
+        profile.phone_number ||
+        currentRequest?.mobile ||
+        currentRequest?.phone ||
+        "—"
+    );
+}
+
+function getEmail() {
+    const profile = currentRequest?.profile || {};
+
+    return profile.email || currentRequest?.email || "—";
+}
+
+function getAadhaar() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.aadhar_card_number ||
+        profile.aadhaar_card_number ||
+        profile.aadhaar ||
+        profile.aadhar ||
+        currentRequest?.aadhaar ||
+        currentRequest?.aadhar ||
+        "—"
+    );
+}
+
+function getPan() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.pan_card_number ||
+        profile.pancard ||
+        profile.pan ||
+        currentRequest?.pan ||
+        "—"
+    );
+}
+
+function getPhoto() {
+    const profile = currentRequest?.profile || {};
+
+    return (
+        profile.profile_photo ||
+        profile.photo_url ||
+        profile.avatar_url ||
+        profile.photo ||
+        profile.image_url ||
+        profile.profile_image ||
+        currentRequest?.profile_photo ||
+        currentRequest?.photo_url ||
+        ""
+    );
+}
+
+function getAgencyName() {
+    const agency = currentRequest?.agency || {};
+
+    return (
+        agency.agency_name ||
+        agency.name ||
+        agency.agency ||
+        currentRequest?.agency_name ||
+        "Agency"
+    );
+}
+
+function getCompanyName() {
+    const agency = currentRequest?.agency || {};
+
+    return (
+        agency.lpg_company ||
+        agency.company_name ||
+        agency.company ||
+        currentRequest?.lpg_company ||
+        currentRequest?.company_name ||
+        "LPG"
+    );
+}
+
+function getCity() {
+    const profile = currentRequest?.profile || {};
+    const agency = currentRequest?.agency || {};
+
+    return (
+        currentRequest?.city ||
+        profile.city ||
+        agency.city ||
+        extractCity(currentRequest?.address) ||
+        "—"
+    );
+}
+
+function extractCity(address) {
+    if (!address) return "";
+
+    const parts = String(address).split(",");
+
+    return (
+        parts[parts.length - 2] ||
+        parts[parts.length - 1] ||
+        ""
+    ).trim();
+}
+
+/* =====================================================
+   LOAD REQUEST
+===================================================== */
+
+async function loadRequest() {
+    const requestId = getRequestId();
+
+    if (!requestId) {
         pageContent.innerHTML = `
             <div class="error-box">
                 <strong>Request ID Missing</strong>
                 Please open this page from the Cylinder Requests page.
             </div>
         `;
-
         return;
-
     }
 
-
     pageContent.innerHTML = `
-        <div class="loading">
-            Loading request details...
-        </div>
+        <div class="loading">Loading request details...</div>
     `;
 
-
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
+    try {
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .select("*")
-            .eq(
-                "id",
-                requestId
-            )
+            .eq("id", requestId)
             .maybeSingle();
 
-
-        if(error){
-
-            console.error(
-                "Request details error:",
-                error
-            );
+        if (error) {
+            console.error("Request details error:", error);
 
             pageContent.innerHTML = `
                 <div class="error-box">
@@ -2341,357 +2364,51 @@ async function loadRequest(){
                     ${escapeHtml(error.message)}
                 </div>
             `;
-
             return;
-
         }
 
-
-        if(!data){
-
+        if (!data) {
             pageContent.innerHTML = `
                 <div class="error-box">
                     <strong>Request Not Found</strong>
-                    This cylinder request does not exist or is no longer available.
+                    This request does not exist or is not accessible.
                 </div>
             `;
-
             return;
-
         }
 
-
-        currentRequest =
-            data;
-
+        currentRequest = data;
 
         await attachRelatedData();
 
         renderDetails();
-
-    }
-    catch(error){
-
-        console.error(error);
+    } catch (error) {
+        console.error("Load request error:", error);
 
         pageContent.innerHTML = `
             <div class="error-box">
                 <strong>Something Went Wrong</strong>
-                Unable to load request details.
+                Unable to load request details. Please try again.
             </div>
         `;
-
     }
-
 }
 
-
-async function attachRelatedData(){
-
-    if(!currentRequest){
-        return;
-    }
-
-
-    let profile = {};
-    let agency = {};
-
-
-    if(currentRequest.user_id){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from("profiles")
-                .select("*")
-                .eq(
-                    "id",
-                    currentRequest.user_id
-                )
-                .maybeSingle();
-
-            if(!error && data){
-
-                profile =
-                    data;
-
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Profile loading error:",
-                error
-            );
-
-        }
-
-    }
-
-
-    if(currentRequest.agency_id){
-
-        try{
-
-            const {
-                data,
-                error
-            } =
-            await supabaseClient
-                .from("agencies")
-                .select("*")
-                .eq(
-                    "id",
-                    currentRequest.agency_id
-                )
-                .maybeSingle();
-
-            if(!error && data){
-
-                agency =
-                    data;
-
-            }
-
-        }
-        catch(error){
-
-            console.warn(
-                "Agency loading error:",
-                error
-            );
-
-        }
-
-    }
-
-
-    currentRequest.profile =
-        profile;
-
-    currentRequest.agency =
-        agency;
-
-}
-
-
-function getUserName(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.full_name ||
-        p.name ||
-        p.username ||
-        p.display_name ||
-        "User"
-    );
-
-}
-
-
-function getUserId(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.user_code ||
-        currentRequest.user_code ||
-        currentRequest.user_id ||
-        "—"
-    );
-
-}
-
-
-function getMobile(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.phone ||
-        p.mobile ||
-        p.mobile_number ||
-        p.phone_number ||
-        currentRequest.mobile ||
-        currentRequest.phone ||
-        "—"
-    );
-
-}
-
-
-function getEmail(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.email ||
-        currentRequest.email ||
-        "—"
-    );
-
-}
-
-
-function getAadhaar(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.aadhar_card_number ||
-        p.aadhaar_card_number ||
-        p.aadhaar ||
-        p.aadhar ||
-        currentRequest.aadhaar ||
-        currentRequest.aadhar ||
-        "—"
-    );
-
-}
-
-
-function getPan(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.pan_card_number ||
-        p.pancard ||
-        p.pan ||
-        currentRequest.pan ||
-        "—"
-    );
-
-}
-
-
-function getPhoto(){
-
-    const p =
-        currentRequest.profile || {};
-
-    return (
-        p.photo_url ||
-        p.avatar_url ||
-        p.profile_photo ||
-        p.photo ||
-        p.image_url ||
-        p.profile_image ||
-        currentRequest.profile_photo ||
-        currentRequest.photo_url ||
-        ""
-    );
-
-}
-
-
-function getAgencyName(){
-
-    const a =
-        currentRequest.agency || {};
-
-    return (
-        a.agency_name ||
-        a.name ||
-        a.agency ||
-        currentRequest.agency_name ||
-        "Agency"
-    );
-
-}
-
-
-function getCompanyName(){
-
-    const a =
-        currentRequest.agency || {};
-
-    return (
-        a.lpg_company ||
-        a.company_name ||
-        a.company ||
-        currentRequest.lpg_company ||
-        currentRequest.company_name ||
-        "LPG"
-    );
-
-}
-
-
-function getCity(){
-
-    const p =
-        currentRequest.profile || {};
-
-    const a =
-        currentRequest.agency || {};
-
-    return (
-        currentRequest.city ||
-        p.city ||
-        a.city ||
-        extractCity(
-            currentRequest.address
-        ) ||
-        "—"
-    );
-
-}
-
-
-function extractCity(address){
-
-    if(!address){
-        return "";
-    }
-
-    const parts =
-        String(address)
-            .split(",");
-
-    return (
-        parts[parts.length - 2] ||
-        parts[parts.length - 1] ||
-        ""
-    ).trim();
-
-}
-
-
-function renderDetails(){
-
-    const r =
-        currentRequest;
-
-    const photo =
-        getPhoto();
-
-    const approval =
-        normalizeApproval(
-            r.owner_approval
-        );
-
-    const status =
-        r.status ||
-        "Pending";
-
+/* =====================================================
+   RENDER DETAILS
+===================================================== */
+
+function renderDetails() {
+    if (!currentRequest || !pageContent) return;
+
+    const request = currentRequest;
+    const photo = getPhoto();
+    const approval = normalizeApproval(request.owner_approval);
+    const status = request.status || "Pending";
 
     let photoHtml;
 
-    if(photo){
-
+    if (photo) {
         photoHtml = `
             <img
                 src="${escapeHtml(photo)}"
@@ -2699,654 +2416,251 @@ function renderDetails(){
                 alt="User"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
             >
-
-            <div
-                class="user-fallback"
-                style="display:none;"
-            >
-                👤
-            </div>
+            <div class="user-fallback" style="display:none;">👤</div>
         `;
-
+    } else {
+        photoHtml = `<div class="user-fallback">👤</div>`;
     }
-    else{
-
-        photoHtml = `
-            <div class="user-fallback">
-                👤
-            </div>
-        `;
-
-    }
-
 
     pageContent.innerHTML = `
-
         <section class="request-header">
-
             <div class="request-header-top">
-
                 <div>
-
                     <div class="request-number">
-                        ${escapeHtml(
-                            r.request_number ||
-                            r.id ||
-                            "Cylinder Request"
-                        )}
+                        ${escapeHtml(request.request_number || request.id || "Cylinder Request")}
                     </div>
-
                     <div class="request-date">
-                        Requested on
-                        ${escapeHtml(
-                            formatDateTime(r.created_at)
-                        )}
+                        Requested on ${escapeHtml(formatDateTime(request.created_at))}
                     </div>
-
                 </div>
 
                 <div class="status-wrap">
-
                     ${badgeHtml(status)}
-
-                    ${badgeHtml(
-                        approval
-                    )}
-
+                    ${badgeHtml(approval)}
                 </div>
-
             </div>
-
         </section>
-
 
         <section class="grid">
-
             <div class="card">
-
                 <div class="card-header">
-
-                    <div class="card-title">
-                        User Information
-                    </div>
-
-                    <div class="card-subtitle">
-                        Registered customer details
-                    </div>
-
+                    <div class="card-title">User Information</div>
+                    <div class="card-subtitle">Registered customer details</div>
                 </div>
 
                 <div class="card-body">
-
                     <div class="user-profile">
-
                         ${photoHtml}
-
                         <div>
-
-                            <div class="user-name">
-                                ${escapeHtml(
-                                    getUserName()
-                                )}
-                            </div>
-
-                            <div class="user-contact">
-                                ${escapeHtml(
-                                    getEmail()
-                                )}
-                            </div>
-
-                            <div class="user-contact">
-                                ${escapeHtml(
-                                    getMobile()
-                                )}
-                            </div>
-
+                            <div class="user-name">${escapeHtml(getUserName())}</div>
+                            <div class="user-contact">${escapeHtml(getEmail())}</div>
+                            <div class="user-contact">${escapeHtml(getMobile())}</div>
                         </div>
-
                     </div>
 
                     <div class="detail-grid">
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                User ID
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getUserId()
-                                )}
-                            </div>
-
+                            <div class="detail-label">User ID</div>
+                            <div class="detail-value">${escapeHtml(getUserId())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Mobile
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getMobile()
-                                )}
-                            </div>
-
+                            <div class="detail-label">Mobile</div>
+                            <div class="detail-value">${escapeHtml(getMobile())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Email
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getEmail()
-                                )}
-                            </div>
-
+                            <div class="detail-label">Email</div>
+                            <div class="detail-value">${escapeHtml(getEmail())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                City
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getCity()
-                                )}
-                            </div>
-
+                            <div class="detail-label">City</div>
+                            <div class="detail-value">${escapeHtml(getCity())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Aadhaar
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getAadhaar()
-                                )}
-                            </div>
-
+                            <div class="detail-label">Aadhaar</div>
+                            <div class="detail-value">${escapeHtml(getAadhaar())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                PAN
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getPan()
-                                )}
-                            </div>
-
+                            <div class="detail-label">PAN</div>
+                            <div class="detail-value">${escapeHtml(getPan())}</div>
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
 
-
             <div class="card">
-
                 <div class="card-header">
-
-                    <div class="card-title">
-                        LPG Details
-                    </div>
-
-                    <div class="card-subtitle">
-                        Cylinder and selected agency information
-                    </div>
-
+                    <div class="card-title">LPG Details</div>
+                    <div class="card-subtitle">Cylinder and selected agency information</div>
                 </div>
 
                 <div class="card-body">
-
                     <div class="detail-grid">
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                LPG Company
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getCompanyName()
-                                )}
-                            </div>
-
+                            <div class="detail-label">LPG Company</div>
+                            <div class="detail-value">${escapeHtml(getCompanyName())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                LPG Agency
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getAgencyName()
-                                )}
-                            </div>
-
+                            <div class="detail-label">LPG Agency</div>
+                            <div class="detail-value">${escapeHtml(getAgencyName())}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Quantity
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    r.quantity ?? 0
-                                )}
-                            </div>
-
+                            <div class="detail-label">Quantity</div>
+                            <div class="detail-value">${escapeHtml(request.quantity ?? 0)}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                City
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    getCity()
-                                )}
-                            </div>
-
+                            <div class="detail-label">City</div>
+                            <div class="detail-value">${escapeHtml(getCity())}</div>
                         </div>
-
                         <div class="detail full">
-
-                            <div class="detail-label">
-                                Address
-                            </div>
-
-                            <div class="detail-value">
-                                ${escapeHtml(
-                                    r.address ||
-                                    "—"
-                                )}
-                            </div>
-
+                            <div class="detail-label">Address</div>
+                            <div class="detail-value">${escapeHtml(request.address || "—")}</div>
                         </div>
-
                         <div class="detail full">
-
-                            <div class="detail-label">
-                                LPG / Cylinder Information
-                            </div>
-
+                            <div class="detail-label">LPG / Cylinder Information</div>
                             <div class="detail-value">
-                                ${escapeHtml(
-                                    r.lpg_details ||
-                                    r.cylinder_details ||
-                                    r.scheme ||
-                                    "—"
-                                )}
+                                ${escapeHtml(request.lpg_details || request.cylinder_details || request.scheme || "—")}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
-
         </section>
 
-
         <section class="card action-card">
-
             <div class="card-header">
-
-                <div class="card-title">
-                    Owner Actions
-                </div>
-
-                <div class="card-subtitle">
-                    Owner approval controls for this request
-                </div>
-
+                <div class="card-title">Owner Actions</div>
+                <div class="card-subtitle">Owner approval controls for this request</div>
             </div>
 
             <div class="card-body">
-
                 <div class="approval-box">
-
-                    <div class="approval-title">
-                        Owner Approval
-                    </div>
-
+                    <div class="approval-title">Owner Approval</div>
                     <div class="approval-description">
                         Approval changes the request flow for the User and selected LPG Agency.
                     </div>
 
                     <div class="approval-row">
-
-                        <div class="approval-label">
-                            Current Approval
-                        </div>
-
-                        <div class="approval-value">
-                            ${badgeHtml(
-                                approval
-                            )}
-                        </div>
-
+                        <div class="approval-label">Current Approval</div>
+                        <div class="approval-value">${badgeHtml(approval)}</div>
                     </div>
 
                     <div class="approval-row">
-
-                        <div class="approval-label">
-                            Approved By
-                        </div>
-
-                        <div class="approval-value">
-                            ${escapeHtml(
-                                r.approved_by ||
-                                "—"
-                            )}
-                        </div>
-
+                        <div class="approval-label">Approved By</div>
+                        <div class="approval-value">${escapeHtml(request.approved_by || "—")}</div>
                     </div>
 
                     <div class="approval-row">
-
-                        <div class="approval-label">
-                            Approved At
-                        </div>
-
-                        <div class="approval-value">
-                            ${escapeHtml(
-                                formatDateTime(
-                                    r.approved_at
-                                )
-                            )}
-                        </div>
-
+                        <div class="approval-label">Approved At</div>
+                        <div class="approval-value">${escapeHtml(formatDateTime(request.approved_at))}</div>
                     </div>
 
                     <div class="approval-row">
-
-                        <div class="approval-label">
-                            Rejection Reason
-                        </div>
-
-                        <div class="approval-value">
-                            ${escapeHtml(
-                                r.rejection_reason ||
-                                "—"
-                            )}
-                        </div>
-
+                        <div class="approval-label">Rejection Reason</div>
+                        <div class="approval-value">${escapeHtml(request.rejection_reason || "—")}</div>
                     </div>
-
                 </div>
 
                 <div style="height:14px;"></div>
 
                 <div class="action-buttons">
-
                     <button
                         type="button"
                         class="action-btn approve-btn"
                         id="approveBtn"
                         ${approval === "approved" ? "disabled" : ""}
-                    >
-                        ✅ Approve Request
-                    </button>
+                    >✅ Approve Request</button>
 
                     <button
                         type="button"
                         class="action-btn reject-btn"
                         id="rejectBtn"
                         ${approval === "rejected" ? "disabled" : ""}
-                    >
-                        ❌ Reject Request
-                    </button>
+                    >❌ Reject Request</button>
 
                     <button
                         type="button"
                         class="action-btn edit-btn"
                         id="editBtn"
-                    >
-                        ✏️ Update Details
-                    </button>
-
+                    >✏️ Update Details</button>
                 </div>
-
             </div>
-
         </section>
-
 
         <section class="grid">
-
             <div class="card">
-
                 <div class="card-header">
-
-                    <div class="card-title">
-                        Financial Details
-                    </div>
-
-                    <div class="card-subtitle">
-                        Request amount and payment information
-                    </div>
-
+                    <div class="card-title">Financial Details</div>
+                    <div class="card-subtitle">Request amount and payment information</div>
                 </div>
 
                 <div class="card-body">
-
                     <div class="detail-grid">
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Total Amount
-                            </div>
-
+                            <div class="detail-label">Total Amount</div>
+                            <div class="detail-value money">${formatMoney(request.total_amount)}</div>
+                        </div>
+                        <div class="detail">
+                            <div class="detail-label">Extra Charge</div>
+                            <div class="detail-value money">${formatMoney(request.extra_charge)}</div>
+                        </div>
+                        <div class="detail">
+                            <div class="detail-label">Payment Status</div>
+                            <div class="detail-value">${badgeHtml(request.payment_status)}</div>
+                        </div>
+                        <div class="detail">
+                            <div class="detail-label">Initial Payment</div>
                             <div class="detail-value money">
-                                ${formatMoney(
-                                    r.total_amount
-                                )}
+                                ${formatMoney(request.initial_payment ?? request.advance_amount ?? 200)}
                             </div>
-
                         </div>
-
-                        <div class="detail">
-
-                            <div class="detail-label">
-                                Extra Charge
-                            </div>
-
-                            <div class="detail-value money">
-                                ${formatMoney(
-                                    r.extra_charge
-                                )}
-                            </div>
-
-                        </div>
-
-                        <div class="detail">
-
-                            <div class="detail-label">
-                                Payment Status
-                            </div>
-
-                            <div class="detail-value">
-                                ${badgeHtml(
-                                    r.payment_status
-                                )}
-                            </div>
-
-                        </div>
-
-                        <div class="detail">
-
-                            <div class="detail-label">
-                                Initial Payment
-                            </div>
-
-                            <div class="detail-value money">
-                                ${formatMoney(
-                                    r.initial_payment ||
-                                    r.advance_amount ||
-                                    200
-                                )}
-                            </div>
-
-                        </div>
-
                     </div>
-
                 </div>
-
             </div>
 
-
             <div class="card">
-
                 <div class="card-header">
-
-                    <div class="card-title">
-                        Agency & Delivery
-                    </div>
-
-                    <div class="card-subtitle">
-                        Current operational status
-                    </div>
-
+                    <div class="card-title">Agency & Delivery</div>
+                    <div class="card-subtitle">Current operational status</div>
                 </div>
 
                 <div class="card-body">
-
                     <div class="detail-grid">
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Agency Status
-                            </div>
-
-                            <div class="detail-value">
-                                ${badgeHtml(
-                                    r.agency_status
-                                )}
-                            </div>
-
+                            <div class="detail-label">Agency Status</div>
+                            <div class="detail-value">${badgeHtml(request.agency_status)}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Delivery Status
-                            </div>
-
-                            <div class="detail-value">
-                                ${badgeHtml(
-                                    r.delivery_status
-                                )}
-                            </div>
-
+                            <div class="detail-label">Delivery Status</div>
+                            <div class="detail-value">${badgeHtml(request.delivery_status)}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                User Status
-                            </div>
-
-                            <div class="detail-value">
-                                ${badgeHtml(
-                                    r.user_status
-                                )}
-                            </div>
-
+                            <div class="detail-label">User Status</div>
+                            <div class="detail-value">${badgeHtml(request.user_status)}</div>
                         </div>
-
                         <div class="detail">
-
-                            <div class="detail-label">
-                                Request Status
-                            </div>
-
-                            <div class="detail-value">
-                                ${badgeHtml(
-                                    r.status
-                                )}
-                            </div>
-
+                            <div class="detail-label">Request Status</div>
+                            <div class="detail-value">${badgeHtml(request.status)}</div>
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
-
         </section>
 
-
         <section class="card">
-
             <div class="card-header">
-
-                <div class="card-title">
-                    Request Timeline
-                </div>
-
-                <div class="card-subtitle">
-                    Important request events
-                </div>
-
+                <div class="card-title">Request Timeline</div>
+                <div class="card-subtitle">Important request events</div>
             </div>
 
             <div class="card-body">
-
                 <div class="timeline">
-
                     <div class="timeline-item completed">
-
                         <div class="timeline-dot"></div>
-
                         <div>
-
-                            <div class="timeline-title">
-                                Request Created
-                            </div>
-
-                            <div class="timeline-text">
-                                ${escapeHtml(
-                                    formatDateTime(
-                                        r.created_at
-                                    )
-                                )}
-                            </div>
-
+                            <div class="timeline-title">Request Created</div>
+                            <div class="timeline-text">${escapeHtml(formatDateTime(request.created_at))}</div>
                         </div>
-
                     </div>
-
 
                     <div class="timeline-item ${
                         approval === "approved"
@@ -3355,682 +2669,355 @@ function renderDetails(){
                                 ? "rejected"
                                 : "active"
                     }">
-
                         <div class="timeline-dot"></div>
-
                         <div>
-
-                            <div class="timeline-title">
-                                Owner Decision
-                            </div>
-
+                            <div class="timeline-title">Owner Decision</div>
                             <div class="timeline-text">
-                                ${escapeHtml(
-                                    approvalLabel(
-                                        approval
-                                    )
-                                )}
-
-                                ${
-                                    r.approved_at
-                                        ? " • " +
-                                          escapeHtml(
-                                              formatDateTime(
-                                                  r.approved_at
-                                              )
-                                          )
-                                        : ""
-                                }
-
+                                ${escapeHtml(approvalLabel(approval))}
+                                ${request.approved_at
+                                    ? " • " + escapeHtml(formatDateTime(request.approved_at))
+                                    : ""}
                             </div>
-
                         </div>
-
                     </div>
-
 
                     <div class="timeline-item ${
-                        String(r.agency_status || "")
-                            .toLowerCase() === "completed"
+                        String(request.agency_status || "").toLowerCase() === "completed"
                             ? "completed"
-                            : String(r.agency_status || "")
-                                .toLowerCase() === "rejected"
-                                    ? "rejected"
-                                    : "active"
+                            : String(request.agency_status || "").toLowerCase() === "rejected"
+                                ? "rejected"
+                                : "active"
                     }">
-
                         <div class="timeline-dot"></div>
-
                         <div>
-
-                            <div class="timeline-title">
-                                Agency Processing
-                            </div>
-
+                            <div class="timeline-title">Agency Processing</div>
                             <div class="timeline-text">
-                                ${escapeHtml(
-                                    displayText(
-                                        r.agency_status ||
-                                        "Waiting"
-                                    )
-                                )}
+                                ${escapeHtml(displayText(request.agency_status || "Waiting"))}
                             </div>
-
                         </div>
-
                     </div>
-
 
                     <div class="timeline-item ${
-                        String(r.delivery_status || "")
-                            .toLowerCase() === "delivered"
+                        String(request.delivery_status || "").toLowerCase() === "delivered"
                             ? "completed"
-                            : String(r.delivery_status || "")
-                                .toLowerCase() === "cancelled"
-                                    ? "rejected"
-                                    : "active"
+                            : String(request.delivery_status || "").toLowerCase() === "cancelled"
+                                ? "rejected"
+                                : "active"
                     }">
-
                         <div class="timeline-dot"></div>
-
                         <div>
-
-                            <div class="timeline-title">
-                                Cylinder Delivery
-                            </div>
-
+                            <div class="timeline-title">Cylinder Delivery</div>
                             <div class="timeline-text">
-                                ${escapeHtml(
-                                    displayText(
-                                        r.delivery_status ||
-                                        "Pending"
-                                    )
-                                )}
+                                ${escapeHtml(displayText(request.delivery_status || "Pending"))}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
-
         </section>
-
     `;
 
+    const approveBtn = document.getElementById("approveBtn");
+    const rejectBtn = document.getElementById("rejectBtn");
+    const editBtn = document.getElementById("editBtn");
 
-    document
-        .getElementById("approveBtn")
-        .addEventListener(
-            "click",
-            approveRequest
-        );
+    if (approveBtn) {
+        approveBtn.addEventListener("click", approveRequest);
+    }
 
+    if (rejectBtn) {
+        rejectBtn.addEventListener("click", rejectRequest);
+    }
 
-    document
-        .getElementById("rejectBtn")
-        .addEventListener(
-            "click",
-            rejectRequest
-        );
-
-
-    document
-        .getElementById("editBtn")
-        .addEventListener(
-            "click",
-            openEditModal
-        );
-
+    if (editBtn) {
+        editBtn.addEventListener("click", openEditModal);
+    }
 }
 
+/* =====================================================
+   APPROVE REQUEST
+===================================================== */
 
-async function approveRequest(){
+async function approveRequest() {
+    if (!currentRequest || isSaving) return;
 
-    if(!currentRequest){
+    if (!confirm("Kya aap is cylinder request ko APPROVE karna chahte hain?")) {
         return;
     }
 
+    const owner = await requireOwner();
+    if (!owner) return;
 
-    const confirmed =
-        confirm(
-            "Kya aap is cylinder request ko APPROVE karna chahte hain?"
-        );
+    isSaving = true;
 
-
-    if(!confirmed){
-        return;
-    }
-
-
-    const owner =
-        await requireOwner();
-
-    if(!owner){
-        return;
-    }
-
-
-    try{
-
-        const now =
-            new Date().toISOString();
-
+    try {
+        const now = new Date().toISOString();
 
         const updateData = {
-
-            owner_approval:
-                "approved",
-
-            approved_by:
-                owner.id,
-
-            approved_at:
-                now,
-
-            owner_rejected_at:
-                null,
-
-            rejection_reason:
-                null,
-
-            status:
-                "Processing",
-
-            agency_status:
-                "waiting",
-
-            user_status:
-                "approved",
-
-            updated_at:
-                now
-
+            owner_approval: "approved",
+            approved_by: owner.id,
+            approved_at: now,
+            owner_rejected_at: null,
+            rejection_reason: null,
+            status: "Processing",
+            agency_status: "waiting",
+            user_status: "approved",
+            updated_at: now
         };
 
-
-        const {
-            error
-        } =
-        await supabaseClient
+        const { error } = await supabaseClient
             .from("cylinder_requests")
             .update(updateData)
-            .eq(
-                "id",
-                currentRequest.id
-            );
+            .eq("id", currentRequest.id);
 
-
-        if(error){
-
-            showToast(
-                "Approval Failed",
-                error.message
-            );
-
+        if (error) {
+            showToast("Approval Failed", error.message);
             return;
-
         }
 
-
-        showToast(
-            "Request Approved",
-            "Request approved successfully."
-        );
-
-
+        showToast("Request Approved", "Request approved successfully.");
         await loadRequest();
-
+    } catch (error) {
+        console.error("Approve request error:", error);
+        showToast("Approval Failed", error.message || "Unable to approve request.");
+    } finally {
+        isSaving = false;
     }
-    catch(error){
-
-        console.error(error);
-
-        showToast(
-            "Approval Failed",
-            "Unable to approve request."
-        );
-
-    }
-
 }
 
+/* =====================================================
+   REJECT REQUEST
+===================================================== */
 
-async function rejectRequest(){
+async function rejectRequest() {
+    if (!currentRequest || isSaving) return;
 
-    if(!currentRequest){
-        return;
-    }
+    const reason = prompt("Rejection reason likhiye:");
 
+    if (reason === null) return;
 
-    const reason =
-        prompt(
-            "Rejection reason likhiye:"
-        );
+    const owner = await requireOwner();
+    if (!owner) return;
 
+    isSaving = true;
 
-    if(reason === null){
-        return;
-    }
-
-
-    const owner =
-        await requireOwner();
-
-    if(!owner){
-        return;
-    }
-
-
-    try{
-
-        const now =
-            new Date().toISOString();
-
-        const cleanReason =
-            String(reason || "")
-                .trim();
-
+    try {
+        const now = new Date().toISOString();
+        const cleanReason = String(reason || "").trim();
 
         const updateData = {
-
-            owner_approval:
-                "rejected",
-
-            approved_by:
-                null,
-
-            approved_at:
-                null,
-
-            owner_rejected_at:
-                now,
-
-            rejection_reason:
-                cleanReason || null,
-
-            owner_note:
-                cleanReason || null,
-
-            status:
-                "Cancelled",
-
-            user_status:
-                "rejected",
-
-            updated_at:
-                now
-
+            owner_approval: "rejected",
+            approved_by: null,
+            approved_at: null,
+            owner_rejected_at: now,
+            rejection_reason: cleanReason || null,
+            owner_note: cleanReason || null,
+            status: "Cancelled",
+            user_status: "rejected",
+            updated_at: now
         };
 
-
-        const {
-            error
-        } =
-        await supabaseClient
+        const { error } = await supabaseClient
             .from("cylinder_requests")
             .update(updateData)
-            .eq(
-                "id",
-                currentRequest.id
-            );
+            .eq("id", currentRequest.id);
 
-
-        if(error){
-
-            showToast(
-                "Rejection Failed",
-                error.message
-            );
-
+        if (error) {
+            showToast("Rejection Failed", error.message);
             return;
-
         }
 
-
-        showToast(
-            "Request Rejected",
-            "Cylinder request rejected successfully."
-        );
-
-
+        showToast("Request Rejected", "Cylinder request rejected successfully.");
         await loadRequest();
-
+    } catch (error) {
+        console.error("Reject request error:", error);
+        showToast("Rejection Failed", error.message || "Unable to reject request.");
+    } finally {
+        isSaving = false;
     }
-    catch(error){
-
-        console.error(error);
-
-        showToast(
-            "Rejection Failed",
-            "Unable to reject request."
-        );
-
-    }
-
 }
 
+/* =====================================================
+   EDIT MODAL
+===================================================== */
 
-function openEditModal(){
+function openEditModal() {
+    if (!currentRequest || !editModal) return;
 
-    if(!currentRequest){
-        return;
+    if (editApproval) {
+        editApproval.value = normalizeApproval(currentRequest.owner_approval);
     }
 
+    if (editStatus) {
+        editStatus.value = currentRequest.status || "Pending";
+    }
 
-    editApproval.value =
-        normalizeApproval(
-            currentRequest.owner_approval
-        );
+    if (editNote) {
+        editNote.value =
+            currentRequest.owner_note ||
+            currentRequest.rejection_reason ||
+            "";
+    }
 
-
-    editStatus.value =
-        currentRequest.status ||
-        "Pending";
-
-
-    editNote.value =
-        currentRequest.owner_note ||
-        currentRequest.rejection_reason ||
-        "";
-
-
-    editModal.classList.add(
-        "show"
-    );
-
+    editModal.classList.add("show");
 }
 
+if (editCancel && editModal) {
+    editCancel.addEventListener("click", function () {
+        editModal.classList.remove("show");
+    });
 
-editCancel.addEventListener(
-    "click",
-    function(){
+    editModal.addEventListener("click", function (event) {
+        if (event.target === editModal) {
+            editModal.classList.remove("show");
+        }
+    });
+}
 
-        editModal.classList.remove(
-            "show"
-        );
+if (editSave) {
+    editSave.addEventListener("click", async function () {
+        if (!currentRequest || isSaving) return;
 
-    }
-);
+        const owner = await requireOwner();
+        if (!owner) return;
 
+        isSaving = true;
+        editSave.disabled = true;
+        editSave.textContent = "Saving...";
 
-editModal.addEventListener(
-    "click",
-    function(event){
-
-        if(event.target === editModal){
-
-            editModal.classList.remove(
-                "show"
+        try {
+            const newApproval = normalizeApproval(
+                editApproval ? editApproval.value : "pending"
             );
 
-        }
-
-    }
-);
-
-
-editSave.addEventListener(
-    "click",
-    async function(){
-
-        if(!currentRequest){
-            return;
-        }
-
-
-        const owner =
-            await requireOwner();
-
-        if(!owner){
-            return;
-        }
-
-
-        editSave.disabled =
-            true;
-
-        editSave.textContent =
-            "Saving...";
-
-
-        try{
-
-            const newApproval =
-                normalizeApproval(
-                    editApproval.value
-                );
-
-
-            const now =
-                new Date().toISOString();
-
+            const now = new Date().toISOString();
 
             const updateData = {
-
-                owner_approval:
-                    newApproval,
-
-                status:
-                    editStatus.value,
-
-                owner_note:
-                    editNote.value.trim() ||
-                    null,
-
-                updated_at:
-                    now
-
+                owner_approval: newApproval,
+                status: editStatus ? editStatus.value : "Pending",
+                owner_note: editNote ? editNote.value.trim() || null : null,
+                updated_at: now
             };
 
-
-            if(newApproval === "approved"){
-
-                updateData.approved_by =
-                    owner.id;
-
-                updateData.approved_at =
-                    now;
-
-                updateData.owner_rejected_at =
-                    null;
-
+            if (newApproval === "approved") {
+                updateData.approved_by = owner.id;
+                updateData.approved_at = now;
+                updateData.owner_rejected_at = null;
+                updateData.rejection_reason = null;
+                updateData.status = "Processing";
+                updateData.agency_status = "waiting";
+                updateData.user_status = "approved";
+            } else if (newApproval === "rejected") {
+                updateData.approved_by = null;
+                updateData.approved_at = null;
+                updateData.owner_rejected_at = now;
                 updateData.rejection_reason =
-                    null;
-
-                updateData.status =
-                    "Processing";
-
-                updateData.agency_status =
-                    "waiting";
-
-                updateData.user_status =
-                    "approved";
-
+                    editNote ? editNote.value.trim() || null : null;
+                updateData.status = "Cancelled";
+                updateData.user_status = "rejected";
+            } else {
+                updateData.approved_by = null;
+                updateData.approved_at = null;
+                updateData.owner_rejected_at = null;
+                updateData.rejection_reason = null;
+                updateData.user_status = "pending";
             }
 
-
-            else if(newApproval === "rejected"){
-
-                updateData.approved_by =
-                    null;
-
-                updateData.approved_at =
-                    null;
-
-                updateData.owner_rejected_at =
-                    now;
-
-                updateData.rejection_reason =
-                    editNote.value.trim() ||
-                    null;
-
-                updateData.status =
-                    "Cancelled";
-
-                updateData.user_status =
-                    "rejected";
-
-            }
-
-
-            else{
-
-                updateData.approved_by =
-                    null;
-
-                updateData.approved_at =
-                    null;
-
-                updateData.owner_rejected_at =
-                    null;
-
-                updateData.rejection_reason =
-                    null;
-
-                updateData.user_status =
-                    "pending";
-
-            }
-
-
-            const {
-                error
-            } =
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from("cylinder_requests")
                 .update(updateData)
-                .eq(
-                    "id",
-                    currentRequest.id
-                );
+                .eq("id", currentRequest.id);
 
-
-            if(error){
-
-                showToast(
-                    "Update Failed",
-                    error.message
-                );
-
+            if (error) {
+                showToast("Update Failed", error.message);
                 return;
-
             }
 
+            if (editModal) {
+                editModal.classList.remove("show");
+            }
 
-            editModal.classList.remove(
-                "show"
-            );
-
-
-            showToast(
-                "Request Updated",
-                "Request details updated successfully."
-            );
-
-
+            showToast("Request Updated", "Request details updated successfully.");
             await loadRequest();
-
+        } catch (error) {
+            console.error("Update request error:", error);
+            showToast("Update Failed", error.message || "Unable to update request.");
+        } finally {
+            isSaving = false;
+            editSave.disabled = false;
+            editSave.textContent = "Save Changes";
         }
-        catch(error){
+    });
+}
 
-            console.error(error);
+/* =====================================================
+   LOGOUT
+===================================================== */
 
-            showToast(
-                "Update Failed",
-                error.message ||
-                "Unable to update request."
-            );
-
-        }
-        finally{
-
-            editSave.disabled =
-                false;
-
-            editSave.textContent =
-                "Save Changes";
-
-        }
-
-    }
-);
-
-
-logoutBtn.addEventListener(
-    "click",
-    async function(){
-
-        const confirmed =
-            confirm(
-                "Kya aap EGC Owner Panel se logout karna chahte hain?"
-            );
-
-
-        if(!confirmed){
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", async function () {
+        if (!confirm("Kya aap EGC Owner Panel se logout karna chahte hain?")) {
             return;
         }
 
+        try {
+            const { error } = await supabaseClient.auth.signOut();
 
-        try{
+            if (error) {
+                throw error;
+            }
 
-            await supabaseClient.auth.signOut();
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+            window.location.replace("owner-login.html");
+        } catch (error) {
+            console.error("Logout error:", error);
+            showToast("Logout Failed", error.message || "Please try again.");
         }
-        catch(error){
-
-            console.error(error);
-
-            showToast(
-                "Logout Failed",
-                "Please try again."
-            );
-
-        }
-
-    }
-);
-
-
-document.addEventListener(
-    "keydown",
-    function(event){
-
-        if(event.key === "Escape"){
-
-            editModal.classList.remove(
-                "show"
-            );
-
-        }
-
-    }
-);
-
-
-async function init(){
-
-    const owner =
-        await requireOwner();
-
-    if(!owner){
-        return;
-    }
-
-
-    await loadRequest();
-
+    });
 }
 
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && editModal) {
+        editModal.classList.remove("show");
+    }
+});
+
+/* =====================================================
+   INITIALIZATION
+===================================================== */
+
+async function init() {
+    if (isInitializing) return;
+
+    isInitializing = true;
+
+    try {
+        console.log("EGC Owner Request Details: checking session...");
+
+        const owner = await requireOwner();
+
+        if (!owner) return;
+
+        console.log("EGC Owner Request Details session found:", {
+            userId: owner.id,
+            storageKey: OWNER_STORAGE_KEY
+        });
+
+        await loadRequest();
+
+        console.log("EGC Owner Request Details initialized successfully.");
+    } catch (error) {
+        console.error("EGC Owner Request Details initialization error:", error);
+        showToast("Initialization Error", "Unable to initialize this page.");
+    } finally {
+        isInitializing = false;
+    }
+}
 
 init();
-
 </script>
 
 </body>

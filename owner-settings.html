@@ -2237,329 +2237,319 @@ button{
     </div>
 
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+/* =========================================================
+   EGC OWNER SETTINGS
+   Supabase Auth + Profile + Business + System Settings
+========================================================= */
+
+/* ================= SUPABASE CONFIG ================= */
 
 const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+    "https://szefvmvokkhvnzryodqu.supabase.co";
 
-const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        }
+    }
 );
 
 
 /* ================= ELEMENTS ================= */
 
-const menuBtn =
-document.getElementById("menuBtn");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
 
-const sidebar =
-document.getElementById("sidebar");
+const logoutBtn = document.getElementById("logoutBtn");
+const logoutBtnBottom = document.getElementById("logoutBtnBottom");
 
-const overlay =
-document.getElementById("overlay");
+const toast = document.getElementById("toast");
+const toastTitle = document.getElementById("toastTitle");
+const toastText = document.getElementById("toastText");
 
-const logoutBtn =
-document.getElementById("logoutBtn");
+const profilePhoto = document.getElementById("profilePhoto");
+const photoFallback = document.getElementById("photoFallback");
+const photoInput = document.getElementById("photoInput");
 
-const logoutBtnBottom =
-document.getElementById("logoutBtnBottom");
+const profileDisplayName = document.getElementById("profileDisplayName");
 
-const toast =
-document.getElementById("toast");
+const ownerName = document.getElementById("ownerName");
+const ownerEmail = document.getElementById("ownerEmail");
+const ownerMobile = document.getElementById("ownerMobile");
+const ownerUsername = document.getElementById("ownerUsername");
 
-const toastTitle =
-document.getElementById("toastTitle");
-
-const toastText =
-document.getElementById("toastText");
-
-const profilePhoto =
-document.getElementById("profilePhoto");
-
-const photoFallback =
-document.getElementById("photoFallback");
-
-const photoInput =
-document.getElementById("photoInput");
-
-const profileDisplayName =
-document.getElementById("profileDisplayName");
-
-const ownerName =
-document.getElementById("ownerName");
-
-const ownerEmail =
-document.getElementById("ownerEmail");
-
-const ownerMobile =
-document.getElementById("ownerMobile");
-
-const ownerUsername =
-document.getElementById("ownerUsername");
-
-const businessName =
-document.getElementById("businessName");
-
-const businessState =
-document.getElementById("businessState");
-
-const businessDistrict =
-document.getElementById("businessDistrict");
-
-const businessCity =
-document.getElementById("businessCity");
-
-const businessAddress =
-document.getElementById("businessAddress");
+const businessName = document.getElementById("businessName");
+const businessState = document.getElementById("businessState");
+const businessDistrict = document.getElementById("businessDistrict");
+const businessCity = document.getElementById("businessCity");
+const businessAddress = document.getElementById("businessAddress");
 
 const defaultPaymentMethod =
-document.getElementById("defaultPaymentMethod");
+    document.getElementById("defaultPaymentMethod");
 
 const defaultExtraCharge =
-document.getElementById("defaultExtraCharge");
+    document.getElementById("defaultExtraCharge");
 
 const paymentVerification =
-document.getElementById("paymentVerification");
+    document.getElementById("paymentVerification");
 
 const defaultCompany =
-document.getElementById("defaultCompany");
+    document.getElementById("defaultCompany");
 
 const defaultQuantity =
-document.getElementById("defaultQuantity");
+    document.getElementById("defaultQuantity");
 
 const allowRequests =
-document.getElementById("allowRequests");
+    document.getElementById("allowRequests");
 
 const notifyRequests =
-document.getElementById("notifyRequests");
+    document.getElementById("notifyRequests");
 
 const notifyPayments =
-document.getElementById("notifyPayments");
+    document.getElementById("notifyPayments");
 
 const notifyDelivery =
-document.getElementById("notifyDelivery");
+    document.getElementById("notifyDelivery");
 
 const roleStatus =
-document.getElementById("roleStatus");
+    document.getElementById("roleStatus");
+
+const saveProfileBtn =
+    document.getElementById("saveProfileBtn");
+
+const saveBusinessBtn =
+    document.getElementById("saveBusinessBtn");
+
+const savePaymentBtn =
+    document.getElementById("savePaymentBtn");
+
+const saveCylinderBtn =
+    document.getElementById("saveCylinderBtn");
+
+const saveNotificationBtn =
+    document.getElementById("saveNotificationBtn");
+
+const resetPasswordBtn =
+    document.getElementById("resetPasswordBtn");
 
 
 /* ================= DATA ================= */
 
 let currentUser = null;
-
 let currentProfile = null;
+let isLoggingOut = false;
+
+let settingsToastTimer = null;
 
 
-/* ================= TOAST ================= */
+/* ================= HELPERS ================= */
 
-function showToast(title,text){
+function getElementValue(element) {
+    return element ? element.value.trim() : "";
+}
 
-    toastTitle.textContent =
-    title || "Notification";
+function setElementValue(element, value) {
+    if (element) {
+        element.value = value ?? "";
+    }
+}
 
-    toastText.textContent =
-    text || "";
+function showToast(title, text) {
+    if (!toast || !toastTitle || !toastText) {
+        console.log((title || "Notification") + ": " + (text || ""));
+        return;
+    }
+
+    toastTitle.textContent = title || "Notification";
+    toastText.textContent = text || "";
 
     toast.classList.add("show");
 
-    clearTimeout(
-        window.egcSettingsToastTimer
-    );
+    clearTimeout(settingsToastTimer);
 
-    window.egcSettingsToastTimer =
-    setTimeout(
-        function(){
+    settingsToastTimer = setTimeout(function () {
+        toast.classList.remove("show");
+    }, 4500);
+}
 
-            toast.classList.remove("show");
+function setButtonLoading(button, loading, loadingText, defaultText) {
+    if (!button) return;
 
-        },
-        4500
-    );
+    button.disabled = loading;
+    button.textContent = loading ? loadingText : defaultText;
+}
 
+function safeParseJSON(value) {
+    try {
+        return value ? JSON.parse(value) : null;
+    } catch (error) {
+        console.error("Settings JSON parse error:", error);
+        return null;
+    }
+}
+
+function getLocalJSON(key) {
+    try {
+        return safeParseJSON(localStorage.getItem(key));
+    } catch (error) {
+        console.error("Unable to read local settings:", error);
+        return null;
+    }
+}
+
+function setLocalJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (error) {
+        console.error("Unable to save local settings:", error);
+        showToast("Storage Error", "Settings save nahi ho sakin.");
+        return false;
+    }
 }
 
 
 /* ================= NAVIGATION ================= */
 
-function openPage(page){
-
+function openPage(page) {
     const pages = {
-
-        dashboard:"owner-dashboard.html",
-
-        users:"owner-users.html",
-
-        agencies:"owner-agencies.html",
-
-        companies:"owner-companies.html",
-
-        requests:"owner-requests.html",
-
-        payments:"owner-payments.html",
-
-        reports:"owner-reports.html",
-
-        settings:"owner-settings.html"
-
+        dashboard: "owner-dashboard.html",
+        users: "owner-users.html",
+        agencies: "owner-agencies.html",
+        companies: "owner-companies.html",
+        requests: "owner-requests.html",
+        payments: "owner-payments.html",
+        reports: "owner-reports.html",
+        settings: "owner-settings.html"
     };
 
-
-    if(pages[page]){
-
-        window.location.href =
-        pages[page];
-
+    if (pages[page]) {
+        window.location.href = pages[page];
     }
-
 }
 
-
-document
-.querySelectorAll("[data-page]")
-.forEach(button => {
-
-    button.addEventListener(
-        "click",
-        function(){
-
-            openPage(
-                this.dataset.page
-            );
-
-        }
-    );
-
+document.querySelectorAll("[data-page]").forEach(function (button) {
+    button.addEventListener("click", function () {
+        openPage(this.dataset.page);
+    });
 });
 
 
-/* ================= MOBILE ================= */
+/* ================= MOBILE SIDEBAR ================= */
 
-menuBtn.addEventListener(
-    "click",
-    function(){
+function closeSidebar() {
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("show");
+}
+
+if (menuBtn) {
+    menuBtn.addEventListener("click", function () {
+        if (!sidebar || !overlay) return;
 
         sidebar.classList.toggle("open");
-
         overlay.classList.toggle("show");
+    });
+}
 
+if (overlay) {
+    overlay.addEventListener("click", closeSidebar);
+}
+
+
+/* ================= PROFILE PHOTO DISPLAY ================= */
+
+function showProfilePhoto(url) {
+    if (!url || !profilePhoto) return;
+
+    profilePhoto.src = url;
+    profilePhoto.style.display = "block";
+
+    if (photoFallback) {
+        photoFallback.style.display = "none";
     }
-);
+}
+
+if (profilePhoto) {
+    profilePhoto.addEventListener("error", function () {
+        profilePhoto.style.display = "none";
+
+        if (photoFallback) {
+            photoFallback.style.display = "";
+        }
+    });
+}
 
 
-overlay.addEventListener(
-    "click",
-    function(){
+/* ================= LOAD OWNER ================= */
 
-        sidebar.classList.remove("open");
-
-        overlay.classList.remove("show");
-
-    }
-);
-
-
-/* ================= LOAD USER ================= */
-
-async function loadOwner(){
-
-    try{
-
+async function loadOwner() {
+    try {
         const {
             data,
             error
-        } =
-        await supabaseClient.auth.getUser();
+        } = await supabaseClient.auth.getUser();
 
+        if (error) {
+            console.error("Owner authentication error:", error);
 
-        if(error){
-
-            console.error(error);
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+            window.location.replace("owner-login.html");
             return;
-
         }
 
-
-        if(!data || !data.user){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
+        if (!data || !data.user) {
+            window.location.replace("owner-login.html");
             return;
-
         }
 
+        currentUser = data.user;
 
-        currentUser =
-        data.user;
-
-
-        ownerEmail.value =
-        currentUser.email ||
-        "";
-
+        setElementValue(ownerEmail, currentUser.email || "");
 
         await loadProfile();
 
-    }
-    catch(error){
-
-        console.error(error);
+    } catch (error) {
+        console.error("Unable to load owner:", error);
 
         showToast(
-            "Error",
-            "Unable to load owner account."
+            "Account Error",
+            "Owner account load nahi ho saka."
         );
-
     }
-
 }
 
 
 /* ================= LOAD PROFILE ================= */
 
-async function loadProfile(){
+async function loadProfile() {
+    if (!currentUser) return;
 
-    if(!currentUser){
-        return;
-    }
-
-
-    try{
-
+    try {
         const {
             data,
             error
-        } =
-        await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq(
-            "id",
-            currentUser.id
-        )
-        .maybeSingle();
+        } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq("id", currentUser.id)
+            .maybeSingle();
 
-
-        if(error){
-
-            console.error(
-                "Profile error:",
-                error
-            );
+        if (error) {
+            console.error("Profile error:", error);
 
             showToast(
                 "Profile Error",
@@ -2567,228 +2557,144 @@ async function loadProfile(){
             );
 
             return;
-
         }
 
+        currentProfile = data || null;
 
-        currentProfile =
-        data || null;
+        if (!currentProfile) {
+            if (profileDisplayName) {
+                profileDisplayName.textContent = "Owner";
+            }
 
+            if (roleStatus) {
+                roleStatus.textContent = "Profile Not Found";
+            }
 
-        if(!currentProfile){
-
-            profileDisplayName.textContent =
-            "Owner";
-
-            roleStatus.textContent =
-            "Not Found";
+            showToast(
+                "Profile Not Found",
+                "Is account ke liye profiles table mein record nahi mila."
+            );
 
             return;
-
         }
-
 
         const name =
-        currentProfile.full_name ||
-        currentProfile.username ||
-        "Owner";
-
-
-        profileDisplayName.textContent =
-        name;
-
-
-        ownerName.value =
-        currentProfile.full_name ||
-        "";
-
-
-        ownerMobile.value =
-        currentProfile.mobile ||
-        "";
-
-
-        ownerUsername.value =
-        currentProfile.username ||
-        "";
-
-
-        businessState.value =
-        currentProfile.state ||
-        "";
-
-
-        businessDistrict.value =
-        currentProfile.district ||
-        "";
-
-
-        businessCity.value =
-        currentProfile.city ||
-        "";
-
-
-        if(
-            currentProfile.profile_photo
-        ){
-
-            showProfilePhoto(
-                currentProfile.profile_photo
-            );
-
-        }
-
-
-        if(
-            String(
-                currentProfile.role ||
-                ""
-            ).toLowerCase() ===
-            "owner"
-        ){
-
-            roleStatus.textContent =
+            currentProfile.full_name ||
+            currentProfile.username ||
             "Owner";
 
+        if (profileDisplayName) {
+            profileDisplayName.textContent = name;
         }
-        else{
 
+        setElementValue(ownerName, currentProfile.full_name || "");
+        setElementValue(ownerMobile, currentProfile.mobile || "");
+        setElementValue(ownerUsername, currentProfile.username || "");
+
+        setElementValue(businessState, currentProfile.state || "");
+        setElementValue(businessDistrict, currentProfile.district || "");
+        setElementValue(businessCity, currentProfile.city || "");
+
+        setElementValue(ownerEmail, currentUser.email || "");
+
+        if (currentProfile.profile_photo) {
+            showProfilePhoto(currentProfile.profile_photo);
+        }
+
+        const role = String(currentProfile.role || "").toLowerCase();
+
+        if (roleStatus) {
             roleStatus.textContent =
-            currentProfile.role ||
-            "Unknown";
-
+                role === "owner"
+                    ? "Owner"
+                    : (currentProfile.role || "Unknown");
         }
 
-    }
-    catch(error){
-
-        console.error(error);
+    } catch (error) {
+        console.error("Profile loading error:", error);
 
         showToast(
-            "Error",
-            "Unable to load profile."
+            "Profile Error",
+            "Profile load karte waqt error aaya."
         );
-
     }
-
 }
 
 
-/* ================= PHOTO ================= */
+/* ================= UPLOAD PROFILE PHOTO ================= */
 
-function showProfilePhoto(url){
+if (photoInput) {
+    photoInput.addEventListener("change", async function () {
+        const file = this.files && this.files[0];
 
-    if(!url){
-        return;
-    }
+        if (!file) return;
 
-
-    profilePhoto.src =
-    url;
-
-
-    profilePhoto.style.display =
-    "block";
-
-
-    photoFallback.style.display =
-    "none";
-
-}
-
-
-photoInput.addEventListener(
-    "change",
-    async function(){
-
-        const file =
-        this.files &&
-        this.files[0];
-
-
-        if(!file){
-            return;
-        }
-
-
-        if(!currentUser){
+        if (!currentUser) {
             showToast(
                 "Login Required",
-                "Owner session not found."
+                "Owner session nahi mila."
             );
+
+            this.value = "";
             return;
         }
 
-
-        if(!file.type.startsWith("image/")){
-
+        if (!file.type || !file.type.startsWith("image/")) {
             showToast(
                 "Invalid File",
-                "Please select an image."
+                "Please ek image file select karein."
             );
 
+            this.value = "";
             return;
-
         }
 
-
-        if(file.size > 5 * 1024 * 1024){
-
+        if (file.size > 5 * 1024 * 1024) {
             showToast(
                 "File Too Large",
-                "Image should be less than 5 MB."
+                "Image 5 MB se chhoti honi chahiye."
             );
 
+            this.value = "";
             return;
-
         }
 
-
-        try{
-
+        try {
             showToast(
                 "Uploading",
                 "Profile photo upload ho rahi hai..."
             );
 
+            const originalExtension =
+                file.name.includes(".")
+                    ? file.name.split(".").pop().toLowerCase()
+                    : "jpg";
 
-            const extension =
-            file.name
-            .split(".")
-            .pop()
-            .toLowerCase();
-
+            const safeExtension =
+                /^[a-z0-9]+$/.test(originalExtension)
+                    ? originalExtension
+                    : "jpg";
 
             const filePath =
-            "owner/" +
-            currentUser.id +
-            "/" +
-            Date.now() +
-            "." +
-            extension;
-
+                "owner/" +
+                currentUser.id +
+                "/" +
+                Date.now() +
+                "." +
+                safeExtension;
 
             const {
-                error:uploadError
-            } =
-            await supabaseClient
-            .storage
-            .from("profile-photos")
-            .upload(
-                filePath,
-                file,
-                {
-                    upsert:true,
-                    contentType:file.type
-                }
-            );
+                error: uploadError
+            } = await supabaseClient
+                .storage
+                .from("profile-photos")
+                .upload(filePath, file, {
+                    upsert: true,
+                    contentType: file.type
+                });
 
-
-            if(uploadError){
-
-                console.error(
-                    uploadError
-                );
+            if (uploadError) {
+                console.error("Photo upload error:", uploadError);
 
                 showToast(
                     "Upload Failed",
@@ -2796,58 +2702,39 @@ photoInput.addEventListener(
                 );
 
                 return;
-
             }
 
-
             const {
-                data:urlData
-            } =
-            supabaseClient
-            .storage
-            .from("profile-photos")
-            .getPublicUrl(
-                filePath
-            );
-
+                data: urlData
+            } = supabaseClient
+                .storage
+                .from("profile-photos")
+                .getPublicUrl(filePath);
 
             const publicUrl =
-            urlData &&
-            urlData.publicUrl;
+                urlData && urlData.publicUrl;
 
-
-            if(!publicUrl){
-
+            if (!publicUrl) {
                 showToast(
                     "Upload Failed",
-                    "Unable to create photo URL."
+                    "Photo URL generate nahi ho saka."
                 );
 
                 return;
-
             }
 
-
             const {
-                error:updateError
-            } =
-            await supabaseClient
-            .from("profiles")
-            .update({
-                profile_photo:publicUrl,
-                updated_at:new Date().toISOString()
-            })
-            .eq(
-                "id",
-                currentUser.id
-            );
+                error: updateError
+            } = await supabaseClient
+                .from("profiles")
+                .update({
+                    profile_photo: publicUrl,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", currentUser.id);
 
-
-            if(updateError){
-
-                console.error(
-                    updateError
-                );
+            if (updateError) {
+                console.error("Photo profile save error:", updateError);
 
                 showToast(
                     "Save Failed",
@@ -2855,115 +2742,80 @@ photoInput.addEventListener(
                 );
 
                 return;
-
             }
 
+            if (currentProfile) {
+                currentProfile.profile_photo = publicUrl;
+            }
 
-            showProfilePhoto(
-                publicUrl
-            );
-
+            showProfilePhoto(publicUrl);
 
             showToast(
                 "Success",
-                "Profile photo updated successfully."
+                "Owner profile photo update ho gayi."
             );
 
-        }
-        catch(error){
-
-            console.error(error);
+        } catch (error) {
+            console.error("Photo upload error:", error);
 
             showToast(
                 "Upload Failed",
-                "Unable to upload profile photo."
+                "Profile photo upload nahi ho saki."
             );
-
+        } finally {
+            this.value = "";
         }
-
-    }
-);
+    });
+}
 
 
 /* ================= SAVE PROFILE ================= */
 
-document
-.getElementById("saveProfileBtn")
-.addEventListener(
-    "click",
-    async function(){
-
-        if(!currentUser){
+if (saveProfileBtn) {
+    saveProfileBtn.addEventListener("click", async function () {
+        if (!currentUser) {
+            showToast("Login Required", "Owner session nahi mila.");
             return;
         }
 
+        const name = getElementValue(ownerName);
+        const mobile = getElementValue(ownerMobile);
+        const username = getElementValue(ownerUsername);
 
-        const name =
-        ownerName.value.trim();
-
-
-        const mobile =
-        ownerMobile.value.trim();
-
-
-        const username =
-        ownerUsername.value.trim();
-
-
-        if(!name){
-
+        if (!name) {
             showToast(
                 "Missing Name",
-                "Please enter owner name."
+                "Please owner name enter karein."
             );
 
+            if (ownerName) ownerName.focus();
             return;
-
         }
 
+        const button = this;
 
-        const button =
-        this;
+        setButtonLoading(
+            button,
+            true,
+            "Saving...",
+            "Save Profile"
+        );
 
-
-        button.disabled =
-        true;
-
-
-        button.textContent =
-        "Saving...";
-
-
-        try{
-
+        try {
             const {
                 error
-            } =
-            await supabaseClient
-            .from("profiles")
-            .update({
+            } = await supabaseClient
+                .from("profiles")
+                .update({
+                    full_name: name,
+                    mobile: mobile || null,
+                    username: username || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", currentUser.id);
 
-                full_name:name,
-
-                mobile:
-                mobile || null,
-
-                username:
-                username || null,
-
-                updated_at:
-                new Date().toISOString()
-
-            })
-            .eq(
-                "id",
-                currentUser.id
-            );
-
-
-            if(error){
-
-                console.error(error);
+            if (error) {
+                console.error("Profile save error:", error);
 
                 showToast(
                     "Save Failed",
@@ -2971,103 +2823,81 @@ document
                 );
 
                 return;
-
             }
 
+            if (currentProfile) {
+                currentProfile.full_name = name;
+                currentProfile.mobile = mobile || null;
+                currentProfile.username = username || null;
+            }
 
-            profileDisplayName.textContent =
-            name;
-
+            if (profileDisplayName) {
+                profileDisplayName.textContent = name;
+            }
 
             showToast(
                 "Success",
-                "Owner profile updated successfully."
+                "Owner profile successfully update ho gayi."
             );
 
-        }
-        catch(error){
-
-            console.error(error);
+        } catch (error) {
+            console.error("Profile update error:", error);
 
             showToast(
                 "Save Failed",
-                "Unable to update profile."
+                "Profile update nahi ho saki."
             );
-
+        } finally {
+            setButtonLoading(
+                button,
+                false,
+                "Saving...",
+                "Save Profile"
+            );
         }
-        finally{
-
-            button.disabled =
-            false;
-
-            button.textContent =
-            "Save Profile";
-
-        }
-
-    }
-);
+    });
+}
 
 
-/* ================= BUSINESS SETTINGS ================= */
+/* ================= SAVE BUSINESS SETTINGS ================= */
 
-document
-.getElementById("saveBusinessBtn")
-.addEventListener(
-    "click",
-    async function(){
-
-        if(!currentUser){
+if (saveBusinessBtn) {
+    saveBusinessBtn.addEventListener("click", async function () {
+        if (!currentUser) {
+            showToast("Login Required", "Owner session nahi mila.");
             return;
         }
 
+        const state = getElementValue(businessState);
+        const district = getElementValue(businessDistrict);
+        const city = getElementValue(businessCity);
+        const name = getElementValue(businessName);
+        const address = getElementValue(businessAddress);
 
-        const button =
-        this;
+        const button = this;
 
+        setButtonLoading(
+            button,
+            true,
+            "Saving...",
+            "Save Business Settings"
+        );
 
-        button.disabled =
-        true;
-
-
-        button.textContent =
-        "Saving...";
-
-
-        try{
-
+        try {
             const {
                 error
-            } =
-            await supabaseClient
-            .from("profiles")
-            .update({
+            } = await supabaseClient
+                .from("profiles")
+                .update({
+                    state: state || null,
+                    district: district || null,
+                    city: city || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", currentUser.id);
 
-                state:
-                businessState.value.trim() ||
-                null,
-
-                district:
-                businessDistrict.value.trim() ||
-                null,
-
-                city:
-                businessCity.value.trim() ||
-                null,
-
-                updated_at:
-                new Date().toISOString()
-
-            })
-            .eq(
-                "id",
-                currentUser.id
-            );
-
-
-            if(error){
-
-                console.error(error);
+            if (error) {
+                console.error("Business settings error:", error);
 
                 showToast(
                     "Save Failed",
@@ -3075,381 +2905,311 @@ document
                 );
 
                 return;
-
             }
 
+            try {
+                localStorage.setItem("egc_business_name", name);
+                localStorage.setItem("egc_business_address", address);
+            } catch (storageError) {
+                console.error("Local business settings error:", storageError);
 
-            localStorage.setItem(
-                "egc_business_name",
-                businessName.value.trim()
-            );
+                showToast(
+                    "Partial Save",
+                    "Location profile mein save ho gayi, lekin local settings save nahi hui."
+                );
 
+                return;
+            }
 
-            localStorage.setItem(
-                "egc_business_address",
-                businessAddress.value.trim()
-            );
-
+            if (currentProfile) {
+                currentProfile.state = state || null;
+                currentProfile.district = district || null;
+                currentProfile.city = city || null;
+            }
 
             showToast(
                 "Success",
-                "Business settings saved."
+                "Business settings save ho gayi."
             );
 
-        }
-        catch(error){
-
-            console.error(error);
+        } catch (error) {
+            console.error("Business settings error:", error);
 
             showToast(
                 "Save Failed",
-                "Unable to save business settings."
+                "Business settings save nahi ho sakin."
+            );
+        } finally {
+            setButtonLoading(
+                button,
+                false,
+                "Saving...",
+                "Save Business Settings"
+            );
+        }
+    });
+}
+
+
+/* ================= SAVE PAYMENT SETTINGS ================= */
+
+if (savePaymentBtn) {
+    savePaymentBtn.addEventListener("click", function () {
+        const extraChargeValue =
+            getElementValue(defaultExtraCharge);
+
+        const extraCharge =
+            extraChargeValue === ""
+                ? 0
+                : Number(extraChargeValue);
+
+        if (!Number.isFinite(extraCharge) || extraCharge < 0) {
+            showToast(
+                "Invalid Amount",
+                "Extra charge zero ya positive amount hona chahiye."
             );
 
-        }
-        finally{
+            if (defaultExtraCharge) {
+                defaultExtraCharge.focus();
+            }
 
-            button.disabled =
-            false;
-
-            button.textContent =
-            "Save Business Settings";
-
+            return;
         }
 
-    }
-);
-
-
-/* ================= PAYMENT SETTINGS ================= */
-
-document
-.getElementById("savePaymentBtn")
-.addEventListener(
-    "click",
-    function(){
-
         const settings = {
-
-            paymentMethod:
-            defaultPaymentMethod.value,
-
-            extraCharge:
-            Number(
-                defaultExtraCharge.value
-            ) || 0,
-
-            verification:
-            paymentVerification.checked
-
+            paymentMethod: getElementValue(defaultPaymentMethod),
+            extraCharge: extraCharge,
+            verification: Boolean(
+                paymentVerification && paymentVerification.checked
+            )
         };
 
-
-        localStorage.setItem(
-            "egc_payment_settings",
-            JSON.stringify(settings)
-        );
-
+        if (!setLocalJSON("egc_payment_settings", settings)) {
+            return;
+        }
 
         showToast(
             "Success",
-            "Payment settings saved."
+            "Payment settings save ho gayi."
         );
+    });
+}
 
-    }
-);
 
+/* ================= SAVE CYLINDER SETTINGS ================= */
 
-/* ================= CYLINDER SETTINGS ================= */
+if (saveCylinderBtn) {
+    saveCylinderBtn.addEventListener("click", function () {
+        const quantityText = getElementValue(defaultQuantity);
+        const quantity =
+            quantityText === "" ? 1 : Number(quantityText);
 
-document
-.getElementById("saveCylinderBtn")
-.addEventListener(
-    "click",
-    function(){
+        if (!Number.isInteger(quantity) || quantity < 1) {
+            showToast(
+                "Invalid Quantity",
+                "Cylinder quantity kam se kam 1 honi chahiye."
+            );
+
+            if (defaultQuantity) defaultQuantity.focus();
+            return;
+        }
 
         const settings = {
-
-            company:
-            defaultCompany.value,
-
-            quantity:
-            Number(
-                defaultQuantity.value
-            ) || 1,
-
-            allowRequests:
-            allowRequests.checked
-
+            company: getElementValue(defaultCompany),
+            quantity: quantity,
+            allowRequests: Boolean(
+                allowRequests && allowRequests.checked
+            )
         };
 
-
-        localStorage.setItem(
-            "egc_cylinder_settings",
-            JSON.stringify(settings)
-        );
-
+        if (!setLocalJSON("egc_cylinder_settings", settings)) {
+            return;
+        }
 
         showToast(
             "Success",
-            "Cylinder settings saved."
+            "Cylinder settings save ho gayi."
         );
+    });
+}
 
-    }
-);
 
+/* ================= SAVE NOTIFICATION SETTINGS ================= */
 
-/* ================= NOTIFICATION SETTINGS ================= */
-
-document
-.getElementById("saveNotificationBtn")
-.addEventListener(
-    "click",
-    function(){
-
+if (saveNotificationBtn) {
+    saveNotificationBtn.addEventListener("click", function () {
         const settings = {
-
-            requests:
-            notifyRequests.checked,
-
-            payments:
-            notifyPayments.checked,
-
-            delivery:
-            notifyDelivery.checked
-
+            requests: Boolean(
+                notifyRequests && notifyRequests.checked
+            ),
+            payments: Boolean(
+                notifyPayments && notifyPayments.checked
+            ),
+            delivery: Boolean(
+                notifyDelivery && notifyDelivery.checked
+            )
         };
 
-
-        localStorage.setItem(
-            "egc_notification_settings",
-            JSON.stringify(settings)
-        );
-
+        if (!setLocalJSON("egc_notification_settings", settings)) {
+            return;
+        }
 
         showToast(
             "Success",
-            "Notification settings saved."
+            "Notification preferences save ho gayi."
         );
-
-    }
-);
+    });
+}
 
 
 /* ================= LOAD LOCAL SETTINGS ================= */
 
-function loadLocalSettings(){
-
-    try{
-
+function loadLocalSettings() {
+    try {
         const paymentSettings =
-        JSON.parse(
-            localStorage.getItem(
-                "egc_payment_settings"
-            ) || "null"
-        );
+            getLocalJSON("egc_payment_settings");
 
-
-        if(paymentSettings){
-
-            if(
-                paymentSettings.paymentMethod
-            ){
-
+        if (paymentSettings) {
+            if (
+                paymentSettings.paymentMethod !== undefined &&
+                defaultPaymentMethod
+            ) {
                 defaultPaymentMethod.value =
-                paymentSettings.paymentMethod;
-
+                    paymentSettings.paymentMethod;
             }
 
-
-            if(
-                paymentSettings.extraCharge !==
-                undefined
-            ){
-
+            if (
+                paymentSettings.extraCharge !== undefined &&
+                defaultExtraCharge
+            ) {
                 defaultExtraCharge.value =
-                paymentSettings.extraCharge;
-
+                    paymentSettings.extraCharge;
             }
 
-
-            if(
-                paymentSettings.verification !==
-                undefined
-            ){
-
+            if (
+                paymentSettings.verification !== undefined &&
+                paymentVerification
+            ) {
                 paymentVerification.checked =
-                Boolean(
-                    paymentSettings.verification
-                );
-
+                    Boolean(paymentSettings.verification);
             }
-
         }
-
 
         const cylinderSettings =
-        JSON.parse(
-            localStorage.getItem(
-                "egc_cylinder_settings"
-            ) || "null"
-        );
+            getLocalJSON("egc_cylinder_settings");
 
-
-        if(cylinderSettings){
-
-            defaultCompany.value =
-            cylinderSettings.company ||
-            "";
-
-
-            defaultQuantity.value =
-            cylinderSettings.quantity ||
-            1;
-
-
-            if(
-                cylinderSettings.allowRequests !==
-                undefined
-            ){
-
-                allowRequests.checked =
-                Boolean(
-                    cylinderSettings.allowRequests
-                );
-
+        if (cylinderSettings) {
+            if (defaultCompany) {
+                defaultCompany.value =
+                    cylinderSettings.company || "";
             }
 
-        }
+            if (defaultQuantity) {
+                defaultQuantity.value =
+                    cylinderSettings.quantity ?? 1;
+            }
 
+            if (
+                cylinderSettings.allowRequests !== undefined &&
+                allowRequests
+            ) {
+                allowRequests.checked =
+                    Boolean(cylinderSettings.allowRequests);
+            }
+        }
 
         const notificationSettings =
-        JSON.parse(
-            localStorage.getItem(
-                "egc_notification_settings"
-            ) || "null"
-        );
+            getLocalJSON("egc_notification_settings");
 
-
-        if(notificationSettings){
-
-            if(
-                notificationSettings.requests !==
-                undefined
-            ){
-
+        if (notificationSettings) {
+            if (
+                notificationSettings.requests !== undefined &&
+                notifyRequests
+            ) {
                 notifyRequests.checked =
-                Boolean(
-                    notificationSettings.requests
-                );
-
+                    Boolean(notificationSettings.requests);
             }
 
-
-            if(
-                notificationSettings.payments !==
-                undefined
-            ){
-
+            if (
+                notificationSettings.payments !== undefined &&
+                notifyPayments
+            ) {
                 notifyPayments.checked =
-                Boolean(
-                    notificationSettings.payments
-                );
-
+                    Boolean(notificationSettings.payments);
             }
 
-
-            if(
-                notificationSettings.delivery !==
-                undefined
-            ){
-
+            if (
+                notificationSettings.delivery !== undefined &&
+                notifyDelivery
+            ) {
                 notifyDelivery.checked =
-                Boolean(
-                    notificationSettings.delivery
-                );
-
+                    Boolean(notificationSettings.delivery);
             }
-
         }
 
+        if (businessName) {
+            businessName.value =
+                localStorage.getItem("egc_business_name") ||
+                "Emergency Gas Cylinder";
+        }
 
-        businessName.value =
-        localStorage.getItem(
-            "egc_business_name"
-        ) ||
-        "Emergency Gas Cylinder";
+        if (businessAddress) {
+            businessAddress.value =
+                localStorage.getItem("egc_business_address") || "";
+        }
 
+    } catch (error) {
+        console.error("Local settings loading error:", error);
 
-        businessAddress.value =
-        localStorage.getItem(
-            "egc_business_address"
-        ) ||
-        "";
-
-    }
-    catch(error){
-
-        console.error(
-            "Local settings error:",
-            error
+        showToast(
+            "Settings Error",
+            "Saved local settings load nahi ho sakin."
         );
-
     }
-
 }
 
 
 /* ================= PASSWORD RESET ================= */
 
-document
-.getElementById("resetPasswordBtn")
-.addEventListener(
-    "click",
-    async function(){
-
-        if(!currentUser || !currentUser.email){
-
+if (resetPasswordBtn) {
+    resetPasswordBtn.addEventListener("click", async function () {
+        if (!currentUser || !currentUser.email) {
             showToast(
-                "Error",
-                "Owner email not available."
+                "Email Not Available",
+                "Owner account ka email available nahi hai."
             );
 
             return;
-
         }
 
-
-        const confirmed =
-        confirm(
-            "Password reset link owner email par bhejna hai?"
+        const confirmed = confirm(
+            "Kya owner email par password reset link bhejna hai?"
         );
 
+        if (!confirmed) return;
 
-        if(!confirmed){
-            return;
-        }
+        const button = this;
+        const originalText = button.textContent;
 
+        button.disabled = true;
+        button.textContent = "Sending...";
 
-        try{
+        try {
+            const redirectUrl =
+                window.location.origin +
+                window.location.pathname;
 
             const {
                 error
-            } =
-            await supabaseClient.auth
-            .resetPasswordForEmail(
+            } = await supabaseClient.auth.resetPasswordForEmail(
                 currentUser.email,
                 {
-                    redirectTo:
-                    window.location.origin +
-                    window.location.pathname
+                    redirectTo: redirectUrl
                 }
             );
 
-
-            if(error){
-
-                console.error(error);
+            if (error) {
+                console.error("Password reset error:", error);
 
                 showToast(
                     "Reset Failed",
@@ -3457,130 +3217,109 @@ document
                 );
 
                 return;
-
             }
-
 
             showToast(
                 "Reset Email Sent",
                 "Password reset link owner email par bhej diya gaya hai."
             );
 
-        }
-        catch(error){
-
-            console.error(error);
+        } catch (error) {
+            console.error("Password reset error:", error);
 
             showToast(
                 "Reset Failed",
-                "Unable to send reset email."
+                "Password reset email nahi bheja ja saka."
             );
-
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
         }
-
-    }
-);
+    });
+}
 
 
 /* ================= LOGOUT ================= */
 
-async function logoutOwner(){
+async function logoutOwner() {
+    if (isLoggingOut) return;
 
-    const confirmed =
-    confirm(
+    const confirmed = confirm(
         "Kya aap EGC Owner Panel se logout karna chahte hain?"
     );
 
+    if (!confirmed) return;
 
-    if(!confirmed){
-        return;
-    }
+    isLoggingOut = true;
 
+    if (logoutBtn) logoutBtn.disabled = true;
+    if (logoutBtnBottom) logoutBtnBottom.disabled = true;
 
-    try{
-
+    try {
         const {
             error
-        } =
-        await supabaseClient.auth.signOut();
+        } = await supabaseClient.auth.signOut();
 
-
-        if(error){
+        if (error) {
+            console.error("Logout error:", error);
 
             showToast(
                 "Logout Failed",
                 error.message
             );
 
-            return;
+            isLoggingOut = false;
 
+            if (logoutBtn) logoutBtn.disabled = false;
+            if (logoutBtnBottom) logoutBtnBottom.disabled = false;
+
+            return;
         }
 
+        window.location.replace("owner-login.html");
 
-        window.location.replace(
-            "owner-login.html"
-        );
-
-    }
-    catch(error){
-
-        console.error(error);
+    } catch (error) {
+        console.error("Logout error:", error);
 
         showToast(
             "Logout Failed",
-            "Please try again."
+            "Logout nahi ho saka. Dobara try karein."
         );
 
-    }
+        isLoggingOut = false;
 
+        if (logoutBtn) logoutBtn.disabled = false;
+        if (logoutBtnBottom) logoutBtnBottom.disabled = false;
+    }
 }
 
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", logoutOwner);
+}
 
-logoutBtn.addEventListener(
-    "click",
-    logoutOwner
-);
-
-
-logoutBtnBottom.addEventListener(
-    "click",
-    logoutOwner
-);
+if (logoutBtnBottom) {
+    logoutBtnBottom.addEventListener("click", logoutOwner);
+}
 
 
 /* ================= AUTH STATE ================= */
 
-supabaseClient.auth.onAuthStateChange(
-    function(event,session){
-
-        if(
-            event === "SIGNED_OUT"
-        ){
-
-            window.location.replace(
-                "owner-login.html"
-            );
-
-        }
-
+supabaseClient.auth.onAuthStateChange(function (event) {
+    if (event === "SIGNED_OUT" && !isLoggingOut) {
+        window.location.replace("owner-login.html");
     }
-);
+});
 
 
 /* ================= INITIALIZE ================= */
 
-async function init(){
-
+async function initOwnerSettings() {
     loadLocalSettings();
-
     await loadOwner();
-
 }
 
-
-init();
+initOwnerSettings();
 
 </script>
-
 </body>
 </html>

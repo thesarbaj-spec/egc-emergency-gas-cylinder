@@ -2039,1131 +2039,503 @@ td{
 
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+"use strict";
+
+/* =====================================================
+   EGC OWNER SUPABASE CONFIGURATION
+===================================================== */
 
 const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+    "https://szefvmvokkhvnzryodqu.supabase.co";
 
-const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const SUPABASE_PUBLISHABLE_KEY =
+    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
+        }
+    }
 );
-
 
 /* =====================================================
    ELEMENTS
 ===================================================== */
 
-const totalUsers =
-document.getElementById("totalUsers");
+const totalUsers = document.getElementById("totalUsers");
+const totalAgencies = document.getElementById("totalAgencies");
+const totalCompanies = document.getElementById("totalCompanies");
+const totalRequests = document.getElementById("totalRequests");
+const pendingRequests = document.getElementById("pendingRequests");
+const sidebarPendingBadge = document.getElementById("sidebarPendingBadge");
+const requestTableBody = document.getElementById("requestTableBody");
+const agencyList = document.getElementById("agencyList");
 
-const totalAgencies =
-document.getElementById("totalAgencies");
+const logoutBtn = document.getElementById("logoutBtn");
+const logoutModal = document.getElementById("logoutModal");
+const logoutCancel = document.getElementById("logoutCancel");
+const logoutConfirm = document.getElementById("logoutConfirm");
 
-const totalCompanies =
-document.getElementById("totalCompanies");
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
 
-const totalRequests =
-document.getElementById("totalRequests");
+const notificationBtn = document.getElementById("notificationBtn");
+const notificationPanel = document.getElementById("notificationPanel");
+const notificationBadge = document.getElementById("notificationBadge");
+const notificationList = document.getElementById("notificationList");
+const clearNotifications = document.getElementById("clearNotifications");
 
-const pendingRequests =
-document.getElementById("pendingRequests");
+/* =====================================================
+   STATE
+===================================================== */
 
-const sidebarPendingBadge =
-document.getElementById("sidebarPendingBadge");
+let notifications = [];
+let egcRealtimeChannel = null;
+let dashboardInitialized = false;
+let realtimeStarting = false;
+let notificationPermissionRequested = false;
 
-const requestTableBody =
-document.getElementById("requestTableBody");
+/* =====================================================
+   SAFE HTML
+===================================================== */
 
-const agencyList =
-document.getElementById("agencyList");
-
-const logoutBtn =
-document.getElementById("logoutBtn");
-
-const logoutModal =
-document.getElementById("logoutModal");
-
-const logoutCancel =
-document.getElementById("logoutCancel");
-
-const logoutConfirm =
-document.getElementById("logoutConfirm");
-
-const menuBtn =
-document.getElementById("menuBtn");
-
-const sidebar =
-document.getElementById("sidebar");
-
-const overlay =
-document.getElementById("overlay");
-
-const notificationBtn =
-document.getElementById("notificationBtn");
-
-const notificationPanel =
-document.getElementById("notificationPanel");
-
-const notificationBadge =
-document.getElementById("notificationBadge");
-
-const notificationList =
-document.getElementById("notificationList");
-
-const clearNotifications =
-document.getElementById("clearNotifications");
-
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 /* =====================================================
    MASTER OWNER PAGE ROUTES
-   IMPORTANT:
-   Pending Approvals = owner-pending-approvals.html
 ===================================================== */
 
 const OWNER_PAGE_ROUTES = Object.freeze({
-
-    dashboard:
-        "owner-dashboard.html",
-
-    users:
-        "owner-users.html",
-
-    agencies:
-        "owner-agencies.html",
-
-    companies:
-        "owner-companies.html",
-
-    pending:
-        "owner-pending.html",
-
-    requests:
-        "owner-requests.html",
-
-    payments:
-        "owner-payments.html",
-
-    reports:
-        "owner-reports.html",
-
-    "request-details":
-        "owner-request-details.html",
-
-    "payment-details":
-        "owner-payment-details.html",
-
-    "agency-details":
-        "owner-agency-details.html",
-
-    deliveries:
-        "owner-deliveries.html",
-
-    repayments:
-        "owner-repayments.html",
-
-    notifications:
-        "owner-notifications.html",
-
-    slips:
-        "owner-slips.html",
-
-    profile:
-        "owner-profile.html",
-
-    settings:
-        "owner-settings.html"
-
+    dashboard: "owner-dashboard.html",
+    users: "owner-users.html",
+    agencies: "owner-agencies.html",
+    companies: "owner-companies.html",
+    pending: "owner-pending.html",
+    requests: "owner-requests.html",
+    payments: "owner-payments.html",
+    reports: "owner-reports.html",
+    "request-details": "owner-request-details.html",
+    "payment-details": "owner-payment-details.html",
+    "agency-details": "owner-agency-details.html",
+    deliveries: "owner-deliveries.html",
+    repayments: "owner-repayments.html",
+    notifications: "owner-notifications.html",
+    slips: "owner-slips.html",
+    profile: "owner-profile.html",
+    settings: "owner-settings.html"
 });
 
-
 /* =====================================================
-   SAFE PAGE NAVIGATION
+   SAFE NAVIGATION
 ===================================================== */
 
-function openPage(page){
+function openPage(page) {
+    const route = OWNER_PAGE_ROUTES[page];
 
-    if(!page){
-        console.warn("No page supplied.");
+    if (!route) {
+        console.error("Unknown Owner Panel page:", page);
         return;
     }
 
-    const route =
-        OWNER_PAGE_ROUTES[page];
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("show");
 
-    if(!route){
-
-        console.error(
-            "Unknown Owner Panel page:",
-            page
-        );
-
-        return;
-    }
-
-    /*
-       Close mobile sidebar before navigation.
-    */
-
-    if(sidebar){
-        sidebar.classList.remove("open");
-    }
-
-    if(overlay){
-        overlay.classList.remove("show");
-    }
-
-    /*
-       Use an explicit relative URL so every
-       data-page always goes to its own file.
-    */
-
-    const targetURL =
-        new URL(
-            route,
-            window.location.href
-        ).href;
+    const targetURL = new URL(route, window.location.href);
 
     console.log(
         "EGC Owner Navigation:",
         page,
         "=>",
-        route
+        targetURL.href
     );
 
-    window.location.assign(
-        targetURL
-    );
-
+    window.location.assign(targetURL.href);
 }
 
+document.querySelectorAll("[data-page]").forEach(element => {
+    element.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-/* =====================================================
-   ALL SIDEBAR / QUICK ACTION / STAT NAVIGATION
-===================================================== */
-
-document
-.querySelectorAll("[data-page]")
-.forEach(element => {
-
-    element.addEventListener(
-        "click",
-        function(event){
-
-            /*
-               Prevent any parent click from
-               interfering with navigation.
-            */
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            const page =
-                this.getAttribute("data-page");
-
-            openPage(page);
-
-        }
-    );
-
+        openPage(this.getAttribute("data-page"));
+    });
 });
-
 
 /* =====================================================
    MOBILE MENU
 ===================================================== */
 
-if(menuBtn){
+if (menuBtn) {
+    menuBtn.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-    menuBtn.addEventListener(
-        "click",
-        function(event){
+        if (!sidebar || !overlay) return;
 
-            event.preventDefault();
-            event.stopPropagation();
-
-            if(!sidebar || !overlay){
-                return;
-            }
-
-            sidebar.classList.toggle("open");
-            overlay.classList.toggle("show");
-
-        }
-    );
-
+        sidebar.classList.toggle("open");
+        overlay.classList.toggle("show");
+    });
 }
 
-
-if(overlay){
-
-    overlay.addEventListener(
-        "click",
-        function(){
-
-            if(sidebar){
-                sidebar.classList.remove("open");
-            }
-
-            overlay.classList.remove("show");
-
-        }
-    );
-
+if (overlay) {
+    overlay.addEventListener("click", function() {
+        if (sidebar) sidebar.classList.remove("open");
+        overlay.classList.remove("show");
+    });
 }
-
 
 /* =====================================================
    USER COUNT
 ===================================================== */
 
-async function loadUserCount(){
+async function loadUserCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from("profiles")
+            .select("*", { count: "exact", head: true })
+            .eq("role", "customer");
 
-    try{
+        if (error) throw error;
 
-        const {
-            count,
-            error
-        } =
-        await supabaseClient
-        .from("profiles")
-        .select("*",{
-            count:"exact",
-            head:true
-        })
-        .eq(
-            "role",
-            "customer"
-        );
+        if (totalUsers) totalUsers.textContent = count ?? 0;
 
-        if(error){
-
-            console.error(
-                "Customer user count error:",
-                error
-            );
-
-            if(totalUsers){
-                totalUsers.textContent = "—";
-            }
-
-            return;
-        }
-
-        if(totalUsers){
-            totalUsers.textContent =
-                count ?? 0;
-        }
-
+    } catch (error) {
+        console.error("Customer user count error:", error);
+        if (totalUsers) totalUsers.textContent = "—";
     }
-    catch(error){
-
-        console.error(
-            "Customer user count exception:",
-            error
-        );
-
-        if(totalUsers){
-            totalUsers.textContent = "—";
-        }
-
-    }
-
 }
-
 
 /* =====================================================
    AGENCY COUNT
 ===================================================== */
 
-async function loadAgencyCount(){
+async function loadAgencyCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from("agencies")
+            .select("*", { count: "exact", head: true })
+            .eq("is_active", true);
 
-    try{
+        if (error) throw error;
 
-        const {
-            count,
-            error
-        } =
-        await supabaseClient
-        .from("agencies")
-        .select("*",{
-            count:"exact",
-            head:true
-        })
-        .eq(
-            "is_active",
-            true
-        );
+        if (totalAgencies) totalAgencies.textContent = count ?? 0;
 
-        if(error){
-
-            console.error(
-                "Agency count error:",
-                error
-            );
-
-            if(totalAgencies){
-                totalAgencies.textContent = "—";
-            }
-
-            return;
-        }
-
-        if(totalAgencies){
-            totalAgencies.textContent =
-                count ?? 0;
-        }
-
+    } catch (error) {
+        console.error("Agency count error:", error);
+        if (totalAgencies) totalAgencies.textContent = "—";
     }
-    catch(error){
-
-        console.error(
-            "Agency count exception:",
-            error
-        );
-
-        if(totalAgencies){
-            totalAgencies.textContent = "—";
-        }
-
-    }
-
 }
-
 
 /* =====================================================
    COMPANY COUNT
 ===================================================== */
 
-async function loadCompanyCount(){
+async function loadCompanyCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from("lpg_companies")
+            .select("*", { count: "exact", head: true });
 
-    try{
+        if (error) throw error;
 
-        const {
-            count,
-            error
-        } =
-        await supabaseClient
-        .from("lpg_companies")
-        .select("*",{
-            count:"exact",
-            head:true
-        });
+        if (totalCompanies) totalCompanies.textContent = count ?? 0;
 
-        if(error){
-
-            console.error(
-                "LPG company count error:",
-                error
-            );
-
-            if(totalCompanies){
-                totalCompanies.textContent = "—";
-            }
-
-            return;
-        }
-
-        if(totalCompanies){
-            totalCompanies.textContent =
-                count ?? 0;
-        }
-
+    } catch (error) {
+        console.error("LPG company count error:", error);
+        if (totalCompanies) totalCompanies.textContent = "—";
     }
-    catch(error){
-
-        console.error(
-            "LPG company count exception:",
-            error
-        );
-
-        if(totalCompanies){
-            totalCompanies.textContent = "—";
-        }
-
-    }
-
 }
 
-
 /* =====================================================
-   TOTAL REQUEST COUNT
+   REQUEST COUNTS
 ===================================================== */
 
-async function loadRequestCount(){
+async function loadRequestCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("*", { count: "exact", head: true });
 
-    try{
+        if (error) throw error;
 
-        const {
-            count,
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*",{
-            count:"exact",
-            head:true
-        });
+        if (totalRequests) totalRequests.textContent = count ?? 0;
 
-        if(error){
-
-            console.warn(
-                "Request count error:",
-                error.message
-            );
-
-            if(totalRequests){
-                totalRequests.textContent = "0";
-            }
-
-            return;
-        }
-
-        if(totalRequests){
-            totalRequests.textContent =
-                count ?? 0;
-        }
-
+    } catch (error) {
+        console.error("Request count error:", error);
+        if (totalRequests) totalRequests.textContent = "—";
     }
-    catch(error){
-
-        console.error(
-            "Request count exception:",
-            error
-        );
-
-        if(totalRequests){
-            totalRequests.textContent = "0";
-        }
-
-    }
-
 }
 
+async function loadPendingRequestCount() {
+    try {
+        const { count, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "pending");
 
-/* =====================================================
-   PENDING APPROVAL COUNT
-===================================================== */
+        if (error) throw error;
 
-async function loadPendingRequestCount(){
+        const countValue = count ?? 0;
 
-    try{
-
-        const {
-            count,
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*",{
-            count:"exact",
-            head:true
-        })
-        .eq(
-            "status",
-            "pending"
-        );
-
-        if(error){
-
-            console.warn(
-                "Pending request count error:",
-                error.message
-            );
-
-            if(pendingRequests){
-                pendingRequests.textContent = "0";
-            }
-
-            if(sidebarPendingBadge){
-                sidebarPendingBadge.style.display =
-                    "none";
-            }
-
-            return;
+        if (pendingRequests) {
+            pendingRequests.textContent = countValue;
         }
 
-        const countValue =
-            count ?? 0;
-
-        if(pendingRequests){
-            pendingRequests.textContent =
-                countValue;
-        }
-
-        if(sidebarPendingBadge){
-
-            if(countValue > 0){
-
-                sidebarPendingBadge.style.display =
-                    "inline-flex";
-
+        if (sidebarPendingBadge) {
+            if (countValue > 0) {
+                sidebarPendingBadge.style.display = "inline-flex";
                 sidebarPendingBadge.textContent =
-                    countValue > 99
-                    ? "99+"
-                    : countValue;
-
+                    countValue > 99 ? "99+" : countValue;
+            } else {
+                sidebarPendingBadge.style.display = "none";
             }
-            else{
-
-                sidebarPendingBadge.style.display =
-                    "none";
-
-            }
-
         }
 
+    } catch (error) {
+        console.error("Pending request count error:", error);
+
+        if (pendingRequests) pendingRequests.textContent = "—";
+        if (sidebarPendingBadge) sidebarPendingBadge.style.display = "none";
     }
-    catch(error){
-
-        console.error(
-            "Pending request count exception:",
-            error
-        );
-
-        if(pendingRequests){
-            pendingRequests.textContent = "0";
-        }
-
-        if(sidebarPendingBadge){
-            sidebarPendingBadge.style.display =
-                "none";
-        }
-
-    }
-
 }
-
 
 /* =====================================================
    RECENT REQUESTS
 ===================================================== */
 
-async function loadRecentRequests(){
+async function loadRecentRequests() {
+    if (!requestTableBody) return;
 
-    if(!requestTableBody){
-        return;
-    }
+    try {
+        const { data, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("id, created_at, status, city, agency_id")
+            .order("created_at", { ascending: false })
+            .limit(5);
 
-    try{
+        if (error) throw error;
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select(`
-            id,
-            created_at,
-            status,
-            city,
-            agency_id
-        `)
-        .order(
-            "created_at",
-            {
-                ascending:false
-            }
-        )
-        .limit(5);
-
-        if(error){
-
-            console.warn(
-                "Request loading:",
-                error.message
-            );
-
+        if (!data || data.length === 0) {
             requestTableBody.innerHTML = `
                 <tr>
-                    <td
-                        colspan="5"
-                        class="empty"
-                    >
-                        No requests available yet.
-                    </td>
-                </tr>
-            `;
-
-            return;
-        }
-
-        if(
-            !data ||
-            data.length === 0
-        ){
-
-            requestTableBody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="5"
-                        class="empty"
-                    >
+                    <td colspan="5" class="empty">
                         No cylinder requests yet.
                     </td>
                 </tr>
             `;
-
             return;
         }
 
         requestTableBody.innerHTML = "";
 
         data.forEach(request => {
+            const tr = document.createElement("tr");
+            const status = String(request.status || "Pending");
+            const statusLower = status.toLowerCase();
 
-            const tr =
-                document.createElement("tr");
+            let statusClass = "pending";
 
-            const status =
-                String(
-                    request.status ||
-                    "Pending"
-                );
-
-            const statusLower =
-                status.toLowerCase();
-
-            let statusClass =
-                "pending";
-
-            if(
-                statusLower.includes("completed")
-            ){
-
-                statusClass =
-                    "completed";
-
-            }
-            else if(
-                statusLower.includes("processing")
-            ){
-
-                statusClass =
-                    "processing";
-
-            }
-            else if(
-                statusLower.includes("approved")
-            ){
-
-                statusClass =
-                    "approved";
-
-            }
-            else if(
+            if (statusLower.includes("completed")) {
+                statusClass = "completed";
+            } else if (statusLower.includes("processing")) {
+                statusClass = "processing";
+            } else if (statusLower.includes("approved")) {
+                statusClass = "approved";
+            } else if (
                 statusLower.includes("rejected") ||
                 statusLower.includes("cancelled")
-            ){
-
-                statusClass =
-                    "rejected";
-
+            ) {
+                statusClass = "rejected";
             }
 
-            const date =
-                request.created_at
-                ? new Date(
-                    request.created_at
-                ).toLocaleDateString(
-                    "en-IN"
-                )
+            const date = request.created_at
+                ? new Date(request.created_at).toLocaleDateString("en-IN")
                 : "—";
 
-            const shortId =
-                request.id
-                ? String(
-                    request.id
-                ).substring(0,8)
+            const shortId = request.id
+                ? String(request.id).substring(0, 8)
                 : "—";
 
-            const agencyId =
-                request.agency_id
-                ? String(
-                    request.agency_id
-                ).substring(0,8)
+            const agencyId = request.agency_id
+                ? String(request.agency_id).substring(0, 8)
                 : "—";
 
             tr.innerHTML = `
-
+                <td>#${escapeHtml(shortId)}</td>
+                <td>${escapeHtml(agencyId)}</td>
+                <td>${escapeHtml(request.city || "—")}</td>
                 <td>
-                    #${escapeHtml(shortId)}
-                </td>
-
-                <td>
-                    ${escapeHtml(agencyId)}
-                </td>
-
-                <td>
-                    ${escapeHtml(
-                        request.city || "—"
-                    )}
-                </td>
-
-                <td>
-
-                    <span
-                        class="status ${statusClass}"
-                    >
+                    <span class="status ${statusClass}">
                         ${escapeHtml(status)}
                     </span>
-
                 </td>
-
-                <td>
-                    ${escapeHtml(date)}
-                </td>
-
+                <td>${escapeHtml(date)}</td>
             `;
-
-            /*
-               Clicking a recent request opens
-               Request Details instead of doing
-               nothing.
-            */
 
             tr.style.cursor = "pointer";
 
-            tr.addEventListener(
-                "click",
-                function(){
-
-                    if(request.id){
-
-                        sessionStorage.setItem(
-                            "egc_selected_request_id",
-                            String(request.id)
-                        );
-
-                    }
-
-                    openPage(
-                        "request-details"
+            tr.addEventListener("click", function() {
+                if (request.id) {
+                    sessionStorage.setItem(
+                        "egc_selected_request_id",
+                        String(request.id)
                     );
-
                 }
-            );
+
+                openPage("request-details");
+            });
 
             requestTableBody.appendChild(tr);
-
         });
 
-    }
-    catch(error){
-
-        console.error(
-            "Recent request error:",
-            error
-        );
+    } catch (error) {
+        console.error("Recent request loading error:", error);
 
         requestTableBody.innerHTML = `
             <tr>
-                <td
-                    colspan="5"
-                    class="empty"
-                >
+                <td colspan="5" class="empty">
                     Unable to load requests.
                 </td>
             </tr>
         `;
-
     }
-
 }
-
 
 /* =====================================================
    AGENCIES
 ===================================================== */
 
-async function loadAgencies(){
+async function loadAgencies() {
+    if (!agencyList) return;
 
-    if(!agencyList){
-        return;
-    }
+    try {
+        const { data, error } = await supabaseClient
+            .from("agencies")
+            .select(`
+                id,
+                agency_name,
+                agency_code,
+                lpg_company,
+                state,
+                district,
+                city,
+                is_active
+            `)
+            .eq("is_active", true)
+            .order("agency_name", { ascending: true })
+            .limit(5);
 
-    try{
+        if (error) throw error;
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("agencies")
-        .select(`
-            id,
-            agency_name,
-            agency_code,
-            lpg_company,
-            state,
-            district,
-            city,
-            is_active
-        `)
-        .eq(
-            "is_active",
-            true
-        )
-        .order(
-            "agency_name",
-            {
-                ascending:true
-            }
-        )
-        .limit(5);
-
-        if(error){
-
-            console.error(
-                "Agency loading:",
-                error
-            );
-
+        if (!data || data.length === 0) {
             agencyList.innerHTML = `
-                <div class="empty">
-                    Unable to load agencies.
-                </div>
+                <div class="empty">No agencies added yet.</div>
             `;
-
-            return;
-        }
-
-        if(
-            !data ||
-            data.length === 0
-        ){
-
-            agencyList.innerHTML = `
-                <div class="empty">
-                    No agencies added yet.
-                </div>
-            `;
-
             return;
         }
 
         agencyList.innerHTML = "";
 
         data.forEach(agency => {
-
-            const item =
-                document.createElement("div");
-
-            item.className =
-                "agency-item";
-
-            item.innerHTML = `
-
-                <div class="agency-info">
-
-                    <div class="agency-name">
-                        ${escapeHtml(
-                            agency.agency_name ||
-                            "Unnamed Agency"
-                        )}
-                    </div>
-
-                    <div class="agency-location">
-
-                        ${escapeHtml(
-                            agency.city || "—"
-                        )},
-
-                        ${escapeHtml(
-                            agency.district || "—"
-                        )},
-
-                        ${escapeHtml(
-                            agency.state || "—"
-                        )}
-
-                    </div>
-
-                </div>
-
-                <div class="agency-company">
-
-                    ${escapeHtml(
-                        agency.lpg_company ||
-                        "LPG"
-                    )}
-
-                </div>
-
-            `;
-
-            /*
-               Agency item opens Agency Details.
-            */
-
+            const item = document.createElement("div");
+            item.className = "agency-item";
             item.style.cursor = "pointer";
 
-            item.addEventListener(
-                "click",
-                function(){
+            item.innerHTML = `
+                <div class="agency-info">
+                    <div class="agency-name">
+                        ${escapeHtml(agency.agency_name || "Unnamed Agency")}
+                    </div>
+                    <div class="agency-location">
+                        ${escapeHtml(agency.city || "—")},
+                        ${escapeHtml(agency.district || "—")},
+                        ${escapeHtml(agency.state || "—")}
+                    </div>
+                </div>
+                <div class="agency-company">
+                    ${escapeHtml(agency.lpg_company || "LPG")}
+                </div>
+            `;
 
-                    if(agency.id){
-
-                        sessionStorage.setItem(
-                            "egc_selected_agency_id",
-                            String(agency.id)
-                        );
-
-                    }
-
-                    openPage(
-                        "agency-details"
+            item.addEventListener("click", function() {
+                if (agency.id) {
+                    sessionStorage.setItem(
+                        "egc_selected_agency_id",
+                        String(agency.id)
                     );
-
                 }
-            );
 
-            agencyList.appendChild(
-                item
-            );
+                openPage("agency-details");
+            });
 
+            agencyList.appendChild(item);
         });
 
-    }
-    catch(error){
-
-        console.error(
-            "Agency exception:",
-            error
-        );
+    } catch (error) {
+        console.error("Agency loading error:", error);
 
         agencyList.innerHTML = `
-            <div class="empty">
-                Unable to load agencies.
-            </div>
+            <div class="empty">Unable to load agencies.</div>
         `;
-
     }
-
 }
 
-
 /* =====================================================
-   NOTIFICATION SYSTEM
+   NOTIFICATION STATE AND RENDERING
 ===================================================== */
 
-let notifications = [];
+function formatNotificationTime(timestamp = null) {
+    const date = timestamp ? new Date(timestamp) : new Date();
 
+    if (Number.isNaN(date.getTime())) return "—";
 
-/* =====================================================
-   ADD NOTIFICATION
-===================================================== */
-
-function addNotification(notification){
-
-    if(!notification){
-        return;
-    }
-
-    notifications.unshift(
-        notification
-    );
-
-    if(
-        notifications.length > 30
-    ){
-
-        notifications =
-            notifications.slice(0,30);
-
-    }
-
-    renderNotifications();
-
-    showNotificationBadge();
-
-    if(
-        "Notification" in window &&
-        Notification.permission === "granted"
-    ){
-
-        try{
-
-            new Notification(
-                notification.title ||
-                "EGC Notification",
-                {
-                    body:
-                    notification.text ||
-                    ""
-                }
-            );
-
-        }
-        catch(error){
-
-            console.warn(
-                "Browser notification error:",
-                error
-            );
-
-        }
-
-    }
-
+    return date.toLocaleString("en-IN", {
+        dateStyle: "short",
+        timeStyle: "short"
+    });
 }
 
+function showNotificationBadge() {
+    if (!notificationBadge) return;
 
-/* =====================================================
-   SHOW NOTIFICATION BADGE
-===================================================== */
+    const count = notifications.length;
 
-function showNotificationBadge(){
-
-    if(!notificationBadge){
-        return;
+    if (count > 0) {
+        notificationBadge.style.display = "flex";
+        notificationBadge.textContent = count > 99 ? "99+" : count;
+    } else {
+        notificationBadge.style.display = "none";
     }
-
-    const count =
-        notifications.length;
-
-    if(count > 0){
-
-        notificationBadge.style.display =
-            "flex";
-
-        notificationBadge.textContent =
-            count > 99
-            ? "99+"
-            : count;
-
-    }
-    else{
-
-        notificationBadge.style.display =
-            "none";
-
-    }
-
 }
 
+function renderNotifications() {
+    if (!notificationList) return;
 
-/* =====================================================
-   RENDER NOTIFICATIONS
-===================================================== */
-
-function renderNotifications(){
-
-    if(!notificationList){
-        return;
-    }
-
-    if(
-        notifications.length === 0
-    ){
-
+    if (notifications.length === 0) {
         notificationList.innerHTML = `
             <div class="notification-empty">
                 No new notifications
@@ -3171,826 +2543,523 @@ function renderNotifications(){
         `;
 
         showNotificationBadge();
-
         return;
-
     }
 
     notificationList.innerHTML = "";
 
-    notifications.forEach(
-        notification => {
+    notifications.forEach(notification => {
+        const item = document.createElement("div");
+        item.className = "notification-item";
 
-            const item =
-                document.createElement("div");
+        item.innerHTML = `
+            <div class="notification-item-title">
+                ${escapeHtml(notification.title || "Notification")}
+            </div>
+            <div class="notification-item-text">
+                ${escapeHtml(notification.text || "")}
+            </div>
+            <div class="notification-item-time">
+                ${escapeHtml(notification.time || "")}
+            </div>
+        `;
 
-            item.className =
-                "notification-item";
-
-            item.innerHTML = `
-
-                <div class="notification-item-title">
-
-                    ${escapeHtml(
-                        notification.title ||
-                        "Notification"
-                    )}
-
-                </div>
-
-                <div class="notification-item-text">
-
-                    ${escapeHtml(
-                        notification.text ||
-                        ""
-                    )}
-
-                </div>
-
-                <div class="notification-item-time">
-
-                    ${escapeHtml(
-                        notification.time ||
-                        ""
-                    )}
-
-                </div>
-
-            `;
-
-            notificationList.appendChild(
-                item
-            );
-
-        }
-    );
+        notificationList.appendChild(item);
+    });
 
     showNotificationBadge();
-
 }
 
+function addNotification(notification) {
+    if (!notification) return;
 
-/* =====================================================
-   SAFE HTML
-===================================================== */
+    notifications.unshift({
+        title: notification.title || "EGC Notification",
+        text: notification.text || "",
+        time: notification.time || formatNotificationTime()
+    });
 
-function escapeHtml(value){
+    notifications = notifications.slice(0, 30);
 
-    return String(
-        value ?? ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
+    renderNotifications();
 
-}
-
-
-/* =====================================================
-   NOTIFICATION TIME
-===================================================== */
-
-function formatNotificationTime(
-    timestamp = null
-){
-
-    const date =
-        timestamp
-        ? new Date(timestamp)
-        : new Date();
-
-    if(
-        Number.isNaN(
-            date.getTime()
-        )
-    ){
-
-        return new Date()
-        .toLocaleString(
-            "en-IN",
-            {
-                dateStyle:"short",
-                timeStyle:"short"
-            }
-        );
-
-    }
-
-    return date.toLocaleString(
-        "en-IN",
-        {
-            dateStyle:"short",
-            timeStyle:"short"
-        }
-    );
-
-}
-
-
-/* =====================================================
-   REALTIME NOTIFICATIONS
-===================================================== */
-
-function startRealtimeNotifications(){
-
-    try{
-
-        const channel =
-            supabaseClient
-            .channel(
-                "owner-dashboard-realtime"
+    if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ) {
+        try {
+            new Notification(
+                notification.title || "EGC Notification",
+                { body: notification.text || "" }
             );
-
-
-        /* NEW CYLINDER REQUEST */
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"INSERT",
-                schema:"public",
-                table:"cylinder_requests"
-            },
-            payload => {
-
-                const request =
-                    payload.new || {};
-
-                addNotification({
-
-                    title:
-                        "New Cylinder Request",
-
-                    text:
-                        "A new cylinder request has been received" +
-                        (
-                            request.city
-                            ? " from " +
-                              request.city
-                            : "."
-                        ),
-
-                    time:
-                        formatNotificationTime(
-                            request.created_at
-                        )
-
-                });
-
-                loadRequestCount();
-                loadPendingRequestCount();
-                loadRecentRequests();
-
-            }
-        );
-
-
-        /* CYLINDER REQUEST UPDATE */
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"UPDATE",
-                schema:"public",
-                table:"cylinder_requests"
-            },
-            payload => {
-
-                const request =
-                    payload.new || {};
-
-                addNotification({
-
-                    title:
-                        "Request Updated",
-
-                    text:
-                        "A cylinder request has been updated" +
-                        (
-                            request.status
-                            ? " to " +
-                              request.status
-                            : "."
-                        ),
-
-                    time:
-                        formatNotificationTime()
-
-                });
-
-                loadRequestCount();
-                loadPendingRequestCount();
-                loadRecentRequests();
-
-            }
-        );
-
-
-        /* DATABASE NOTIFICATION INSERT */
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"INSERT",
-                schema:"public",
-                table:"notifications"
-            },
-            payload => {
-
-                const notification =
-                    payload.new || {};
-
-                const title =
-                    notification.title ||
-                    notification.notification_title ||
-                    "New Notification";
-
-                const text =
-                    notification.message ||
-                    notification.text ||
-                    notification.body ||
-                    notification.description ||
-                    "You have received a new notification.";
-
-                const time =
-                    notification.created_at ||
-                    notification.inserted_at ||
-                    null;
-
-                addNotification({
-
-                    title:title,
-
-                    text:text,
-
-                    time:
-                        formatNotificationTime(
-                            time
-                        )
-
-                });
-
-            }
-        );
-
-
-        /* DATABASE NOTIFICATION UPDATE */
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"UPDATE",
-                schema:"public",
-                table:"notifications"
-            },
-            payload => {
-
-                const notification =
-                    payload.new || {};
-
-                const title =
-                    notification.title ||
-                    notification.notification_title ||
-                    "Notification Updated";
-
-                const text =
-                    notification.message ||
-                    notification.text ||
-                    notification.body ||
-                    notification.description ||
-                    "A notification has been updated.";
-
-                addNotification({
-
-                    title:title,
-
-                    text:text,
-
-                    time:
-                        formatNotificationTime(
-                            notification.created_at
-                        )
-
-                });
-
-            }
-        );
-
-
-        channel.subscribe(
-            status => {
-
-                console.log(
-                    "EGC REALTIME STATUS:",
-                    status
-                );
-
-            }
-        );
-
-
-        window.egcRealtimeChannel =
-            channel;
-
+        } catch (error) {
+            console.warn("Browser notification error:", error);
+        }
     }
-    catch(error){
-
-        console.error(
-            "Realtime notification error:",
-            error
-        );
-
-    }
-
 }
-
 
 /* =====================================================
    LOAD EXISTING NOTIFICATIONS
 ===================================================== */
 
-async function loadExistingNotifications(){
+async function loadExistingNotifications() {
+    if (!notificationList) return;
 
-    if(!notificationList){
-        return;
-    }
+    try {
+        const { data, error } = await supabaseClient
+            .from("notifications")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(30);
 
-    try{
-
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("notifications")
-        .select("*")
-        .order(
-            "created_at",
-            {
-                ascending:false
-            }
-        )
-        .limit(30);
-
-        if(error){
-
-            console.warn(
-                "Existing notifications could not be loaded:",
-                error.message
-            );
-
+        if (error) {
+            console.warn("Notification loading error:", error.message);
             return;
-
         }
 
-        if(
-            !data ||
-            data.length === 0
-        ){
+        notifications = (data || []).reverse().map(notification => ({
+            title:
+                notification.title ||
+                notification.notification_title ||
+                "Notification",
 
-            renderNotifications();
-            return;
+            text:
+                notification.message ||
+                notification.text ||
+                notification.body ||
+                notification.description ||
+                "You have a new notification.",
 
-        }
-
-        notifications =
-            data
-            .reverse()
-            .map(
-                notification => {
-
-                    return {
-
-                        title:
-                            notification.title ||
-                            notification.notification_title ||
-                            "Notification",
-
-                        text:
-                            notification.message ||
-                            notification.text ||
-                            notification.body ||
-                            notification.description ||
-                            "You have a new notification.",
-
-                        time:
-                            formatNotificationTime(
-                                notification.created_at
-                            )
-
-                    };
-
-                }
-            );
+            time: formatNotificationTime(notification.created_at)
+        }));
 
         renderNotifications();
 
+    } catch (error) {
+        console.warn("Notification loading exception:", error);
     }
-    catch(error){
-
-        console.warn(
-            "Existing notification loading error:",
-            error
-        );
-
-    }
-
 }
 
+/* =====================================================
+   REALTIME CHANNEL CLEANUP
+===================================================== */
+
+async function stopRealtimeNotifications() {
+    if (!egcRealtimeChannel) return;
+
+    const oldChannel = egcRealtimeChannel;
+    egcRealtimeChannel = null;
+
+    try {
+        await supabaseClient.removeChannel(oldChannel);
+    } catch (error) {
+        console.warn("Realtime cleanup error:", error);
+    }
+}
+
+/* =====================================================
+   REALTIME NOTIFICATIONS
+===================================================== */
+
+async function startRealtimeNotifications() {
+    if (realtimeStarting || egcRealtimeChannel) return;
+
+    realtimeStarting = true;
+
+    try {
+        const channel = supabaseClient.channel(
+            "owner-dashboard-realtime"
+        );
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+                const request = payload.new || {};
+
+                addNotification({
+                    title: "New Cylinder Request",
+                    text:
+                        "A new cylinder request has been received" +
+                        (request.city ? " from " + request.city + "." : "."),
+                    time: formatNotificationTime(request.created_at)
+                });
+
+                loadRequestCount();
+                loadPendingRequestCount();
+                loadRecentRequests();
+            }
+        );
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+                const request = payload.new || {};
+
+                addNotification({
+                    title: "Request Updated",
+                    text:
+                        "A cylinder request has been updated" +
+                        (request.status ? " to " + request.status : "."),
+                    time: formatNotificationTime()
+                });
+
+                loadRequestCount();
+                loadPendingRequestCount();
+                loadRecentRequests();
+            }
+        );
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "notifications"
+            },
+            payload => {
+                const notification = payload.new || {};
+
+                addNotification({
+                    title:
+                        notification.title ||
+                        notification.notification_title ||
+                        "New Notification",
+
+                    text:
+                        notification.message ||
+                        notification.text ||
+                        notification.body ||
+                        notification.description ||
+                        "You have received a new notification.",
+
+                    time: formatNotificationTime(
+                        notification.created_at ||
+                        notification.inserted_at
+                    )
+                });
+            }
+        );
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "UPDATE",
+                schema: "public",
+                table: "notifications"
+            },
+            payload => {
+                const notification = payload.new || {};
+
+                addNotification({
+                    title:
+                        notification.title ||
+                        notification.notification_title ||
+                        "Notification Updated",
+
+                    text:
+                        notification.message ||
+                        notification.text ||
+                        notification.body ||
+                        notification.description ||
+                        "A notification has been updated.",
+
+                    time: formatNotificationTime(notification.created_at)
+                });
+            }
+        );
+
+        channel.subscribe((status, err) => {
+            console.log("EGC REALTIME STATUS:", status);
+
+            if (err) {
+                console.error("EGC REALTIME ERROR:", err);
+            }
+
+            if (status === "CHANNEL_ERROR") {
+                console.error(
+                    "Realtime subscription failed. Check Supabase Realtime publication and browser Network > WS."
+                );
+            }
+
+            if (status === "TIMED_OUT") {
+                console.warn("EGC Realtime connection timed out.");
+            }
+        });
+
+        egcRealtimeChannel = channel;
+        window.egcRealtimeChannel = channel;
+
+    } catch (error) {
+        console.error("Realtime startup error:", error);
+    } finally {
+        realtimeStarting = false;
+    }
+}
 
 /* =====================================================
    BROWSER NOTIFICATION PERMISSION
 ===================================================== */
 
-function requestNotificationPermission(){
+function requestNotificationPermission() {
+    if (notificationPermissionRequested) return;
+    notificationPermissionRequested = true;
 
-    if(
+    if (
         "Notification" in window &&
         Notification.permission === "default"
-    ){
-
+    ) {
         Notification.requestPermission()
-        .then(
-            permission => {
-
+            .then(permission => {
                 console.log(
                     "Browser notification permission:",
                     permission
                 );
-
-            }
-        )
-        .catch(
-            error =>
-                console.warn(
-                    "Notification permission:",
-                    error
-                )
-        );
-
+            })
+            .catch(error => {
+                console.warn("Notification permission error:", error);
+            });
     }
-
 }
-
 
 /* =====================================================
    NOTIFICATION BUTTON
 ===================================================== */
 
-if(notificationBtn){
+if (notificationBtn) {
+    notificationBtn.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-    notificationBtn.addEventListener(
-        "click",
-        function(event){
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            if(!notificationPanel){
-                return;
-            }
-
-            notificationPanel.classList.toggle(
-                "show"
-            );
-
+        if (notificationPanel) {
+            notificationPanel.classList.toggle("show");
         }
-    );
-
+    });
 }
 
+if (clearNotifications) {
+    clearNotifications.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-/* =====================================================
-   CLEAR NOTIFICATIONS
-===================================================== */
+        /*
+         * This clears the local dashboard display only.
+         * It does not delete records from the database.
+         */
 
-if(clearNotifications){
-
-    clearNotifications.addEventListener(
-        "click",
-        async function(event){
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            notifications = [];
-
-            renderNotifications();
-
-        }
-    );
-
+        notifications = [];
+        renderNotifications();
+    });
 }
 
-
-/* =====================================================
-   CLOSE NOTIFICATION PANEL
-===================================================== */
-
-document.addEventListener(
-    "click",
-    function(event){
-
-        if(
-            notificationPanel &&
-            notificationBtn &&
-            !notificationPanel.contains(
-                event.target
-            ) &&
-            !notificationBtn.contains(
-                event.target
-            )
-        ){
-
-            notificationPanel.classList.remove(
-                "show"
-            );
-
-        }
-
+document.addEventListener("click", function(event) {
+    if (
+        notificationPanel &&
+        notificationBtn &&
+        !notificationPanel.contains(event.target) &&
+        !notificationBtn.contains(event.target)
+    ) {
+        notificationPanel.classList.remove("show");
     }
-);
-
-
-/* =====================================================
-   LOGOUT POPUP
-===================================================== */
-
-if(logoutBtn){
-
-    logoutBtn.addEventListener(
-        "click",
-        function(event){
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            if(sidebar){
-                sidebar.classList.remove(
-                    "open"
-                );
-            }
-
-            if(overlay){
-                overlay.classList.remove(
-                    "show"
-                );
-            }
-
-            if(logoutModal){
-
-                logoutModal.classList.add(
-                    "show"
-                );
-
-                document.body.style.overflow =
-                    "hidden";
-
-            }
-
-        }
-    );
-
-}
-
+});
 
 /* =====================================================
-   CANCEL LOGOUT
+   LOGOUT MODAL
 ===================================================== */
 
-if(logoutCancel){
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
 
-    logoutCancel.addEventListener(
-        "click",
-        function(){
+        if (sidebar) sidebar.classList.remove("open");
+        if (overlay) overlay.classList.remove("show");
 
-            if(logoutModal){
-                logoutModal.classList.remove(
-                    "show"
-                );
-            }
-
-            document.body.style.overflow =
-                "";
-
+        if (logoutModal) {
+            logoutModal.classList.add("show");
+            document.body.style.overflow = "hidden";
         }
-    );
-
+    });
 }
 
-
-/* =====================================================
-   CLICK OUTSIDE LOGOUT POPUP
-===================================================== */
-
-if(logoutModal){
-
-    logoutModal.addEventListener(
-        "click",
-        function(event){
-
-            if(
-                event.target ===
-                logoutModal
-            ){
-
-                logoutModal.classList.remove(
-                    "show"
-                );
-
-                document.body.style.overflow =
-                    "";
-
-            }
-
-        }
-    );
-
+function closeLogoutModal() {
+    if (logoutModal) logoutModal.classList.remove("show");
+    document.body.style.overflow = "";
 }
 
-
-/* =====================================================
-   CONFIRM LOGOUT
-===================================================== */
-
-if(logoutConfirm){
-
-    logoutConfirm.addEventListener(
-        "click",
-        async function(){
-
-            logoutConfirm.disabled =
-                true;
-
-            logoutConfirm.textContent =
-                "Logging out...";
-
-            try{
-
-                const {
-                    error
-                } =
-                await supabaseClient.auth
-                .signOut();
-
-                if(error){
-
-                    console.error(
-                        "Logout error:",
-                        error
-                    );
-
-                    logoutConfirm.disabled =
-                        false;
-
-                    logoutConfirm.textContent =
-                        "Logout";
-
-                    alert(
-                        "Logout failed. Please try again."
-                    );
-
-                    return;
-
-                }
-
-                window.location.replace(
-                    "owner-login.html"
-                );
-
-            }
-            catch(error){
-
-                console.error(
-                    "Logout exception:",
-                    error
-                );
-
-                logoutConfirm.disabled =
-                    false;
-
-                logoutConfirm.textContent =
-                    "Logout";
-
-                alert(
-                    "Logout failed. Please try again."
-                );
-
-            }
-
-        }
-    );
-
+if (logoutCancel) {
+    logoutCancel.addEventListener("click", closeLogoutModal);
 }
 
+if (logoutModal) {
+    logoutModal.addEventListener("click", function(event) {
+        if (event.target === logoutModal) {
+            closeLogoutModal();
+        }
+    });
+}
+
+if (logoutConfirm) {
+    logoutConfirm.addEventListener("click", async function() {
+        logoutConfirm.disabled = true;
+        logoutConfirm.textContent = "Logging out...";
+
+        try {
+            await stopRealtimeNotifications();
+
+            const { error } = await supabaseClient.auth.signOut();
+
+            if (error) throw error;
+
+            window.location.replace("owner-login.html");
+
+        } catch (error) {
+            console.error("Logout error:", error);
+
+            alert("Logout failed. Please try again.");
+
+            logoutConfirm.disabled = false;
+            logoutConfirm.textContent = "Logout";
+        }
+    });
+}
 
 /* =====================================================
    ESC KEY
 ===================================================== */
 
-document.addEventListener(
-    "keydown",
-    function(event){
+document.addEventListener("keydown", function(event) {
+    if (event.key !== "Escape") return;
 
-        if(
-            event.key !== "Escape"
-        ){
+    closeLogoutModal();
+
+    if (notificationPanel) {
+        notificationPanel.classList.remove("show");
+    }
+
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("show");
+});
+
+/* =====================================================
+   AUTHENTICATION AND DASHBOARD INITIALIZATION
+===================================================== */
+
+async function initDashboard() {
+    try {
+        console.log("EGC Owner Dashboard: checking session...");
+
+        const {
+            data: { session },
+            error: sessionError
+        } = await supabaseClient.auth.getSession();
+
+        if (sessionError) {
+            throw sessionError;
+        }
+
+        if (!session || !session.user) {
+            console.warn(
+                "No Supabase session found. Redirecting to Owner Login."
+            );
+
+            window.location.replace("owner-login.html");
             return;
         }
 
-        if(
-            logoutModal &&
-            logoutModal.classList.contains(
-                "show"
-            )
-        ){
+        /*
+         * Verify the current authenticated user with Supabase.
+         */
 
-            logoutModal.classList.remove(
-                "show"
-            );
+        const {
+            data: { user },
+            error: userError
+        } = await supabaseClient.auth.getUser();
 
-            document.body.style.overflow =
-                "";
+        if (userError || !user) {
+            console.error("Owner user verification failed:", userError);
 
+            window.location.replace("owner-login.html");
+            return;
         }
 
-        if(notificationPanel){
+        console.log("EGC session found:", {
+            userId: user.id,
+            email: user.email || null,
+            storageKey: OWNER_STORAGE_KEY
+        });
 
-            notificationPanel.classList.remove(
-                "show"
-            );
+        /*
+         * Important security note:
+         * A valid login session does not by itself prove the user
+         * has the Owner role. Protect Owner data with appropriate
+         * database RLS policies or secure backend authorization.
+         */
 
-        }
+        if (dashboardInitialized) return;
+        dashboardInitialized = true;
 
-        if(sidebar){
+        await Promise.all([
+            loadUserCount(),
+            loadAgencyCount(),
+            loadCompanyCount(),
+            loadRequestCount(),
+            loadPendingRequestCount(),
+            loadRecentRequests(),
+            loadAgencies(),
+            loadExistingNotifications()
+        ]);
 
-            sidebar.classList.remove(
-                "open"
-            );
+        await startRealtimeNotifications();
 
-        }
+        requestNotificationPermission();
 
-        if(overlay){
+        console.log("EGC Owner Dashboard initialized successfully.");
 
-            overlay.classList.remove(
-                "show"
-            );
+    } catch (error) {
+        dashboardInitialized = false;
 
-        }
+        console.error(
+            "EGC Owner Dashboard initialization error:",
+            error
+        );
 
+        /*
+         * Do not automatically sign out on a temporary network
+         * error. This avoids destroying a valid session unnecessarily.
+         */
     }
-);
-
-
-/* =====================================================
-   INITIALIZE DASHBOARD
-===================================================== */
-
-async function initDashboard(){
-
-    await Promise.all([
-
-        loadUserCount(),
-
-        loadAgencyCount(),
-
-        loadCompanyCount(),
-
-        loadRequestCount(),
-
-        loadPendingRequestCount(),
-
-        loadRecentRequests(),
-
-        loadAgencies(),
-
-        loadExistingNotifications()
-
-    ]);
-
-    startRealtimeNotifications();
-
-    requestNotificationPermission();
-
 }
 
+/* =====================================================
+   PAGE LIFECYCLE
+===================================================== */
+
+window.addEventListener("pagehide", function() {
+    /*
+     * Stop the page's own Realtime channel when leaving.
+     * Do not sign out; the Supabase session must persist.
+     */
+
+    stopRealtimeNotifications();
+});
+
+window.addEventListener("pageshow", function(event) {
+    if (event.persisted && !egcRealtimeChannel) {
+        startRealtimeNotifications();
+    }
+});
+
+/* START */
 
 initDashboard();
 

@@ -3,2516 +3,1208 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>EGC - Payment Details</title>
 
 <style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-:root {
-    --blue: #0871c3;
-    --dark-blue: #06477f;
-    --light-blue: #eef7ff;
-    --text: #315671;
-    --muted: #8194a5;
-    --border: #dce6ef;
-    --green: #18803d;
-    --red: #c72e2e;
-}
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    color: var(--dark-blue);
-    min-height: 100vh;
-    background:
-        radial-gradient(circle at 8% 8%, rgba(255,190,190,.34), transparent 30%),
-        radial-gradient(circle at 92% 12%, rgba(180,220,255,.38), transparent 30%),
-        radial-gradient(circle at 50% 100%, rgba(220,235,255,.34), transparent 38%),
-        #fff;
-}
-
-button, input, select, textarea {
-    font-family: inherit;
-}
-
-button {
-    -webkit-tap-highlight-color: transparent;
-}
-
-button:disabled {
-    opacity: .55;
-    cursor: not-allowed !important;
-}
-
-.header {
-    height: 78px;
-    background: rgba(255,255,255,.96);
-    border-bottom: 1px solid #dfe8ef;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    backdrop-filter: blur(12px);
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    min-width: 0;
-}
-
-.menu-btn {
-    width: 42px;
-    height: 42px;
-    border: 0;
-    border-radius: 12px;
-    background: #eef7ff;
-    color: #075ca5;
-    font-size: 22px;
-    cursor: pointer;
-    display: none;
-}
-
-.logo {
-    height: 57px;
-    width: auto;
-    max-width: 100px;
-    object-fit: contain;
-}
-
-.owner-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--dark-blue);
-}
-
-.owner-subtitle {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 3px;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.notification-wrap {
-    position: relative;
-}
-
-.notification-btn {
-    width: 42px;
-    height: 42px;
-    border: 0;
-    border-radius: 12px;
-    background: #eef7ff;
-    color: #075ca5;
-    font-size: 19px;
-    cursor: pointer;
-    position: relative;
-}
-
-.notification-count {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 20px;
-    background: #e63946;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #fff;
-}
-
-.notification-panel {
-    position: absolute;
-    top: 52px;
-    right: 0;
-    width: 330px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 15px;
-    box-shadow: 0 15px 45px rgba(20,60,90,.16);
-    display: none;
-    overflow: hidden;
-    z-index: 500;
-}
-
-.notification-panel.show {
-    display: block;
-}
-
-.notification-head {
-    padding: 15px 17px;
-    border-bottom: 1px solid #edf2f6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.notification-head strong {
-    color: var(--dark-blue);
-    font-size: 14px;
-}
-
-.notification-head span {
-    color: #8799a9;
-    font-size: 10px;
-}
-
-.notification-item {
-    padding: 13px 17px;
-    border-bottom: 1px solid #f0f3f6;
-    display: flex;
-    gap: 10px;
-}
-
-.notification-item:last-child {
-    border-bottom: 0;
-}
-
-.notification-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: #eef7ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.notification-text {
-    min-width: 0;
-}
-
-.notification-text strong {
-    display: block;
-    color: var(--text);
-    font-size: 11px;
-    margin-bottom: 3px;
-}
-
-.notification-text span {
-    display: block;
-    color: #8799a9;
-    font-size: 10px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-}
-
-.owner-badge {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    background: #eef8ff;
-    padding: 9px 14px;
-    border-radius: 12px;
-    color: #075ca5;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.owner-dot {
-    width: 9px;
-    height: 9px;
-    background: #20a45a;
-    border-radius: 50%;
-}
-
-.layout {
-    display: flex;
-    min-height: calc(100vh - 78px);
-}
-
-.sidebar {
-    width: 245px;
-    background: linear-gradient(
-        180deg,
-        rgba(255,245,245,.98) 0%,
-        rgba(242,248,255,.98) 52%,
-        rgba(255,255,255,.98) 100%
-    );
-    border-right: 1px solid #e1e9f0;
-    padding: 25px 15px;
-    flex-shrink: 0;
-    box-shadow: 5px 0 25px rgba(60,90,120,.05);
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-title {
-    color: #7990a4;
-    font-size: 13px;
-    font-weight: 800;
-    padding: 0 13px 12px;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-}
-
-.nav-btn {
-    width: 100%;
-    border: 0;
-    background: transparent;
-    color: #496a82;
-    padding: 13px 14px;
-    border-radius: 11px;
-    margin-bottom: 5px;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: .2s;
-}
-
-.nav-btn:hover {
-    background: #e5f2fc;
-    color: #075ca5;
-}
-
-.nav-btn.active {
-    background: linear-gradient(135deg,#eaf6ff,#fff0f0);
-    color: #075ca5;
-    box-shadow: 0 4px 12px rgba(60,120,170,.08);
-}
-
-.nav-icon {
-    display: inline-block;
-    width: 25px;
-    font-size: 17px;
-}
-
-.sidebar-bottom {
-    margin-top: auto;
-    padding-top: 12px;
-}
-
-.sidebar-logout {
-    color: #c72e2e;
-    background: rgba(255,241,241,.7);
-}
-
-.sidebar-logout:hover {
-    background: #ffe3e3;
-    color: #b92727;
-}
-
-.main {
-    flex: 1;
-    padding: 30px;
-    min-width: 0;
-}
-
-.top-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 22px;
-}
-
-.page-heading h1 {
-    font-size: 28px;
-    color: var(--dark-blue);
-    font-weight: 800;
-    margin-bottom: 6px;
-}
-
-.page-heading p {
-    color: #7890a3;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.back-btn {
-    min-height: 42px;
-    border: 0;
-    border-radius: 11px;
-    padding: 0 17px;
-    background: #edf7ff;
-    color: var(--blue);
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.back-btn:hover {
-    background: #dff0ff;
-}
-
-.loading-card,
-.error-card,
-.empty-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: 0 8px 28px rgba(50,80,110,.07);
-    padding: 35px 22px;
-    text-align: center;
-    color: #7890a3;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-}
-
-.error-card {
-    color: var(--red);
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: minmax(0,1.5fr) minmax(290px,.8fr);
-    gap: 20px;
-    align-items: start;
-}
-
-.left-column,
-.right-column {
-    min-width: 0;
-}
-
-.card {
-    background: rgba(255,255,255,.96);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: 0 8px 28px rgba(50,80,110,.07);
-    overflow: hidden;
-    margin-bottom: 20px;
-}
-
-.card:last-child {
-    margin-bottom: 0;
-}
-
-.card-header {
-    padding: 20px;
-    border-bottom: 1px solid #edf2f6;
-}
-
-.card-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--dark-blue);
-}
-
-.card-subtitle {
-    font-size: 12px;
-    color: #8799a9;
-    margin-top: 5px;
-    line-height: 1.5;
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.user-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px;
-    background: #f7fafc;
-    border: 1px solid #e5edf3;
-    border-radius: 14px;
-    margin-bottom: 22px;
-    min-width: 0;
-}
-
-.user-photo {
-    width: 65px;
-    height: 65px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: #eef7ff;
-    border: 2px solid #dceaf4;
-    flex-shrink: 0;
-}
-
-.user-photo-fallback {
-    width: 65px;
-    height: 65px;
-    border-radius: 50%;
-    background: #eef7ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    flex-shrink: 0;
-}
-
-.user-name {
-    color: var(--text);
-    font-size: 17px;
-    font-weight: 800;
-    overflow-wrap: anywhere;
-}
-
-.user-contact {
-    color: #8799a9;
-    font-size: 11px;
-    margin-top: 5px;
-    overflow-wrap: anywhere;
-    line-height: 1.5;
-}
-
-.detail-section {
-    margin-bottom: 23px;
-}
-
-.detail-section:last-child {
-    margin-bottom: 0;
-}
-
-.section-title {
-    color: var(--blue);
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    margin-bottom: 11px;
-}
-
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(2,minmax(0,1fr));
-    gap: 10px;
-}
-
-.detail-box {
-    min-width: 0;
-    background: #f7fafc;
-    border: 1px solid #e5edf3;
-    border-radius: 11px;
-    padding: 12px;
-}
-
-.detail-label {
-    font-size: 9px;
-    color: #8b9ba8;
-    text-transform: uppercase;
-    font-weight: 800;
-    margin-bottom: 7px;
-    letter-spacing: .25px;
-}
-
-.detail-value {
-    font-size: 12px;
-    color: var(--text);
-    font-weight: 700;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    line-height: 1.5;
-}
-
-.detail-value.highlight {
-    color: var(--blue);
-    font-size: 14px;
-    font-weight: 900;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 82px;
-    max-width: 100%;
-    padding: 6px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 800;
-    text-align: center;
-    overflow-wrap: anywhere;
-}
-
-.status-paid {
-    background: #eaf9ef;
-    color: #18803d;
-}
-
-.status-pending {
-    background: #fff7df;
-    color: #a36b00;
-}
-
-.status-failed {
-    background: #fff0f0;
-    color: #c72e2e;
-}
-
-.status-blue {
-    background: #edf6ff;
-    color: #086db7;
-}
-
-.status-gray {
-    background: #f0f3f5;
-    color: #617687;
-}
-
-.summary-box {
-    padding: 18px;
-    background: linear-gradient(135deg,#eef8ff,#fff5f5);
-    border: 1px solid #dceaf4;
-    border-radius: 15px;
-    margin-bottom: 18px;
-}
-
-.summary-label {
-    color: #8194a5;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-}
-
-.summary-amount {
-    color: var(--blue);
-    font-size: 31px;
-    font-weight: 900;
-    margin-top: 6px;
-    overflow-wrap: anywhere;
-}
-
-.amount-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    padding: 12px 0;
-    border-bottom: 1px solid #edf2f6;
-}
-
-.amount-row:last-child {
-    border-bottom: 0;
-}
-
-.amount-label {
-    color: #7890a3;
-    font-size: 12px;
-}
-
-.amount-value {
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 800;
-    text-align: right;
-    overflow-wrap: anywhere;
-}
-
-.amount-total {
-    color: var(--blue);
-    font-size: 15px;
-    font-weight: 900;
-}
-
-.screenshot-wrap {
-    display: none;
-}
-
-.screenshot-preview {
-    display: block;
-    width: 100%;
-    max-height: 420px;
-    object-fit: contain;
-    background: #f7fafc;
-    border: 1px solid #e5edf3;
-    border-radius: 12px;
-    margin-bottom: 12px;
-}
-
-.screenshot-file {
-    padding: 20px;
-    border: 1px solid #e5edf3;
-    border-radius: 12px;
-    background: #f7fafc;
-    margin-bottom: 12px;
-    color: var(--text);
-    font-size: 13px;
-    overflow-wrap: anywhere;
-}
-
-.screenshot-empty {
-    padding: 24px 15px;
-    text-align: center;
-    background: #f7fafc;
-    border: 1px dashed #cad9e5;
-    border-radius: 12px;
-    color: #8799a9;
-    font-size: 12px;
-    line-height: 1.6;
-}
-
-.open-screenshot-btn {
-    display: block;
-    text-decoration: none;
-    text-align: center;
-    padding: 12px;
-    border-radius: 10px;
-    background: #edf7ff;
-    color: var(--blue);
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.review-note {
-    width: 100%;
-    min-height: 100px;
-    resize: vertical;
-    border: 1px solid #d7e3ed;
-    background: #fbfdff;
-    border-radius: 11px;
-    padding: 12px;
-    color: var(--text);
-    font-size: 13px;
-    outline: none;
-    line-height: 1.6;
-}
-
-.review-note:focus {
-    border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(8,113,195,.08);
-}
-
-.review-note:disabled {
-    background: #f2f5f7;
-    color: #8092a1;
-}
-
-.review-help {
-    font-size: 11px;
-    color: #8799a9;
-    line-height: 1.6;
-    margin-top: 8px;
-}
-
-.review-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.review-btn {
-    width: 100%;
-    min-height: 45px;
-    padding: 10px 14px;
-    border: 0;
-    border-radius: 11px;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: .2s;
-}
-
-.approve-btn {
-    background: #168346;
-    color: #fff;
-}
-
-.approve-btn:hover:not(:disabled) {
-    background: #116d39;
-}
-
-.reject-btn {
-    background: #fff0f0;
-    color: #bf2929;
-    border: 1px solid #f3d1d1;
-}
-
-.reject-btn:hover:not(:disabled) {
-    background: #ffe1e1;
-}
-
-.secondary-btn {
-    background: #edf7ff;
-    color: var(--blue);
-}
-
-.notice {
-    border-radius: 12px;
-    padding: 13px;
-    font-size: 12px;
-    line-height: 1.6;
-    margin-bottom: 14px;
-    overflow-wrap: anywhere;
-}
-
-.notice-pending {
-    color: #8c6508;
-    background: #fff8e4;
-    border: 1px solid #f2e3b5;
-}
-
-.notice-approved {
-    color: #176f38;
-    background: #eaf9ef;
-    border: 1px solid #c9ecd4;
-}
-
-.notice-rejected {
-    color: #ad2b2b;
-    background: #fff0f0;
-    border: 1px solid #f2d0d0;
-}
-
-.notice-info {
-    color: #17639c;
-    background: #edf7ff;
-    border: 1px solid #d4e9f8;
-}
-
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-}
-
-.action-btn {
-    width: 100%;
-    min-height: 44px;
-    padding: 10px;
-    border: 0;
-    border-radius: 11px;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.slip-btn {
-    background: var(--blue);
-    color: #fff;
-}
-
-.slip-btn:hover {
-    background: #075e9f;
-}
-
-.requests-btn {
-    background: #edf7ff;
-    color: var(--blue);
-}
-
-.payments-btn {
-    background: #eef9f2;
-    color: #18803d;
-}
-
-.logout-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(20,40,60,.42);
-    backdrop-filter: blur(4px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 9998;
-    padding: 20px;
-}
-
-.logout-modal.show {
-    display: flex;
-}
-
-.logout-box {
-    width: min(390px,100%);
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(20,60,90,.22);
-    padding: 25px;
-    text-align: center;
-}
-
-.logout-icon {
-    width: 55px;
-    height: 55px;
-    margin: 0 auto 14px;
-    border-radius: 16px;
-    background: #fff0f0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 25px;
-}
-
-.logout-box h3 {
-    color: var(--dark-blue);
-    font-size: 19px;
-    margin-bottom: 7px;
-}
-
-.logout-box p {
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.logout-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.logout-cancel,
-.logout-confirm {
-    flex: 1;
-    min-height: 42px;
-    border: 0;
-    border-radius: 11px;
-    font-size: 12px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.logout-cancel {
-    background: #edf7ff;
-    color: var(--blue);
-}
-
-.logout-confirm {
-    background: #e84545;
-    color: #fff;
-}
-
-.toast {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 99999;
-    width: min(390px,calc(100vw - 28px));
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 15px 45px rgba(20,60,90,.18);
-    padding: 15px;
-    display: none;
-}
-
-.toast.show {
-    display: block;
-}
-
-.toast-title {
-    color: var(--dark-blue);
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.toast-text {
-    color: #7890a3;
-    font-size: 11px;
-    margin-top: 4px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.overlay {
-    display: none;
-}
-
-@media(max-width:1050px) {
-    .content-grid {
-        grid-template-columns: minmax(0,1fr);
-    }
-}
-
-@media(max-width:760px) {
-    .header {
-        height: 70px;
-        padding: 0 14px;
-    }
-
-    .menu-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .logo {
-        height: 48px;
-        max-width: 82px;
-    }
-
-    .owner-title,
-    .owner-subtitle,
-    .owner-badge {
-        display: none;
-    }
-
-    .header-right {
-        gap: 0;
-    }
-
-    .notification-panel {
-        position: fixed;
-        top: 78px;
-        right: 14px;
-        width: min(330px,calc(100vw - 28px));
-    }
-
-    .layout {
-        display: block;
-        min-height: calc(100vh - 70px);
-    }
-
-    .sidebar {
-        position: fixed;
-        top: 70px;
-        left: -260px;
-        width: 245px;
-        height: calc(100vh - 70px);
-        z-index: 200;
-        transition: .25s;
-        overflow-y: auto;
-    }
-
-    .sidebar.open {
-        left: 0;
-    }
-
-    .overlay.show {
-        display: block;
-        position: fixed;
-        inset: 70px 0 0 0;
-        background: rgba(0,0,0,.25);
-        z-index: 150;
-    }
-
-    .main {
-        padding: 20px 14px 40px;
-    }
-
-    .top-row {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .page-heading h1 {
-        font-size: 23px;
-    }
-
-    .page-heading p {
-        font-size: 12px;
-    }
-
-    .back-btn {
-        width: 100%;
-    }
-
-    .details-grid {
-        grid-template-columns: minmax(0,1fr);
-    }
-
-    .card-header {
-        padding: 16px;
-    }
-
-    .card-body {
-        padding: 16px;
-    }
-
-    .user-header {
-        padding: 13px;
-    }
-
-    .summary-amount {
-        font-size: 27px;
-    }
-
-    .logout-actions {
-        flex-direction: column;
-    }
-
-    .toast {
-        left: 14px;
-        right: 14px;
-        bottom: 14px;
-        width: auto;
-    }
-}
-
-@media(prefers-reduced-motion:reduce) {
-    *,
-    *::before,
-    *::after {
-        scroll-behavior: auto !important;
-        transition: none !important;
-    }
-}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --blue:#0871c3;--dark-blue:#06477f;--light-blue:#eef7ff;
+ --text:#315671;--muted:#8194a5;--border:#dce6ef;
+ --green:#18803d;--red:#c72e2e
+}
+body{
+ font-family:Arial,Helvetica,sans-serif;color:var(--dark-blue);
+ min-height:100vh;
+ background:
+ radial-gradient(circle at 8% 8%,rgba(255,190,190,.34),transparent 30%),
+ radial-gradient(circle at 92% 12%,rgba(180,220,255,.38),transparent 30%),
+ radial-gradient(circle at 50% 100%,rgba(220,235,255,.34),transparent 38%),#fff
+}
+button,input,select,textarea{font-family:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.55;cursor:not-allowed}
+.header{
+ height:78px;background:rgba(255,255,255,.96);
+ border-bottom:1px solid #dfe8ef;display:flex;align-items:center;
+ justify-content:space-between;padding:0 28px;position:sticky;top:0;
+ z-index:100;backdrop-filter:blur(12px)
+}
+.header-left{display:flex;align-items:center;gap:15px;min-width:0}
+.menu-btn{
+ width:42px;height:42px;border:0;border-radius:12px;
+ background:#eef7ff;color:#075ca5;font-size:22px;display:none
+}
+.logo{height:57px;width:auto;max-width:100px;object-fit:contain}
+.owner-title{font-size:20px;font-weight:800;color:var(--dark-blue)}
+.owner-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+.header-right{display:flex;align-items:center;gap:14px}
+.notification-wrap{position:relative}
+.notification-btn{
+ width:42px;height:42px;border:0;border-radius:12px;
+ background:#eef7ff;color:#075ca5;font-size:19px;position:relative
+}
+.notification-count{
+ position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;
+ padding:0 4px;border-radius:20px;background:#e63946;color:#fff;
+ font-size:10px;font-weight:800;display:flex;align-items:center;
+ justify-content:center;border:2px solid #fff
+}
+.notification-panel{
+ position:absolute;top:52px;right:0;width:330px;background:#fff;
+ border:1px solid var(--border);border-radius:15px;
+ box-shadow:0 15px 45px rgba(20,60,90,.16);
+ display:none;overflow:hidden;z-index:500
+}
+.notification-panel.show{display:block}
+.notification-head{
+ padding:15px 17px;border-bottom:1px solid #edf2f6;
+ display:flex;justify-content:space-between;align-items:center
+}
+.notification-head strong{font-size:14px}
+.notification-head span{color:#8799a9;font-size:10px}
+.notification-item{padding:13px 17px;border-bottom:1px solid #f0f3f6;display:flex;gap:10px}
+.notification-icon{
+ width:32px;height:32px;border-radius:9px;background:#eef7ff;
+ display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+.notification-text{min-width:0}
+.notification-text strong{display:block;color:var(--text);font-size:11px;margin-bottom:3px}
+.notification-text span{display:block;color:#8799a9;font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+.owner-badge{
+ display:flex;align-items:center;gap:9px;background:#eef8ff;
+ padding:9px 14px;border-radius:12px;color:#075ca5;font-size:14px;font-weight:700
+}
+.owner-dot{width:9px;height:9px;background:#20a45a;border-radius:50%}
+.layout{display:flex;min-height:calc(100vh - 78px)}
+.sidebar{
+ width:245px;background:linear-gradient(180deg,rgba(255,245,245,.98),rgba(242,248,255,.98) 52%,rgba(255,255,255,.98));
+ border-right:1px solid #e1e9f0;padding:25px 15px;flex-shrink:0;
+ box-shadow:5px 0 25px rgba(60,90,120,.05);display:flex;flex-direction:column
+}
+.sidebar-title{
+ color:#7990a4;font-size:13px;font-weight:800;padding:0 13px 12px;
+ text-transform:uppercase;letter-spacing:.5px
+}
+.nav-btn{
+ width:100%;border:0;background:transparent;color:#496a82;padding:13px 14px;
+ border-radius:11px;margin-bottom:5px;text-align:left;font-size:14px;
+ font-weight:700;transition:.2s
+}
+.nav-btn:hover{background:#e5f2fc;color:#075ca5}
+.nav-btn.active{background:linear-gradient(135deg,#eaf6ff,#fff0f0);color:#075ca5;box-shadow:0 4px 12px rgba(60,120,170,.08)}
+.nav-icon{display:inline-block;width:25px;font-size:17px}
+.sidebar-bottom{margin-top:auto;padding-top:12px}
+.sidebar-logout{color:#c72e2e;background:rgba(255,241,241,.7)}
+.sidebar-logout:hover{background:#ffe3e3;color:#b92727}
+.main{flex:1;padding:30px;min-width:0}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:22px}
+.page-heading h1{font-size:28px;color:var(--dark-blue);font-weight:800;margin-bottom:6px}
+.page-heading p{color:#7890a3;font-size:14px;line-height:1.5}
+.back-btn{
+ min-height:42px;border:0;border-radius:11px;padding:0 17px;
+ background:#edf7ff;color:var(--blue);font-weight:800
+}
+.back-btn:hover{background:#dff0ff}
+.loading-card,.error-card,.empty-card{
+ background:#fff;border:1px solid var(--border);border-radius:18px;
+ box-shadow:0 8px 28px rgba(50,80,110,.07);padding:35px 22px;
+ text-align:center;color:#7890a3;line-height:1.6;overflow-wrap:anywhere
+}
+.error-card{color:var(--red)}
+.content-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(290px,.8fr);gap:20px;align-items:start}
+.left-column,.right-column{min-width:0}
+.card{
+ background:rgba(255,255,255,.96);border:1px solid var(--border);
+ border-radius:18px;box-shadow:0 8px 28px rgba(50,80,110,.07);
+ overflow:hidden;margin-bottom:20px
+}
+.card:last-child{margin-bottom:0}
+.card-header{padding:20px;border-bottom:1px solid #edf2f6}
+.card-title{font-size:18px;font-weight:800;color:var(--dark-blue)}
+.card-subtitle{font-size:12px;color:#8799a9;margin-top:5px;line-height:1.5}
+.card-body{padding:20px}
+.user-header{
+ display:flex;align-items:center;gap:14px;padding:16px;background:#f7fafc;
+ border:1px solid #e5edf3;border-radius:14px;margin-bottom:22px;min-width:0
+}
+.user-photo,.user-photo-fallback{
+ width:65px;height:65px;border-radius:50%;flex-shrink:0
+}
+.user-photo{object-fit:cover;background:#eef7ff;border:2px solid #dceaf4}
+.user-photo-fallback{background:#eef7ff;display:flex;align-items:center;justify-content:center;font-size:28px}
+.user-name{color:var(--text);font-size:17px;font-weight:800;overflow-wrap:anywhere}
+.user-contact{color:#8799a9;font-size:11px;margin-top:5px;overflow-wrap:anywhere;line-height:1.5}
+.detail-section{margin-bottom:23px}
+.detail-section:last-child{margin-bottom:0}
+.section-title{
+ color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;
+ letter-spacing:.4px;margin-bottom:11px
+}
+.details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.detail-box{min-width:0;background:#f7fafc;border:1px solid #e5edf3;border-radius:11px;padding:12px}
+.detail-label{font-size:9px;color:#8b9ba8;text-transform:uppercase;font-weight:800;margin-bottom:7px;letter-spacing:.25px}
+.detail-value{font-size:12px;color:var(--text);font-weight:700;word-break:break-word;overflow-wrap:anywhere;line-height:1.5}
+.detail-value.highlight{color:var(--blue);font-size:14px;font-weight:900}
+.status-badge{
+ display:inline-flex;align-items:center;justify-content:center;min-width:82px;
+ max-width:100%;padding:6px 10px;border-radius:20px;font-size:10px;
+ font-weight:800;text-align:center;overflow-wrap:anywhere
+}
+.status-paid{background:#eaf9ef;color:#18803d}
+.status-pending{background:#fff7df;color:#a36b00}
+.status-failed{background:#fff0f0;color:#c72e2e}
+.status-blue{background:#edf6ff;color:#086db7}
+.status-gray{background:#f0f3f5;color:#617687}
+.summary-box{
+ padding:18px;background:linear-gradient(135deg,#eef8ff,#fff5f5);
+ border:1px solid #dceaf4;border-radius:15px;margin-bottom:18px
+}
+.summary-label{color:#8194a5;font-size:10px;font-weight:800;text-transform:uppercase}
+.summary-amount{color:var(--blue);font-size:31px;font-weight:900;margin-top:6px;overflow-wrap:anywhere}
+.amount-row{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #edf2f6}
+.amount-row:last-child{border-bottom:0}
+.amount-label{color:#7890a3;font-size:12px}
+.amount-value{color:var(--text);font-size:12px;font-weight:800;text-align:right;overflow-wrap:anywhere}
+.amount-total{color:var(--blue);font-size:15px;font-weight:900}
+.screenshot-wrap{display:none}
+.screenshot-preview{
+ display:block;width:100%;max-height:420px;object-fit:contain;background:#f7fafc;
+ border:1px solid #e5edf3;border-radius:12px;margin-bottom:12px
+}
+.screenshot-file{padding:20px;border:1px solid #e5edf3;border-radius:12px;background:#f7fafc;margin-bottom:12px;color:var(--text);font-size:13px;overflow-wrap:anywhere}
+.screenshot-empty{padding:24px 15px;text-align:center;background:#f7fafc;border:1px dashed #cad9e5;border-radius:12px;color:#8799a9;font-size:12px;line-height:1.6}
+.open-screenshot-btn{display:block;text-decoration:none;text-align:center;padding:12px;border-radius:10px;background:#edf7ff;color:var(--blue);font-size:12px;font-weight:800}
+.review-note{width:100%;min-height:100px;resize:vertical;border:1px solid #d7e3ed;background:#fbfdff;border-radius:11px;padding:12px;color:var(--text);font-size:13px;outline:none;line-height:1.6}
+.review-note:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(8,113,195,.08)}
+.review-note:disabled{background:#f2f5f7;color:#8092a1}
+.review-help{font-size:11px;color:#8799a9;line-height:1.6;margin-top:8px}
+.review-actions{display:flex;flex-direction:column;gap:10px;margin-top:15px}
+.review-btn{width:100%;min-height:45px;padding:10px 14px;border:0;border-radius:11px;font-size:12px;font-weight:800;transition:.2s}
+.approve-btn{background:#168346;color:#fff}
+.approve-btn:hover:not(:disabled){background:#116d39}
+.reject-btn{background:#fff0f0;color:#bf2929;border:1px solid #f3d1d1}
+.reject-btn:hover:not(:disabled){background:#ffe1e1}
+.secondary-btn{background:#edf7ff;color:var(--blue)}
+.notice{border-radius:12px;padding:13px;font-size:12px;line-height:1.6;margin-bottom:14px;overflow-wrap:anywhere}
+.notice-pending{color:#8c6508;background:#fff8e4;border:1px solid #f2e3b5}
+.notice-approved{color:#176f38;background:#eaf9ef;border:1px solid #c9ecd4}
+.notice-rejected{color:#ad2b2b;background:#fff0f0;border:1px solid #f2d0d0}
+.notice-info{color:#17639c;background:#edf7ff;border:1px solid #d4e9f8}
+.action-buttons{display:flex;flex-direction:column;gap:9px}
+.action-btn{width:100%;min-height:44px;padding:10px;border:0;border-radius:11px;font-size:12px;font-weight:800}
+.slip-btn{background:var(--blue);color:#fff}
+.requests-btn{background:#edf7ff;color:var(--blue)}
+.payments-btn{background:#eef9f2;color:#18803d}
+.logout-modal{
+ position:fixed;inset:0;background:rgba(20,40,60,.42);backdrop-filter:blur(4px);
+ display:none;align-items:center;justify-content:center;z-index:9998;padding:20px
+}
+.logout-modal.show{display:flex}
+.logout-box{width:min(390px,100%);background:#fff;border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(20,60,90,.22);padding:25px;text-align:center}
+.logout-icon{width:55px;height:55px;margin:0 auto 14px;border-radius:16px;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:25px}
+.logout-box h3{color:var(--dark-blue);font-size:19px;margin-bottom:7px}
+.logout-box p{color:var(--muted);font-size:12px;line-height:1.5}
+.logout-actions{display:flex;gap:10px;margin-top:20px}
+.logout-cancel,.logout-confirm{flex:1;min-height:42px;border:0;border-radius:11px;font-size:12px;font-weight:800}
+.logout-cancel{background:#edf7ff;color:var(--blue)}
+.logout-confirm{background:#e84545;color:#fff}
+.toast{
+ position:fixed;right:20px;bottom:20px;z-index:99999;width:min(390px,calc(100vw - 28px));
+ background:#fff;border:1px solid var(--border);border-radius:14px;
+ box-shadow:0 15px 45px rgba(20,60,90,.18);padding:15px;display:none
+}
+.toast.show{display:block}
+.toast-title{color:var(--dark-blue);font-size:13px;font-weight:800}
+.toast-text{color:#7890a3;font-size:11px;margin-top:4px;line-height:1.5;overflow-wrap:anywhere}
+.overlay{display:none}
+@media(max-width:1050px){.content-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){
+ .header{height:70px;padding:0 14px}
+ .menu-btn{display:flex;align-items:center;justify-content:center;flex-shrink:0}
+ .logo{height:48px;max-width:82px}
+ .owner-title,.owner-subtitle,.owner-badge{display:none}
+ .header-right{gap:0}
+ .notification-panel{position:fixed;top:78px;right:14px;width:min(330px,calc(100vw - 28px))}
+ .layout{display:block;min-height:calc(100vh - 70px)}
+ .sidebar{position:fixed;top:70px;left:-260px;width:245px;height:calc(100vh - 70px);z-index:200;transition:.25s;overflow-y:auto}
+ .sidebar.open{left:0}
+ .overlay.show{display:block;position:fixed;inset:70px 0 0;background:rgba(0,0,0,.25);z-index:150}
+ .main{padding:20px 14px 40px}
+ .top-row{align-items:flex-start;flex-direction:column}
+ .page-heading h1{font-size:23px}
+ .page-heading p{font-size:12px}
+ .back-btn{width:100%}
+ .details-grid{grid-template-columns:minmax(0,1fr)}
+ .card-header,.card-body{padding:16px}
+ .user-header{padding:13px}
+ .summary-amount{font-size:27px}
+ .logout-actions{flex-direction:column}
+ .toast{left:14px;right:14px;bottom:14px;width:auto}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
 
 <body>
-
 <header class="header">
-    <div class="header-left">
-        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open navigation">☰</button>
-
-        <img
-            src="assets/EGC - Emergency Gas Cylinder logo.png"
-            class="logo"
-            alt="EGC"
-            onerror="this.style.display='none';"
-        >
-
-        <div>
-            <div class="owner-title">Owner Dashboard</div>
-            <div class="owner-subtitle">Emergency Gas Cylinder Management</div>
-        </div>
+ <div class="header-left">
+  <button class="menu-btn" id="menuBtn" type="button" aria-label="Open navigation">☰</button>
+  <img src="assets/EGC - Emergency Gas Cylinder logo.png" class="logo" alt="EGC" onerror="this.style.display='none'">
+  <div>
+   <div class="owner-title">Owner Dashboard</div>
+   <div class="owner-subtitle">Emergency Gas Cylinder Management</div>
+  </div>
+ </div>
+ <div class="header-right">
+  <div class="notification-wrap">
+   <button class="notification-btn" id="notificationBtn" type="button" aria-label="Notifications" aria-expanded="false">
+    🔔 <span class="notification-count" id="notificationCount">0</span>
+   </button>
+   <div class="notification-panel" id="notificationPanel">
+    <div class="notification-head"><strong>Notifications</strong><span>Owner Panel</span></div>
+    <div class="notification-item">
+     <div class="notification-icon">🔔</div>
+     <div class="notification-text"><strong>Payment Notifications</strong><span id="paymentNotificationText">Payment information will appear here.</span></div>
     </div>
-
-    <div class="header-right">
-        <div class="notification-wrap">
-            <button class="notification-btn" id="notificationBtn" type="button"
-                    aria-label="Notifications" aria-expanded="false">
-                🔔
-                <span class="notification-count" id="notificationCount">0</span>
-            </button>
-
-            <div class="notification-panel" id="notificationPanel">
-                <div class="notification-head">
-                    <strong>Notifications</strong>
-                    <span>Owner Panel</span>
-                </div>
-
-                <div class="notification-item">
-                    <div class="notification-icon">🔔</div>
-                    <div class="notification-text">
-                        <strong>Payment Notifications</strong>
-                        <span id="paymentNotificationText">Payment information will appear here.</span>
-                    </div>
-                </div>
-
-                <div class="notification-item">
-                    <div class="notification-icon">🛢</div>
-                    <div class="notification-text">
-                        <strong>Cylinder Requests</strong>
-                        <span>Open the linked cylinder request to view its details.</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="owner-badge">
-            <span class="owner-dot"></span>
-            Owner
-        </div>
+    <div class="notification-item">
+     <div class="notification-icon">🛢</div>
+     <div class="notification-text"><strong>Cylinder Requests</strong><span>Open the linked cylinder request to view its details.</span></div>
     </div>
+   </div>
+  </div>
+  <div class="owner-badge"><span class="owner-dot"></span>Owner</div>
+ </div>
 </header>
 
 <div class="layout">
-
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-title">Management</div>
-
-        <button class="nav-btn" data-page="dashboard" type="button"><span class="nav-icon">▦</span>Dashboard</button>
-        <button class="nav-btn" data-page="users" type="button"><span class="nav-icon">👥</span>Users</button>
-        <button class="nav-btn" data-page="agencies" type="button"><span class="nav-icon">🏪</span>LPG Agencies</button>
-        <button class="nav-btn" data-page="companies" type="button"><span class="nav-icon">🏢</span>LPG Companies</button>
-        <button class="nav-btn" data-page="pending-approvals" type="button"><span class="nav-icon">⏳</span>Pending Approvals</button>
-        <button class="nav-btn" data-page="requests" type="button"><span class="nav-icon">🛢</span>Cylinder Requests</button>
-        <button class="nav-btn" data-page="payments" type="button"><span class="nav-icon">₹</span>Payments</button>
-        <button class="nav-btn" data-page="reports" type="button"><span class="nav-icon">▤</span>Reports</button>
-
-        <div class="sidebar-title" style="margin-top:25px;">Owner Pages</div>
-
-        <button class="nav-btn" data-page="request-details" type="button"><span class="nav-icon">📄</span>Request Details</button>
-        <button class="nav-btn active" data-page="payment-details" type="button"><span class="nav-icon">💳</span>Payment Details</button>
-        <button class="nav-btn" data-page="agency-details" type="button"><span class="nav-icon">🏪</span>Agency Details</button>
-        <button class="nav-btn" data-page="deliveries" type="button"><span class="nav-icon">🚚</span>Deliveries</button>
-        <button class="nav-btn" data-page="repayments" type="button"><span class="nav-icon">💰</span>Repayments</button>
-        <button class="nav-btn" data-page="notifications" type="button"><span class="nav-icon">🔔</span>Notifications</button>
-        <button class="nav-btn" data-page="slips" type="button"><span class="nav-icon">🧾</span>Slips</button>
-        <button class="nav-btn" data-page="profile" type="button"><span class="nav-icon">👤</span>Profile</button>
-
-        <div class="sidebar-title" style="margin-top:25px;">System</div>
-        <button class="nav-btn" data-page="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
-
-        <div class="sidebar-bottom">
-            <button class="nav-btn sidebar-logout" id="logoutBtn" type="button"><span class="nav-icon">🚪</span>Logout</button>
-        </div>
-    </aside>
-
-    <div class="overlay" id="overlay"></div>
-
-    <main class="main">
-
-        <div class="top-row">
-            <div class="page-heading">
-                <h1>Payment Details</h1>
-                <p>Review the user's payment evidence and verify the actual payment before approval.</p>
-            </div>
-
-            <button class="back-btn" id="backBtn" type="button">← Back to Payments</button>
-        </div>
-
-        <div id="loadingBox" class="loading-card">Loading payment details...</div>
-
-        <div id="errorBox" class="error-card" style="display:none;" role="alert">
-            Payment details could not be loaded.
-        </div>
-
-        <div id="content" class="content-grid" style="display:none;">
-
-            <div class="left-column">
-
-                <section class="card">
-                    <div class="card-header">
-                        <div class="card-title">Payment & Request Information</div>
-                        <div class="card-subtitle">Payment record, customer information and linked cylinder request.</div>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="user-header">
-                            <div id="photoContainer">
-                                <div class="user-photo-fallback">👤</div>
-                            </div>
-
-                            <div style="min-width:0;">
-                                <div class="user-name" id="userName">User</div>
-                                <div class="user-contact" id="userContact">—</div>
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <div class="section-title">Payment Information</div>
-
-                            <div class="details-grid">
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment ID</div>
-                                    <div class="detail-value" id="paymentId">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment Status</div>
-                                    <div class="detail-value" id="paymentStatus">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment Amount</div>
-                                    <div class="detail-value highlight" id="paymentAmount">₹0.00</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment Date</div>
-                                    <div class="detail-value" id="paymentDate">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment Method</div>
-                                    <div class="detail-value" id="paymentMethod">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Transaction ID</div>
-                                    <div class="detail-value" id="transactionId">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Payment Reference</div>
-                                    <div class="detail-value" id="paymentReference">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Verification Status</div>
-                                    <div class="detail-value" id="verificationStatus">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Verified At</div>
-                                    <div class="detail-value" id="verifiedAt">Not Verified</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Verification Note</div>
-                                    <div class="detail-value" id="verificationNote">—</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <div class="section-title">Customer Information</div>
-
-                            <div class="details-grid">
-                                <div class="detail-box">
-                                    <div class="detail-label">Supabase User ID</div>
-                                    <div class="detail-value" id="userId">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">EGC User ID</div>
-                                    <div class="detail-value" id="egcUserId">Not available</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Full Name</div>
-                                    <div class="detail-value" id="fullName">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Mobile</div>
-                                    <div class="detail-value" id="mobile">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Email</div>
-                                    <div class="detail-value" id="email">—</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="detail-section">
-                            <div class="section-title">Cylinder Request</div>
-
-                            <div class="details-grid">
-                                <div class="detail-box">
-                                    <div class="detail-label">Request Number</div>
-                                    <div class="detail-value" id="requestNumber">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Request Status</div>
-                                    <div class="detail-value" id="requestStatus">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Owner Approval</div>
-                                    <div class="detail-value" id="requestOwnerApproval">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Request Payment Status</div>
-                                    <div class="detail-value" id="requestPaymentStatus">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">LPG Company</div>
-                                    <div class="detail-value" id="company">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">LPG Agency</div>
-                                    <div class="detail-value" id="agency">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">Quantity</div>
-                                    <div class="detail-value" id="quantity">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">State</div>
-                                    <div class="detail-value" id="state">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">District</div>
-                                    <div class="detail-value" id="district">—</div>
-                                </div>
-
-                                <div class="detail-box">
-                                    <div class="detail-label">City</div>
-                                    <div class="detail-value" id="city">—</div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </section>
-
-                <section class="card">
-                    <div class="card-header">
-                        <div class="card-title">Customer Payment Screenshot</div>
-                        <div class="card-subtitle">Review the uploaded evidence. Always verify the transaction in the actual receiving account.</div>
-                    </div>
-
-                    <div class="card-body">
-                        <div id="screenshotNotice" class="notice notice-info">
-                            Checking for an uploaded payment screenshot...
-                        </div>
-
-                        <div id="screenshotWrap" class="screenshot-wrap">
-                            <img id="screenshotImage" class="screenshot-preview"
-                                 alt="Customer payment screenshot" style="display:none;">
-
-                            <div id="screenshotFile" class="screenshot-file" style="display:none;">
-                                Payment evidence file
-                            </div>
-
-                            <a id="openScreenshotBtn" class="open-screenshot-btn"
-                               href="#" target="_blank" rel="noopener noreferrer">
-                                Open Screenshot / Evidence in New Tab
-                            </a>
-                        </div>
-
-                        <div id="screenshotEmpty" class="screenshot-empty" style="display:none;">
-                            No payment screenshot was uploaded for this record.
-                        </div>
-                    </div>
-                </section>
-
-            </div>
-
-            <aside class="right-column">
-
-                <section class="card">
-                    <div class="card-header">
-                        <div class="card-title">Amount Summary</div>
-                        <div class="card-subtitle">Request amount and this individual payment.</div>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="summary-box">
-                            <div class="summary-label">Submitted Payment Amount</div>
-                            <div class="summary-amount" id="summaryPayment">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Cylinder Amount</div>
-                            <div class="amount-value" id="cylinderAmount">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Advance Amount</div>
-                            <div class="amount-value" id="advanceAmount">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Extra Charge</div>
-                            <div class="amount-value" id="extraCharge">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Request Total</div>
-                            <div class="amount-value amount-total" id="requestTotal">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Remaining Amount</div>
-                            <div class="amount-value" id="remainingAmount">₹0.00</div>
-                        </div>
-
-                        <div class="amount-row">
-                            <div class="amount-label">Verified Paid Amount</div>
-                            <div class="amount-value amount-total" id="verifiedPaidAmount">₹0.00</div>
-                        </div>
-
-                    </div>
-                </section>
-
-                <section class="card">
-                    <div class="card-header">
-                        <div class="card-title">Owner Verification</div>
-                        <div class="card-subtitle">Approve only after confirming the payment reached the EGC receiving account.</div>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div id="reviewStatusNotice" class="notice notice-pending">
-                            Payment verification status will appear here.
-                        </div>
-
-                        <label for="reviewNote" class="section-title" style="display:block;">
-                            Owner Verification Note
-                        </label>
-
-                        <textarea
-                            id="reviewNote"
-                            class="review-note"
-                            maxlength="1000"
-                            placeholder="Optional note. For rejection, explain why the payment could not be verified."
-                        ></textarea>
-
-                        <div class="review-help">
-                            A rejection reason is required. The note will be appended to the payment's existing notes when that database column is available.
-                        </div>
-
-                        <div class="review-actions">
-                            <button class="review-btn approve-btn" id="approvePaymentBtn" type="button">
-                                ✓ Approve Payment
-                            </button>
-
-                            <button class="review-btn reject-btn" id="rejectPaymentBtn" type="button">
-                                ✕ Reject Payment
-                            </button>
-
-                            <button class="review-btn secondary-btn" id="refreshBtn" type="button">
-                                ↻ Refresh Payment Details
-                            </button>
-                        </div>
-
-                        <div class="review-help" style="margin-top:13px;">
-                            Payment verification and Cylinder Request approval are separate decisions.
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card">
-                    <div class="card-header">
-                        <div class="card-title">Quick Actions</div>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="action-buttons">
-                            <button class="action-btn slip-btn" id="slipBtn" type="button">🧾 Open Payment Slip</button>
-                            <button class="action-btn requests-btn" id="requestBtn" type="button">🛢 Open Cylinder Request</button>
-                            <button class="action-btn payments-btn" id="paymentsBtn" type="button">₹ Back to Payments</button>
-                        </div>
-                    </div>
-                </section>
-
-            </aside>
-
-        </div>
-    </main>
+ <aside class="sidebar" id="sidebar">
+  <div class="sidebar-title">Management</div>
+  <button class="nav-btn" data-page="dashboard" type="button"><span class="nav-icon">▦</span>Dashboard</button>
+  <button class="nav-btn" data-page="users" type="button"><span class="nav-icon">👥</span>Users</button>
+  <button class="nav-btn" data-page="agencies" type="button"><span class="nav-icon">🏪</span>LPG Agencies</button>
+  <button class="nav-btn" data-page="companies" type="button"><span class="nav-icon">🏢</span>LPG Companies</button>
+  <button class="nav-btn" data-page="pending-approvals" type="button"><span class="nav-icon">⏳</span>Pending Approvals</button>
+  <button class="nav-btn" data-page="requests" type="button"><span class="nav-icon">🛢</span>Cylinder Requests</button>
+  <button class="nav-btn" data-page="payments" type="button"><span class="nav-icon">₹</span>Payments</button>
+  <button class="nav-btn" data-page="reports" type="button"><span class="nav-icon">▤</span>Reports</button>
+  <div class="sidebar-title" style="margin-top:25px">Owner Pages</div>
+  <button class="nav-btn" data-page="request-details" type="button"><span class="nav-icon">📄</span>Request Details</button>
+  <button class="nav-btn active" data-page="payment-details" type="button"><span class="nav-icon">💳</span>Payment Details</button>
+  <button class="nav-btn" data-page="agency-details" type="button"><span class="nav-icon">🏪</span>Agency Details</button>
+  <button class="nav-btn" data-page="deliveries" type="button"><span class="nav-icon">🚚</span>Deliveries</button>
+  <button class="nav-btn" data-page="repayments" type="button"><span class="nav-icon">💰</span>Repayments</button>
+  <button class="nav-btn" data-page="notifications" type="button"><span class="nav-icon">🔔</span>Notifications</button>
+  <button class="nav-btn" data-page="slips" type="button"><span class="nav-icon">🧾</span>Slips</button>
+  <button class="nav-btn" data-page="profile" type="button"><span class="nav-icon">👤</span>Profile</button>
+  <div class="sidebar-title" style="margin-top:25px">System</div>
+  <button class="nav-btn" data-page="settings" type="button"><span class="nav-icon">⚙</span>Settings</button>
+  <div class="sidebar-bottom"><button class="nav-btn sidebar-logout" id="logoutBtn" type="button"><span class="nav-icon">🚪</span>Logout</button></div>
+ </aside>
+ <div class="overlay" id="overlay"></div>
+
+ <main class="main">
+  <div class="top-row">
+   <div class="page-heading">
+    <h1>Payment Details</h1>
+    <p>Review the user's payment evidence, verify payment and update the linked request's outstanding balance.</p>
+   </div>
+   <button class="back-btn" id="backBtn" type="button">← Back to Payments</button>
+  </div>
+
+  <div id="loadingBox" class="loading-card">Loading payment details...</div>
+  <div id="errorBox" class="error-card" style="display:none" role="alert">Payment details could not be loaded.</div>
+
+  <div id="content" class="content-grid" style="display:none">
+   <div class="left-column">
+    <section class="card">
+     <div class="card-header"><div class="card-title">Payment & Request Information</div><div class="card-subtitle">Payment record, customer information and linked cylinder request.</div></div>
+     <div class="card-body">
+      <div class="user-header">
+       <div id="photoContainer"><div class="user-photo-fallback">👤</div></div>
+       <div style="min-width:0"><div class="user-name" id="userName">User</div><div class="user-contact" id="userContact">—</div></div>
+      </div>
+
+      <div class="detail-section">
+       <div class="section-title">Payment Information</div>
+       <div class="details-grid">
+        <div class="detail-box"><div class="detail-label">Payment ID</div><div class="detail-value" id="paymentId">—</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Status</div><div class="detail-value" id="paymentStatus">—</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Type</div><div class="detail-value" id="paymentType">—</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Amount</div><div class="detail-value highlight" id="paymentAmount">₹0.00</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Date</div><div class="detail-value" id="paymentDate">—</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Method</div><div class="detail-value" id="paymentMethod">—</div></div>
+        <div class="detail-box"><div class="detail-label">Transaction ID</div><div class="detail-value" id="transactionId">—</div></div>
+        <div class="detail-box"><div class="detail-label">Payment Reference</div><div class="detail-value" id="paymentReference">—</div></div>
+        <div class="detail-box"><div class="detail-label">Verification Status</div><div class="detail-value" id="verificationStatus">—</div></div>
+        <div class="detail-box"><div class="detail-label">Verified At</div><div class="detail-value" id="verifiedAt">Not Verified</div></div>
+        <div class="detail-box"><div class="detail-label">Verification Note</div><div class="detail-value" id="verificationNote">—</div></div>
+       </div>
+      </div>
+
+      <div class="detail-section">
+       <div class="section-title">Customer Information</div>
+       <div class="details-grid">
+        <div class="detail-box"><div class="detail-label">Supabase User ID</div><div class="detail-value" id="userId">—</div></div>
+        <div class="detail-box"><div class="detail-label">EGC User ID</div><div class="detail-value" id="egcUserId">Not available</div></div>
+        <div class="detail-box"><div class="detail-label">Full Name</div><div class="detail-value" id="fullName">—</div></div>
+        <div class="detail-box"><div class="detail-label">Mobile</div><div class="detail-value" id="mobile">—</div></div>
+        <div class="detail-box"><div class="detail-label">Email</div><div class="detail-value" id="email">—</div></div>
+       </div>
+      </div>
+
+      <div class="detail-section">
+       <div class="section-title">Cylinder Request</div>
+       <div class="details-grid">
+        <div class="detail-box"><div class="detail-label">Request Number</div><div class="detail-value" id="requestNumber">—</div></div>
+        <div class="detail-box"><div class="detail-label">Request Status</div><div class="detail-value" id="requestStatus">—</div></div>
+        <div class="detail-box"><div class="detail-label">Owner Approval</div><div class="detail-value" id="requestOwnerApproval">—</div></div>
+        <div class="detail-box"><div class="detail-label">Request Payment Status</div><div class="detail-value" id="requestPaymentStatus">—</div></div>
+        <div class="detail-box"><div class="detail-label">LPG Company</div><div class="detail-value" id="company">—</div></div>
+        <div class="detail-box"><div class="detail-label">LPG Agency</div><div class="detail-value" id="agency">—</div></div>
+        <div class="detail-box"><div class="detail-label">Quantity</div><div class="detail-value" id="quantity">—</div></div>
+        <div class="detail-box"><div class="detail-label">State</div><div class="detail-value" id="state">—</div></div>
+        <div class="detail-box"><div class="detail-label">District</div><div class="detail-value" id="district">—</div></div>
+        <div class="detail-box"><div class="detail-label">City</div><div class="detail-value" id="city">—</div></div>
+       </div>
+      </div>
+     </div>
+    </section>
+
+    <section class="card">
+     <div class="card-header"><div class="card-title">Customer Payment Screenshot</div><div class="card-subtitle">Review the uploaded evidence and verify the transaction in the actual receiving account.</div></div>
+     <div class="card-body">
+      <div id="screenshotNotice" class="notice notice-info">Checking for an uploaded payment screenshot...</div>
+      <div id="screenshotWrap" class="screenshot-wrap">
+       <img id="screenshotImage" class="screenshot-preview" alt="Customer payment screenshot" style="display:none">
+       <div id="screenshotFile" class="screenshot-file" style="display:none">Payment evidence file</div>
+       <a id="openScreenshotBtn" class="open-screenshot-btn" href="#" target="_blank" rel="noopener noreferrer">Open Screenshot / Evidence in New Tab</a>
+      </div>
+      <div id="screenshotEmpty" class="screenshot-empty" style="display:none">No payment screenshot was uploaded for this record.</div>
+     </div>
+    </section>
+   </div>
+
+   <aside class="right-column">
+    <section class="card">
+     <div class="card-header"><div class="card-title">Amount Summary</div><div class="card-subtitle">Request amount and verified payments associated with this request.</div></div>
+     <div class="card-body">
+      <div class="summary-box"><div class="summary-label">Submitted Payment Amount</div><div class="summary-amount" id="summaryPayment">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Cylinder Amount</div><div class="amount-value" id="cylinderAmount">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Advance Amount</div><div class="amount-value" id="advanceAmount">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Extra Charge</div><div class="amount-value" id="extraCharge">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Request Total</div><div class="amount-value amount-total" id="requestTotal">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Verified Paid Amount</div><div class="amount-value amount-total" id="verifiedPaidAmount">₹0.00</div></div>
+      <div class="amount-row"><div class="amount-label">Remaining Amount</div><div class="amount-value amount-total" id="remainingAmount">₹0.00</div></div>
+      <div class="review-help">Remaining amount is calculated from the request total minus all approved payments recorded in the payments table.</div>
+     </div>
+    </section>
+
+    <section class="card">
+     <div class="card-header"><div class="card-title">Owner Verification</div><div class="card-subtitle">Approve only after confirming payment receipt in the EGC receiving account.</div></div>
+     <div class="card-body">
+      <div id="reviewStatusNotice" class="notice notice-pending">Payment verification status will appear here.</div>
+      <label for="reviewNote" class="section-title" style="display:block">Owner Verification Note</label>
+      <textarea id="reviewNote" class="review-note" maxlength="1000" placeholder="Optional note. For rejection, explain why payment could not be verified."></textarea>
+      <div class="review-help">Rejection requires a reason. The note is appended to the payment's existing notes.</div>
+      <div class="review-actions">
+       <button class="review-btn approve-btn" id="approvePaymentBtn" type="button">✓ Approve Payment</button>
+       <button class="review-btn reject-btn" id="rejectPaymentBtn" type="button">✕ Reject Payment</button>
+       <button class="review-btn secondary-btn" id="refreshBtn" type="button">↻ Refresh Payment Details</button>
+      </div>
+      <div class="review-help" style="margin-top:13px">Payment verification and Cylinder Request approval are separate decisions.</div>
+     </div>
+    </section>
+
+    <section class="card">
+     <div class="card-header"><div class="card-title">Quick Actions</div></div>
+     <div class="card-body">
+      <div class="action-buttons">
+       <button class="action-btn slip-btn" id="slipBtn" type="button">🧾 Open Payment Slip</button>
+       <button class="action-btn requests-btn" id="requestBtn" type="button">🛢 Open Cylinder Request</button>
+       <button class="action-btn payments-btn" id="paymentsBtn" type="button">₹ Back to Payments</button>
+      </div>
+     </div>
+    </section>
+   </aside>
+  </div>
+ </main>
 </div>
 
 <div class="logout-modal" id="logoutModal" aria-hidden="true">
-    <div class="logout-box" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
-        <div class="logout-icon">🚪</div>
-        <h3 id="logoutTitle">Confirm Logout</h3>
-        <p>Are you sure you want to logout from the EGC Owner Panel?</p>
-
-        <div class="logout-actions">
-            <button class="logout-cancel" id="logoutCancel" type="button">Cancel</button>
-            <button class="logout-confirm" id="logoutConfirm" type="button">Logout</button>
-        </div>
-    </div>
+ <div class="logout-box" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+  <div class="logout-icon">🚪</div><h3 id="logoutTitle">Confirm Logout</h3>
+  <p>Are you sure you want to logout from the EGC Owner Panel?</p>
+  <div class="logout-actions">
+   <button class="logout-cancel" id="logoutCancel" type="button">Cancel</button>
+   <button class="logout-confirm" id="logoutConfirm" type="button">Logout</button>
+  </div>
+ </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
-    <div class="toast-title" id="toastTitle">Notification</div>
-    <div class="toast-text" id="toastText"></div>
+ <div class="toast-title" id="toastTitle">Notification</div><div class="toast-text" id="toastText"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 "use strict";
 
-/*
- * EGC PAYMENT DETAILS
- *
- * Payment verification is separate from cylinder-request approval.
- * Supabase RLS must restrict payment reads/writes to authorized Owners.
- */
+/* =========================================================
+   EGC OWNER PAYMENT DETAILS
+   Payment verification + linked request balance sync.
+   ========================================================= */
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 const PAYMENT_BUCKET = "payment-screenshots";
-
-const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
+const OWNER_STORAGE_KEY = "egc-owner-auth";
 
 const $ = id => document.getElementById(id);
 
-const loadingBox = $("loadingBox");
-const errorBox = $("errorBox");
-const content = $("content");
-const sidebar = $("sidebar");
-const overlay = $("overlay");
-
+let supabaseClient = null;
 let payment = null;
 let request = null;
 let profile = null;
 let agency = null;
 let currentSession = null;
 let busy = false;
-let screenshotObjectUrl = null;
+let initialized = false;
+let verifiedRequestPayments = [];
+let signedScreenshotUrl = "";
 
 function moneyNumber(value) {
-    if (value === null || value === undefined || value === "") {
-        return 0;
-    }
-
-    const number = Number(value);
-    return Number.isFinite(number) ? number : 0;
+ if (value === null || value === undefined || value === "") return 0;
+ const number = Number(value);
+ return Number.isFinite(number) ? number : 0;
 }
 
 function formatMoney(value) {
-    return "₹" + moneyNumber(value).toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+ return "₹" + moneyNumber(value).toLocaleString("en-IN", {
+  minimumFractionDigits:2, maximumFractionDigits:2
+ });
 }
 
 function formatDateTime(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
+ if (!value) return "—";
+ const date = new Date(value);
+ if (Number.isNaN(date.getTime())) return "—";
+ return date.toLocaleString("en-IN", {
+  day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"
+ });
 }
 
 function getPaymentIdFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("payment_id") || params.get("id") || "";
+ const params = new URLSearchParams(window.location.search);
+ return params.get("payment_id") || params.get("id") || "";
 }
 
-function showToast(title, message) {
-    $("toastTitle").textContent = title || "Notification";
-    $("toastText").textContent = message || "";
-    $("toast").classList.add("show");
-
-    clearTimeout(window.egcPaymentDetailsToast);
-    window.egcPaymentDetailsToast = setTimeout(() => {
-        $("toast").classList.remove("show");
-    }, 5000);
+function showToast(title,message) {
+ if (!$("toast")) return console.log(title,message);
+ $("toastTitle").textContent = title || "Notification";
+ $("toastText").textContent = message || "";
+ $("toast").classList.add("show");
+ clearTimeout(window.egcPaymentDetailsToast);
+ window.egcPaymentDetailsToast = setTimeout(()=>$("toast").classList.remove("show"),5000);
 }
 
 function showError(message) {
-    loadingBox.style.display = "none";
-    content.style.display = "none";
-    errorBox.style.display = "block";
-
-    errorBox.replaceChildren();
-
-    const heading = document.createElement("strong");
-    heading.textContent = "Unable to load payment.";
-    errorBox.appendChild(heading);
-
-    errorBox.appendChild(document.createElement("br"));
-    errorBox.appendChild(document.createElement("br"));
-    errorBox.appendChild(document.createTextNode(message || "Unknown error"));
+ if ($("loadingBox")) $("loadingBox").style.display = "none";
+ if ($("content")) $("content").style.display = "none";
+ const box = $("errorBox");
+ if (!box) return console.error(message);
+ box.style.display = "block";
+ box.replaceChildren();
+ const title = document.createElement("strong");
+ title.textContent = "Unable to load payment.";
+ box.append(title,document.createElement("br"),document.createElement("br"),document.createTextNode(message || "Unknown error"));
 }
 
 function showLoading() {
-    loadingBox.style.display = "block";
-    errorBox.style.display = "none";
-    content.style.display = "none";
+ $("loadingBox").style.display = "block";
+ $("errorBox").style.display = "none";
+ $("content").style.display = "none";
+}
+
+function setText(id,value) {
+ const el = $(id);
+ if (!el) return;
+ el.textContent = value === null || value === undefined || value === "" ? "—" : String(value);
 }
 
 function getUserName() {
-    return profile?.full_name ||
-        profile?.username ||
-        profile?.name ||
-        profile?.display_name ||
-        "User";
+ return profile?.full_name || profile?.username || profile?.name || profile?.display_name ||
+  request?.customer_name || "User";
 }
 
 function getMobile() {
-    return profile?.mobile ||
-        profile?.phone ||
-        profile?.mobile_number ||
-        profile?.phone_number ||
-        "—";
+ return profile?.mobile || profile?.phone || profile?.mobile_number ||
+  request?.customer_mobile || "—";
 }
 
 function getEmail() {
-    return profile?.email ||
-        currentSession?.user?.email ||
-        profile?.auth_email ||
-        "—";
+ return profile?.email || currentSession?.user?.email || request?.customer_email || "—";
 }
 
 function getPhoto() {
-    return profile?.profile_photo ||
-        profile?.photo_url ||
-        profile?.avatar_url ||
-        profile?.profile_image ||
-        profile?.photo ||
-        profile?.image_url ||
-        "";
+ return profile?.profile_photo || profile?.photo_url || profile?.avatar_url ||
+  profile?.profile_image || profile?.photo || profile?.image_url ||
+  request?.profile_photo || "";
 }
 
 function getAgencyName() {
-    return agency?.agency_name ||
-        agency?.name ||
-        agency?.agency ||
-        agency?.title ||
-        "—";
+ return agency?.agency_name || agency?.name || agency?.agency || agency?.title || "—";
 }
 
 function getCompanyName() {
-    return request?.lpg_company ||
-        request?.company_name ||
-        agency?.lpg_company ||
-        agency?.company_name ||
-        agency?.company ||
-        profile?.lpg_company ||
-        "—";
+ return request?.lpg_company || request?.company_name ||
+  agency?.lpg_company || agency?.company_name || agency?.company ||
+  profile?.lpg_company || "—";
 }
 
 function getQuantity() {
-    return request?.quantity ??
-        request?.cylinder_quantity ??
-        "—";
+ return request?.quantity ?? request?.cylinder_quantity ?? "—";
 }
 
 function getPaymentAmount() {
-    return moneyNumber(payment?.payment_amount ?? payment?.amount);
+ return moneyNumber(payment?.payment_amount ?? payment?.amount);
 }
 
 function getCylinderAmount() {
-    return moneyNumber(
-        request?.cylinder_amount ??
-        request?.base_amount ??
-        request?.amount
-    );
+ return moneyNumber(request?.cylinder_amount ?? request?.base_amount ?? request?.amount);
 }
 
 function getExtraCharge() {
-    return moneyNumber(
-        request?.extra_charge ??
-        request?.extra_charge_amount ??
-        request?.charge_amount
-    );
+ return moneyNumber(request?.extra_charge ?? request?.extra_charge_amount ?? request?.charge_amount);
 }
 
 function getRequestTotal() {
-    return moneyNumber(
-        request?.total_payable ??
-        request?.total_amount ??
-        request?.request_total ??
-        request?.total
-    );
+ const explicit = request?.total_payable ?? request?.total_amount ??
+  request?.request_total ?? request?.total;
+ if (explicit !== null && explicit !== undefined && explicit !== "") return moneyNumber(explicit);
+ return getCylinderAmount() + getExtraCharge();
 }
 
 function getAdvanceAmount() {
-    return moneyNumber(
-        request?.advance_amount ??
-        request?.initial_payment ??
-        request?.advance
-    );
+ return moneyNumber(request?.advance_amount ?? request?.initial_payment ?? request?.advance);
 }
 
-function getRemainingAmount() {
-    if (request?.remaining_amount !== null &&
-        request?.remaining_amount !== undefined) {
-        return moneyNumber(request.remaining_amount);
-    }
-
-    return Math.max(0, getRequestTotal() - getAdvanceAmount());
+function getVerificationStatus(row = payment) {
+ const value = String(row?.verification_status || "").toLowerCase();
+ if (["approved","rejected","pending"].includes(value)) return value;
+ return row?.verified_at || row?.owner_approved_at ? "approved" : "pending";
 }
 
-function getBadgeClass(value) {
-    const status = String(value || "").toLowerCase();
-
-    if (["paid", "verified", "completed", "approved"].includes(status)) {
-        return "status-paid";
-    }
-
-    if (["pending", "waiting", "submitted"].includes(status)) {
-        return "status-pending";
-    }
-
-    if (["processing", "under_review"].includes(status)) {
-        return "status-blue";
-    }
-
-    if (["failed", "refunded", "rejected", "cancelled"].includes(status)) {
-        return "status-failed";
-    }
-
-    return "status-gray";
-}
-
-function badgeHtml(value) {
-    const label = value === null || value === undefined || value === ""
-        ? "Not Set"
-        : String(value);
-
-    const span = document.createElement("span");
-    span.className = "status-badge " + getBadgeClass(label);
-    span.textContent = label;
-
-    return span;
-}
-
-function setText(id, value) {
-    const element = $(id);
-
-    if (element) {
-        element.textContent =
-            value === null || value === undefined || value === ""
-                ? "—"
-                : String(value);
-    }
-}
-
-function setBadge(id, value) {
-    const element = $(id);
-    if (element) element.replaceChildren(badgeHtml(value));
-}
-
-function openPage(page) {
-    const pages = {
-        dashboard: "owner-dashboard.html",
-        users: "owner-users.html",
-        agencies: "owner-agencies.html",
-        companies: "owner-companies.html",
-        "pending-approvals": "owner-pending-approvals.html",
-        requests: "owner-requests.html",
-        payments: "owner-payments.html",
-        reports: "owner-reports.html",
-        "request-details": "owner-request-details.html",
-        "payment-details": "owner-payment-details.html",
-        "agency-details": "owner-agency-details.html",
-        deliveries: "owner-deliveries.html",
-        repayments: "owner-repayments.html",
-        notifications: "owner-notifications.html",
-        slips: "owner-slips.html",
-        profile: "owner-profile.html",
-        settings: "owner-settings.html"
-    };
-
-    if (pages[page]) {
-        window.location.href = pages[page];
-    }
-}
-
-document.querySelectorAll("[data-page]").forEach(button => {
-    button.addEventListener("click", () => {
-        openPage(button.dataset.page);
-    });
-});
-
-$("menuBtn").addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-    overlay.classList.toggle("show");
-});
-
-overlay.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    overlay.classList.remove("show");
-});
-
-$("notificationBtn").addEventListener("click", () => {
-    const panel = $("notificationPanel");
-    const willOpen = !panel.classList.contains("show");
-
-    panel.classList.toggle("show", willOpen);
-    $("notificationBtn").setAttribute("aria-expanded", String(willOpen));
-});
-
-document.addEventListener("click", event => {
-    if (!event.target.closest(".notification-wrap")) {
-        $("notificationPanel").classList.remove("show");
-        $("notificationBtn").setAttribute("aria-expanded", "false");
-    }
-});
-
-async function loadPayment() {
-    const paymentId = getPaymentIdFromUrl();
-
-    if (!paymentId) {
-        showError("Payment ID is missing. Open this page from Owner Payments.");
-        return;
-    }
-
-    showLoading();
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("payments")
-            .select("*")
-            .eq("id", paymentId)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-            showError("Payment record not found, or your account does not have permission to view it.");
-            return;
-        }
-
-        payment = data;
-
-        await loadRelatedData();
-        await renderPage();
-
-    } catch (error) {
-        console.error("Payment details error:", error);
-        showError(
-            error.message ||
-            "Unable to load payment details. Check Supabase permissions and database policies."
-        );
-    }
-}
-
-async function loadRelatedData() {
-    profile = null;
-    request = null;
-    agency = null;
-
-    if (payment?.user_id) {
-        /*
-         * This project uses profiles.id as the Supabase Auth UUID.
-         * If your schema uses auth_user_id instead, change this lookup.
-         */
-        const { data, error } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("id", payment.user_id)
-            .maybeSingle();
-
-        if (error) {
-            console.warn("Profile lookup:", error.message);
-        } else {
-            profile = data || null;
-        }
-    }
-
-    if (payment?.request_id) {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("id", payment.request_id)
-            .maybeSingle();
-
-        if (error) {
-            console.warn("Request lookup:", error.message);
-        } else {
-            request = data || null;
-        }
-    }
-
-    if (request?.agency_id) {
-        const { data, error } = await supabaseClient
-            .from("agencies")
-            .select("*")
-            .eq("id", request.agency_id)
-            .maybeSingle();
-
-        if (error) {
-            console.warn("Agency lookup:", error.message);
-        } else {
-            agency = data || null;
-        }
-    }
-}
-
-function renderPhoto(photo) {
-    const container = $("photoContainer");
-    container.replaceChildren();
-
-    if (!photo) {
-        const fallback = document.createElement("div");
-        fallback.className = "user-photo-fallback";
-        fallback.textContent = "👤";
-        container.appendChild(fallback);
-        return;
-    }
-
-    const img = document.createElement("img");
-    img.src = photo;
-    img.className = "user-photo";
-    img.alt = "User profile photo";
-
-    img.addEventListener("error", () => {
-        container.replaceChildren();
-
-        const fallback = document.createElement("div");
-        fallback.className = "user-photo-fallback";
-        fallback.textContent = "👤";
-        container.appendChild(fallback);
-    }, { once: true });
-
-    container.appendChild(img);
-}
-
-function getVerificationStatus() {
-    const value = String(payment?.verification_status || "").toLowerCase();
-
-    if (["approved", "rejected", "pending"].includes(value)) {
-        return value;
-    }
-
-    /*
-     * Older records with verified_at are treated as already verified.
-     * New approvals in this page set verification_status explicitly.
-     */
-    if (payment?.verified_at) {
-        return "approved";
-    }
-
-    return "pending";
+function isApprovedPayment(row) {
+ const verification = getVerificationStatus(row);
+ const status = String(row?.payment_status || "").toLowerCase();
+ return verification === "approved" &&
+  ["paid","approved","verified","completed"].includes(status);
 }
 
 function isFinalVerification() {
-    return ["approved", "rejected"].includes(getVerificationStatus());
+ return ["approved","rejected"].includes(getVerificationStatus());
 }
 
-function updateReviewUI() {
-    const status = getVerificationStatus();
-    const notice = $("reviewStatusNotice");
-    const approveButton = $("approvePaymentBtn");
-    const rejectButton = $("rejectPaymentBtn");
-    const note = $("reviewNote");
-
-    notice.className = "notice";
-
-    if (status === "approved") {
-        notice.classList.add("notice-approved");
-        notice.textContent =
-            "This payment has been approved. Check the transaction record and verification details below.";
-    } else if (status === "rejected") {
-        notice.classList.add("notice-rejected");
-        notice.textContent =
-            "This payment has been rejected. The saved verification note may contain the reason.";
-    } else {
-        notice.classList.add("notice-pending");
-        notice.textContent =
-            "Pending verification. Check the transaction in the actual receiving account before approving.";
-    }
-
-    const final = isFinalVerification();
-
-    approveButton.disabled = busy || final;
-    rejectButton.disabled = busy || final;
-    note.disabled = busy || final;
-
-    if (final) {
-        note.value = payment?.notes || note.value;
-    }
-
-    if (busy) {
-        approveButton.textContent = "Please wait...";
-        rejectButton.textContent = "Please wait...";
-    } else {
-        approveButton.textContent = status === "approved"
-            ? "✓ Payment Approved"
-            : "✓ Approve Payment";
-
-        rejectButton.textContent = status === "rejected"
-            ? "✕ Payment Rejected"
-            : "✕ Reject Payment";
-    }
+function getBadgeClass(value) {
+ const status = String(value || "").toLowerCase();
+ if (["paid","verified","completed","approved"].includes(status)) return "status-paid";
+ if (["pending","waiting","submitted"].includes(status)) return "status-pending";
+ if (["processing","under_review"].includes(status)) return "status-blue";
+ if (["failed","refunded","rejected","cancelled"].includes(status)) return "status-failed";
+ return "status-gray";
 }
 
-function isImageFile(path) {
-    return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(path || "");
+function setBadge(id,value) {
+ const element = $(id);
+ if (!element) return;
+ const span = document.createElement("span");
+ const label = value === null || value === undefined || value === "" ? "Not Set" : String(value);
+ span.className = "status-badge " + getBadgeClass(label);
+ span.textContent = label;
+ element.replaceChildren(span);
 }
 
-function isAbsoluteHttpUrl(value) {
-    return /^https?:\/\//i.test(String(value || ""));
+function openPage(page) {
+ const pages = {
+  dashboard:"owner-dashboard.html",
+  users:"owner-users.html",
+  agencies:"owner-agencies.html",
+  companies:"owner-companies.html",
+  "pending-approvals":"owner-pending.html",
+  requests:"owner-requests.html",
+  payments:"owner-payments.html",
+  reports:"owner-reports.html",
+  "request-details":"owner-request-details.html",
+  "payment-details":"owner-payment-details.html",
+  "agency-details":"owner-agency-details.html",
+  deliveries:"owner-deliveries.html",
+  repayments:"owner-repayments.html",
+  notifications:"owner-notifications.html",
+  slips:"owner-slips.html",
+  profile:"owner-profile.html",
+  settings:"owner-settings.html"
+ };
+ if (pages[page]) window.location.assign(pages[page]);
 }
 
-async function renderScreenshot() {
-    $("screenshotWrap").style.display = "none";
-    $("screenshotEmpty").style.display = "none";
-    $("screenshotImage").style.display = "none";
-    $("screenshotFile").style.display = "none";
+document.querySelectorAll("[data-page]").forEach(button=>{
+ button.addEventListener("click",()=>openPage(button.dataset.page));
+});
 
-    const notice = $("screenshotNotice");
-    notice.className = "notice notice-info";
-    notice.style.display = "block";
-    notice.textContent = "Checking for an uploaded payment screenshot...";
+$("menuBtn").addEventListener("click",()=>{
+ $("sidebar").classList.toggle("open");
+ $("overlay").classList.toggle("show");
+});
 
-    const path =
-        payment?.screenshot_path ||
-        payment?.payment_screenshot ||
-        payment?.screenshot_url ||
-        payment?.proof_image ||
-        request?.payment_screenshot_1 ||
-        request?.payment_screenshot_2 ||
-        request?.payment_screenshot_3 ||
-        "";
+$("overlay").addEventListener("click",()=>{
+ $("sidebar").classList.remove("open");
+ $("overlay").classList.remove("show");
+});
 
-    if (!path) {
-        notice.style.display = "none";
-        $("screenshotEmpty").style.display = "block";
-        return;
-    }
+$("notificationBtn").addEventListener("click",()=>{
+ const panel = $("notificationPanel");
+ const open = !panel.classList.contains("show");
+ panel.classList.toggle("show",open);
+ $("notificationBtn").setAttribute("aria-expanded",String(open));
+});
 
-    try {
-        let url = "";
+document.addEventListener("click",event=>{
+ if (!event.target.closest(".notification-wrap")) {
+  $("notificationPanel").classList.remove("show");
+  $("notificationBtn").setAttribute("aria-expanded","false");
+ }
+});
 
-        if (isAbsoluteHttpUrl(path)) {
-            url = path;
-        } else {
-            /*
-             * Private Storage bucket:
-             * Owner needs a valid Storage SELECT policy for this object.
-             */
-            const { data, error } = await supabaseClient.storage
-                .from(PAYMENT_BUCKET)
-                .createSignedUrl(path, 300);
+async function loadRelatedData() {
+ profile = null;
+ request = null;
+ agency = null;
+ verifiedRequestPayments = [];
 
-            if (error) throw error;
+ if (payment?.user_id) {
+  const {data,error} = await supabaseClient.from("profiles").select("*")
+   .eq("id",payment.user_id).maybeSingle();
+  if (error) console.warn("Profile lookup:",error.message);
+  else profile = data || null;
+ }
 
-            url = data?.signedUrl || "";
-        }
+ if (payment?.request_id) {
+  const {data,error} = await supabaseClient.from("cylinder_requests").select("*")
+   .eq("id",payment.request_id).maybeSingle();
+  if (error) console.warn("Request lookup:",error.message);
+  else request = data || null;
+ }
 
-        if (!url) {
-            throw new Error("Could not create a screenshot viewing URL.");
-        }
+ if (request?.agency_id) {
+  const {data,error} = await supabaseClient.from("agencies").select("*")
+   .eq("id",request.agency_id).maybeSingle();
+  if (error) console.warn("Agency lookup:",error.message);
+  else agency = data || null;
+ }
 
-        const image = $("screenshotImage");
-        const file = $("screenshotFile");
-        const openLink = $("openScreenshotBtn");
-
-        openLink.href = url;
-        $("screenshotWrap").style.display = "block";
-
-        if (isImageFile(path)) {
-            image.src = url;
-            image.style.display = "block";
-            file.style.display = "none";
-
-            image.onerror = () => {
-                image.style.display = "none";
-                file.style.display = "block";
-                file.textContent =
-                    "The image could not be previewed. Use the button below to open the evidence file.";
-            };
-        } else {
-            image.removeAttribute("src");
-            file.style.display = "block";
-            file.textContent =
-                "Payment evidence is available. Open the file in a new tab to review it.";
-        }
-
-        notice.style.display = "none";
-
-    } catch (error) {
-        console.warn("Screenshot loading:", error);
-
-        notice.style.display = "block";
-        notice.className = "notice notice-info";
-        notice.textContent =
-            "The screenshot path exists, but it could not be opened. Check the payment-screenshots bucket, exact file path, and Storage SELECT policy for authorized Owners.";
-
-        $("screenshotEmpty").style.display = "none";
-    }
+ if (request?.id) {
+  const {data,error} = await supabaseClient.from("payments").select("*")
+   .eq("request_id",request.id);
+  if (error) {
+   console.warn("Request payments lookup:",error.message);
+  } else {
+   verifiedRequestPayments = data || [];
+  }
+ }
 }
 
-async function renderPage() {
-    loadingBox.style.display = "none";
-    errorBox.style.display = "none";
-    content.style.display = "grid";
+async function loadPayment() {
+ const paymentId = getPaymentIdFromUrl();
+ if (!paymentId) {
+  showError("Payment ID is missing. Open this page from Owner Payments.");
+  return;
+ }
 
-    const userName = getUserName();
-    const mobile = getMobile();
-    const email = getEmail();
-    const paymentAmount = getPaymentAmount();
+ showLoading();
 
-    setText("userName", userName);
-    setText("userContact", mobile + " • " + email);
-    setText("paymentId", payment?.id);
-    setBadge("paymentStatus", payment?.payment_status || "pending");
-    setText("paymentAmount", formatMoney(paymentAmount));
-    setText("paymentDate", formatDateTime(payment?.payment_date || payment?.created_at));
-    setText("paymentMethod", payment?.payment_method || "—");
-    setText("transactionId", payment?.transaction_id || "—");
-    setText("paymentReference", payment?.payment_reference || "—");
-    setBadge("verificationStatus", getVerificationStatus());
-    setText(
-        "verifiedAt",
-        payment?.verified_at ? formatDateTime(payment.verified_at) : "Not Verified"
-    );
-    setText("verificationNote", payment?.notes || "—");
+ try {
+  const {data,error} = await supabaseClient.from("payments").select("*")
+   .eq("id",paymentId).maybeSingle();
 
-    setText("userId", payment?.user_id || "—");
-    setText(
-        "egcUserId",
-        profile?.egc_user_id ||
-        profile?.user_code ||
-        profile?.customer_code ||
-        "Not available"
-    );
-    setText("fullName", userName);
-    setText("mobile", mobile);
-    setText("email", email);
+  if (error) throw error;
+  if (!data) {
+   showError("Payment record not found, or your account does not have permission to view it.");
+   return;
+  }
 
-    setText("requestNumber", request?.request_number || "—");
-    setBadge("requestStatus", request?.status || request?.request_status || "—");
-    setBadge("requestOwnerApproval", request?.owner_approval || "—");
-    setBadge("requestPaymentStatus", request?.payment_status || "—");
-    setText("company", getCompanyName());
-    setText("agency", getAgencyName());
-    setText("quantity", getQuantity());
-    setText("state", request?.state || request?.state_name || "—");
-    setText("district", request?.district || request?.district_name || "—");
-    setText("city", request?.city || request?.city_name || "—");
+  payment = data;
+  await loadRelatedData();
+  await renderPage();
+ } catch (error) {
+  console.error("Payment details error:",error);
+  showError(error.message || "Unable to load payment details.");
+ }
+}
 
-    setText("summaryPayment", formatMoney(paymentAmount));
-    setText("cylinderAmount", formatMoney(getCylinderAmount()));
-    setText("advanceAmount", formatMoney(getAdvanceAmount()));
-    setText("extraCharge", formatMoney(getExtraCharge()));
-    setText("requestTotal", formatMoney(getRequestTotal()));
-    setText("remainingAmount", formatMoney(getRemainingAmount()));
+function renderPhoto(photo) {
+ const container = $("photoContainer");
+ container.replaceChildren();
 
-    const verifiedPaid = (
-        String(payment?.payment_status || "").toLowerCase() === "paid" &&
-        getVerificationStatus() === "approved"
-    ) ? paymentAmount : 0;
+ if (!photo) {
+  const fallback = document.createElement("div");
+  fallback.className = "user-photo-fallback";
+  fallback.textContent = "👤";
+  container.appendChild(fallback);
+  return;
+ }
 
-    setText("verifiedPaidAmount", formatMoney(verifiedPaid));
-
-    renderPhoto(getPhoto());
-
-    $("reviewNote").value = payment?.notes || "";
-    updateReviewUI();
-
-    const pending = !isFinalVerification();
-    $("notificationCount").textContent = pending ? "1" : "0";
-    $("paymentNotificationText").textContent = pending
-        ? "This payment is awaiting Owner verification."
-        : "This payment has already been reviewed.";
-
-    await renderScreenshot();
+ const img = document.createElement("img");
+ img.src = photo;
+ img.className = "user-photo";
+ img.alt = "User profile photo";
+ img.addEventListener("error",()=>{
+  const fallback = document.createElement("div");
+  fallback.className = "user-photo-fallback";
+  fallback.textContent = "👤";
+  container.replaceChildren(fallback);
+ },{once:true});
+ container.appendChild(img);
 }
 
 /*
- * Append the Owner's note rather than deleting any existing customer note.
- * "notes" is a known column in this project's payments table.
+ * Count only approved/verified payment records toward the balance.
+ * If the current payment has just been approved, the refreshed row is included.
  */
-function buildUpdatedNotes(oldNotes, ownerNote, decision) {
-    const oldText = String(oldNotes || "").trim();
-    const newText = String(ownerNote || "").trim();
+function getVerifiedPaidAmount() {
+ return verifiedRequestPayments
+  .filter(isApprovedPayment)
+  .reduce((sum,row)=>sum + moneyNumber(row.payment_amount ?? row.amount),0);
+}
 
-    if (!newText) {
-        return oldText || null;
-    }
+function getRemainingAmount() {
+ return Math.max(0,getRequestTotal() - getVerifiedPaidAmount());
+}
 
-    const prefix = decision === "approved"
-        ? "Owner verification note"
-        : "Owner rejection reason";
+function getPaymentType() {
+ const amount = getPaymentAmount();
+ const total = getRequestTotal();
+ const advance = getAdvanceAmount();
 
-    const entry = prefix + " (" + new Date().toLocaleString("en-IN") + "): " + newText;
+ if (total > 0 && amount >= total) return "Full Payment";
+ if (advance > 0 && Math.abs(amount - advance) < 0.01) return "Initial Payment";
+ if (advance > 0 && amount < total) return "Partial / Advance Payment";
+ return amount > 0 && total > 0 && amount < total ? "Partial Payment" : "Payment";
+}
 
-    return oldText ? oldText + "\n\n" + entry : entry;
+function updateReviewUI() {
+ const status = getVerificationStatus();
+ const notice = $("reviewStatusNotice");
+ const approve = $("approvePaymentBtn");
+ const reject = $("rejectPaymentBtn");
+ const note = $("reviewNote");
+
+ notice.className = "notice";
+ if (status === "approved") {
+  notice.classList.add("notice-approved");
+  notice.textContent = "This payment has been approved. The linked request balance is calculated using approved payment records.";
+ } else if (status === "rejected") {
+  notice.classList.add("notice-rejected");
+  notice.textContent = "This payment has been rejected. The saved note may contain the reason.";
+ } else {
+  notice.classList.add("notice-pending");
+  notice.textContent = "Pending verification. Confirm the transaction in the actual receiving account before approving.";
+ }
+
+ const final = isFinalVerification();
+ approve.disabled = busy || final;
+ reject.disabled = busy || final;
+ note.disabled = busy || final;
+
+ approve.textContent = busy ? "Please wait..." : status === "approved" ? "✓ Payment Approved" : "✓ Approve Payment";
+ reject.textContent = busy ? "Please wait..." : status === "rejected" ? "✕ Payment Rejected" : "✕ Reject Payment";
+
+ if (final && !busy) note.value = payment?.notes || note.value || "";
+}
+
+function isImageFile(path) {
+ return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(path || "");
+}
+
+function isAbsoluteHttpUrl(value) {
+ return /^https?:\/\//i.test(String(value || ""));
+}
+
+async function renderScreenshot() {
+ $("screenshotWrap").style.display = "none";
+ $("screenshotEmpty").style.display = "none";
+ $("screenshotImage").style.display = "none";
+ $("screenshotFile").style.display = "none";
+ $("screenshotNotice").style.display = "block";
+ $("screenshotNotice").className = "notice notice-info";
+ $("screenshotNotice").textContent = "Checking for an uploaded payment screenshot...";
+ signedScreenshotUrl = "";
+
+ const path = payment?.screenshot_path ||
+  payment?.payment_screenshot || payment?.screenshot_url || payment?.proof_image ||
+  request?.payment_screenshot_1 || request?.payment_screenshot_2 ||
+  request?.payment_screenshot_3 || "";
+
+ if (!path) {
+  $("screenshotNotice").style.display = "none";
+  $("screenshotEmpty").style.display = "block";
+  return;
+ }
+
+ try {
+  let url = "";
+  if (isAbsoluteHttpUrl(path)) {
+   url = path;
+  } else {
+   const {data,error} = await supabaseClient.storage.from(PAYMENT_BUCKET).createSignedUrl(path,300);
+   if (error) throw error;
+   url = data?.signedUrl || "";
+  }
+  if (!url) throw new Error("Could not create screenshot viewing URL.");
+
+  signedScreenshotUrl = url;
+  $("openScreenshotBtn").href = url;
+  $("screenshotWrap").style.display = "block";
+
+  if (isImageFile(path)) {
+   $("screenshotImage").src = url;
+   $("screenshotImage").style.display = "block";
+   $("screenshotImage").onerror = ()=>{
+    $("screenshotImage").style.display = "none";
+    $("screenshotFile").style.display = "block";
+    $("screenshotFile").textContent = "The image could not be previewed. Use the button below to open the evidence file.";
+   };
+  } else {
+   $("screenshotFile").style.display = "block";
+   $("screenshotFile").textContent = "Payment evidence is available. Open the file in a new tab to review it.";
+  }
+
+  $("screenshotNotice").style.display = "none";
+ } catch (error) {
+  console.warn("Screenshot loading:",error);
+  $("screenshotNotice").textContent = "The screenshot could not be opened. Check the payment-screenshots bucket and its Storage SELECT policy.";
+ }
+}
+
+async function renderPage() {
+ $("loadingBox").style.display = "none";
+ $("errorBox").style.display = "none";
+ $("content").style.display = "grid";
+
+ const userName = getUserName();
+ const mobile = getMobile();
+ const email = getEmail();
+ const amount = getPaymentAmount();
+ const paid = getVerifiedPaidAmount();
+ const remaining = getRemainingAmount();
+
+ setText("userName",userName);
+ setText("userContact",mobile + " • " + email);
+ setText("paymentId",payment?.id);
+ setBadge("paymentStatus",payment?.payment_status || "pending");
+ setText("paymentType",getPaymentType());
+ setText("paymentAmount",formatMoney(amount));
+ setText("paymentDate",formatDateTime(payment?.payment_date || payment?.created_at));
+ setText("paymentMethod",payment?.payment_method || "—");
+ setText("transactionId",payment?.transaction_id || "—");
+ setText("paymentReference",payment?.payment_reference || "—");
+ setBadge("verificationStatus",getVerificationStatus());
+ setText("verifiedAt",payment?.verified_at || payment?.owner_approved_at ? formatDateTime(payment.verified_at || payment.owner_approved_at) : "Not Verified");
+ setText("verificationNote",payment?.notes || payment?.owner_rejection_reason || "—");
+
+ setText("userId",payment?.user_id);
+ setText("egcUserId",request?.egc_user_code || profile?.egc_user_id || profile?.user_code || profile?.customer_code || "Not available");
+ setText("fullName",userName);
+ setText("mobile",mobile);
+ setText("email",email);
+
+ setText("requestNumber",request?.request_number || "—");
+ setBadge("requestStatus",request?.status || request?.user_status || "—");
+ setBadge("requestOwnerApproval",request?.owner_approval || "—");
+ setBadge("requestPaymentStatus",request?.payment_status || "—");
+ setText("company",getCompanyName());
+ setText("agency",getAgencyName());
+ setText("quantity",getQuantity());
+ setText("state",request?.state || request?.state_name || profile?.state || "—");
+ setText("district",request?.district || request?.district_name || profile?.district || "—");
+ setText("city",request?.city || request?.city_name || profile?.city || "—");
+
+ setText("summaryPayment",formatMoney(amount));
+ setText("cylinderAmount",formatMoney(getCylinderAmount()));
+ setText("advanceAmount",formatMoney(getAdvanceAmount()));
+ setText("extraCharge",formatMoney(getExtraCharge()));
+ setText("requestTotal",formatMoney(getRequestTotal()));
+ setText("verifiedPaidAmount",formatMoney(paid));
+ setText("remainingAmount",formatMoney(remaining));
+
+ $("reviewNote").value = payment?.notes || payment?.owner_rejection_reason || "";
+ updateReviewUI();
+
+ const pending = !isFinalVerification();
+ setText("notificationCount",pending ? "1" : "0");
+ setText("paymentNotificationText",pending ? "This payment is awaiting Owner verification." : "This payment has already been reviewed.");
+
+ await renderScreenshot();
+}
+
+function buildUpdatedNotes(oldNotes,ownerNote,decision) {
+ const oldText = String(oldNotes || "").trim();
+ const newText = String(ownerNote || "").trim();
+ if (!newText) return oldText || null;
+ const prefix = decision === "approved" ? "Owner verification note" : "Owner rejection reason";
+ const entry = prefix + " (" + new Date().toLocaleString("en-IN") + "): " + newText;
+ return oldText ? oldText + "\n\n" + entry : entry;
+}
+
+async function syncRequestBalance(decision) {
+ if (!request?.id) return {ok:false,message:"No linked cylinder request was found."};
+
+ /*
+  * Re-fetch payments after saving the decision, so the just-approved record
+  * is included in the verified total.
+  */
+ const {data:rows,error:rowsError} = await supabaseClient.from("payments")
+  .select("*").eq("request_id",request.id);
+
+ if (rowsError) {
+  return {ok:false,message:"Payment decision saved, but payment totals could not be recalculated: " + rowsError.message};
+ }
+
+ const approvedRows = rows || [];
+ const verifiedTotal = approvedRows.filter(isApprovedPayment)
+  .reduce((sum,row)=>sum + moneyNumber(row.payment_amount ?? row.amount),0);
+ const total = getRequestTotal();
+ const remaining = Math.max(0,total - verifiedTotal);
+
+ /*
+  * These columns exist in the supplied cylinder_requests schema.
+  * Request owner_approval is deliberately not changed here.
+  */
+ const update = {
+  remaining_amount:remaining,
+  payment_status:remaining <= 0 ? "paid" : verifiedTotal > 0 ? "partial" : "pending"
+ };
+
+ if (decision === "approved") update.payment_verified_at = new Date().toISOString();
+
+ const {error:updateError} = await supabaseClient.from("cylinder_requests")
+  .update(update).eq("id",request.id);
+
+ if (updateError) {
+  return {ok:false,message:"Payment decision saved, but request balance sync failed: " + updateError.message};
+ }
+
+ request = {...request,...update};
+ verifiedRequestPayments = approvedRows;
+ return {ok:true,message:"Request balance updated."};
 }
 
 async function saveVerification(decision) {
-    if (busy) return;
+ if (busy || !payment?.id) return;
 
-    if (!payment?.id) {
-        showToast("Payment Not Available", "Payment record ID is missing.");
-        return;
-    }
+ if (isFinalVerification()) {
+  showToast("Already Reviewed","This payment already has a final verification status.");
+  return;
+ }
 
-    if (isFinalVerification()) {
-        showToast("Already Reviewed", "This payment already has a final verification status.");
-        return;
-    }
+ const note = $("reviewNote").value.trim();
+ const transactionId = String(payment?.transaction_id || "").trim();
 
-    const note = $("reviewNote").value.trim();
-    const transactionId = String(payment?.transaction_id || "").trim();
+ if (decision === "rejected" && !note) {
+  showToast("Reason Required","Please enter a reason before rejecting this payment.");
+  $("reviewNote").focus();
+  return;
+ }
 
-    if (decision === "rejected" && !note) {
-        showToast("Reason Required", "Please enter a reason before rejecting this payment.");
-        $("reviewNote").focus();
-        return;
-    }
+ if (decision === "approved" && !transactionId) {
+  showToast("Transaction ID Missing","Do not approve until the transaction has been independently verified.");
+  return;
+ }
 
-    if (decision === "approved" && !transactionId) {
-        showToast(
-            "Transaction ID Missing",
-            "No transaction ID is recorded. Do not approve until you have independently verified the payment."
-        );
-        return;
-    }
+ const confirmed = decision === "approved"
+  ? confirm("Have you independently confirmed receipt of this transaction in the EGC receiving account?")
+  : confirm("Are you sure you want to reject this payment?");
 
-    if (decision === "approved") {
-        const confirmed = confirm(
-            "Have you independently confirmed that this transaction was received in the EGC receiving account? Approve this payment now?"
-        );
+ if (!confirmed) return;
 
-        if (!confirmed) return;
-    } else {
-        const confirmed = confirm(
-            "Are you sure you want to reject this payment? The rejection reason will be saved."
-        );
+ busy = true;
+ updateReviewUI();
 
-        if (!confirmed) return;
-    }
+ try {
+  const {data:latest,error:readError} = await supabaseClient.from("payments")
+   .select("*").eq("id",payment.id).maybeSingle();
 
-    busy = true;
-    updateReviewUI();
+  if (readError) throw readError;
+  if (!latest) throw new Error("Payment record is no longer accessible.");
 
-    try {
-        /*
-         * Re-read the record before changing it.
-         * Only pending payments may be reviewed by this action.
-         */
-        const { data: latest, error: readError } = await supabaseClient
-            .from("payments")
-            .select("*")
-            .eq("id", payment.id)
-            .maybeSingle();
+  const latestVerification = getVerificationStatus(latest);
+  if (["approved","rejected"].includes(latestVerification)) {
+   payment = latest;
+   await loadRelatedData();
+   await renderPage();
+   showToast("Already Reviewed","The latest payment record has been loaded.");
+   return;
+  }
 
-        if (readError) throw readError;
+  const newStatus = decision === "approved" ? "paid" : "failed";
+  const updateData = {
+   payment_status:newStatus,
+   verification_status:decision
+  };
 
-        if (!latest) {
-            throw new Error("Payment record no longer exists or is not accessible.");
-        }
+  const newNotes = buildUpdatedNotes(latest.notes,note,decision);
+  if (newNotes !== (String(latest.notes || "").trim() || null)) updateData.notes = newNotes;
 
-        const latestVerification = String(
-            latest.verification_status ||
-            (latest.verified_at ? "approved" : "pending")
-        ).toLowerCase();
+  if (decision === "approved") {
+   updateData.verified_at = new Date().toISOString();
+   if (currentSession?.user?.id) updateData.verified_by = currentSession.user.id;
+   updateData.owner_approved_at = new Date().toISOString();
+   if (currentSession?.user?.id) updateData.owner_approved_by = currentSession.user.id;
+   updateData.owner_rejection_reason = null;
+  } else {
+   updateData.owner_rejection_reason = note;
+  }
 
-        const latestPaymentStatus = String(latest.payment_status || "").toLowerCase();
+  const {data:updated,error:updateError} = await supabaseClient.from("payments")
+   .update(updateData)
+   .eq("id",payment.id)
+   .eq("verification_status","pending")
+   .select("*")
+   .maybeSingle();
 
-        if (
-            ["approved", "rejected"].includes(latestVerification) ||
-            latestPaymentStatus !== "pending"
-        ) {
-            payment = latest;
-            await loadRelatedData();
-            await renderPage();
+  if (updateError) throw updateError;
 
-            showToast(
-                "Payment Already Changed",
-                "This payment is no longer pending. The latest record has been loaded."
-            );
+  if (!updated) {
+   throw new Error("No payment was updated. It may have been reviewed already, or the Owner RLS policy may not allow this update.");
+  }
 
-            return;
-        }
+  payment = updated;
 
-        const newPaymentStatus = decision === "approved" ? "paid" : "failed";
+  const syncResult = await syncRequestBalance(decision);
 
-        /*
-         * Important schema compatibility:
-         * payment_status values are paid, pending, failed, refunded.
-         * verification_status values are pending, approved, rejected.
-         *
-         * verified_at is intentionally not written because its existence
-         * has not been confirmed in the current database schema.
-         */
-        const updateData = {
-            payment_status: newPaymentStatus,
-            verification_status: decision
-        };
+  await loadRelatedData();
+  await renderPage();
 
-        const oldNotes = String(latest.notes || "").trim();
-        const newNotes = buildUpdatedNotes(oldNotes, note, decision);
-
-        if (newNotes !== (oldNotes || null)) {
-            updateData.notes = newNotes;
-        }
-
-        const { data: updated, error: updateError } = await supabaseClient
-            .from("payments")
-            .update(updateData)
-            .eq("id", payment.id)
-            .eq("payment_status", "pending")
-            .select("*")
-            .maybeSingle();
-
-        if (updateError) {
-            throw updateError;
-        }
-
-        if (!updated) {
-            throw new Error(
-                "No payment record was updated. It may have changed already, or Owner update permissions/RLS may be blocking this action."
-            );
-        }
-
-        payment = updated;
-
-        /*
-         * Keep the linked request's payment_status in sync, when allowed.
-         * This does NOT change cylinder_requests.status or owner_approval.
-         * If this second update fails, the payment decision is still saved.
-         */
-        let requestSyncFailed = false;
-
-        if (request?.id) {
-            const { error: requestError } = await supabaseClient
-                .from("cylinder_requests")
-                .update({ payment_status: newPaymentStatus })
-                .eq("id", request.id);
-
-            if (requestError) {
-                requestSyncFailed = true;
-                console.warn(
-                    "Linked request payment-status update failed:",
-                    requestError
-                );
-            }
-        }
-
-        await loadRelatedData();
-        await renderPage();
-
-        if (decision === "approved") {
-            showToast(
-                "Payment Approved",
-                requestSyncFailed
-                    ? "Payment verified successfully, but the linked request payment status could not be synced. Check its RLS/schema."
-                    : "Payment verification is approved. Cylinder request approval remains separate."
-            );
-        } else {
-            showToast(
-                "Payment Rejected",
-                requestSyncFailed
-                    ? "Payment marked failed, but the linked request payment status could not be synced."
-                    : "Payment marked failed and the rejection reason was saved."
-            );
-        }
-
-    } catch (error) {
-        console.error("Payment verification error:", error);
-
-        showToast(
-            "Verification Failed",
-            error.message ||
-            "Could not update the payment. Check the database schema and Owner RLS policies."
-        );
-
-    } finally {
-        busy = false;
-        updateReviewUI();
-    }
+  if (syncResult.ok) {
+   showToast(decision === "approved" ? "Payment Approved" : "Payment Rejected",
+    decision === "approved"
+     ? "Verification saved and linked request balance recalculated."
+     : "Rejection saved. The linked request balance was recalculated from approved payments.");
+  } else {
+   showToast("Payment Decision Saved",syncResult.message);
+  }
+ } catch (error) {
+  console.error("Payment verification error:",error);
+  showToast("Verification Failed",error.message || "Could not update payment.");
+ } finally {
+  busy = false;
+  updateReviewUI();
+ }
 }
 
-$("approvePaymentBtn").addEventListener("click", () => {
-    saveVerification("approved");
-});
+$("approvePaymentBtn").addEventListener("click",()=>saveVerification("approved"));
+$("rejectPaymentBtn").addEventListener("click",()=>saveVerification("rejected"));
 
-$("rejectPaymentBtn").addEventListener("click", () => {
-    saveVerification("rejected");
-});
-
-$("refreshBtn").addEventListener("click", async () => {
-    if (busy) return;
-
-    await loadPayment();
-    showToast("Refreshed", "Payment details have been reloaded.");
+$("refreshBtn").addEventListener("click",async()=>{
+ if (busy) return;
+ await loadPayment();
+ showToast("Refreshed","Payment details have been reloaded.");
 });
 
 function getRequestId() {
-    return payment?.request_id || request?.id || "";
+ return payment?.request_id || request?.id || "";
 }
 
-$("backBtn").addEventListener("click", () => {
-    window.location.href = "owner-payments.html";
+$("backBtn").addEventListener("click",()=>window.location.assign("owner-payments.html"));
+$("paymentsBtn").addEventListener("click",()=>window.location.assign("owner-payments.html"));
+
+$("requestBtn").addEventListener("click",()=>{
+ const id = getRequestId();
+ if (!id) return showToast("Request Not Available","Linked request ID is not available.");
+ window.location.assign("owner-request-details.html?request_id=" + encodeURIComponent(id));
 });
 
-$("paymentsBtn").addEventListener("click", () => {
-    window.location.href = "owner-payments.html";
+$("slipBtn").addEventListener("click",()=>{
+ if (!payment?.id) return showToast("Payment Not Available","Payment ID is not available.");
+ window.location.assign("owner-slip.html?payment_id=" + encodeURIComponent(payment.id));
 });
 
-$("requestBtn").addEventListener("click", () => {
-    const requestId = getRequestId();
-
-    if (!requestId) {
-        showToast("Request Not Available", "Linked cylinder request ID is not available.");
-        return;
-    }
-
-    window.location.href =
-        "owner-request-details.html?request_id=" + encodeURIComponent(requestId);
+$("logoutBtn").addEventListener("click",()=>{
+ $("logoutModal").classList.add("show");
+ $("logoutModal").setAttribute("aria-hidden","false");
 });
 
-$("slipBtn").addEventListener("click", () => {
-    if (!payment?.id) {
-        showToast("Payment Not Available", "Payment ID is not available.");
-        return;
-    }
-
-    window.location.href =
-        "owner-slip.html?payment_id=" + encodeURIComponent(payment.id);
+function closeLogoutModal() {
+ $("logoutModal").classList.remove("show");
+ $("logoutModal").setAttribute("aria-hidden","true");
+}
+$("logoutCancel").addEventListener("click",closeLogoutModal);
+$("logoutModal").addEventListener("click",event=>{
+ if (event.target === $("logoutModal")) closeLogoutModal();
 });
 
-$("logoutBtn").addEventListener("click", () => {
-    $("logoutModal").classList.add("show");
-    $("logoutModal").setAttribute("aria-hidden", "false");
+$("logoutConfirm").addEventListener("click",async()=>{
+ $("logoutConfirm").disabled = true;
+ try {
+  const {error} = await supabaseClient.auth.signOut();
+  if (error) throw error;
+  window.location.replace("owner-login.html");
+ } catch (error) {
+  console.error("Logout error:",error);
+  showToast("Logout Failed",error.message || "Please try again.");
+  $("logoutConfirm").disabled = false;
+ }
 });
 
-$("logoutCancel").addEventListener("click", () => {
-    $("logoutModal").classList.remove("show");
-    $("logoutModal").setAttribute("aria-hidden", "true");
-});
-
-$("logoutModal").addEventListener("click", event => {
-    if (event.target === $("logoutModal")) {
-        $("logoutModal").classList.remove("show");
-        $("logoutModal").setAttribute("aria-hidden", "true");
-    }
-});
-
-$("logoutConfirm").addEventListener("click", async () => {
-    $("logoutConfirm").disabled = true;
-
-    try {
-        const { error } = await supabaseClient.auth.signOut();
-        if (error) throw error;
-
-        window.location.replace("owner-login.html");
-
-    } catch (error) {
-        console.error("Logout error:", error);
-        showToast("Logout Failed", error.message || "Please try again.");
-        $("logoutConfirm").disabled = false;
-    }
-});
-
-document.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-        sidebar.classList.remove("open");
-        overlay.classList.remove("show");
-
-        $("notificationPanel").classList.remove("show");
-        $("notificationBtn").setAttribute("aria-expanded", "false");
-
-        $("logoutModal").classList.remove("show");
-        $("logoutModal").setAttribute("aria-hidden", "true");
-    }
+document.addEventListener("keydown",event=>{
+ if (event.key !== "Escape") return;
+ $("sidebar").classList.remove("open");
+ $("overlay").classList.remove("show");
+ $("notificationPanel").classList.remove("show");
+ $("notificationBtn").setAttribute("aria-expanded","false");
+ closeLogoutModal();
 });
 
 async function init() {
-    if (!window.supabase) {
-        showError("Supabase library failed to load. Check your internet connection.");
-        return;
-    }
+ if (initialized) return;
+ initialized = true;
 
-    try {
-        const { data, error } = await supabaseClient.auth.getSession();
+ if (!window.supabase) {
+  showError("Supabase library failed to load. Check your internet connection.");
+  return;
+ }
 
-        if (error) throw error;
+ try {
+  supabaseClient = window.supabase.createClient(
+   SUPABASE_URL,
+   SUPABASE_ANON_KEY,
+   {
+    auth:{
+     persistSession:true,
+     autoRefreshToken:true,
+     detectSessionInUrl:true,
+     storageKey:OWNER_STORAGE_KEY
+    },
+    realtime:{params:{eventsPerSecond:10}}
+   }
+  );
 
-        currentSession = data?.session || null;
+  const {data,error} = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  currentSession = data?.session || null;
 
-        if (!currentSession) {
-            window.location.replace("owner-login.html");
-            return;
-        }
+  if (!currentSession) {
+   showError("Owner session was not found. Return to Owner Login, sign in again, and reopen this page.");
+   return;
+  }
 
-        /*
-         * This confirms that a session exists; it does not establish Owner role.
-         * Actual Owner authorization must be enforced through Supabase RLS
-         * or trusted server-side role checks.
-         */
-
-        await loadPayment();
-
-    } catch (error) {
-        console.error("Initialization error:", error);
-        showError(error.message || "Unable to initialize Payment Details page.");
-    }
+  await loadPayment();
+ } catch (error) {
+  console.error("Payment Details initialization error:",error);
+  showError(error.message || "Unable to initialize Payment Details.");
+ }
 }
 
 init();
 </script>
-
 </body>
 </html>

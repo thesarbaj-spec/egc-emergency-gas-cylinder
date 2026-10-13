@@ -15,8 +15,8 @@ body.menu-open{overflow:hidden}
 button,a{font-family:Arial,sans-serif}
 button{cursor:pointer}
 a{text-decoration:none}
+[hidden]{display:none!important}
 
-/* TOPBAR */
 .topbar{height:72px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 35px;box-shadow:0 3px 15px rgba(0,62,129,.08);position:sticky;top:0;z-index:1000}
 .brand{display:flex;align-items:center;gap:14px;min-width:0}
 .brand img{width:155px;height:58px;object-fit:contain;display:block}
@@ -26,17 +26,15 @@ a{text-decoration:none}
 .profile-name{font-weight:800;color:#003e81;font-size:14px}
 .profile-email{color:#8295a6;font-size:11px;margin-top:3px}
 
-/* LAYOUT */
 .layout{display:flex;min-height:calc(100vh - 72px)}
 .sidebar{width:235px;background:#fff;border-right:1px solid #e1edf5;padding:25px 14px;position:fixed;left:0;top:72px;bottom:0;z-index:900;overflow-y:auto}
 .nav-title{font-size:11px;color:#94a5b5;font-weight:800;padding:8px 13px;text-transform:uppercase;margin-bottom:5px}
 .nav-btn{width:100%;display:block;border:0;background:transparent;color:#58738d;padding:13px 14px;border-radius:11px;text-align:left;font-size:14px;font-weight:700;margin-bottom:5px;transition:.15s}
 .nav-btn:hover,.nav-btn.active{background:#eaf5fc;color:#0754a9}
-.nav-btn.logout{position:absolute;left:14px;right:14px;bottom:20px;width:calc(100% - 28px);color:#d33b3b}
+.nav-btn.logout{position:absolute;left:14px;bottom:20px;width:calc(100% - 28px);color:#d33b3b}
 .nav-btn.logout:hover{background:#fff0f0;color:#c62828}
 .mobile-sidebar,.sidebar-overlay{display:none}
 
-/* MAIN */
 .main{margin-left:235px;width:calc(100% - 235px);padding:30px}
 .welcome{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:12px}
 .welcome h1{font-size:28px;color:#003e81;margin-bottom:7px;overflow-wrap:anywhere}
@@ -45,15 +43,15 @@ a{text-decoration:none}
 .notify-count{display:none;position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#e53935;color:#fff;font-size:10px;font-weight:900;align-items:center;justify-content:center;border:2px solid #fff}
 .notify-count.show{display:flex}
 
-/* STAT CARDS */
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:17px;margin-bottom:22px}
-.stat-card{background:#fff;border:1px solid #e2edf4;border-radius:18px;padding:21px;box-shadow:0 7px 22px rgba(0,62,129,.06)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px;margin-bottom:22px}
+.stat-card{background:#fff;border:1px solid #e2edf4;border-radius:18px;padding:21px;box-shadow:0 7px 22px rgba(0,62,129,.06);min-width:0}
 .stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:15px}
 .stat-icon{width:42px;height:42px;flex-shrink:0;border-radius:12px;background:#eaf5fc;display:flex;align-items:center;justify-content:center;font-size:21px}
 .stat-label{color:#7b8fa1;font-size:13px;font-weight:700}
-.stat-number{font-size:27px;font-weight:900;color:#003e81;overflow-wrap:anywhere}
+.stat-number{font-size:25px;font-weight:900;color:#003e81;overflow-wrap:anywhere}
+.stat-subtitle{font-size:11px;color:#8b9cab;margin-top:7px;line-height:1.4}
+.stat-number.small-status{font-size:17px;text-transform:capitalize}
 
-/* DASHBOARD */
 .dashboard-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start}
 .box{background:#fff;border:1px solid #e2edf4;border-radius:20px;padding:23px;box-shadow:0 7px 22px rgba(0,62,129,.06);margin-bottom:20px;min-width:0}
 .box-title{font-size:18px;font-weight:900;color:#003e81;margin-bottom:18px}
@@ -73,16 +71,17 @@ a{text-decoration:none}
 .request-btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
 .payment-action-btn{width:100%;min-height:50px;border:0;border-radius:13px;background:#0872d5;color:#fff;font-size:14px;font-weight:900;margin-top:12px;box-shadow:0 7px 18px rgba(8,114,213,.18)}
 .payment-action-btn:hover,.pay-now-summary-btn:hover{background:#075eaf}
-.payment-action-btn:disabled{opacity:.55;cursor:not-allowed}
 .payment-note{margin-top:9px;color:#8295a6;font-size:11px;line-height:1.5;text-align:center}
 
-/* PAYMENT */
-.payment-summary{display:grid;gap:13px}
-.money-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #edf3f7}
+.payment-summary{display:grid;gap:0}
+.money-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid #edf3f7}
 .money-row:last-child{border-bottom:0}
-.money-label{color:#71869a;font-size:13px}
+.money-label{color:#71869a;font-size:13px;line-height:1.5}
 .money-value{font-weight:900;color:#003e81;text-align:right;overflow-wrap:anywhere}
+.money-row.total-payable{background:#f0f8ff;border-radius:10px;padding:14px 10px;margin:8px 0}
+.money-row.total-payable .money-label,.money-row.total-payable .money-value{color:#0754a9;font-weight:900}
 .remaining{color:#d88400}
+.extra-charge{color:#bd6b00}
 .pay-progress{margin-top:7px;height:10px;background:#e5eef4;border-radius:20px;overflow:hidden}
 .pay-progress-bar{height:100%;width:0%;background:#0a8a55;border-radius:20px;transition:.3s}
 .payment-due{margin-top:18px;background:#fff8e5;border:1px solid #f5df9b;border-radius:14px;padding:15px}
@@ -90,7 +89,6 @@ a{text-decoration:none}
 .payment-due p{color:#78694a;font-size:12px;margin-top:5px;line-height:1.5}
 .pay-now-summary-btn{width:100%;min-height:45px;margin-top:12px;border:0;border-radius:11px;background:#0872d5;color:#fff;font-size:13px;font-weight:900}
 
-/* PAYMENT STATUS */
 .payment-review-card{margin-top:15px;padding:15px;border:1px solid #e1edf5;border-radius:14px;background:#fff}
 .payment-review-title{font-size:13px;font-weight:900;color:#174e7e;margin-bottom:10px}
 .payment-review-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #edf3f7}
@@ -100,8 +98,8 @@ a{text-decoration:none}
 .payment-status{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:12px;font-size:10px;font-weight:900;text-transform:uppercase;white-space:normal}
 .payment-status.paid,.payment-status.success,.payment-status.completed,.payment-status.verified,.payment-status.approved{background:#e5f8ef;color:#087848}
 .payment-status.pending{background:#fff3d0;color:#a36b00}
-.payment-status.failed,.payment-status.cancelled,.payment-status.rejected{background:#fff0f0;color:#c62828}
-.payment-status.submitted{background:#e8f1ff;color:#0754a9}
+.payment-status.failed,.payment-status.cancelled,.payment-status.rejected,.payment-status.refunded{background:#fff0f0;color:#c62828}
+.payment-status.submitted,.payment-status.processing{background:#e8f1ff;color:#0754a9}
 .payment-status.unknown{background:#edf2f6;color:#607789}
 .status-message{font-size:12px;line-height:1.55;margin-top:10px;padding:11px 12px;border-radius:10px}
 .status-message.pending{background:#fff8e5;color:#8a6100}
@@ -109,14 +107,12 @@ a{text-decoration:none}
 .status-message.rejected{background:#fff0f0;color:#b32626}
 .status-message.unknown{background:#f0f5f8;color:#58738d}
 
-/* HISTORY */
 .history-wrap{width:100%;overflow-x:auto}
 .history{width:100%;border-collapse:collapse}
 .history th{text-align:left;color:#899aaa;font-size:11px;padding:10px;border-bottom:1px solid #e8f0f5}
 .history td{padding:12px 10px;border-bottom:1px solid #eef3f6;font-size:12px;color:#315b7e;font-weight:700;vertical-align:middle}
 .empty{text-align:center;padding:25px 10px;color:#8a9aaa;font-size:13px;line-height:1.5}
 
-/* NOTIFICATIONS */
 .notification{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid #edf3f7}
 .notification:last-child{border-bottom:0}
 .notification.unread{background:#f7fbff;margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:10px}
@@ -126,12 +122,10 @@ a{text-decoration:none}
 .notification-date{font-size:10px;color:#91a0ad;margin-top:4px}
 .notification-seen{border:0;background:#eaf5fc;color:#0754a9;border-radius:8px;padding:7px 9px;margin-top:7px;font-size:10px;font-weight:800}
 
-/* ERROR / TOAST */
 .error-box{display:none;background:#fff0f0;border:1px solid #ffd0d0;color:#c62828;padding:13px;border-radius:12px;margin-bottom:18px;font-size:13px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
 .toast{position:fixed;right:25px;bottom:25px;z-index:10001;background:#003e81;color:#fff;padding:13px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:13px;font-weight:700;opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s;max-width:calc(100vw - 30px)}
 .toast.show{opacity:1;transform:translateY(0)}
 
-/* LOGOUT */
 .logout-overlay{display:none;position:fixed;inset:0;background:rgba(0,20,40,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:9999;align-items:center;justify-content:center;padding:20px}
 .logout-overlay.show{display:flex}
 .logout-popup{width:100%;max-width:390px;background:#fff;border-radius:22px;padding:28px 25px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center;animation:logoutPopupIn .18s ease-out}
@@ -145,15 +139,12 @@ a{text-decoration:none}
 .logout-cancel-btn:hover{background:#f5f8fa}
 .logout-confirm-btn{background:#e53935;color:#fff;border:1px solid #e53935}
 .logout-confirm-btn:hover{background:#c62828;border-color:#c62828}
-
-/* MOBILE BOTTOM NAV */
 .mobile-bottom-nav{display:none}
 
 @media(max-width:1100px){
 .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
 .dashboard-grid{grid-template-columns:1fr}
 }
-
 @media(max-width:800px){
 .topbar{height:65px;padding:0 15px}
 .layout{min-height:calc(100vh - 65px)}
@@ -182,7 +173,7 @@ a{text-decoration:none}
 .notify-btn{width:43px;height:43px}
 .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .stat-card{padding:16px}
-.stat-number{font-size:23px}
+.stat-number{font-size:22px}
 .stat-icon{width:36px;height:36px;font-size:18px}
 .box{padding:18px;border-radius:17px}
 .request-details{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -202,9 +193,9 @@ a{text-decoration:none}
 .brand img{width:132px;height:55px}
 .profile-name{display:none}
 .profile-photo{width:37px;height:37px}
-.cards{grid-template-columns:1fr 1fr}
 .stat-label{font-size:11px}
-.stat-number{font-size:21px}
+.stat-number{font-size:19px}
+.stat-number.small-status{font-size:15px}
 .history{min-width:500px}
 .logout-buttons{grid-template-columns:1fr 1fr}
 .mobile-bottom-nav{height:68px}
@@ -221,7 +212,6 @@ a{text-decoration:none}
     <img src="assets/EGC - Emergency Gas Cylinder logo.png" alt="EGC">
     <div class="brand-text">Emergency Gas Cylinder</div>
   </div>
-
   <div class="profile-mini">
     <div>
       <div class="profile-name" id="topName">Loading...</div>
@@ -238,6 +228,7 @@ a{text-decoration:none}
     <a class="nav-btn" href="#" onclick="event.preventDefault();requestCylinder()">🛢️ &nbsp; Request Cylinder</a>
     <a class="nav-btn" href="my-requests.html">📋 &nbsp; My Requests</a>
     <a class="nav-btn" href="payments.html">💰 &nbsp; Payments</a>
+    <a class="nav-btn" href="submit-payment.html">📋 &nbsp; Submit Payment</a>
     <a class="nav-btn" href="notifications.html">🔔 &nbsp; Notifications</a>
     <a class="nav-btn" href="profile.html">👤 &nbsp; Profile</a>
     <a class="nav-btn" href="setting.html">⚙️ &nbsp; Settings</a>
@@ -254,6 +245,7 @@ a{text-decoration:none}
     <a class="nav-btn" href="#" onclick="event.preventDefault();closeMobileMenu();requestCylinder()">🛢️ &nbsp; Request Cylinder</a>
     <a class="nav-btn" href="my-requests.html" onclick="closeMobileMenu()">📋 &nbsp; My Requests</a>
     <a class="nav-btn" href="payments.html" onclick="closeMobileMenu()">💰 &nbsp; Payments</a>
+    <a class="nav-btn" href="submit-payment.html" onclick="closeMobileMenu()">📋 &nbsp; Submit Payment</a>
     <a class="nav-btn" href="notifications.html" onclick="closeMobileMenu()">🔔 &nbsp; Notifications</a>
     <a class="nav-btn" href="profile.html" onclick="closeMobileMenu()">👤 &nbsp; Profile</a>
     <a class="nav-btn" href="setting.html" onclick="closeMobileMenu()">⚙️ &nbsp; Settings</a>
@@ -281,18 +273,43 @@ a{text-decoration:none}
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Total Cylinders</div><div class="stat-icon">🛢️</div></div>
         <div class="stat-number" id="totalCylinders">0</div>
+        <div class="stat-subtitle">Approved or delivered quantity</div>
       </div>
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Pending</div><div class="stat-icon">⏳</div></div>
         <div class="stat-number" id="pendingRequests">0</div>
+        <div class="stat-subtitle">Requests awaiting approval</div>
       </div>
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Approved</div><div class="stat-icon">✅</div></div>
         <div class="stat-number" id="approvedRequests">0</div>
+        <div class="stat-subtitle">Approved requests</div>
       </div>
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Cancelled</div><div class="stat-icon">❌</div></div>
         <div class="stat-number" id="cancelledRequests">0</div>
+        <div class="stat-subtitle">Cancelled or rejected requests</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Total Paid</div><div class="stat-icon">💵</div></div>
+        <div class="stat-number" id="totalPaidStat">₹0.00</div>
+        <div class="stat-subtitle">Verified payments only</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Remaining Amount</div><div class="stat-icon">🧾</div></div>
+        <div class="stat-number" id="remainingStat">₹0.00</div>
+        <div class="stat-subtitle">After Owner approval and verified payment</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Payment Status</div><div class="stat-icon">💳</div></div>
+        <div class="stat-number small-status" id="paymentStatusStat">No Payment</div>
+        <div class="stat-subtitle" id="paymentStatusSubtitle">No payment submitted yet</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top"><div class="stat-label">Repayment Status</div><div class="stat-icon">📅</div></div>
+        <div class="stat-number small-status" id="repaymentStatusStat">Not Started</div>
+        <div class="stat-subtitle" id="repaymentStatusSubtitle">Repayment progress</div>
       </div>
     </section>
 
@@ -330,11 +347,32 @@ a{text-decoration:none}
         <div class="box">
           <div class="box-title">💰 Payment Summary</div>
           <div class="payment-summary">
-            <div class="money-row"><span class="money-label">Total Amount</span><span class="money-value" id="totalAmount">₹0.00</span></div>
-            <div class="money-row"><span class="money-label">Amount Paid (Verified)</span><span class="money-value" id="paidAmount">₹0.00</span></div>
-            <div class="money-row"><span class="money-label">Amount Remaining</span><span class="money-value remaining" id="remainingAmount">₹0.00</span></div>
-            <div><div class="pay-progress"><div class="pay-progress-bar" id="payProgressBar"></div></div></div>
+            <div class="money-row">
+              <span class="money-label">Total Amount</span>
+              <span class="money-value" id="totalAmount">₹0.00</span>
+            </div>
+            <div class="money-row">
+              <span class="money-label">Extra Charge</span>
+              <span class="money-value extra-charge" id="extraChargeAmount">₹0.00</span>
+            </div>
+            <div class="money-row total-payable">
+              <span class="money-label">Total Payable (Including Extra Charge)</span>
+              <span class="money-value" id="totalPayableAmount">₹0.00</span>
+            </div>
+            <div class="money-row">
+              <span class="money-label">Amount Paid (Verified)</span>
+              <span class="money-value" id="paidAmount">₹0.00</span>
+            </div>
+            <div class="money-row">
+              <span class="money-label">Amount Remaining</span>
+              <span class="money-value remaining" id="remainingAmount">₹0.00</span>
+            </div>
+            <div>
+              <div class="pay-progress"><div class="pay-progress-bar" id="payProgressBar"></div></div>
+              <div class="payment-note" id="paymentProgressText">0% paid</div>
+            </div>
           </div>
+
           <div class="payment-due" id="paymentDueBox">
             <strong>💡 Payment information</strong>
             <p>Your payment details will appear here after a cylinder request is approved.</p>
@@ -376,20 +414,12 @@ a{text-decoration:none}
 <script>
 "use strict";
 
-/* =========================================================
-   SUPABASE
-   ========================================================= */
-
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 const supabaseClient = window.supabase
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
-
-/* =========================================================
-   GLOBAL DATA
-   ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
@@ -398,10 +428,6 @@ let currentPayments = [];
 let currentNotifications = [];
 let realtimeChannel = null;
 let toastTimer = null;
-
-/* =========================================================
-   HELPERS
-   ========================================================= */
 
 function $(id) {
   return document.getElementById(id);
@@ -422,6 +448,10 @@ function formatMoney(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+function money(value) {
+  return "₹" + formatMoney(value);
 }
 
 function formatDate(value) {
@@ -471,89 +501,80 @@ function normalizeStatus(value) {
   return String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
-/* =========================================================
-   PAYMENT STATUS — SINGLE SOURCE OF TRUTH FOR UI
-   =========================================================
-   Owner verification_status values:
-   pending / approved / verified / rejected
-
-   payment_status values expected in the database:
-   pending / paid / failed / refunded
-
-   Never count pending or rejected submissions as verified money.
-   ========================================================= */
-
-function getPaymentState(payment) {
-  if (!payment) {
-    return {
-      key: "unknown",
-      label: "Unknown",
-      message: "Payment status is not available yet.",
-      verified: false
-    };
+function firstMoneyValue(object, keys) {
+  for (const key of keys) {
+    if (
+      object &&
+      object[key] !== undefined &&
+      object[key] !== null &&
+      object[key] !== ""
+    ) {
+      const value = Number(object[key]);
+      if (Number.isFinite(value) && value >= 0) return value;
+    }
   }
-
-  const verification = normalizeStatus(payment.verification_status);
-  const status = normalizeStatus(payment.payment_status);
-
-  if (verification === "rejected" || status === "failed" || status === "cancelled") {
-    return {
-      key: "rejected",
-      label: "Rejected",
-      message: "Your payment was rejected. Please open Payments to review the details and submit a new payment if required.",
-      verified: false
-    };
-  }
-
-  if (
-    ["approved", "verified", "success", "completed"].includes(verification) ||
-    status === "paid"
-  ) {
-    return {
-      key: "approved",
-      label: "Approved",
-      message: "Your payment has been verified. The verified amount is included in Amount Paid.",
-      verified: true
-    };
-  }
-
-  if (status === "refunded") {
-    return {
-      key: "rejected",
-      label: "Refunded",
-      message: "This payment is marked as refunded and is not counted as an active paid amount.",
-      verified: false
-    };
-  }
-
-  if (
-    verification === "pending" ||
-    status === "pending" ||
-    verification === "" ||
-    status === ""
-  ) {
-    return {
-      key: "pending",
-      label: "Pending",
-      message: "Your payment submission has been received and is waiting for Owner verification.",
-      verified: false
-    };
-  }
-
-  return {
-    key: "unknown",
-    label: payment.verification_status || payment.payment_status || "Unknown",
-    message: "Please refresh or contact support if this payment status does not look correct.",
-    verified: false
-  };
+  return null;
 }
 
-function isPaymentVerified(payment) {
-  return getPaymentState(payment).verified;
+function getRequestTotal(request) {
+  return firstMoneyValue(request, [
+    "total_amount",
+    "total_payable",
+    "total_price",
+    "request_amount",
+    "cylinder_amount",
+    "amount"
+  ]) ?? 0;
 }
 
-function getPaymentDisplayStatus(payment) {
-  return getPaymentState(payment).key;
+function isRequestCancelled(request) {
+  if (!request) return true;
+  return ["cancelled", "canceled", "rejected"].includes(normalizeStatus(request.status));
+}
+
+function isRequestApproved(request) {
+  if (!request || isRequestCancelled(request)) return false;
+
+  const approval = normalizeStatus(request.owner_approval);
+  const status = normalizeStatus(request.status);
+
+  // Owner approval is the primary approval source when the column exists.
+  if (request.owner_approval !== undefined && request.owner_approval !== null && request.owner_approval !== "") {
+    return ["approved", "accepted"].includes(approval);
+  }
+
+  // Legacy fallback only when owner_approval is not present in returned row.
+  return ["approved", "processing", "completed"].includes(status);
+}
+
+function isRequestFullyPaid(request) {
+  if (!request || !isRequestApproved(request)) return false;
+
+  const paymentStatus = normalizeStatus(request.payment_status);
+  const repaymentStatus = normalizeStatus(request.repayment_status);
+  const remaining = Number(request.remaining_amount);
+
+  return (
+    request.remaining_amount !== null &&
+    request.remaining_amount !== undefined &&
+    request.remaining_amount !== "" &&
+    Number.isFinite(remaining) &&
+    remaining <= 0
+  ) ||
+    ["fully_paid", "paid_in_full", "settled", "fully_paid_verified"].includes(paymentStatus) ||
+    ["fully_paid", "fully_repaid", "paid_in_full", "settled", "completed"].includes(repaymentStatus);
+}
+
+function getLatestRequest() {
+  if (!currentRequests.length) return null;
+
+  const sorted = [...currentRequests].sort((a, b) => {
+    const dateA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
+    const dateB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
+    return dateB - dateA;
+  });
+
+  return sorted.find(request => !isRequestCancelled(request)) || sorted[0] || null;
 }
 
 function getLatestPayment() {
@@ -567,8 +588,372 @@ function getLatestPayment() {
 }
 
 /* =========================================================
-   MOBILE MENU
-   ========================================================= */
+   PAYMENT VERIFICATION
+   Only verified payments count as paid.
+========================================================= */
+
+function getPaymentState(payment) {
+  if (!payment) {
+    return {
+      key: "unknown",
+      label: "No Payment",
+      message: "No payment submission is available yet.",
+      verified: false
+    };
+  }
+
+  const verification = normalizeStatus(payment.verification_status);
+  const status = normalizeStatus(payment.payment_status);
+
+  if (verification === "rejected" || ["failed", "cancelled"].includes(status)) {
+    return {
+      key: "rejected",
+      label: "Rejected",
+      message: "Your payment was rejected. Please open Payments to review it and submit again if required.",
+      verified: false
+    };
+  }
+
+  if (status === "refunded") {
+    return {
+      key: "refunded",
+      label: "Refunded",
+      message: "This payment is marked as refunded and is not counted as paid.",
+      verified: false
+    };
+  }
+
+  if (
+    ["approved", "verified", "success", "completed"].includes(verification) ||
+    ["paid", "verified", "success", "completed"].includes(status)
+  ) {
+    return {
+      key: "approved",
+      label: "Verified",
+      message: "Your payment has been verified and is included in Total Paid.",
+      verified: true
+    };
+  }
+
+  if (
+    ["pending", "submitted", "processing"].includes(verification) ||
+    ["pending", "submitted", "processing"].includes(status) ||
+    (!verification && !status)
+  ) {
+    return {
+      key: "pending",
+      label: "Pending",
+      message: "Your payment is waiting for Owner verification.",
+      verified: false
+    };
+  }
+
+  return {
+    key: "unknown",
+    label: payment.verification_status || payment.payment_status || "Unknown",
+    message: "Please refresh the dashboard or contact support if this status looks incorrect.",
+    verified: false
+  };
+}
+
+function isPaymentVerified(payment) {
+  return getPaymentState(payment).verified;
+}
+
+function getDeliveryDate(request) {
+  if (!request) return null;
+
+  for (const value of [
+    request.delivery_date,
+    request.delivered_at,
+    request.delivery_completed_at
+  ]) {
+    if (value && !Number.isNaN(new Date(value).getTime())) {
+      return new Date(value);
+    }
+  }
+
+  if (["delivered", "completed"].includes(normalizeStatus(request.delivery_status))) {
+    const fallback = request.updated_at || request.created_at;
+    if (fallback && !Number.isNaN(new Date(fallback).getTime())) {
+      return new Date(fallback);
+    }
+  }
+
+  return null;
+}
+
+function getDeliveryDayCount(request) {
+  const deliveryDate = getDeliveryDate(request);
+  if (!deliveryDate) return 0;
+
+  const now = new Date();
+  const start = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth(), deliveryDate.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.floor((today.getTime() - start.getTime()) / 86400000);
+
+  return Math.max(1, diff + 1);
+}
+
+function calculateTierExtraCharge(days) {
+  if (!days || days < 1) return 0;
+  if (days <= 10) return 35;
+  if (days <= 15) return 40;
+  if (days <= 45) return 50;
+  return 100;
+}
+
+function getRequestExtraCharge(request) {
+  if (!request || !isRequestApproved(request)) return 0;
+
+  const saved = firstMoneyValue(request, [
+    "extra_charge",
+    "extra_charges",
+    "late_charge",
+    "additional_charge"
+  ]);
+
+  if (saved !== null) return saved;
+
+  return calculateTierExtraCharge(getDeliveryDayCount(request));
+}
+
+/* =========================================================
+   FINANCIAL CALCULATION
+   Critical rule:
+   - Before Owner approval, do not display a future balance.
+   - After approval, show the balance.
+   - Only verified payments reduce the balance.
+========================================================= */
+
+function getRequestVerifiedPayments(requestId) {
+  return currentPayments
+    .filter(payment =>
+      String(payment.request_id || "") === String(requestId) &&
+      isPaymentVerified(payment)
+    )
+    .reduce((sum, payment) => sum + Math.max(0, Number(payment.payment_amount || 0)), 0);
+}
+
+function getRequestFinancials(request) {
+  const approved = isRequestApproved(request);
+  const baseAmount = getRequestTotal(request);
+  const extraCharge = approved ? getRequestExtraCharge(request) : 0;
+  const totalPayable = baseAmount + extraCharge;
+  const paidAmount = getRequestVerifiedPayments(request.id);
+
+  // A pending/unapproved request must not show a calculated future balance.
+  if (!approved) {
+    return {
+      approved: false,
+      baseAmount,
+      extraCharge: 0,
+      totalPayable: 0,
+      paidAmount: 0,
+      remainingAmount: 0
+    };
+  }
+
+  // Use verified payments for calculation. Do not trust a stale remaining_amount
+  // that may already subtract an unsubmitted or unverified initial payment.
+  const remainingAmount = Math.max(0, totalPayable - paidAmount);
+
+  return {
+    approved: true,
+    baseAmount,
+    extraCharge,
+    totalPayable,
+    paidAmount,
+    remainingAmount
+  };
+}
+
+function calculatePaymentSummary() {
+  const activeRequests = currentRequests.filter(request =>
+    !isRequestCancelled(request)
+  );
+
+  let totalAmount = 0;
+  let extraCharge = 0;
+  let totalPayable = 0;
+  let paidAmount = 0;
+  let remaining = 0;
+
+  activeRequests.forEach(request => {
+    const financials = getRequestFinancials(request);
+
+    // Before Owner approval, exclude the future financial figures from the
+    // dashboard totals. Once approved, display the actual payment summary.
+    if (!financials.approved) return;
+
+    totalAmount += financials.baseAmount;
+    extraCharge += financials.extraCharge;
+    totalPayable += financials.totalPayable;
+    paidAmount += financials.paidAmount;
+    remaining += financials.remainingAmount;
+  });
+
+  remaining = Math.max(0, Math.min(remaining, totalPayable));
+
+  const percentage = totalPayable > 0
+    ? Math.min(100, Math.round((paidAmount / totalPayable) * 100))
+    : 0;
+
+  $("totalAmount").textContent = money(totalAmount);
+  $("extraChargeAmount").textContent = money(extraCharge);
+  $("totalPayableAmount").textContent = money(totalPayable);
+  $("paidAmount").textContent = money(paidAmount);
+  $("remainingAmount").textContent = money(remaining);
+
+  $("totalPaidStat").textContent = money(paidAmount);
+  $("remainingStat").textContent = money(remaining);
+
+  $("payProgressBar").style.width = percentage + "%";
+  $("paymentProgressText").textContent = percentage + "% paid";
+
+  updatePaymentAndRepaymentStatus(remaining, totalPayable);
+  updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining);
+}
+
+function humanizeStatus(value) {
+  const normalized = normalizeStatus(value);
+  if (!normalized) return "";
+  return normalized.split("_").map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(" ");
+}
+
+function updatePaymentAndRepaymentStatus(remaining, totalPayable) {
+  const latestRequest = getLatestRequest();
+  const latestPayment = getLatestPayment();
+  const paymentState = getPaymentState(latestPayment);
+
+  let paymentLabel = "No Payment";
+  let paymentSubtitle = "No payment submitted yet";
+
+  if (latestPayment) {
+    paymentLabel = paymentState.label;
+
+    if (paymentState.key === "approved") {
+      paymentSubtitle = "Latest payment verified";
+    } else if (paymentState.key === "pending") {
+      paymentSubtitle = "Waiting for Owner verification";
+    } else if (paymentState.key === "rejected") {
+      paymentSubtitle = "Review or resubmit payment";
+    }
+  } else if (latestRequest && isRequestApproved(latestRequest)) {
+    paymentLabel = "Payment Due";
+    paymentSubtitle = "Owner approved; payment can be submitted";
+  } else if (latestRequest && !isRequestCancelled(latestRequest)) {
+    paymentLabel = "Awaiting Approval";
+    paymentSubtitle = "Payment opens after Owner approval";
+  }
+
+  $("paymentStatusStat").textContent = paymentLabel;
+  $("paymentStatusSubtitle").textContent = paymentSubtitle;
+
+  const repaymentRaw = normalizeStatus(latestRequest?.repayment_status);
+  let repaymentLabel = "Not Started";
+  let repaymentSubtitle = "Repayment progress";
+
+  if (latestRequest && isRequestApproved(latestRequest)) {
+    if (
+      ["fully_paid", "fully_repaid", "paid_in_full", "settled", "completed"].includes(repaymentRaw) ||
+      (totalPayable > 0 && remaining <= 0)
+    ) {
+      repaymentLabel = "Completed";
+      repaymentSubtitle = "No amount remaining";
+    } else if (repaymentRaw) {
+      repaymentLabel = humanizeStatus(repaymentRaw);
+      repaymentSubtitle = "Remaining: " + money(remaining);
+    } else if (remaining > 0) {
+      repaymentLabel = "Pending";
+      repaymentSubtitle = "Remaining: " + money(remaining);
+    }
+  } else if (latestRequest && !isRequestCancelled(latestRequest)) {
+    repaymentLabel = "Awaiting Approval";
+    repaymentSubtitle = "Repayment not started";
+  }
+
+  $("repaymentStatusStat").textContent = repaymentLabel;
+  $("repaymentStatusSubtitle").textContent = repaymentSubtitle;
+}
+
+function updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining) {
+  const dueBox = $("paymentDueBox");
+  const approvedRequest = currentRequests.find(request =>
+    isRequestApproved(request) && !isRequestCancelled(request)
+  );
+
+  if (!approvedRequest) {
+    dueBox.innerHTML = `
+      <strong>⏳ Waiting for Owner Approval</strong>
+      <p>Your request is waiting for Owner approval. Payment information and the remaining amount will appear here after approval.</p>
+    `;
+    return;
+  }
+
+  const latestForRequest = currentPayments
+    .filter(payment => String(payment.request_id || "") === String(approvedRequest.id))
+    .sort((a, b) =>
+      (new Date(b.payment_date || b.created_at || 0).getTime() || 0) -
+      (new Date(a.payment_date || a.created_at || 0).getTime() || 0)
+    )[0] || null;
+
+  const state = getPaymentState(latestForRequest);
+
+  if (totalPayable > 0 && remaining <= 0) {
+    dueBox.innerHTML = `
+      <strong>✅ Payment Completed</strong>
+      <p>Your verified payment balance is fully paid.</p>
+      ${extraCharge > 0 ? `<p>Extra charge included: ${money(extraCharge)}</p>` : ""}
+    `;
+    return;
+  }
+
+  if (latestForRequest && state.key === "pending") {
+    dueBox.innerHTML = `
+      <strong>⏳ Payment Verification Pending</strong>
+      <p>Your payment has been submitted and is waiting for Owner verification.</p>
+      <p><b>Submitted amount:</b> ${money(latestForRequest.payment_amount)}</p>
+      <p>This amount will count as paid only after verification.</p>
+    `;
+    return;
+  }
+
+  if (latestForRequest && state.key === "rejected") {
+    dueBox.innerHTML = `
+      <strong>❌ Payment Rejected</strong>
+      <p>Your latest payment was rejected and has not been counted as paid.</p>
+      <button type="button" class="pay-now-summary-btn"
+        onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
+        OPEN PAYMENT CENTER
+      </button>
+    `;
+    return;
+  }
+
+  if (remaining > 0) {
+    dueBox.innerHTML = `
+      <strong>💳 Payment Due</strong>
+      <p>Your request has been approved. Continue to the payment center.</p>
+      <p><b>Verified amount paid:</b> ${money(paidAmount)}</p>
+      <p><b>Remaining amount:</b> ${money(remaining)}</p>
+      <button type="button" class="pay-now-summary-btn"
+        onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
+        OPEN PAYMENT CENTER
+      </button>
+    `;
+    return;
+  }
+
+  dueBox.innerHTML = `
+    <strong>💡 Payment information</strong>
+    <p>Your payment information will appear here after Owner approval.</p>
+  `;
+}
+
+/* MOBILE MENU */
 
 function toggleMobileMenu() {
   const sidebar = $("mobileSidebar");
@@ -595,52 +980,7 @@ function closeMobileMenu() {
   document.body.classList.remove("menu-open");
 }
 
-/* =========================================================
-   REQUEST NAVIGATION
-   ========================================================= */
-
-function getLatestRequest() {
-  if (!Array.isArray(currentRequests) || !currentRequests.length) return null;
-
-  const sorted = [...currentRequests].sort((a, b) => {
-    const dateA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
-    const dateB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
-    return dateB - dateA;
-  });
-
-  const active = sorted.find(request =>
-    !["cancelled", "canceled", "rejected"].includes(normalizeStatus(request.status))
-  );
-
-  return active || sorted[0] || null;
-}
-
-function isRequestCancelled(request) {
-  return !request ||
-    ["cancelled", "canceled", "rejected"].includes(normalizeStatus(request.status));
-}
-
-function isRequestApproved(request) {
-  if (!request) return false;
-
-  const approval = normalizeStatus(request.owner_approval);
-  const status = normalizeStatus(request.status);
-
-  return ["approved", "accepted"].includes(approval) ||
-    ["approved", "processing", "completed"].includes(status);
-}
-
-function isRequestFullyPaid(request) {
-  if (!request) return false;
-
-  const paymentStatus = normalizeStatus(request.payment_status);
-  const repaymentStatus = normalizeStatus(request.repayment_status);
-  const remaining = Number(request.remaining_amount);
-
-  return (Number.isFinite(remaining) && remaining <= 0 && request.remaining_amount !== null && request.remaining_amount !== "") ||
-    ["fully_paid", "paid_in_full", "settled", "fully_paid_verified"].includes(paymentStatus) ||
-    ["fully_paid", "fully_repaid", "paid_in_full", "settled", "completed"].includes(repaymentStatus);
-}
+/* REQUEST NAVIGATION */
 
 function updateRequestButton() {
   const button = $("requestCylinderBtn");
@@ -662,7 +1002,7 @@ function updateRequestButton() {
   }
 
   if (!isRequestFullyPaid(request)) {
-    note.textContent = "Your request is approved. Tap here to continue to payment.";
+    note.textContent = "Your request is approved. Continue to the payment center.";
     return;
   }
 
@@ -703,9 +1043,7 @@ function openSubmitPayment(requestId) {
   window.location.href = "submit-payment.html?request_id=" + encodeURIComponent(requestId);
 }
 
-/* =========================================================
-   LOGOUT
-   ========================================================= */
+/* LOGOUT */
 
 function openLogoutPopup() {
   closeMobileMenu();
@@ -731,7 +1069,6 @@ async function confirmLogout() {
 
   try {
     const result = await supabaseClient.auth.signOut();
-
     if (result.error) throw result.error;
 
     if (realtimeChannel) {
@@ -747,9 +1084,7 @@ async function confirmLogout() {
   }
 }
 
-/* =========================================================
-   PROFILE
-   ========================================================= */
+/* PROFILE */
 
 async function loadProfile() {
   if (!currentUser?.id) return;
@@ -786,9 +1121,7 @@ async function loadProfile() {
   }
 }
 
-/* =========================================================
-   REQUESTS
-   ========================================================= */
+/* REQUESTS */
 
 async function loadRequests() {
   if (!currentUser?.id) return;
@@ -814,37 +1147,26 @@ async function loadRequests() {
   updateRequestButton();
 }
 
-/* =========================================================
-   REQUEST COUNTERS
-   ========================================================= */
-
 function updateRequestCounters() {
   const requests = currentRequests;
 
   const pending = requests.filter(item =>
-    normalizeStatus(item.status) === "pending"
+    !isRequestCancelled(item) && !isRequestApproved(item)
   ).length;
 
   const approved = requests.filter(item =>
-    ["approved", "processing", "completed"].includes(normalizeStatus(item.status)) ||
-    normalizeStatus(item.owner_approval) === "approved"
+    isRequestApproved(item)
   ).length;
 
   const cancelled = requests.filter(item =>
-    ["cancelled", "canceled", "rejected"].includes(normalizeStatus(item.status))
+    isRequestCancelled(item)
   ).length;
 
   let totalCylinders = 0;
 
   requests.forEach(item => {
-    const status = normalizeStatus(item.status);
-    const deliveryStatus = normalizeStatus(item.delivery_status);
-
-    if (
-      ["approved", "processing", "completed"].includes(status) ||
-      ["delivered", "completed"].includes(deliveryStatus)
-    ) {
-      totalCylinders += Number(item.quantity || 0);
+    if (isRequestApproved(item)) {
+      totalCylinders += Math.max(0, Number(item.quantity || 0));
     }
   });
 
@@ -854,36 +1176,24 @@ function updateRequestCounters() {
   $("cancelledRequests").textContent = cancelled;
 }
 
-/* =========================================================
-   CURRENT REQUEST
-   ========================================================= */
+/* CURRENT REQUEST */
 
 function showCurrentRequest() {
   const area = $("currentRequestArea");
+  const active = getLatestRequest();
 
-  const active = currentRequests.find(item => {
-    const status = normalizeStatus(item.status);
-    const deliveryStatus = normalizeStatus(item.delivery_status);
-
-    return [
-      "pending", "approved", "processing"
-    ].includes(status) || [
-      "out_for_delivery"
-    ].includes(deliveryStatus);
-  });
-
-  if (!active) {
+  if (!active || isRequestCancelled(active)) {
     area.innerHTML = '<div class="empty">No active cylinder request.</div>';
     return;
   }
 
+  const approved = isRequestApproved(active);
   const status = normalizeStatus(active.status || "pending");
   const deliveryStatus = normalizeStatus(active.delivery_status || "");
 
   let displayStatus = status.replace(/_/g, " ");
-  let progress = 20;
+  let progress = approved ? 50 : 20;
 
-  if (status === "approved") progress = 50;
   if (status === "processing") progress = 70;
 
   if (deliveryStatus === "out_for_delivery") {
@@ -901,26 +1211,21 @@ function showCurrentRequest() {
     progress = 100;
   }
 
-  if (["cancelled", "canceled", "rejected"].includes(status)) {
-    displayStatus = status;
-    progress = 0;
-  }
-
   const quantity = Number(active.quantity || 1);
-  const amount = Number(active.total_amount || 0);
+  const financials = getRequestFinancials(active);
   const statusClass = normalizeStatus(displayStatus);
   const requestId = active.id || "";
 
   let paymentButton = "";
 
-  if (isRequestApproved(active) && !isRequestFullyPaid(active)) {
+  if (approved && financials.remainingAmount > 0) {
     paymentButton = `
       <button type="button" class="payment-action-btn"
         onclick="openSubmitPayment('${escapeHtml(requestId)}')">
         💳 OPEN PAYMENT CENTER
       </button>
       <div class="payment-note">
-        Payment verification status is shown below in Recent Payment History.
+        Only verified payments are counted as paid.
       </div>
     `;
   }
@@ -938,8 +1243,8 @@ function showCurrentRequest() {
           <div class="detail-value">${quantity}</div>
         </div>
         <div>
-          <div class="detail-label">Amount</div>
-          <div class="detail-value">₹${formatMoney(amount)}</div>
+          <div class="detail-label">Total Payable</div>
+          <div class="detail-value">${approved ? money(financials.totalPayable) : "Pending Approval"}</div>
         </div>
         <div>
           <div class="detail-label">Request Date</div>
@@ -951,16 +1256,16 @@ function showCurrentRequest() {
         <div class="progress-bar" style="width:${progress}%"></div>
       </div>
 
-      ${paymentButton}
+      ${!approved ? `
+        <div class="payment-note">Your request is waiting for Owner approval. Payment is not available yet.</div>
+      ` : paymentButton}
     </div>
   `;
 
   updateRequestButton();
 }
 
-/* =========================================================
-   PAYMENTS
-   ========================================================= */
+/* PAYMENTS */
 
 async function loadPayments() {
   if (!currentUser?.id) return;
@@ -969,7 +1274,7 @@ async function loadPayments() {
     .from("payments")
     .select("*")
     .eq("user_id", currentUser.id)
-    .order("payment_date", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (result.error) {
     console.warn("Payments load error:", result.error);
@@ -980,8 +1285,7 @@ async function loadPayments() {
       </td></tr>
     `;
 
-    const details = $("latestPaymentDetails");
-    details.hidden = true;
+    $("latestPaymentDetails").hidden = true;
     return;
   }
 
@@ -991,10 +1295,6 @@ async function loadPayments() {
   renderLatestPaymentDetails();
   calculatePaymentSummary();
 }
-
-/* =========================================================
-   LATEST PAYMENT STATUS CARD
-   ========================================================= */
 
 function renderLatestPaymentDetails() {
   const container = $("latestPaymentDetails");
@@ -1006,29 +1306,23 @@ function renderLatestPaymentDetails() {
   }
 
   container.hidden = false;
-
   const state = getPaymentState(payment);
 
-  $("latestPaymentAmount").textContent =
-    "₹" + formatMoney(payment.payment_amount);
-
+  $("latestPaymentAmount").textContent = money(payment.payment_amount);
   $("latestPaymentTransaction").textContent =
-    payment.transaction_id ||
-    payment.payment_reference ||
-    "Not provided";
+    payment.transaction_id || payment.payment_reference || "Not provided";
 
-  const statusElement = $("latestPaymentStatus");
-  statusElement.innerHTML =
+  $("latestPaymentStatus").innerHTML =
     `<span class="payment-status ${escapeHtml(state.key)}">${escapeHtml(state.label)}</span>`;
 
   const messageElement = $("latestPaymentMessage");
-  messageElement.className = "status-message " + state.key;
+  messageElement.className = "status-message " +
+    (state.key === "approved" ? "approved" :
+      state.key === "pending" ? "pending" :
+      state.key === "rejected" || state.key === "refunded" ? "rejected" : "unknown");
+
   messageElement.textContent = state.message;
 }
-
-/* =========================================================
-   PAYMENT HISTORY
-   ========================================================= */
 
 function showPaymentHistory() {
   const tbody = $("paymentHistory");
@@ -1058,140 +1352,14 @@ function showPaymentHistory() {
       <tr>
         <td>${formatDate(payment.payment_date || payment.created_at)}</td>
         <td>${escapeHtml(requestText)}</td>
-        <td>₹${formatMoney(payment.payment_amount)}</td>
-        <td>
-          <span class="payment-status ${escapeHtml(state.key)}">
-            ${escapeHtml(state.label)}
-          </span>
-        </td>
+        <td>${money(payment.payment_amount)}</td>
+        <td><span class="payment-status ${escapeHtml(state.key)}">${escapeHtml(state.label)}</span></td>
       </tr>
     `;
   }).join("");
 }
 
-/* =========================================================
-   PAYMENT SUMMARY
-   ========================================================= */
-
-function calculatePaymentSummary() {
-  let totalAmount = 0;
-
-  currentRequests.forEach(request => {
-    totalAmount += Number(request.total_amount || 0);
-  });
-
-  let paidAmount = 0;
-
-  currentPayments.forEach(payment => {
-    // Only verified/approved payments count as money paid.
-    if (!isPaymentVerified(payment)) return;
-
-    const requestExists = currentRequests.some(request =>
-      String(request.id) === String(payment.request_id)
-    );
-
-    if (payment.request_id && !requestExists) return;
-
-    paidAmount += Number(payment.payment_amount || 0);
-  });
-
-  const remaining = Math.max(0, totalAmount - paidAmount);
-  const percentage = totalAmount > 0
-    ? Math.min(100, Math.round((paidAmount / totalAmount) * 100))
-    : 0;
-
-  $("totalAmount").textContent = "₹" + formatMoney(totalAmount);
-  $("paidAmount").textContent = "₹" + formatMoney(paidAmount);
-  $("remainingAmount").textContent = "₹" + formatMoney(remaining);
-  $("payProgressBar").style.width = percentage + "%";
-
-  updatePaymentDueBox(totalAmount, paidAmount, remaining);
-}
-
-/* =========================================================
-   PAYMENT DUE BOX
-   ========================================================= */
-
-function updatePaymentDueBox(totalAmount, paidAmount, remaining) {
-  const dueBox = $("paymentDueBox");
-
-  const approvedRequest = currentRequests.find(request =>
-    isRequestApproved(request) && !isRequestCancelled(request)
-  );
-
-  const pendingPayment = currentPayments.find(payment => {
-    const state = getPaymentState(payment);
-
-    return String(payment.request_id) === String(approvedRequest?.id) &&
-      state.key === "pending";
-  });
-
-  const rejectedPayment = currentPayments.find(payment => {
-    const state = getPaymentState(payment);
-
-    return String(payment.request_id) === String(approvedRequest?.id) &&
-      state.key === "rejected";
-  });
-
-  if (totalAmount > 0 && remaining <= 0) {
-    dueBox.innerHTML = `
-      <strong>✅ Payment Completed</strong>
-      <p>Your verified payment balance is fully paid.</p>
-    `;
-    return;
-  }
-
-  if (pendingPayment) {
-    dueBox.innerHTML = `
-      <strong>⏳ Payment Verification Pending</strong>
-      <p>Your payment submission has been received. The Owner must verify it before it is counted as paid.</p>
-      <p><b>Submitted amount:</b> ₹${formatMoney(pendingPayment.payment_amount)}</p>
-    `;
-    return;
-  }
-
-  if (rejectedPayment) {
-    dueBox.innerHTML = `
-      <strong>❌ Payment Rejected</strong>
-      <p>Your latest payment was rejected. It has not been counted as paid. Please open the Payment Center to review the payment and submit another payment if needed.</p>
-      ${approvedRequest ? `
-        <button type="button" class="pay-now-summary-btn"
-          onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
-          OPEN PAYMENT CENTER
-        </button>` : ""}
-    `;
-    return;
-  }
-
-  if (approvedRequest && remaining > 0) {
-    dueBox.innerHTML = `
-      <strong>💳 Payment Due</strong>
-      <p>₹${formatMoney(remaining)} is currently remaining.</p>
-      <button type="button" class="pay-now-summary-btn"
-        onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
-        PAY NOW
-      </button>
-    `;
-    return;
-  }
-
-  if (totalAmount > 0) {
-    dueBox.innerHTML = `
-      <strong>⏳ Payment Remaining</strong>
-      <p>₹${formatMoney(remaining)} is currently remaining.</p>
-    `;
-    return;
-  }
-
-  dueBox.innerHTML = `
-    <strong>💡 Payment information</strong>
-    <p>Your payment details will appear here after a cylinder request is approved.</p>
-  `;
-}
-
-/* =========================================================
-   NOTIFICATIONS
-   ========================================================= */
+/* NOTIFICATIONS */
 
 async function loadNotifications() {
   if (!currentUser?.id) return;
@@ -1286,7 +1454,7 @@ async function markNotificationRead(id) {
   }
 
   currentNotifications = currentNotifications.map(item =>
-    String(item.id) === String(id) ? { ...item, is_read: true } : item
+    String(item.id) === String(id) ? {...item, is_read: true} : item
   );
 
   renderNotifications();
@@ -1303,9 +1471,7 @@ $("notificationsArea").addEventListener("click", async function(event) {
   await markNotificationRead(id);
 });
 
-/* =========================================================
-   REALTIME
-   ========================================================= */
+/* REALTIME UPDATES */
 
 function subscribeRealtime() {
   if (!currentUser?.id || !supabaseClient) return;
@@ -1318,84 +1484,33 @@ function subscribeRealtime() {
     .channel("customer-dashboard-" + currentUser.id)
 
     .on("postgres_changes", {
-      event: "INSERT",
+      event: "*",
       schema: "public",
       table: "notifications",
       filter: "user_id=eq." + currentUser.id
-    }, function(payload) {
-      const item = payload.new;
-      if (!item || String(item.user_id) !== String(currentUser.id)) return;
-
-      currentNotifications = [
-        item,
-        ...currentNotifications.filter(existing => String(existing.id) !== String(item.id))
-      ].slice(0, 50);
-
-      renderNotifications();
-      showBrowserNotification(item);
-      toast(item.title || "New notification");
+    }, async function() {
+      await loadNotifications();
     })
 
     .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "notifications",
-      filter: "user_id=eq." + currentUser.id
-    }, function(payload) {
-      const updated = payload.new;
-      if (!updated) return;
-
-      const index = currentNotifications.findIndex(item =>
-        String(item.id) === String(updated.id)
-      );
-
-      if (index !== -1) {
-        currentNotifications[index] = updated;
-      } else {
-        currentNotifications.unshift(updated);
-      }
-
-      renderNotifications();
-    })
-
-    .on("postgres_changes", {
-      event: "INSERT",
+      event: "*",
       schema: "public",
       table: "payments",
       filter: "user_id=eq." + currentUser.id
     }, async function() {
       await loadPayments();
-      toast("Payment submission received.");
+      toast("Payment information updated.");
     })
 
     .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "payments",
-      filter: "user_id=eq." + currentUser.id
-    }, async function() {
-      await loadPayments();
-      toast("Payment status updated.");
-    })
-
-    .on("postgres_changes", {
-      event: "INSERT",
+      event: "*",
       schema: "public",
       table: "cylinder_requests",
       filter: "user_id=eq." + currentUser.id
     }, async function() {
       await loadRequests();
+      await loadPayments();
       toast("Your cylinder request was updated.");
-    })
-
-    .on("postgres_changes", {
-      event: "UPDATE",
-      schema: "public",
-      table: "cylinder_requests",
-      filter: "user_id=eq." + currentUser.id
-    }, async function() {
-      await loadRequests();
-      toast("Your cylinder request status was updated.");
     })
 
     .subscribe(status => {
@@ -1403,9 +1518,7 @@ function subscribeRealtime() {
     });
 }
 
-/* =========================================================
-   BROWSER NOTIFICATIONS
-   ========================================================= */
+/* BROWSER NOTIFICATIONS */
 
 async function requestBrowserNotificationPermission() {
   if (!("Notification" in window)) return;
@@ -1418,32 +1531,7 @@ async function requestBrowserNotificationPermission() {
   }
 }
 
-function showBrowserNotification(notification) {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-
-  try {
-    const notificationObject = new Notification(
-      notification.title || "EGC Notification",
-      {
-        body: notification.message || "You have a new notification.",
-        icon: "assets/EGC - Emergency Gas Cylinder logo.png",
-        tag: String(notification.id || Date.now())
-      }
-    );
-
-    notificationObject.onclick = function() {
-      window.focus();
-      window.location.href = "notifications.html";
-    };
-  } catch (error) {
-    console.warn("Browser notification:", error);
-  }
-}
-
-/* =========================================================
-   KEYBOARD / RESIZE
-   ========================================================= */
+/* KEYBOARD / RESIZE */
 
 document.addEventListener("keydown", function(event) {
   if (event.key === "Escape") {
@@ -1464,11 +1552,9 @@ document.addEventListener("click", function() {
   ) {
     requestBrowserNotificationPermission();
   }
-}, { once: true });
+}, {once:true});
 
-/* =========================================================
-   AUTH STATE
-   ========================================================= */
+/* AUTH STATE */
 
 if (supabaseClient) {
   supabaseClient.auth.onAuthStateChange(function(event) {
@@ -1483,15 +1569,14 @@ if (supabaseClient) {
   });
 }
 
-/* =========================================================
-   INITIALIZE DASHBOARD
-   ========================================================= */
+/* INITIALIZE */
 
 async function initializeDashboard() {
   const requestButton = $("requestCylinderBtn");
   const requestButtonNote = $("requestButtonNote");
 
   if (requestButton) requestButton.disabled = true;
+
   if (requestButtonNote) {
     requestButtonNote.textContent = "Checking your existing request...";
   }

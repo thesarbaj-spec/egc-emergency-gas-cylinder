@@ -882,8 +882,15 @@
 (() => {
     "use strict";
 
-    const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+    // ==========================================
+    // EGC SUPABASE CONFIGURATION
+    // ==========================================
+
+    const SUPABASE_URL =
+        "https://szefvmvokkhvnzryodqu.supabase.co";
+
+    const SUPABASE_KEY =
+        "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
     const CYLINDER_AMOUNT = 890;
     const FIRST_PAYMENT = 200;
@@ -902,9 +909,19 @@
     let isSubmitting = false;
     let existingRequestId = null;
 
+    // ==========================================
+    // BASIC PAGE UTILITIES
+    // ==========================================
+
     function showMessage(text, type = "error") {
+        if (!message) {
+            console[type === "error" ? "error" : "log"](text);
+            return;
+        }
+
         message.className = "message " + type;
         message.textContent = text;
+
         message.scrollIntoView({
             behavior: "smooth",
             block: "nearest"
@@ -912,6 +929,8 @@
     }
 
     function clearMessage() {
+        if (!message) return;
+
         message.className = "message";
         message.textContent = "";
     }
@@ -919,32 +938,199 @@
     function setLoading(status) {
         isSubmitting = status;
 
-        loadingOverlay.classList.toggle("show", status);
-        loadingOverlay.setAttribute("aria-hidden", String(!status));
+        if (loadingOverlay) {
+            loadingOverlay.classList.toggle("show", status);
+            loadingOverlay.setAttribute(
+                "aria-hidden",
+                String(!status)
+            );
+        }
 
-        continueBtn.disabled = status;
-        continueBtn.textContent = status
-            ? "SUBMITTING..."
-            : "REQUEST SUBMIT";
+        if (continueBtn) {
+            continueBtn.disabled = status;
+            continueBtn.textContent = status
+                ? "SUBMITTING..."
+                : "REQUEST SUBMIT";
+        }
     }
 
-    function readJSON(key) {
+    // ==========================================
+    // READ AND SAVE JSON
+    // Read sessionStorage first, then localStorage.
+    // ==========================================
+
+    function readJSONFromStorage(storage, key) {
         try {
-            const value = localStorage.getItem(key);
-            return value ? JSON.parse(value) : null;
+            const value = storage.getItem(key);
+
+            if (!value) return null;
+
+            const parsed = JSON.parse(value);
+
+            return parsed && typeof parsed === "object"
+                ? parsed
+                : null;
+
         } catch (error) {
-            console.warn("Invalid localStorage data:", key, error);
+            console.warn(
+                "Unable to read stored JSON:",
+                key,
+                error.message
+            );
+
             return null;
         }
     }
 
+    function readJSON(key) {
+        // Current browser tab/session data first.
+        const sessionData = readJSONFromStorage(
+            sessionStorage,
+            key
+        );
+
+        if (sessionData) return sessionData;
+
+        // Backward compatibility with previous EGC pages.
+        return readJSONFromStorage(localStorage, key);
+    }
+
     function saveJSON(key, value) {
         try {
-            localStorage.setItem(key, JSON.stringify(value));
+            localStorage.setItem(
+                key,
+                JSON.stringify(value)
+            );
         } catch (error) {
-            console.warn("Unable to save local data:", key, error);
+            console.warn(
+                "Unable to save local data:",
+                key,
+                error.message
+            );
         }
     }
+
+    function readStoredValue(key) {
+        try {
+            const sessionValue = sessionStorage.getItem(key);
+
+            if (
+                sessionValue !== null &&
+                String(sessionValue).trim() !== ""
+            ) {
+                return sessionValue;
+            }
+
+            const localValue = localStorage.getItem(key);
+
+            if (
+                localValue !== null &&
+                String(localValue).trim() !== ""
+            ) {
+                return localValue;
+            }
+
+        } catch (error) {
+            console.warn(
+                "Unable to read stored value:",
+                key,
+                error.message
+            );
+        }
+
+        return null;
+    }
+
+    // ==========================================
+    // LPG DETAILS
+    // ==========================================
+
+    function getLpgDetails() {
+        const possibleKeys = [
+            "egc_lpg_details",
+            "egcLpgDetails",
+            "lpgDetails",
+            "lpg_details",
+            "egc_lpg_data",
+            "egc_lpg_form_data"
+        ];
+
+        for (const key of possibleKeys) {
+            const data = readJSON(key);
+
+            if (
+                data &&
+                typeof data === "object" &&
+                !Array.isArray(data)
+            ) {
+                console.log(
+                    "LPG Details loaded from:",
+                    key
+                );
+
+                return data;
+            }
+        }
+
+        // Some older pages may have saved individual fields.
+        const state = readStoredValue("egc_lpg_state");
+        const district = readStoredValue("egc_lpg_district");
+        const city = readStoredValue("egc_lpg_city");
+        const company = readStoredValue("egc_lpg_company");
+        const agencyId = readStoredValue("egc_lpg_agency_id");
+
+        if (state || district || city || company || agencyId) {
+            return {
+                state: state || "",
+                district: district || "",
+                city: city || "",
+                lpg_company: company || "",
+                agency_id: agencyId || ""
+            };
+        }
+
+        throw new Error(
+            "Saved LPG Details were not found. Please return to the LPG Details page, complete all required fields, and save them before continuing."
+        );
+    }
+
+    // ==========================================
+    // VERIFICATION DATA
+    // ==========================================
+
+    function getVerificationData() {
+        const keys = [
+            "egc_lpg_verification",
+            "egc_verification_data",
+            "egc_verification_personal",
+            "egc_verification_details",
+            "egc_verification",
+            "verificationData"
+        ];
+
+        for (const key of keys) {
+            const data = readJSON(key);
+
+            if (
+                data &&
+                typeof data === "object" &&
+                !Array.isArray(data)
+            ) {
+                console.log(
+                    "Verification data loaded from:",
+                    key
+                );
+
+                return data;
+            }
+        }
+
+        return null;
+    }
+
+    // ==========================================
+    // REQUEST ID
+    // ==========================================
 
     function readStoredRequestId() {
         const directKeys = [
@@ -953,7 +1139,7 @@
         ];
 
         for (const key of directKeys) {
-            const value = localStorage.getItem(key);
+            const value = readStoredValue(key);
 
             if (value && String(value).trim()) {
                 return String(value).trim();
@@ -979,7 +1165,11 @@
                 obj.cylinderRequestId ||
                 obj.id;
 
-            if (id !== undefined && id !== null && String(id).trim()) {
+            if (
+                id !== undefined &&
+                id !== null &&
+                String(id).trim()
+            ) {
                 return String(id).trim();
             }
         }
@@ -987,44 +1177,22 @@
         return null;
     }
 
-    function getLpgDetails() {
-        const lpg = readJSON("egc_lpg_details");
-
-        if (!lpg || typeof lpg !== "object") {
-            throw new Error(
-                "Saved LPG Details were not found. Please return to the LPG Details page and complete that step first."
-            );
-        }
-
-        return lpg;
-    }
-
-    function getVerificationData() {
-        const keys = [
-            "egc_lpg_verification",
-            "egc_verification_data",
-            "egc_verification_personal"
-        ];
-
-        for (const key of keys) {
-            const data = readJSON(key);
-
-            if (data && typeof data === "object") {
-                return data;
-            }
-        }
-
-        return null;
-    }
+    // ==========================================
+    // AGENCY DETECTION
+    // ==========================================
 
     function findAgencyId(obj) {
-        if (!obj || typeof obj !== "object") return null;
+        if (!obj || typeof obj !== "object") {
+            return null;
+        }
 
         const keys = [
             "agency_id",
             "agencyId",
             "selected_agency_id",
-            "selectedAgencyId"
+            "selectedAgencyId",
+            "lpg_agency_id",
+            "lpgAgencyId"
         ];
 
         for (const key of keys) {
@@ -1048,7 +1216,10 @@
         ];
 
         for (const key of nestedKeys) {
-            if (obj[key] && typeof obj[key] === "object") {
+            if (
+                obj[key] &&
+                typeof obj[key] === "object"
+            ) {
                 const nestedId = findAgencyId(obj[key]);
 
                 if (nestedId) return nestedId;
@@ -1067,6 +1238,7 @@
                 agency_name:
                     lpgDetails.agency_name ||
                     lpgDetails.agencyName ||
+                    lpgDetails.agency ||
                     "",
                 agency_code:
                     lpgDetails.agency_code ||
@@ -1083,12 +1255,22 @@
             };
         }
 
-        const savedAgency =
-            readJSON("egc_selected_agency") ||
-            readJSON("selectedAgency") ||
-            readJSON("selected_agency");
+        const savedAgencyKeys = [
+            "egc_selected_agency",
+            "selectedAgency",
+            "selected_agency"
+        ];
 
-        if (savedAgency && typeof savedAgency === "object") {
+        for (const key of savedAgencyKeys) {
+            const savedAgency = readJSON(key);
+
+            if (
+                !savedAgency ||
+                typeof savedAgency !== "object"
+            ) {
+                continue;
+            }
+
             const agencyId = findAgencyId(savedAgency);
 
             if (agencyId) {
@@ -1116,17 +1298,24 @@
         return null;
     }
 
+    // ==========================================
+    // ADDRESS
+    // ==========================================
+
     function getAddress(verificationData, lpgDetails) {
         const candidates = [
             verificationData?.personal_details,
             verificationData?.personalDetails,
+            verificationData?.personal,
             verificationData,
             readJSON("egc_verification_personal"),
             lpgDetails
         ];
 
         for (const obj of candidates) {
-            if (!obj || typeof obj !== "object") continue;
+            if (!obj || typeof obj !== "object") {
+                continue;
+            }
 
             const address =
                 obj.address ||
@@ -1135,7 +1324,10 @@
                 obj.delivery_address ||
                 obj.deliveryAddress;
 
-            if (address && String(address).trim()) {
+            if (
+                address &&
+                String(address).trim()
+            ) {
                 return String(address).trim();
             }
         }
@@ -1143,22 +1335,35 @@
         return null;
     }
 
+    // ==========================================
+    // REQUEST NUMBER
+    // ==========================================
+
     function generateRequestNumber() {
         const datePart = new Date()
             .toISOString()
             .slice(0, 10)
             .replace(/-/g, "");
 
-        const randomPart = Math.floor(100000 + Math.random() * 900000);
+        const randomPart = Math.floor(
+            100000 + Math.random() * 900000
+        );
 
         return "EGC-" + datePart + "-" + randomPart;
     }
 
+    // ==========================================
+    // AUTHENTICATED USER AND PROFILE
+    // ==========================================
+
     async function getCurrentUser() {
-        const { data, error } = await supabaseClient.auth.getUser();
+        const { data, error } =
+            await supabaseClient.auth.getUser();
 
         if (error) {
-            throw new Error("Login verification failed: " + error.message);
+            throw new Error(
+                "Login verification failed: " + error.message
+            );
         }
 
         if (!data?.user) {
@@ -1178,7 +1383,9 @@
             .maybeSingle();
 
         if (error) {
-            throw new Error("Unable to load your profile: " + error.message);
+            throw new Error(
+                "Unable to load your profile: " + error.message
+            );
         }
 
         if (!data) {
@@ -1190,8 +1397,15 @@
         return data;
     }
 
+    // ==========================================
+    // REQUEST STATUS HELPERS
+    // ==========================================
+
     function normalStatus(value) {
-        return String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+        return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[\s-]+/g, "_");
     }
 
     function isRejectedOrCancelled(request) {
@@ -1233,8 +1447,13 @@
     }
 
     function isActiveRequest(request) {
-        return !isRejectedOrCancelled(request) && !isFullyCleared(request);
+        return !isRejectedOrCancelled(request) &&
+            !isFullyCleared(request);
     }
+
+    // ==========================================
+    // FETCH EXISTING REQUEST
+    // ==========================================
 
     async function getRequestById(requestId, userId) {
         if (!requestId) return null;
@@ -1247,7 +1466,11 @@
             .maybeSingle();
 
         if (error) {
-            console.warn("Saved request lookup failed:", error.message);
+            console.warn(
+                "Saved request lookup failed:",
+                error.message
+            );
+
             return null;
         }
 
@@ -1258,9 +1481,15 @@
         const savedId = readStoredRequestId();
 
         if (savedId) {
-            const savedRequest = await getRequestById(savedId, userId);
+            const savedRequest = await getRequestById(
+                savedId,
+                userId
+            );
 
-            if (savedRequest && isActiveRequest(savedRequest)) {
+            if (
+                savedRequest &&
+                isActiveRequest(savedRequest)
+            ) {
                 return savedRequest;
             }
         }
@@ -1274,20 +1503,19 @@
 
         if (error) {
             throw new Error(
-                "Unable to check your existing request: " + error.message
+                "Unable to check your existing request: " +
+                error.message
             );
         }
 
         const requests = data || [];
 
-        const activeRequest = requests.find(isActiveRequest);
-
-        if (activeRequest) {
-            return activeRequest;
-        }
-
-        return null;
+        return requests.find(isActiveRequest) || null;
     }
+
+    // ==========================================
+    // VERIFY SELECTED AGENCY
+    // ==========================================
 
     async function getVerifiedAgency(lpgDetails) {
         const detectedAgency = getSelectedAgency(lpgDetails);
@@ -1305,7 +1533,9 @@
             .maybeSingle();
 
         if (error) {
-            throw new Error("Agency verification failed: " + error.message);
+            throw new Error(
+                "Agency verification failed: " + error.message
+            );
         }
 
         if (!data) {
@@ -1315,14 +1545,18 @@
         }
 
         if (data.is_active === false) {
-            throw new Error("The selected agency is currently inactive.");
+            throw new Error(
+                "The selected agency is currently inactive."
+            );
         }
 
         if (
             data.status &&
             normalStatus(data.status) !== "active"
         ) {
-            throw new Error("The selected agency is currently inactive.");
+            throw new Error(
+                "The selected agency is currently inactive."
+            );
         }
 
         return {
@@ -1344,6 +1578,10 @@
         };
     }
 
+    // ==========================================
+    // BUILD EXISTING REQUEST UPDATE
+    // ==========================================
+
     function buildRequestUpdate(
         request,
         profile,
@@ -1359,7 +1597,10 @@
             agency.lpg_company ||
             null;
 
-        const address = getAddress(verificationData, lpgDetails);
+        const address = getAddress(
+            verificationData,
+            lpgDetails
+        );
 
         const update = {
             agency_id: agency.id,
@@ -1379,10 +1620,7 @@
                 "Cylinder request submitted after repayment scheme agreement."
         };
 
-        /*
-          Existing requests keep their current status and request number.
-          Do not reset a request that is already in progress.
-        */
+        // Preserve existing workflow statuses.
         if (!request.status) {
             update.status = "Pending";
         }
@@ -1405,6 +1643,10 @@
 
         return update;
     }
+
+    // ==========================================
+    // UPDATE EXISTING REQUEST
+    // ==========================================
 
     async function updateExistingRequest(
         request,
@@ -1431,12 +1673,17 @@
 
         if (error) {
             throw new Error(
-                "The existing request could not be updated: " + error.message
+                "The existing request could not be updated: " +
+                error.message
             );
         }
 
         return data;
     }
+
+    // ==========================================
+    // CREATE NEW REQUEST
+    // ==========================================
 
     async function createRequest(
         user,
@@ -1453,7 +1700,10 @@
             agency.lpg_company ||
             null;
 
-        const address = getAddress(verificationData, lpgDetails);
+        const address = getAddress(
+            verificationData,
+            lpgDetails
+        );
 
         const insertData = {
             user_id: user.id,
@@ -1498,14 +1748,12 @@
             .single();
 
         if (error) {
-            /*
-              If two tabs submit at nearly the same time, check once more
-              before reporting failure. This does not replace a database
-              uniqueness constraint or transactional server-side protection.
-            */
             console.error("Request insert error:", error);
 
-            const duplicateCheck = await getExistingActiveRequest(user.id);
+            // Check whether a previous attempt already created
+            // an active request before showing an error.
+            const duplicateCheck =
+                await getExistingActiveRequest(user.id);
 
             if (duplicateCheck) {
                 return duplicateCheck;
@@ -1519,6 +1767,10 @@
         return data;
     }
 
+    // ==========================================
+    // SAVE CURRENT REQUEST LOCALLY
+    // ==========================================
+
     function saveCurrentRequest(request, user, agency) {
         const requestData = {
             request_id: request.id,
@@ -1527,19 +1779,30 @@
             agency_id: request.agency_id || agency.id,
             agency_name: agency.agency_name || "",
             agency_code: agency.agency_code || "",
-            lpg_company: request.lpg_company || agency.lpg_company || "",
-            cylinder_amount: Number(request.cylinder_amount || CYLINDER_AMOUNT),
-            first_payment: Number(request.advance_amount || FIRST_PAYMENT),
+            lpg_company:
+                request.lpg_company ||
+                agency.lpg_company ||
+                "",
+            cylinder_amount: Number(
+                request.cylinder_amount || CYLINDER_AMOUNT
+            ),
+            first_payment: Number(
+                request.advance_amount || FIRST_PAYMENT
+            ),
             remaining_amount: Number(
                 request.remaining_amount ?? REMAINING_AMOUNT
             ),
             extra_charge: Number(request.extra_charge || 0),
-            total_payable: Number(request.total_payable || FIRST_PAYMENT),
+            total_payable: Number(
+                request.total_payable || FIRST_PAYMENT
+            ),
             status: request.status || "Pending",
             payment_status: request.payment_status || "pending",
             owner_approval: request.owner_approval || "pending",
             repayment_status: request.repayment_status || "pending",
-            submitted_at: request.created_at || new Date().toISOString()
+            submitted_at:
+                request.created_at ||
+                new Date().toISOString()
         };
 
         saveJSON("egc_current_request", requestData);
@@ -1562,19 +1825,23 @@
                 );
             }
         } catch (error) {
-            console.warn("Unable to save request reference locally:", error);
+            console.warn(
+                "Unable to save request reference locally:",
+                error.message
+            );
         }
 
         return requestData;
     }
 
+    // ==========================================
+    // MAIN SUBMISSION
+    // ==========================================
+
     async function submitRequest() {
         const user = await getCurrentUser();
 
-        /*
-          Reuse the already-saved LPG and verification details.
-          Do not ask the user to fill those steps again.
-        */
+        // Both LPG Details and Verification must already be saved.
         const lpgDetails = getLpgDetails();
         const verificationData = getVerificationData();
 
@@ -1586,20 +1853,20 @@
 
         const profile = await getProfile(user.id);
 
-        /*
-          Find the existing request before creating anything new.
-          If it exists, update that same record.
-        */
-        const existingRequest = await getExistingActiveRequest(user.id);
+        // Look up an existing active request before creating another.
+        const existingRequest =
+            await getExistingActiveRequest(user.id);
 
         if (existingRequest) {
-            const existingAgencyId = String(existingRequest.agency_id || "");
-            const selectedAgencyId = String(findAgencyId(lpgDetails) || "");
+            const existingAgencyId = String(
+                existingRequest.agency_id || ""
+            );
 
-            /*
-              Do not silently change the agency on an already-submitted request.
-              This protects requests that are already being processed.
-            */
+            const selectedAgencyId = String(
+                findAgencyId(lpgDetails) || ""
+            );
+
+            // Do not silently change an agency for an existing request.
             if (
                 existingAgencyId &&
                 selectedAgencyId &&
@@ -1620,7 +1887,11 @@
                 verificationData
             );
 
-            saveCurrentRequest(updatedRequest, user, agency);
+            saveCurrentRequest(
+                updatedRequest,
+                user,
+                agency
+            );
 
             return {
                 request: updatedRequest,
@@ -1638,7 +1909,11 @@
             verificationData
         );
 
-        saveCurrentRequest(newRequest, user, agency);
+        saveCurrentRequest(
+            newRequest,
+            user,
+            agency
+        );
 
         return {
             request: newRequest,
@@ -1646,78 +1921,95 @@
         };
     }
 
+    // ==========================================
+    // NAVIGATION
+    // ==========================================
+
     function goToStatusPage() {
         window.location.href = "request-status.html";
     }
 
-    continueBtn.addEventListener("click", async () => {
-        if (isSubmitting) return;
+    if (continueBtn) {
+        continueBtn.addEventListener("click", async () => {
+            if (isSubmitting) return;
 
-        clearMessage();
+            clearMessage();
 
-        if (!agreeCheck.checked) {
-            showMessage(
-                "Please tick the agreement checkbox before submitting your request.",
-                "error"
-            );
-            return;
-        }
+            if (!agreeCheck || !agreeCheck.checked) {
+                showMessage(
+                    "Please tick the agreement checkbox before submitting your request.",
+                    "error"
+                );
+                return;
+            }
 
-        if (!supabaseClient) {
-            showMessage(
-                "The database connection is unavailable. Please refresh the page and try again.",
-                "error"
-            );
-            return;
-        }
+            if (!supabaseClient) {
+                showMessage(
+                    "The database connection is unavailable. Please refresh the page and try again.",
+                    "error"
+                );
+                return;
+            }
 
-        setLoading(true);
+            setLoading(true);
 
-        try {
-            const result = await submitRequest();
-            const request = result.request;
+            try {
+                const result = await submitRequest();
+                const request = result.request;
 
-            console.log(
-                result.reused
-                    ? "Existing EGC request updated:"
-                    : "New EGC request created:",
-                request
-            );
+                console.log(
+                    result.reused
+                        ? "Existing EGC request updated:"
+                        : "New EGC request created:",
+                    request
+                );
 
-            setLoading(false);
+                setLoading(false);
 
-            showMessage(
-                result.reused
-                    ? "Your existing request record has been updated. No new request was created."
-                    : "Your request has been submitted successfully.",
-                "success"
-            );
+                showMessage(
+                    result.reused
+                        ? "Your existing request record has been updated. No new request was created."
+                        : "Your request has been submitted successfully.",
+                    "success"
+                );
 
-            continueBtn.disabled = true;
-            continueBtn.textContent = "REQUEST SAVED";
+                continueBtn.disabled = true;
+                continueBtn.textContent = "REQUEST SAVED";
 
-            setTimeout(goToStatusPage, 1100);
+                setTimeout(goToStatusPage, 1100);
 
-        } catch (error) {
-            console.error("EGC scheme submission error:", error);
+            } catch (error) {
+                console.error(
+                    "EGC scheme submission error:",
+                    error
+                );
 
-            setLoading(false);
+                setLoading(false);
 
-            showMessage(
-                error?.message ||
-                "Unable to save your request. Please try again.",
-                "error"
-            );
-        }
-    });
+                showMessage(
+                    error?.message ||
+                    "Unable to save your request. Please try again.",
+                    "error"
+                );
+            }
+        });
+    }
 
-    backStepBtn.addEventListener("click", () => {
-        window.location.href = "dashboard.html";
-    });
+    if (backStepBtn) {
+        backStepBtn.addEventListener("click", () => {
+            window.location.href = "dashboard.html";
+        });
+    }
 
-    backBtn.addEventListener("click", () => {
-        window.location.href = "verification.html";
-    });
+    if (backBtn) {
+        backBtn.addEventListener("click", () => {
+            window.location.href = "verification.html";
+        });
+    }
+
+    // ==========================================
+    // DISPLAY PAYMENT AMOUNTS
+    // ==========================================
 
     const amountElements = [
         ["cylinderAmount", CYLINDER_AMOUNT],
@@ -1736,13 +2028,23 @@
         }
     });
 
-    if (!window.supabase ||
-        typeof window.supabase.createClient !== "function") {
+    // ==========================================
+    // INITIALIZE SUPABASE
+    // ==========================================
+
+    if (
+        !window.supabase ||
+        typeof window.supabase.createClient !== "function"
+    ) {
         showMessage(
             "The Supabase library did not load. Check your internet connection and refresh this page.",
             "error"
         );
-        continueBtn.disabled = true;
+
+        if (continueBtn) {
+            continueBtn.disabled = true;
+        }
+
         return;
     }
 
@@ -1755,20 +2057,22 @@
         existingRequestId = readStoredRequestId();
 
         console.log("EGC Scheme page initialized.");
-        console.log("Saved request ID:", existingRequestId);
+        console.log(
+            "Saved request ID:",
+            existingRequestId
+        );
 
-        /*
-          Keep the page visible so the user can review the rules.
-          This check only displays a notice; actual duplicate prevention
-          happens again immediately before submission.
-        */
+        // Inform the user if an active request already exists.
+        // Final duplicate checking also happens on submission.
         (async () => {
             try {
-                const { data, error } = await supabaseClient.auth.getUser();
+                const { data, error } =
+                    await supabaseClient.auth.getUser();
 
                 if (error || !data?.user) return;
 
-                const existing = await getExistingActiveRequest(data.user.id);
+                const existing =
+                    await getExistingActiveRequest(data.user.id);
 
                 if (existing) {
                     existingRequestId = existing.id;
@@ -1785,6 +2089,7 @@
                         "info"
                     );
                 }
+
             } catch (error) {
                 console.warn(
                     "Unable to pre-check existing request:",
@@ -1794,15 +2099,21 @@
         })();
 
     } catch (error) {
-        console.error("Supabase initialization failed:", error);
+        console.error(
+            "Supabase initialization failed:",
+            error
+        );
 
         showMessage(
             "Unable to initialize the EGC database connection. Please refresh this page.",
             "error"
         );
 
-        continueBtn.disabled = true;
+        if (continueBtn) {
+            continueBtn.disabled = true;
+        }
     }
+
 })();
 </script>
 

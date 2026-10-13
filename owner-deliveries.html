@@ -2099,20 +2099,28 @@ tbody tr:last-child td{
     class="toast"
     id="toast"
 ></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-
 /* =========================================================
-   SUPABASE
+   EGC OWNER DELIVERIES — SUPABASE CONFIG
 ========================================================= */
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const OWNER_STORAGE_KEY = "egc-owner-auth";
 
-const supabaseClient = supabase.createClient(
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_KEY
+    SUPABASE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        }
+    }
 );
 
 
@@ -2123,6 +2131,9 @@ const supabaseClient = supabase.createClient(
 let allDeliveries = [];
 let filteredDeliveries = [];
 let selectedDelivery = null;
+let toastTimer = null;
+let isLoading = false;
+let isSaving = false;
 
 
 /* =========================================================
@@ -2178,45 +2189,64 @@ const resultCount =
 const deliveryModal =
     document.getElementById("deliveryModal");
 
-const closeDeliveryModal =
+const closeDeliveryModalBtn =
     document.getElementById("closeDeliveryModal");
 
-const saveDelivery =
+const saveDeliveryBtn =
     document.getElementById("saveDelivery");
+
+
+/* =========================================================
+   SAFE DOM HELPERS
+========================================================= */
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+
+    if (element) {
+        element.textContent = value ?? "—";
+    }
+}
+
+function showModal(element) {
+    if (element) {
+        element.classList.add("show");
+    }
+}
+
+function hideModal(element) {
+    if (element) {
+        element.classList.remove("show");
+    }
+}
 
 
 /* =========================================================
    MOBILE SIDEBAR
 ========================================================= */
 
-menuBtn.addEventListener("click", () => {
+if (menuBtn) {
+    menuBtn.addEventListener("click", () => {
+        if (sidebar) sidebar.classList.toggle("open");
+        if (sidebarOverlay) sidebarOverlay.classList.toggle("show");
+    });
+}
 
-    sidebar.classList.toggle("open");
-    sidebarOverlay.classList.toggle("show");
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", closeSidebar);
+}
 
-});
-
-sidebarOverlay.addEventListener("click", () => {
-
-    sidebar.classList.remove("open");
-    sidebarOverlay.classList.remove("show");
-
-});
-
+function closeSidebar() {
+    if (sidebar) sidebar.classList.remove("open");
+    if (sidebarOverlay) sidebarOverlay.classList.remove("show");
+}
 
 document.querySelectorAll(".nav-item").forEach(item => {
-
     item.addEventListener("click", () => {
-
-        if(window.innerWidth <= 800){
-
-            sidebar.classList.remove("open");
-            sidebarOverlay.classList.remove("show");
-
+        if (window.innerWidth <= 800) {
+            closeSidebar();
         }
-
     });
-
 });
 
 
@@ -2224,454 +2254,350 @@ document.querySelectorAll(".nav-item").forEach(item => {
    NOTIFICATION DROPDOWN
 ========================================================= */
 
-headerNotificationBtn.addEventListener("click", event => {
-
-    event.stopPropagation();
-
-    notificationDropdown.classList.toggle("show");
-
-});
-
+if (headerNotificationBtn) {
+    headerNotificationBtn.addEventListener("click", event => {
+        event.stopPropagation();
+        if (notificationDropdown) {
+            notificationDropdown.classList.toggle("show");
+        }
+    });
+}
 
 document.addEventListener("click", event => {
-
-    if(
+    if (
+        notificationDropdown &&
+        headerNotificationBtn &&
         !notificationDropdown.contains(event.target) &&
         !headerNotificationBtn.contains(event.target)
-    ){
-
+    ) {
         notificationDropdown.classList.remove("show");
-
     }
-
 });
 
+if (clearNotifications) {
+    clearNotifications.addEventListener("click", () => {
+        const notificationList =
+            document.getElementById("notificationList");
 
-clearNotifications.addEventListener("click", () => {
+        const unreadCount =
+            document.getElementById("headerUnreadCount");
 
-    document.getElementById("notificationList").innerHTML = `
-        <div class="notification-empty">
-            No new notifications
-        </div>
-    `;
+        if (notificationList) {
+            notificationList.innerHTML = `
+                <div class="notification-empty">
+                    No new notifications
+                </div>
+            `;
+        }
 
-    document.getElementById("headerUnreadCount").style.display = "none";
-
-});
+        if (unreadCount) {
+            unreadCount.style.display = "none";
+        }
+    });
+}
 
 
 /* =========================================================
    TOAST
 ========================================================= */
 
-let toastTimer;
+function showToast(message) {
+    const toast = document.getElementById("toast");
 
-function showToast(message){
-
-    const toast =
-        document.getElementById("toast");
+    if (!toast) {
+        console.log(message);
+        return;
+    }
 
     toast.textContent = message;
-
     toast.classList.add("show");
 
     clearTimeout(toastTimer);
 
     toastTimer = setTimeout(() => {
-
         toast.classList.remove("show");
-
-    },3000);
-
+    }, 3500);
 }
 
 
 /* =========================================================
-   AUTH CHECK
+   OWNER AUTH CHECK
 ========================================================= */
 
-async function checkOwnerSession(){
+async function checkOwnerSession() {
+    try {
+        const { data, error } =
+            await supabaseClient.auth.getSession();
 
-    const {
-        data: {
-            session
+        if (error) {
+            console.error("Session error:", error);
+            window.location.replace("login.html");
+            return false;
         }
-    } = await supabaseClient.auth.getSession();
 
-    if(!session){
+        if (!data || !data.session) {
+            window.location.replace("login.html");
+            return false;
+        }
 
-        window.location.href = "login.html";
+        const { data: userData, error: userError } =
+            await supabaseClient.auth.getUser();
+
+        if (userError || !userData || !userData.user) {
+            console.error("Owner user check failed:", userError);
+
+            await supabaseClient.auth.signOut();
+
+            window.location.replace("login.html");
+            return false;
+        }
+
+        return true;
+
+    } catch (error) {
+        console.error("Owner authentication error:", error);
+        window.location.replace("login.html");
         return false;
+    }
+}
 
+
+/* =========================================================
+   DATABASE FIELD HELPER
+========================================================= */
+
+function getField(row, fields, fallback = "") {
+    for (const field of fields) {
+        if (
+            row &&
+            row[field] !== undefined &&
+            row[field] !== null &&
+            String(row[field]).trim() !== ""
+        ) {
+            return row[field];
+        }
     }
 
-    return true;
-
+    return fallback;
 }
 
 
 /* =========================================================
-   LOAD DELIVERIES
+   LOAD DELIVERY RECORDS
 ========================================================= */
 
-async function loadDeliveries(){
+async function loadDeliveries() {
+    if (isLoading) return;
 
-    deliveryTableBody.innerHTML = `
-        <tr>
-            <td colspan="13">
-                <div class="loading">
-                    Loading deliveries...
-                </div>
-            </td>
-        </tr>
-    `;
+    isLoading = true;
 
-    try{
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "↻ Loading...";
+    }
 
-        /*
-         * This query intentionally keeps the base cylinder_requests
-         * query simple so it can work with the existing EGC schema.
-         *
-         * Add/remove selected fields here only if your actual table
-         * uses different column names.
-         */
+    if (deliveryTableBody) {
+        deliveryTableBody.innerHTML = `
+            <tr>
+                <td colspan="13">
+                    <div class="loading">
+                        Loading deliveries...
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
 
-        const {
-            data,
-            error
-        } = await supabaseClient
+    try {
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .select("*")
-            .order("created_at",{
-                ascending:false
-            });
+            .order("created_at", { ascending: false });
 
-
-        if(error){
+        if (error) {
             throw error;
         }
 
-
-        allDeliveries = Array.isArray(data)
-            ? data
-            : [];
-
-
-        filteredDeliveries =
-            [...allDeliveries];
-
+        allDeliveries = Array.isArray(data) ? data : [];
 
         populateAgencyFilter();
-
         updateStats();
+        applyFilters();
 
-        renderDeliveries();
-
-    }catch(error){
-
-        console.error(
-            "Delivery loading error:",
-            error
-        );
+    } catch (error) {
+        console.error("Delivery loading error:", error);
 
         allDeliveries = [];
         filteredDeliveries = [];
 
         updateStats();
 
-        deliveryTableBody.innerHTML = `
-            <tr>
-                <td colspan="13">
-                    <div class="empty-state">
-                        Unable to load delivery records.
-                        <br><br>
-                        <small>
-                            ${escapeHtml(
-                                error.message || "Database error"
-                            )}
-                        </small>
-                    </div>
-                </td>
-            </tr>
-        `;
-
-        resultCount.textContent =
-            "0 delivery records";
-
-    }
-
-}
-
-
-/* =========================================================
-   GET FIELD
-========================================================= */
-
-function getField(row, fields, fallback=""){
-
-    for(const field of fields){
-
-        if(
-            row &&
-            row[field] !== undefined &&
-            row[field] !== null &&
-            String(row[field]).trim() !== ""
-        ){
-
-            return row[field];
-
+        if (deliveryTableBody) {
+            deliveryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="13">
+                        <div class="empty-state">
+                            Unable to load delivery records.
+                            <br><br>
+                            <small>
+                                ${escapeHtml(
+                                    error.message || "Database error"
+                                )}
+                            </small>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
 
+        if (resultCount) {
+            resultCount.textContent = "0 delivery records";
+        }
+
+        showToast("Unable to load delivery records.");
+
+    } finally {
+        isLoading = false;
+
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = "↻ Refresh";
+        }
     }
-
-    return fallback;
-
 }
 
 
 /* =========================================================
-   NORMALIZE DELIVERY
+   NORMALIZE DELIVERY RECORD
 ========================================================= */
 
-function normalizeDelivery(row){
-
-    const requestNumber =
-        getField(
-            row,
-            [
-                "request_number",
-                "request_no",
-                "request_id",
-                "request_code"
-            ],
-            row.id || "—"
-        );
-
-
-    const customer =
-        getField(
-            row,
-            [
-                "full_name",
-                "customer_name",
-                "name"
-            ],
-            "Customer"
-        );
-
-
-    const mobile =
-        getField(
-            row,
-            [
-                "mobile",
-                "mobile_number",
-                "phone"
-            ],
-            "—"
-        );
-
-
-    const company =
-        getField(
-            row,
-            [
-                "lpg_company",
-                "company_name",
-                "lpg_company_name",
-                "company"
-            ],
-            "—"
-        );
-
-
-    const agency =
-        getField(
-            row,
-            [
-                "lpg_agency",
-                "agency_name",
-                "agency"
-            ],
-            "—"
-        );
-
-
-    const city =
-        getField(
-            row,
-            [
-                "city",
-                "user_city"
-            ],
-            "—"
-        );
-
-
-    const quantity =
-        getField(
-            row,
-            [
-                "quantity",
-                "cylinder_quantity",
-                "cylinders"
-            ],
-            1
-        );
-
-
-    const agencyStatus =
-        String(
-            getField(
-                row,
-                [
-                    "agency_status",
-                    "agency_processing_status"
-                ],
-                "pending"
-            )
-        );
-
-
-    const deliveryStatus =
-        String(
-            getField(
-                row,
-                [
-                    "delivery_status",
-                    "delivery"
-                ],
-                "pending"
-            )
-        );
-
-
-    const deliveryDate =
-        getField(
-            row,
-            [
-                "delivery_date",
-                "delivered_at"
-            ],
-            ""
-        );
-
-
-    const extraCharge =
-        getField(
-            row,
-            [
-                "extra_charge",
-                "delivery_extra_charge"
-            ],
-            0
-        );
-
-
-    return {
-
-        raw:row,
-
-        id:row.id,
-
-        requestNumber,
-
-        customer,
-
-        mobile,
-
-        company,
-
-        agency,
-
-        city,
-
-        quantity,
-
-        agencyStatus,
-
-        deliveryStatus,
-
-        deliveryDate,
-
-        extraCharge
-
-    };
-
-}
-
-
-/* =========================================================
-   NORMALIZE ALL
-========================================================= */
-
-function getNormalizedDeliveries(){
-
-    return allDeliveries.map(
-        normalizeDelivery
+function normalizeDelivery(row) {
+    const requestNumber = getField(
+        row,
+        ["request_number", "request_no", "request_code"],
+        row.id || "—"
     );
 
+    const customer = getField(
+        row,
+        ["full_name", "customer_name", "name"],
+        "Customer"
+    );
+
+    const mobile = getField(
+        row,
+        ["mobile", "mobile_number", "phone"],
+        "—"
+    );
+
+    const company = getField(
+        row,
+        ["lpg_company", "company_name", "lpg_company_name", "company"],
+        "—"
+    );
+
+    const agency = getField(
+        row,
+        ["lpg_agency", "agency_name", "agency"],
+        "—"
+    );
+
+    const city = getField(
+        row,
+        ["city", "user_city"],
+        "—"
+    );
+
+    const quantity = getField(
+        row,
+        ["quantity", "cylinder_quantity", "cylinders"],
+        1
+    );
+
+    const agencyStatus = String(
+        getField(
+            row,
+            ["agency_status", "agency_processing_status"],
+            "pending"
+        )
+    ).trim();
+
+    const deliveryStatus = String(
+        getField(
+            row,
+            ["delivery_status", "delivery"],
+            "pending"
+        )
+    ).trim();
+
+    const deliveryDate = getField(
+        row,
+        ["delivery_date", "delivered_at"],
+        ""
+    );
+
+    const extraCharge = Number(
+        getField(
+            row,
+            ["extra_charge", "delivery_extra_charge"],
+            0
+        )
+    ) || 0;
+
+    return {
+        raw: row,
+        id: row.id,
+        requestNumber,
+        customer,
+        mobile,
+        company,
+        agency,
+        city,
+        quantity,
+        agencyStatus,
+        deliveryStatus,
+        deliveryDate,
+        extraCharge
+    };
+}
+
+function getNormalizedDeliveries() {
+    return allDeliveries.map(normalizeDelivery);
 }
 
 
 /* =========================================================
-   STATS
+   DELIVERY STATISTICS
 ========================================================= */
 
-function updateStats(){
+function updateStats() {
+    const records = getNormalizedDeliveries();
 
-    const records =
-        getNormalizedDeliveries();
+    const total = records.length;
 
+    const pending = records.filter(item => {
+        const status = item.deliveryStatus.toLowerCase();
 
-    const total =
-        records.length;
+        return [
+            "pending",
+            "processing",
+            "assigned",
+            "ready"
+        ].includes(status);
+    }).length;
 
+    const out = records.filter(item => {
+        return item.deliveryStatus.toLowerCase().includes("out");
+    }).length;
 
-    const pending =
-        records.filter(item =>
-            ["pending","processing","assigned","ready"]
-                .includes(
-                    item.deliveryStatus
-                    .toLowerCase()
-                )
-        ).length;
+    const delivered = records.filter(item => {
+        return item.deliveryStatus.toLowerCase() === "delivered";
+    }).length;
 
-
-    const out =
-        records.filter(item =>
-            item.deliveryStatus
-                .toLowerCase()
-                .includes("out")
-        ).length;
-
-
-    const delivered =
-        records.filter(item =>
-            item.deliveryStatus
-                .toLowerCase() === "delivered"
-        ).length;
-
-
-    document.getElementById(
-        "totalDeliveries"
-    ).textContent = total;
-
-
-    document.getElementById(
-        "pendingDeliveries"
-    ).textContent = pending;
-
-
-    document.getElementById(
-        "outDeliveries"
-    ).textContent = out;
-
-
-    document.getElementById(
-        "completedDeliveries"
-    ).textContent = delivered;
-
+    setText("totalDeliveries", total);
+    setText("pendingDeliveries", pending);
+    setText("outDeliveries", out);
+    setText("completedDeliveries", delivered);
 }
 
 
@@ -2679,168 +2605,114 @@ function updateStats(){
    AGENCY FILTER
 ========================================================= */
 
-function populateAgencyFilter(){
+function populateAgencyFilter() {
+    if (!agencyFilter) return;
 
     const agencies = [
         ...new Set(
             getNormalizedDeliveries()
-                .map(item => item.agency)
-                .filter(
-                    agency =>
-                        agency &&
-                        agency !== "—"
-                )
+                .map(item => String(item.agency))
+                .filter(agency => agency && agency !== "—")
         )
-    ].sort();
+    ].sort((a, b) => a.localeCompare(b));
 
-
-    const current =
-        agencyFilter.value;
-
+    const current = agencyFilter.value;
 
     agencyFilter.innerHTML = `
-        <option value="all">
-            All Agencies
-        </option>
+        <option value="all">All Agencies</option>
     `;
 
-
     agencies.forEach(agency => {
-
-        const option =
-            document.createElement("option");
+        const option = document.createElement("option");
 
         option.value = agency;
         option.textContent = agency;
 
         agencyFilter.appendChild(option);
-
     });
 
-
-    if(
-        agencies.includes(current)
-    ){
-
+    if (agencies.includes(current)) {
         agencyFilter.value = current;
-
     }
-
 }
 
 
 /* =========================================================
-   APPLY FILTER
+   APPLY SEARCH AND FILTERS
 ========================================================= */
 
-function applyFilters(){
+function applyFilters() {
+    const search = searchInput
+        ? searchInput.value.trim().toLowerCase()
+        : "";
 
-    const search =
-        searchInput.value
-            .trim()
-            .toLowerCase();
+    const status = statusFilter
+        ? statusFilter.value.toLowerCase()
+        : "all";
 
+    const agency = agencyFilter
+        ? agencyFilter.value
+        : "all";
 
-    const status =
-        statusFilter.value
-            .toLowerCase();
+    filteredDeliveries = getNormalizedDeliveries().filter(item => {
+        const searchable = [
+            item.requestNumber,
+            item.customer,
+            item.mobile,
+            item.company,
+            item.agency,
+            item.city
+        ].join(" ").toLowerCase();
 
+        const matchesSearch =
+            !search || searchable.includes(search);
 
-    const agency =
-        agencyFilter.value;
+        const matchesStatus =
+            status === "all" ||
+            item.deliveryStatus.toLowerCase() === status;
 
+        const matchesAgency =
+            agency === "all" ||
+            item.agency === agency;
 
-    filteredDeliveries =
-        getNormalizedDeliveries()
-            .filter(item => {
-
-                const searchable = [
-
-                    item.requestNumber,
-                    item.customer,
-                    item.mobile,
-                    item.company,
-                    item.agency,
-                    item.city
-
-                ]
-                .join(" ")
-                .toLowerCase();
-
-
-                const matchesSearch =
-                    !search ||
-                    searchable.includes(search);
-
-
-                const matchesStatus =
-                    status === "all" ||
-                    item.deliveryStatus
-                        .toLowerCase()
-                        === status;
-
-
-                const matchesAgency =
-                    agency === "all" ||
-                    item.agency === agency;
-
-
-                return (
-                    matchesSearch &&
-                    matchesStatus &&
-                    matchesAgency
-                );
-
-            });
-
+        return matchesSearch && matchesStatus && matchesAgency;
+    });
 
     renderDeliveries();
+}
 
+if (filterBtn) {
+    filterBtn.addEventListener("click", applyFilters);
+}
+
+if (searchInput) {
+    searchInput.addEventListener("input", applyFilters);
+}
+
+if (statusFilter) {
+    statusFilter.addEventListener("change", applyFilters);
+}
+
+if (agencyFilter) {
+    agencyFilter.addEventListener("change", applyFilters);
 }
 
 
-filterBtn.addEventListener(
-    "click",
-    applyFilters
-);
-
-
-searchInput.addEventListener(
-    "input",
-    applyFilters
-);
-
-
-statusFilter.addEventListener(
-    "change",
-    applyFilters
-);
-
-
-agencyFilter.addEventListener(
-    "change",
-    applyFilters
-);
-
-
 /* =========================================================
-   RENDER TABLE
+   RENDER DELIVERY TABLE
 ========================================================= */
 
-function renderDeliveries(){
+function renderDeliveries() {
+    const records = filteredDeliveries;
 
-    const records =
-        filteredDeliveries;
+    if (resultCount) {
+        resultCount.textContent =
+            `${records.length} delivery record${records.length === 1 ? "" : "s"}`;
+    }
 
+    if (!deliveryTableBody) return;
 
-    resultCount.textContent =
-        `${records.length} delivery record${
-            records.length === 1 ? "" : "s"
-        }`;
-
-
-    if(!records.length){
-
+    if (!records.length) {
         deliveryTableBody.innerHTML = `
             <tr>
                 <td colspan="13">
@@ -2854,256 +2726,178 @@ function renderDeliveries(){
         `;
 
         return;
-
     }
 
-
-    deliveryTableBody.innerHTML =
-        records.map(item => {
-
-            const days =
-                calculateDays(item.deliveryDate);
-
-
-            const charge =
-                calculateExtraCharge(days);
-
-
-            return `
-
-                <tr>
-
-                    <td>
-                        <strong style="color:#06477f;">
-                            ${escapeHtml(
-                                String(item.requestNumber)
-                            )}
-                        </strong>
-                    </td>
-
-
-                    <td>
-
-                        <div class="customer-cell">
-
-                            <div class="avatar">
-                                ${escapeHtml(
-                                    String(
-                                        item.customer
-                                    )
-                                    .charAt(0)
-                                    .toUpperCase()
-                                )}
-                            </div>
-
-                            <div>
-
-                                <div class="customer-name">
-                                    ${escapeHtml(
-                                        String(
-                                            item.customer
-                                        )
-                                    )}
-                                </div>
-
-                                <div class="customer-id">
-                                    ${escapeHtml(
-                                        String(
-                                            getField(
-                                                item.raw,
-                                                [
-                                                    "user_id",
-                                                    "egc_user_id"
-                                                ],
-                                                ""
-                                            )
-                                        )
-                                    )}
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </td>
-
-
-                    <td>
-                        ${escapeHtml(
-                            String(item.mobile)
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHtml(
-                            String(item.company)
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHtml(
-                            String(item.agency)
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHtml(
-                            String(item.city)
-                        )}
-                    </td>
-
-
-                    <td>
-                        ${escapeHtml(
-                            String(item.quantity)
-                        )}
-                    </td>
-
-
-                    <td>
-                        <span class="status ${getStatusClass(
-                            item.agencyStatus,
-                            "agency"
-                        )}">
-                            ${escapeHtml(
-                                formatStatus(
-                                    item.agencyStatus
-                                )
-                            )}
-                        </span>
-                    </td>
-
-
-                    <td>
-                        <span class="status ${getStatusClass(
-                            item.deliveryStatus
-                        )}">
-                            ${escapeHtml(
-                                formatStatus(
-                                    item.deliveryStatus
-                                )
-                            )}
-                        </span>
-                    </td>
-
-
-                    <td>
-                        ${
-                            item.deliveryDate
-                                ? escapeHtml(
-                                    formatDate(
-                                        item.deliveryDate
-                                    )
-                                )
-                                : "—"
-                        }
-                    </td>
-
-
-                    <td>
-                        ${
-                            days !== null
-                                ? `${days} day${
-                                    days === 1
-                                        ? ""
-                                        : "s"
-                                }`
-                                : "—"
-                        }
-                    </td>
-
-
-                    <td>
-                        <strong style="color:#0871c3;">
-                            ₹${Number(
-                                charge || item.extraCharge || 0
-                            ).toLocaleString("en-IN")}
-                        </strong>
-                    </td>
-
-
-                    <td>
-
-                        <button
-                            class="action-btn"
-                            onclick="openDeliveryModal('${escapeJs(
-                                item.id
-                            )}')"
-                        >
-                            Update
-                        </button>
-
-                    </td>
-
-                </tr>
-
-            `;
-
-        }).join("");
-
-}
-
-
-/* =========================================================
-   STATUS CLASS
-========================================================= */
-
-function getStatusClass(status){
-
-    const value =
-        String(status || "")
-            .toLowerCase();
-
-
-    if(value.includes("delivered"))
-        return "status-delivered";
-
-
-    if(value.includes("out"))
-        return "status-out";
-
-
-    if(value.includes("ready"))
-        return "status-ready";
-
-
-    if(
-        value.includes("cancel")
-    )
-        return "status-cancelled";
-
-
-    if(
-        value.includes("processing") ||
-        value.includes("assigned")
-    )
-        return "status-processing";
-
-
-    return "status-pending";
-
-}
-
-
-/* =========================================================
-   FORMAT STATUS
-========================================================= */
-
-function formatStatus(status){
-
-    if(!status)
-        return "Pending";
-
-
-    return String(status)
-        .replace(/_/g," ")
-        .replace(/\b\w/g,char =>
-            char.toUpperCase()
+    deliveryTableBody.innerHTML = records.map(item => {
+        const days = calculateDays(item.deliveryDate);
+
+        /*
+          Display a stored extra charge when available.
+          Otherwise, calculate a preview from the delivery date.
+          This is only a UI calculation; it does not save charges.
+        */
+
+        const charge = item.extraCharge > 0
+            ? item.extraCharge
+            : calculateExtraCharge(days);
+
+        const userId = getField(
+            item.raw,
+            ["egc_user_id"],
+            ""
         );
 
+        return `
+            <tr>
+                <td>
+                    <strong style="color:#06477f;">
+                        ${escapeHtml(item.requestNumber)}
+                    </strong>
+                </td>
+
+                <td>
+                    <div class="customer-cell">
+                        <div class="avatar">
+                            ${escapeHtml(
+                                String(item.customer).charAt(0).toUpperCase()
+                            )}
+                        </div>
+
+                        <div>
+                            <div class="customer-name">
+                                ${escapeHtml(item.customer)}
+                            </div>
+
+                            <div class="customer-id">
+                                ${escapeHtml(userId)}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <td>${escapeHtml(item.mobile)}</td>
+                <td>${escapeHtml(item.company)}</td>
+                <td>${escapeHtml(item.agency)}</td>
+                <td>${escapeHtml(item.city)}</td>
+                <td>${escapeHtml(item.quantity)}</td>
+
+                <td>
+                    <span class="status ${getStatusClass(item.agencyStatus)}">
+                        ${escapeHtml(formatStatus(item.agencyStatus))}
+                    </span>
+                </td>
+
+                <td>
+                    <span class="status ${getStatusClass(item.deliveryStatus)}">
+                        ${escapeHtml(formatStatus(item.deliveryStatus))}
+                    </span>
+                </td>
+
+                <td>
+                    ${item.deliveryDate
+                        ? escapeHtml(formatDate(item.deliveryDate))
+                        : "—"}
+                </td>
+
+                <td>
+                    ${days !== null
+                        ? `${days} day${days === 1 ? "" : "s"}`
+                        : "—"}
+                </td>
+
+                <td>
+                    <strong style="color:#0871c3;">
+                        ${money(charge)}
+                    </strong>
+                </td>
+
+                <td>
+                    <button
+                        class="action-btn"
+                        type="button"
+                        data-delivery-id="${escapeAttr(item.id)}"
+                    >
+                        Update
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join("");
+
+    deliveryTableBody.querySelectorAll("[data-delivery-id]").forEach(button => {
+        button.addEventListener("click", () => {
+            openDeliveryModal(button.dataset.deliveryId);
+        });
+    });
+}
+
+
+/* =========================================================
+   STATUS HELPERS
+========================================================= */
+
+function getStatusClass(status) {
+    const value = String(status || "").toLowerCase();
+
+    if (value.includes("delivered")) {
+        return "status-delivered";
+    }
+
+    if (value.includes("out")) {
+        return "status-out";
+    }
+
+    if (value.includes("ready")) {
+        return "status-ready";
+    }
+
+    if (value.includes("cancel") || value.includes("reject")) {
+        return "status-cancelled";
+    }
+
+    if (value.includes("processing") || value.includes("assigned")) {
+        return "status-processing";
+    }
+
+    return "status-pending";
+}
+
+function formatStatus(status) {
+    if (!status) return "Pending";
+
+    return String(status)
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+
+/* =========================================================
+   DATE AND MONEY HELPERS
+========================================================= */
+
+function formatDate(value) {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "—";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
+}
+
+function money(value) {
+    const number = Number(value);
+    const safeNumber = Number.isFinite(number) ? number : 0;
+
+    return "₹" + safeNumber.toLocaleString("en-IN", {
+        maximumFractionDigits: 2
+    });
 }
 
 
@@ -3111,99 +2905,50 @@ function formatStatus(status){
    DAYS SINCE DELIVERY
 ========================================================= */
 
-function calculateDays(date){
+function calculateDays(value) {
+    if (!value) return null;
 
-    if(!date)
+    const deliveryDate = new Date(value);
+
+    if (Number.isNaN(deliveryDate.getTime())) {
         return null;
+    }
 
-
-    const delivery =
-        new Date(date);
-
-
-    if(isNaN(delivery.getTime()))
-        return null;
-
-
-    const today =
-        new Date();
-
-
-    delivery.setHours(
-        0,0,0,0
+    const deliveryDay = new Date(
+        deliveryDate.getFullYear(),
+        deliveryDate.getMonth(),
+        deliveryDate.getDate()
     );
 
-    today.setHours(
-        0,0,0,0
+    const today = new Date();
+
+    const todayDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
     );
 
-
-    const difference =
-        today.getTime() -
-        delivery.getTime();
-
+    const difference = todayDay.getTime() - deliveryDay.getTime();
 
     return Math.max(
         0,
-        Math.floor(
-            difference /
-            (1000*60*60*24)
-        )
+        Math.floor(difference / (1000 * 60 * 60 * 24))
     );
-
 }
 
 
 /* =========================================================
-   EXTRA CHARGE
+   EXTRA CHARGE PREVIEW
 ========================================================= */
 
-function calculateExtraCharge(days){
+function calculateExtraCharge(days) {
+    if (days === null) return 0;
 
-    if(days === null)
-        return 0;
-
-
-    if(days <= 10)
-        return 35;
-
-
-    if(days <= 15)
-        return 40;
-
-
-    if(days <= 45)
-        return 50;
-
+    if (days <= 10) return 35;
+    if (days <= 15) return 40;
+    if (days <= 45) return 50;
 
     return 100;
-
-}
-
-
-/* =========================================================
-   DATE FORMAT
-========================================================= */
-
-function formatDate(date){
-
-    const d =
-        new Date(date);
-
-
-    if(isNaN(d.getTime()))
-        return "—";
-
-
-    return d.toLocaleDateString(
-        "en-IN",
-        {
-            day:"2-digit",
-            month:"short",
-            year:"numeric"
-        }
-    );
-
 }
 
 
@@ -3211,139 +2956,67 @@ function formatDate(date){
    OPEN DELIVERY MODAL
 ========================================================= */
 
-window.openDeliveryModal =
-    function(id){
+function openDeliveryModal(id) {
+    const item = getNormalizedDeliveries().find(
+        record => String(record.id) === String(id)
+    );
 
-        const item =
-            getNormalizedDeliveries()
-                .find(
-                    record =>
-                        String(record.id)
-                        === String(id)
-                );
+    if (!item) {
+        showToast("Delivery record not found.");
+        return;
+    }
 
+    selectedDelivery = item;
 
-        if(!item){
+    setText("modalRequest", item.requestNumber);
+    setText("modalCustomer", item.customer);
+    setText("modalAgency", item.agency);
+    setText("modalCompany", item.company);
 
-            showToast(
-                "Delivery record not found."
-            );
+    const modalStatus = document.getElementById("modalStatus");
+    const modalDeliveryDate = document.getElementById("modalDeliveryDate");
+    const modalNote = document.getElementById("modalNote");
 
-            return;
+    if (modalStatus) {
+        modalStatus.value = normalizeStatusForSelect(item.deliveryStatus);
+    }
 
-        }
+    if (modalDeliveryDate) {
+        modalDeliveryDate.value = item.deliveryDate
+            ? String(item.deliveryDate).slice(0, 10)
+            : "";
+    }
 
-
-        selectedDelivery =
-            item;
-
-
-        document.getElementById(
-            "modalRequest"
-        ).textContent =
-            item.requestNumber;
-
-
-        document.getElementById(
-            "modalCustomer"
-        ).textContent =
-            item.customer;
-
-
-        document.getElementById(
-            "modalAgency"
-        ).textContent =
-            item.agency;
-
-
-        document.getElementById(
-            "modalCompany"
-        ).textContent =
-            item.company;
-
-
-        document.getElementById(
-            "modalStatus"
-        ).value =
-            normalizeStatusForSelect(
-                item.deliveryStatus
-            );
-
-
-        document.getElementById(
-            "modalDeliveryDate"
-        ).value =
-            item.deliveryDate
-                ? String(
-                    item.deliveryDate
-                ).slice(0,10)
-                : "";
-
-
-        document.getElementById(
-            "modalNote"
-        ).value =
-            getField(
-                item.raw,
-                [
-                    "delivery_note",
-                    "delivery_notes",
-                    "note"
-                ],
-                ""
-            );
-
-
-        deliveryModal.classList.add(
-            "show"
+    if (modalNote) {
+        modalNote.value = getField(
+            item.raw,
+            ["delivery_note", "delivery_notes", "note"],
+            ""
         );
+    }
 
-    };
+    showModal(deliveryModal);
+}
+
+window.openDeliveryModal = openDeliveryModal;
 
 
 /* =========================================================
-   NORMALIZE SELECT STATUS
+   NORMALIZE STATUS FOR SELECT
 ========================================================= */
 
-function normalizeStatusForSelect(status){
+function normalizeStatusForSelect(status) {
+    const value = String(status || "").toLowerCase();
 
-    const value =
-        String(status || "")
-            .toLowerCase();
+    if (value.includes("out")) return "out for delivery";
+    if (value.includes("delivered")) return "delivered";
+    if (value.includes("cancel")) return "cancelled";
+    if (value.includes("assigned")) return "assigned";
+    if (value.includes("ready")) return "ready";
+    if (value.includes("processing")) return "processing";
+    if (value.includes("pending")) return "pending";
 
-
-    if(
-        value.includes("out")
-    )
-        return "out for delivery";
-
-
-    if(
-        value.includes("delivered")
-    )
-        return "delivered";
-
-
-    if(
-        value.includes("cancel")
-    )
-        return "cancelled";
-
-
-    if(
-        value.includes("assigned")
-    )
-        return "assigned";
-
-
-    if(
-        value.includes("ready")
-    )
-        return "ready";
-
-
-    return "processing";
-
+    return "pending";
 }
 
 
@@ -3351,319 +3024,240 @@ function normalizeStatusForSelect(status){
    CLOSE DELIVERY MODAL
 ========================================================= */
 
-closeDeliveryModal.addEventListener(
-    "click",
-    () => {
+function closeDeliveryEditor() {
+    hideModal(deliveryModal);
+    selectedDelivery = null;
+}
 
-        deliveryModal.classList.remove(
-            "show"
-        );
+if (closeDeliveryModalBtn) {
+    closeDeliveryModalBtn.addEventListener(
+        "click",
+        closeDeliveryEditor
+    );
+}
 
-        selectedDelivery = null;
-
-    }
-);
-
-
-deliveryModal.addEventListener(
-    "click",
-    event => {
-
-        if(
-            event.target ===
-            deliveryModal
-        ){
-
-            deliveryModal.classList.remove(
-                "show"
-            );
-
-            selectedDelivery = null;
-
+if (deliveryModal) {
+    deliveryModal.addEventListener("click", event => {
+        if (event.target === deliveryModal) {
+            closeDeliveryEditor();
         }
-
-    }
-);
+    });
+}
 
 
 /* =========================================================
-   SAVE DELIVERY
+   SAVE DELIVERY UPDATE
 ========================================================= */
 
-saveDelivery.addEventListener(
-    "click",
-    async () => {
+if (saveDeliveryBtn) {
+    saveDeliveryBtn.addEventListener("click", async () => {
+        if (isSaving) return;
 
-        if(!selectedDelivery){
-
-            showToast(
-                "No delivery selected."
-            );
-
+        if (!selectedDelivery) {
+            showToast("No delivery selected.");
             return;
-
         }
 
+        const modalStatus = document.getElementById("modalStatus");
+        const modalDeliveryDate =
+            document.getElementById("modalDeliveryDate");
+        const modalNote = document.getElementById("modalNote");
 
-        const status =
-            document.getElementById(
-                "modalStatus"
-            ).value;
+        const status = modalStatus ? modalStatus.value : "";
+        const deliveryDate = modalDeliveryDate
+            ? modalDeliveryDate.value
+            : "";
+        const note = modalNote ? modalNote.value.trim() : "";
 
+        if (!status) {
+            showToast("Please select a delivery status.");
+            return;
+        }
 
-        const deliveryDate =
-            document.getElementById(
-                "modalDeliveryDate"
-            ).value;
+        if (
+            deliveryDate &&
+            Number.isNaN(new Date(deliveryDate).getTime())
+        ) {
+            showToast("Please select a valid delivery date.");
+            return;
+        }
 
+        if (
+            status === "delivered" &&
+            !deliveryDate
+        ) {
+            showToast("Please enter the delivery date.");
+            return;
+        }
 
-        const note =
-            document.getElementById(
-                "modalNote"
-            ).value.trim();
+        isSaving = true;
+        saveDeliveryBtn.disabled = true;
+        saveDeliveryBtn.textContent = "Saving...";
 
-
-        saveDelivery.disabled = true;
-        saveDelivery.textContent =
-            "Saving...";
-
-
-        try{
-
+        try {
             /*
-             * Main EGC delivery fields.
-             *
-             * If your exact cylinder_requests schema
-             * uses these names, this updates the record
-             * directly.
-             */
+              This update assumes these columns exist:
+              delivery_status, delivery_date, delivery_note.
+
+              The database must also permit the authenticated
+              Owner to update the selected cylinder request.
+            */
 
             const updateData = {
-
-                delivery_status:
-                    status,
-
-                delivery_date:
-                    deliveryDate || null,
-
-                delivery_note:
-                    note || null
-
+                delivery_status: status,
+                delivery_date: deliveryDate || null,
+                delivery_note: note || null
             };
 
+            const { data, error } = await supabaseClient
+                .from("cylinder_requests")
+                .update(updateData)
+                .eq("id", selectedDelivery.id)
+                .select("id");
 
-            const {
-                error
-            } =
-                await supabaseClient
-                    .from("cylinder_requests")
-                    .update(updateData)
-                    .eq(
-                        "id",
-                        selectedDelivery.id
-                    );
-
-
-            if(error)
+            if (error) {
                 throw error;
+            }
 
+            if (!data || data.length === 0) {
+                throw new Error(
+                    "No record was updated. Check the Owner's database permissions and RLS policies."
+                );
+            }
 
-            showToast(
-                "Delivery updated successfully."
-            );
+            showToast("Delivery updated successfully.");
 
-
-            deliveryModal.classList.remove(
-                "show"
-            );
-
-
-            selectedDelivery = null;
-
+            closeDeliveryEditor();
 
             await loadDeliveries();
 
-
-        }catch(error){
-
-            console.error(
-                "Delivery update error:",
-                error
-            );
-
+        } catch (error) {
+            console.error("Delivery update error:", error);
 
             showToast(
-                error.message ||
-                "Unable to update delivery."
+                error.message || "Unable to update delivery."
             );
 
-        }finally{
-
-            saveDelivery.disabled = false;
-
-            saveDelivery.textContent =
-                "Save Delivery";
-
+        } finally {
+            isSaving = false;
+            saveDeliveryBtn.disabled = false;
+            saveDeliveryBtn.textContent = "Save Delivery";
         }
-
-    }
-);
+    });
+}
 
 
 /* =========================================================
    REFRESH
 ========================================================= */
 
-refreshBtn.addEventListener(
-    "click",
-    async () => {
-
-        refreshBtn.disabled = true;
-        refreshBtn.textContent =
-            "↻ Loading...";
-
-
+if (refreshBtn) {
+    refreshBtn.addEventListener("click", async () => {
         await loadDeliveries();
 
-
-        refreshBtn.disabled = false;
-        refreshBtn.textContent =
-            "↻ Refresh";
-
-
-        showToast(
-            "Delivery records refreshed."
-        );
-
-    }
-);
+        showToast("Delivery records refreshed.");
+    });
+}
 
 
 /* =========================================================
    LOGOUT
 ========================================================= */
 
-logoutBtn.addEventListener(
-    "click",
-    () => {
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        showModal(logoutModal);
+    });
+}
 
-        logoutModal.classList.add(
-            "show"
-        );
+if (cancelLogout) {
+    cancelLogout.addEventListener("click", () => {
+        hideModal(logoutModal);
+    });
+}
 
-    }
-);
-
-
-cancelLogout.addEventListener(
-    "click",
-    () => {
-
-        logoutModal.classList.remove(
-            "show"
-        );
-
-    }
-);
-
-
-logoutModal.addEventListener(
-    "click",
-    event => {
-
-        if(
-            event.target ===
-            logoutModal
-        ){
-
-            logoutModal.classList.remove(
-                "show"
-            );
-
+if (logoutModal) {
+    logoutModal.addEventListener("click", event => {
+        if (event.target === logoutModal) {
+            hideModal(logoutModal);
         }
+    });
+}
 
-    }
-);
-
-
-confirmLogout.addEventListener(
-    "click",
-    async () => {
-
+if (confirmLogout) {
+    confirmLogout.addEventListener("click", async () => {
         confirmLogout.disabled = true;
-        confirmLogout.textContent =
-            "Logging out...";
+        confirmLogout.textContent = "Logging out...";
 
+        try {
+            const { error } = await supabaseClient.auth.signOut();
 
-        try{
+            if (error) {
+                throw error;
+            }
 
-            await supabaseClient.auth.signOut();
+            window.location.replace("login.html");
 
-            window.location.href =
-                "login.html";
+        } catch (error) {
+            console.error("Logout error:", error);
 
-        }catch(error){
-
-            console.error(error);
+            showToast(error.message || "Unable to log out.");
 
             confirmLogout.disabled = false;
-            confirmLogout.textContent =
-                "Logout";
-
+            confirmLogout.textContent = "Logout";
         }
+    });
+}
 
+
+/* =========================================================
+   HTML ESCAPE
+========================================================= */
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value);
+}
+
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+========================================================= */
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeDeliveryEditor();
+        hideModal(logoutModal);
+        closeSidebar();
+
+        if (notificationDropdown) {
+            notificationDropdown.classList.remove("show");
+        }
     }
-);
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHtml(value){
-
-    return String(value ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-
-}
-
-
-/* =========================================================
-   ESCAPE JS
-========================================================= */
-
-function escapeJs(value){
-
-    return String(value ?? "")
-        .replace(/\\/g,"\\\\")
-        .replace(/'/g,"\\'")
-        .replace(/"/g,"&quot;");
-
-}
+});
 
 
 /* =========================================================
    INITIALIZE
 ========================================================= */
 
-(async function init(){
+(async function initOwnerDeliveries() {
+    const authenticated = await checkOwnerSession();
 
-    const authenticated =
-        await checkOwnerSession();
-
-
-    if(!authenticated)
+    if (!authenticated) {
         return;
-
+    }
 
     await loadDeliveries();
-
 })();
-
 </script>
 
 </body>
