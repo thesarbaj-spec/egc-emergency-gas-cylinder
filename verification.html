@@ -21,7 +21,7 @@ button{-webkit-tap-highlight-color:transparent}
 .main{width:100%;max-width:1350px;margin:auto;padding:38px 55px 70px}
 .page-title{text-align:center;margin-bottom:35px}
 .page-title h1{font-size:34px;font-weight:800;color:#06447c;margin-bottom:8px}
-.page-title p{font-size:17px;color:#72899e}
+.page-title p{font-size:17px;color:#72899e;line-height:1.5}
 .steps{width:100%;max-width:900px;margin:0 auto 42px;display:flex;align-items:flex-start}
 .step-box{flex:1;min-width:0;display:flex;align-items:center}
 .step-box:last-child{flex:0 0 auto}
@@ -42,7 +42,7 @@ button{-webkit-tap-highlight-color:transparent}
 .photo-preview img{width:100%;height:100%;object-fit:cover;display:none}
 .photo-placeholder{font-size:58px;color:#7b9bb1}
 .photo-main-buttons{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.small-camera-note{margin-top:10px;text-align:center;color:#7a91a3;font-size:12px}
+.small-camera-note{margin-top:10px;text-align:center;color:#7a91a3;font-size:12px;line-height:1.5}
 .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .detail-item{min-width:0;background:#fff;border:1px solid #e2edf5;border-radius:14px;padding:16px}
 .detail-label{font-size:12px;color:#7890a3;margin-bottom:8px;font-weight:700;text-transform:uppercase}
@@ -76,7 +76,7 @@ button{-webkit-tap-highlight-color:transparent}
 .back-step-btn{min-width:180px;min-height:58px;border:1px solid #d2e1ec;border-radius:14px;background:#fff;color:#15547d;font-size:16px;font-weight:800;cursor:pointer}
 .continue-btn{min-width:250px;min-height:58px;border:0;border-radius:14px;background:#ffc21a;color:#063d70;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 7px 18px rgba(255,194,26,.24)}
 .continue-btn:disabled{opacity:.6;cursor:not-allowed}
-.message{display:none;margin-top:18px;padding:14px 17px;border-radius:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.message{display:none;margin:0 auto 20px;max-width:1080px;padding:14px 17px;border-radius:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
 .message.info,.message.error,.message.success{display:block}
 .message.info{color:#075a96;background:#eef7ff;border:1px solid #c8e2f7}
 .message.error{color:#bd2828;background:#fff1f1;border:1px solid #ffc9c9}
@@ -133,7 +133,7 @@ button{-webkit-tap-highlight-color:transparent}
         <p>Enter your personal information and upload the required documents.</p>
     </div>
 
-    <div class="steps">
+    <div class="steps" aria-label="Application progress">
         <div class="step-box">
             <div class="step completed"><div class="step-circle">✓</div><div class="step-name">LPG Details</div></div>
             <div class="step-line completed"></div>
@@ -179,19 +179,19 @@ button{-webkit-tap-highlight-color:transparent}
         <div class="details-grid">
             <div class="detail-item">
                 <div class="detail-label">Full Name</div>
-                <input type="text" id="fullName" class="detail-input" placeholder="Enter Full Name" autocomplete="off">
+                <input type="text" id="fullName" class="detail-input" placeholder="Enter Full Name" autocomplete="name">
             </div>
             <div class="detail-item">
                 <div class="detail-label">Mobile</div>
-                <input type="tel" id="mobile" class="detail-input" placeholder="Enter Mobile" inputmode="numeric" maxlength="10" autocomplete="off">
+                <input type="tel" id="mobile" class="detail-input" placeholder="Enter Mobile" inputmode="numeric" maxlength="10" autocomplete="tel">
             </div>
             <div class="detail-item">
                 <div class="detail-label">Email</div>
-                <input type="email" id="email" class="detail-input" placeholder="Enter Email" autocomplete="off">
+                <input type="email" id="email" class="detail-input" placeholder="Enter Email" autocomplete="email">
             </div>
             <div class="detail-item">
                 <div class="detail-label">Address</div>
-                <input type="text" id="address" class="detail-input" placeholder="Enter Address" autocomplete="off">
+                <input type="text" id="address" class="detail-input" placeholder="Enter Address" autocomplete="street-address">
             </div>
         </div>
 
@@ -303,7 +303,7 @@ button{-webkit-tap-highlight-color:transparent}
 </main>
 </div>
 
-<div class="camera-modal" id="cameraModal">
+<div class="camera-modal" id="cameraModal" role="dialog" aria-modal="true" aria-label="Camera">
     <div class="camera-panel">
         <div class="camera-header">
             <div class="camera-title" id="cameraTitle">Camera</div>
@@ -331,16 +331,13 @@ button{-webkit-tap-highlight-color:transparent}
 "use strict";
 
 /* =========================================================
-   EGC VERIFICATION — FIXED COMPLETE SCRIPT
-   LPG Details: sessionStorage first, localStorage fallback
+   EGC VERIFICATION
+   Saves profile and documents, then continues to scheme.html.
+   Does not create a cylinder request on this page.
 ========================================================= */
 
-const SUPABASE_URL =
-    "https://szefvmvokkhvnzryodqu.supabase.co";
-
-const SUPABASE_PUBLISHABLE_KEY =
-    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 const DOCUMENT_BUCKET = "users-documents";
 
 let egcSupabase = null;
@@ -419,16 +416,12 @@ const previewConfig = {
     }
 };
 
-/* =========================================================
-   SUPABASE
-========================================================= */
+/* Supabase initialization */
 
 function initializeSupabase() {
     try {
-        if (
-            !window.supabase ||
-            typeof window.supabase.createClient !== "function"
-        ) {
+        if (!window.supabase ||
+            typeof window.supabase.createClient !== "function") {
             console.error("Supabase CDN did not load.");
             return false;
         }
@@ -439,7 +432,6 @@ function initializeSupabase() {
         );
 
         window.egcSupabase = egcSupabase;
-
         return true;
     } catch (error) {
         console.error("Supabase initialization failed:", error);
@@ -449,9 +441,7 @@ function initializeSupabase() {
 
 const SUPABASE_READY = initializeSupabase();
 
-/* =========================================================
-   MESSAGES
-========================================================= */
+/* Messages */
 
 function showMessage(text, type = "info") {
     if (!message) {
@@ -470,7 +460,6 @@ function showMessage(text, type = "info") {
 
 function clearMessage() {
     if (!message) return;
-
     message.className = "message";
     message.textContent = "";
 }
@@ -479,16 +468,12 @@ function normalize(value) {
     return String(value ?? "").trim();
 }
 
-/* =========================================================
-   STORAGE HELPERS
-========================================================= */
+/* Storage helpers */
 
 function readJSONFromStorage(storage, key) {
     try {
         const value = storage.getItem(key);
-
         if (!value) return null;
-
         return JSON.parse(value);
     } catch (error) {
         console.warn("Could not parse storage key:", key, error);
@@ -538,42 +523,22 @@ function safeSessionGet(key) {
     }
 }
 
-/* =========================================================
-   FIX: READ LPG DETAILS FROM THE CORRECT STORAGE
-
-   request-cylinder.html saves:
-   sessionStorage.setItem("egc_lpg_details", JSON.stringify(details))
-
-   Therefore, Verification must read sessionStorage first.
-========================================================= */
+/* Read LPG details: sessionStorage first, localStorage fallback */
 
 function getStoredLpgDetails() {
-    let details = readJSONFromStorage(
-        sessionStorage,
-        "egc_lpg_details"
-    );
-
+    let details = readJSONFromStorage(sessionStorage, "egc_lpg_details");
     let source = "sessionStorage";
 
-    // Compatibility with older versions of the LPG page.
     if (!details) {
-        details = readJSONFromStorage(
-            localStorage,
-            "egc_lpg_details"
-        );
-
+        details = readJSONFromStorage(localStorage, "egc_lpg_details");
         source = "localStorage";
     }
 
     console.log("EGC LPG Details source:", details ? source : "not found");
-    console.log("EGC LPG Details:", details);
-
     return details;
 }
 
-/* =========================================================
-   CLEAR PERSONAL DETAILS AND PHOTO PREVIEWS
-========================================================= */
+/* Clear personal details and temporary image previews */
 
 function clearPersonalFields() {
     if (fullNameInput) fullNameInput.value = "";
@@ -593,15 +558,9 @@ function clearImagePreviews() {
             image.style.display = "none";
         }
 
-        if (empty) {
-            empty.style.display = "block";
-        }
+        if (empty) empty.style.display = "block";
+        if (removeButton) removeButton.style.display = "none";
 
-        if (removeButton) {
-            removeButton.style.display = "none";
-        }
-
-        // Clear only temporary preview images.
         try {
             localStorage.removeItem(imageKeys[target]);
         } catch (error) {
@@ -610,27 +569,21 @@ function clearImagePreviews() {
     }
 }
 
-/* =========================================================
-   LOAD AND VALIDATE LPG DETAILS
-========================================================= */
+/* Validate and display saved LPG details */
 
 function loadLpgDetails() {
     const noDetailsBox = document.getElementById("noDetailsBox");
-
     const details = getStoredLpgDetails();
 
     if (!details || typeof details !== "object" || Array.isArray(details)) {
         savedLpgDetails = null;
 
-        if (noDetailsBox) {
-            noDetailsBox.style.display = "block";
-        }
+        if (noDetailsBox) noDetailsBox.style.display = "block";
 
         showMessage(
             "Saved LPG Details नहीं मिलीं। पहले LPG Details page पर सभी details चुनकर CONTINUE दबाएँ।",
             "error"
         );
-
         return false;
     }
 
@@ -653,9 +606,7 @@ function loadLpgDetails() {
     if (!state || !district || !city || !company || !agencyId) {
         savedLpgDetails = null;
 
-        if (noDetailsBox) {
-            noDetailsBox.style.display = "block";
-        }
+        if (noDetailsBox) noDetailsBox.style.display = "block";
 
         console.error("Incomplete LPG Details:", {
             state,
@@ -666,10 +617,9 @@ function loadLpgDetails() {
         });
 
         showMessage(
-            "LPG Details अधूरी हैं। LPG Company, State, District, City और LPG Agency दोबारा चुनकर CONTINUE दबाएँ।",
+            "LPG Details अधूरी हैं। State, District, City, LPG Company और LPG Agency दोबारा चुनकर CONTINUE दबाएँ।",
             "error"
         );
-
         return false;
     }
 
@@ -680,17 +630,11 @@ function loadLpgDetails() {
         city,
         company,
         agency_id: agencyId,
-        agency_name: normalize(
-            details.agency_name || details.agencyName
-        ),
-        agency_code: normalize(
-            details.agency_code || details.agencyCode
-        )
+        agency_name: normalize(details.agency_name || details.agencyName),
+        agency_code: normalize(details.agency_code || details.agencyCode)
     };
 
-    if (noDetailsBox) {
-        noDetailsBox.style.display = "none";
-    }
+    if (noDetailsBox) noDetailsBox.style.display = "none";
 
     const values = {
         stateValue: savedLpgDetails.state,
@@ -703,20 +647,13 @@ function loadLpgDetails() {
 
     for (const [id, value] of Object.entries(values)) {
         const element = document.getElementById(id);
-
-        if (element) {
-            element.textContent = value || "-";
-        }
+        if (element) element.textContent = value || "-";
     }
-
-    console.log("EGC LPG Details loaded successfully.");
 
     return true;
 }
 
-/* =========================================================
-   AUTHENTICATION
-========================================================= */
+/* Authentication */
 
 async function getAuthenticatedUser() {
     if (!SUPABASE_READY || !egcSupabase) {
@@ -729,21 +666,19 @@ async function getAuthenticatedUser() {
 
     if (error) throw error;
 
-    if (!data?.user) {
+    if (!data || !data.user) {
         throw new Error(
             "Login session नहीं मिला। कृपया login करके फिर प्रयास करें।"
         );
     }
 
     currentAuthUser = data.user;
-
     return data.user;
 }
 
 async function loadSavedProfile() {
     if (!currentAuthUser) return;
 
-    // Check profile existence without filling personal fields.
     const { error } = await egcSupabase
         .from("profiles")
         .select("id")
@@ -751,24 +686,18 @@ async function loadSavedProfile() {
         .maybeSingle();
 
     if (error) {
-        console.warn(
-            "Profile existence check failed:",
-            error.message
-        );
+        console.warn("Profile existence check failed:", error.message);
     }
 
+    // Intentionally do not refill personal fields.
     clearPersonalFields();
 }
 
-/* =========================================================
-   CAMERA
-========================================================= */
+/* Camera */
 
 async function startCameraStream() {
-    if (
-        !navigator.mediaDevices ||
-        typeof navigator.mediaDevices.getUserMedia !== "function"
-    ) {
+    if (!navigator.mediaDevices ||
+        typeof navigator.mediaDevices.getUserMedia !== "function") {
         throw new Error(
             "Camera के लिए HTTPS या localhost आवश्यक है। आप Upload बटन भी इस्तेमाल कर सकते हैं।"
         );
@@ -797,18 +726,14 @@ function stopCameraStream() {
         cameraStream = null;
     }
 
-    if (cameraVideo) {
-        cameraVideo.srcObject = null;
-    }
+    if (cameraVideo) cameraVideo.srcObject = null;
 }
 
 async function openRealCamera(target, title) {
     currentCameraTarget = target;
 
     if (cameraTitle) cameraTitle.textContent = title;
-
     if (cameraModal) cameraModal.classList.add("show");
-
     if (cameraStatus) cameraStatus.textContent = "Starting camera...";
 
     try {
@@ -823,10 +748,7 @@ async function openRealCamera(target, title) {
     } catch (error) {
         console.error("Camera error:", error);
 
-        if (cameraStatus) {
-            cameraStatus.textContent = error.message;
-        }
-
+        if (cameraStatus) cameraStatus.textContent = error.message;
         showMessage(error.message, "error");
     }
 }
@@ -834,10 +756,7 @@ async function openRealCamera(target, title) {
 function closeCamera() {
     stopCameraStream();
 
-    if (cameraModal) {
-        cameraModal.classList.remove("show");
-    }
-
+    if (cameraModal) cameraModal.classList.remove("show");
     currentCameraTarget = null;
 }
 
@@ -850,9 +769,7 @@ if (switchCameraBtn) {
         cameraFacingMode =
             cameraFacingMode === "environment" ? "user" : "environment";
 
-        if (cameraStatus) {
-            cameraStatus.textContent = "Switching camera...";
-        }
+        if (cameraStatus) cameraStatus.textContent = "Switching camera...";
 
         try {
             await startCameraStream();
@@ -876,15 +793,10 @@ if (switchCameraBtn) {
 
 ["closeCameraBtn", "cancelCameraBtn"].forEach(id => {
     const button = document.getElementById(id);
-
-    if (button) {
-        button.addEventListener("click", closeCamera);
-    }
+    if (button) button.addEventListener("click", closeCamera);
 });
 
-/* =========================================================
-   IMAGE COMPRESSION
-========================================================= */
+/* Image compression */
 
 function compressImage(imageData, maxWidth = 900, quality = 0.65) {
     return new Promise((resolve, reject) => {
@@ -906,7 +818,6 @@ function compressImage(imageData, maxWidth = 900, quality = 0.65) {
             }
 
             const canvas = document.createElement("canvas");
-
             canvas.width = width;
             canvas.height = height;
 
@@ -926,59 +837,50 @@ function compressImage(imageData, maxWidth = 900, quality = 0.65) {
                 }
 
                 const reader = new FileReader();
-
                 reader.onload = () => resolve(reader.result);
-
-                reader.onerror = () => {
-                    reject(new Error("Compressed image पढ़ी नहीं जा सकी।"));
-                };
-
+                reader.onerror = () => reject(
+                    new Error("Compressed image पढ़ी नहीं जा सकी।")
+                );
                 reader.readAsDataURL(blob);
             }, "image/jpeg", quality);
         };
 
-        img.onerror = () => {
-            reject(new Error("Image file सही नहीं है।"));
-        };
-
+        img.onerror = () => reject(new Error("Image file सही नहीं है।"));
         img.src = imageData;
     });
 }
 
-/* =========================================================
-   PHOTO PREVIEW
-========================================================= */
+/* Photo previews */
 
 function setPreviewImage(target, imageData) {
     const config = previewConfig[target];
-
-    if (!config || !imageData) return;
+    if (!config || !imageData) return false;
 
     const image = document.getElementById(config.imageId);
     const empty = document.getElementById(config.emptyId);
     const removeButton = document.getElementById(config.removeId);
 
-    if (!image) return;
+    if (!image) return false;
 
     if (!safeLocalSet(imageKeys[target], imageData)) {
         showMessage(
             "Browser storage में जगह कम है। कृपया छोटी photo चुनें।",
             "error"
         );
-        return;
+        return false;
     }
 
     image.src = imageData;
     image.style.display = "block";
 
     if (empty) empty.style.display = "none";
-
     if (removeButton) removeButton.style.display = "block";
+
+    return true;
 }
 
 function removePhoto(target) {
     const config = previewConfig[target];
-
     if (!config) return;
 
     const image = document.getElementById(config.imageId);
@@ -991,19 +893,17 @@ function removePhoto(target) {
     }
 
     if (empty) empty.style.display = "block";
-
     if (removeButton) removeButton.style.display = "none";
 
     try {
         localStorage.removeItem(imageKeys[target]);
+        localStorage.removeItem(documentPathKeys[target]);
     } catch (error) {
         console.warn(error);
     }
 }
 
-/* =========================================================
-   CAPTURE PHOTO
-========================================================= */
+/* Capture photo */
 
 const captureBtn = document.getElementById("captureBtn");
 
@@ -1023,7 +923,6 @@ if (captureBtn) {
         }
 
         const canvas = document.createElement("canvas");
-
         canvas.width = cameraVideo.videoWidth;
         canvas.height = cameraVideo.videoHeight;
 
@@ -1066,9 +965,7 @@ if (captureBtn) {
     });
 }
 
-/* =========================================================
-   CAMERA AND UPLOAD BUTTONS
-========================================================= */
+/* Camera and upload buttons */
 
 function connectCameraButton(buttonId, target, title) {
     const button = document.getElementById(buttonId);
@@ -1106,18 +1003,14 @@ connectUploadButton("aadhaarFrontUploadBtn", "aadhaarFrontUploadInput");
 connectCameraButton("aadhaarBackCameraBtn", "aadhaarBack", "Aadhaar Back");
 connectUploadButton("aadhaarBackUploadBtn", "aadhaarBackUploadInput");
 
-/* =========================================================
-   FILE UPLOAD
-========================================================= */
+/* File uploads */
 
 function handleUpload(inputId, target) {
     const input = document.getElementById(inputId);
-
     if (!input) return;
 
     input.addEventListener("change", async function() {
         const file = input.files && input.files[0];
-
         if (!file) return;
 
         if (!file.type || !file.type.startsWith("image/")) {
@@ -1135,20 +1028,22 @@ function handleUpload(inputId, target) {
         try {
             const rawImage = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
-
                 reader.onload = event => resolve(event.target.result);
                 reader.onerror = () => reject(new Error("File पढ़ी नहीं जा सकी।"));
-
                 reader.readAsDataURL(file);
             });
 
             const compressed = await compressImage(rawImage, 900, 0.65);
 
-            setPreviewImage(target, compressed);
-            clearMessage();
+            if (setPreviewImage(target, compressed)) {
+                clearMessage();
+            }
         } catch (error) {
             console.error(error);
-            showMessage(error.message || "Image process नहीं हो पाई।", "error");
+            showMessage(
+                error.message || "Image process नहीं हो पाई।",
+                "error"
+            );
         } finally {
             input.value = "";
         }
@@ -1161,9 +1056,7 @@ handleUpload("panUploadInput", "pan");
 handleUpload("aadhaarFrontUploadInput", "aadhaarFront");
 handleUpload("aadhaarBackUploadInput", "aadhaarBack");
 
-/* =========================================================
-   REMOVE PHOTO BUTTONS
-========================================================= */
+/* Remove photo buttons */
 
 const removeButtons = {
     profile: "profileRemoveBtn",
@@ -1183,9 +1076,7 @@ Object.entries(removeButtons).forEach(([target, buttonId]) => {
     }
 });
 
-/* =========================================================
-   MOBILE INPUT
-========================================================= */
+/* Mobile input */
 
 if (mobileInput) {
     mobileInput.addEventListener("input", function() {
@@ -1193,16 +1084,14 @@ if (mobileInput) {
     });
 }
 
-/* =========================================================
-   SAVE PERSONAL DETAILS
-========================================================= */
+/* Save personal details temporarily */
 
 function savePersonalDetails() {
     const personalDetails = {
-        full_name: normalize(fullNameInput?.value),
-        mobile: normalize(mobileInput?.value),
-        email: normalize(emailInput?.value),
-        address: normalize(addressInput?.value),
+        full_name: normalize(fullNameInput.value),
+        mobile: normalize(mobileInput.value),
+        email: normalize(emailInput.value).toLowerCase(),
+        address: normalize(addressInput.value),
 
         documents: {
             profile_photo: !!safeLocalGet(imageKeys.profile),
@@ -1224,9 +1113,7 @@ function savePersonalDetails() {
     return personalDetails;
 }
 
-/* =========================================================
-   VALIDATION
-========================================================= */
+/* Form validation */
 
 function validateForm() {
     if (!savedLpgDetails) {
@@ -1237,32 +1124,32 @@ function validateForm() {
         return false;
     }
 
-    const fullName = normalize(fullNameInput?.value);
-    const mobile = normalize(mobileInput?.value);
-    const email = normalize(emailInput?.value);
-    const address = normalize(addressInput?.value);
+    const fullName = normalize(fullNameInput.value);
+    const mobile = normalize(mobileInput.value);
+    const email = normalize(emailInput.value);
+    const address = normalize(addressInput.value);
 
     if (!fullName) {
         showMessage("कृपया अपना Full Name भरें।", "error");
-        fullNameInput?.focus();
+        fullNameInput.focus();
         return false;
     }
 
     if (!/^\d{10}$/.test(mobile)) {
         showMessage("कृपया सही 10-digit Mobile Number भरें।", "error");
-        mobileInput?.focus();
+        mobileInput.focus();
         return false;
     }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showMessage("कृपया सही Email Address भरें।", "error");
-        emailInput?.focus();
+        emailInput.focus();
         return false;
     }
 
     if (!address) {
         showMessage("कृपया अपना Address भरें।", "error");
-        addressInput?.focus();
+        addressInput.focus();
         return false;
     }
 
@@ -1280,7 +1167,7 @@ function validateForm() {
         }
     }
 
-    if (!confirmCheck || !confirmCheck.checked) {
+    if (!confirmCheck.checked) {
         showMessage(
             "आगे बढ़ने से पहले information की पुष्टि करें।",
             "error"
@@ -1291,22 +1178,29 @@ function validateForm() {
     return true;
 }
 
-/* =========================================================
-   UPLOAD DOCUMENTS TO SUPABASE STORAGE
-========================================================= */
+/* Validate agency_id as a real UUID.
+   profiles.agency_id is UUID type in the supplied schema. */
+
+function isValidUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+/* Upload documents to Supabase Storage */
 
 async function uploadDocument(target, userId) {
     const dataUrl = safeLocalGet(imageKeys[target]);
 
     if (!dataUrl) {
-        throw new Error(
-            "कृपया " + target + " की photo upload करें।"
-        );
+        throw new Error("कृपया " + target + " की photo upload करें।");
     }
 
     const response = await fetch(dataUrl);
-    const blob = await response.blob();
 
+    if (!response.ok) {
+        throw new Error("Photo data पढ़ी नहीं जा सकी: " + target);
+    }
+
+    const blob = await response.blob();
     const storagePath = userId + "/" + documentFileNames[target];
 
     const { data, error } = await egcSupabase
@@ -1320,15 +1214,16 @@ async function uploadDocument(target, userId) {
 
     if (error) {
         console.error("Storage upload failed:", target, error);
-
         throw new Error(
             "Document upload failed (" + target + "): " + error.message
         );
     }
 
-    const savedPath = data?.path || storagePath;
+    const savedPath = data && data.path ? data.path : storagePath;
 
-    safeLocalSet(documentPathKeys[target], savedPath);
+    if (!safeLocalSet(documentPathKeys[target], savedPath)) {
+        console.warn("Could not save local path for", target);
+    }
 
     return savedPath;
 }
@@ -1354,19 +1249,24 @@ async function uploadAllDocuments(userId) {
     return result;
 }
 
-/* =========================================================
-   SAVE PROFILE TO SUPABASE
-
-   NOTE:
-   This assumes the listed extra columns already exist in
-   your profiles table. If not, Supabase will return a
-   missing-column error; add the columns or adjust this list.
-========================================================= */
+/* Save profile with upsert.
+   This also creates a profile row if the authenticated user's
+   profiles row does not exist. Existing role is not overwritten. */
 
 async function saveProfileToSupabase(user, personal, paths) {
     const lpg = savedLpgDetails || {};
+    const agencyId = normalize(lpg.agency_id);
 
-    const profileUpdate = {
+    if (!isValidUuid(agencyId)) {
+        throw new Error(
+            "Selected LPG Agency की ID valid UUID नहीं है। LPG Details page में agency_id को agencies table की असली UUID ID से save करें; agency name या agency code यहाँ इस्तेमाल नहीं हो सकता।"
+        );
+    }
+
+    const profileData = {
+        id: user.id,
+        auth_email: user.email || personal.email || null,
+
         full_name: personal.full_name,
         mobile: personal.mobile,
         email: personal.email,
@@ -1378,7 +1278,8 @@ async function saveProfileToSupabase(user, personal, paths) {
         district: lpg.district || null,
         city: lpg.city || null,
         lpg_company: lpg.company || null,
-        agency_id: lpg.agency_id || null,
+        agency_id: agencyId,
+
         gas_passbook_photo: paths.passbook || null,
         aadhaar_front_photo: paths.aadhaarFront || null,
         aadhaar_back_photo: paths.aadhaarBack || null,
@@ -1387,22 +1288,22 @@ async function saveProfileToSupabase(user, personal, paths) {
 
     const { error } = await egcSupabase
         .from("profiles")
-        .update(profileUpdate)
-        .eq("id", user.id);
+        .upsert(profileData, {
+            onConflict: "id"
+        });
 
     if (error) {
-        console.error("Profile update failed:", error);
+        console.error("Profile upsert failed:", error);
 
         throw new Error(
-            "Profile save failed. Supabase profiles table के column names जाँचें: " +
-            error.message
+            "Profile save failed: " + error.message +
+            ". Supabase profiles columns, unique constraints और RLS policies जाँचें।"
         );
     }
 }
 
-/* =========================================================
-   SAVE VERIFICATION HANDOFF
-========================================================= */
+/* Save verification handoff locally for scheme.html.
+   This step does not create a cylinder request. */
 
 async function saveVerificationHandoff(user, personal, paths) {
     const verificationData = {
@@ -1442,9 +1343,7 @@ async function saveVerificationHandoff(user, personal, paths) {
     }
 }
 
-/* =========================================================
-   CONTINUE — SAVE AND OPEN SCHEME
-========================================================= */
+/* Continue: save and navigate to scheme.html */
 
 if (continueBtn) {
     continueBtn.addEventListener("click", async function() {
@@ -1452,9 +1351,7 @@ if (continueBtn) {
 
         clearMessage();
 
-        // Reload LPG details from the fixed storage reader.
         if (!loadLpgDetails()) return;
-
         if (!validateForm()) return;
 
         if (!SUPABASE_READY || !egcSupabase) {
@@ -1487,7 +1384,6 @@ if (continueBtn) {
             );
 
             await saveProfileToSupabase(user, personal, paths);
-
             await saveVerificationHandoff(user, personal, paths);
 
             showMessage(
@@ -1497,7 +1393,7 @@ if (continueBtn) {
 
             continueBtn.textContent = "SAVED ✓";
 
-            // Clear temporary image data only after all saves succeed.
+            // Remove temporary image data only after successful uploads and saves.
             for (const key of Object.values(imageKeys)) {
                 try {
                     localStorage.removeItem(key);
@@ -1514,8 +1410,9 @@ if (continueBtn) {
             console.error("Verification submission failed:", error);
 
             showMessage(
-                error?.message ||
-                "Verification save नहीं हो पाई। कृपया फिर प्रयास करें।",
+                error && error.message
+                    ? error.message
+                    : "Verification save नहीं हो पाई। कृपया फिर प्रयास करें।",
                 "error"
             );
 
@@ -1528,27 +1425,21 @@ if (continueBtn) {
     });
 }
 
-/* =========================================================
-   NAVIGATION
-========================================================= */
+/* Navigation */
 
 function goBackToLpgDetails() {
+    if (isSaving) return;
     window.location.href = "request-cylinder.html";
 }
 
 ["backStepBtn", "goDetailsBtn", "backBtn"].forEach(id => {
     const button = document.getElementById(id);
-
-    if (button) {
-        button.addEventListener("click", goBackToLpgDetails);
-    }
+    if (button) button.addEventListener("click", goBackToLpgDetails);
 });
 
 window.addEventListener("beforeunload", stopCameraStream);
 
-/* =========================================================
-   PAGE INITIALIZATION
-========================================================= */
+/* Page initialization */
 
 async function initializeVerificationPage() {
     clearPersonalFields();
@@ -1561,7 +1452,6 @@ async function initializeVerificationPage() {
         safeSessionGet("egc_request_id") ||
         null;
 
-    // This now reads sessionStorage first.
     const lpgLoaded = loadLpgDetails();
 
     if (!SUPABASE_READY || !egcSupabase) {
@@ -1576,12 +1466,10 @@ async function initializeVerificationPage() {
         await getAuthenticatedUser();
         await loadSavedProfile();
 
-        // Keep personal fields empty until the user fills them.
+        // Keep the personal fields empty until the user enters them.
         clearPersonalFields();
 
-        if (lpgLoaded) {
-            clearMessage();
-        }
+        if (lpgLoaded) clearMessage();
 
         console.log(
             "EGC Verification ready. LPG details loaded:",
@@ -1601,6 +1489,5 @@ async function initializeVerificationPage() {
 
 initializeVerificationPage();
 </script>
-
 </body>
 </html>

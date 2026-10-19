@@ -7,623 +7,267 @@
 <title>EGC - LPG Details</title>
 
 <style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100%}
+body{font-family:Arial,Helvetica,sans-serif;background:#f4f8fc;color:#073f73}
+.app{width:100%;min-height:100vh;background:#fff}
+
+.header{
+    width:100%;height:82px;background:#fff;
+    border-bottom:1px solid #e3edf5;
+    display:flex;align-items:center;justify-content:center;
+    position:sticky;top:0;z-index:100
 }
-
-html, body {
-    width: 100%;
-    min-height: 100%;
+.header-left{position:absolute;left:28px;display:flex;align-items:center}
+.back-btn{
+    width:42px;height:42px;border:none;border-radius:12px;
+    background:#eef7ff;color:#075ca5;font-size:29px;
+    cursor:pointer;display:flex;align-items:center;
+    justify-content:center;transition:.2s
 }
+.back-btn:hover{background:#dcefff}
+.egc-logo{height:60px;width:auto;max-width:260px;object-fit:contain}
 
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f8fc;
-    color: #073f73;
+.main{width:100%;max-width:1450px;margin:0 auto;padding:42px 60px 80px}
+.page-title{text-align:center;margin-bottom:36px}
+.page-title h1{font-size:36px;font-weight:800;color:#06447c;margin-bottom:9px}
+.page-title p{font-size:17px;color:#71879a}
+
+.steps{
+    width:100%;max-width:950px;margin:0 auto 44px;
+    display:flex;align-items:flex-start
 }
-
-.app {
-    width: 100%;
-    min-height: 100vh;
-    background: #fff;
+.step-box{flex:1;display:flex;align-items:center;min-width:0}
+.step-box:last-child{flex:0 0 auto}
+.step{min-width:95px;text-align:center}
+.step-circle{
+    width:48px;height:48px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:auto;font-size:17px;font-weight:800;
+    background:#fff;border:3px solid #d0dfeb;color:#8ba0b1
 }
+.step.active .step-circle{background:#0878d1;border-color:#0878d1;color:#fff}
+.step-name{margin-top:9px;font-size:13px;font-weight:700;color:#8b9baa;white-space:nowrap}
+.step.active .step-name{color:#0872c7}
+.step-line{flex:1;min-width:5px;height:3px;background:#d6e2ec;margin:23px 10px 0}
 
-/* HEADER */
-.header {
-    width: 100%;
-    height: 82px;
-    background: #fff;
-    border-bottom: 1px solid #e3edf5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+.card{
+    width:100%;max-width:1120px;margin:0 auto;background:#fff;
+    border:1px solid #dfe9f1;border-radius:22px;padding:40px;
+    box-shadow:0 12px 42px rgba(7,65,105,.08)
 }
+.card-title{font-size:28px;font-weight:800;color:#06477f;margin-bottom:7px}
+.card-subtitle{font-size:15px;color:#71879a;margin-bottom:31px}
 
-.header-left {
-    position: absolute;
-    left: 28px;
-    display: flex;
-    align-items: center;
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.form-group{display:flex;flex-direction:column;min-width:0}
+.form-group.full{grid-column:1/-1}
+label{font-size:15px;font-weight:700;color:#084a7e;margin-bottom:9px}
+
+select{
+    width:100%;height:56px;border:1.5px solid #d3e0eb;
+    border-radius:13px;padding:0 15px;font-size:16px;
+    color:#254d6c;background:#fff;outline:none;
+    cursor:pointer;transition:.2s
 }
+select:hover{border-color:#b8cedf}
+select:focus{border-color:#0878d1;box-shadow:0 0 0 3px rgba(8,120,209,.10)}
+select:disabled{background:#f5f8fa;color:#91a2ae;cursor:not-allowed}
 
-.back-btn {
-    width: 42px;
-    height: 42px;
-    border: none;
-    border-radius: 12px;
-    background: #eef7ff;
-    color: #075ca5;
-    font-size: 29px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: .2s;
+.agency-status{margin-top:9px;font-size:13px;color:#6d879a;min-height:18px}
+.agency-status.success{color:#16833a}
+.agency-status.error{color:#bd2828}
+
+.info{
+    margin-top:27px;padding:18px 20px;background:#eef8ff;
+    border:1px solid #cce7fa;border-radius:14px;
+    color:#52728d;font-size:14px;line-height:1.6
 }
-
-.back-btn:hover {
-    background: #dcefff;
+.message{
+    display:none;margin-top:18px;padding:14px 17px;
+    border-radius:12px;font-size:14px;line-height:1.5;
+    white-space:pre-line;overflow-wrap:anywhere
 }
+.message.error,.message.success{display:block}
+.message.error{color:#bd2828;background:#fff1f1;border:1px solid #ffc9c9}
+.message.success{color:#16833a;background:#effcf3;border:1px solid #bde8c9}
 
-.egc-logo {
-    height: 60px;
-    width: auto;
-    max-width: 260px;
-    object-fit: contain;
+.action{display:flex;justify-content:flex-end;margin-top:30px}
+.continue-btn{
+    min-width:250px;min-height:58px;border:0;border-radius:14px;
+    background:#ffc21a;color:#063d70;font-size:17px;font-weight:800;
+    cursor:pointer;box-shadow:0 7px 18px rgba(255,194,26,.24);
+    transition:.2s
 }
+.continue-btn:hover{background:#ffb900;transform:translateY(-1px)}
+.continue-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 
-/* MAIN */
-.main {
-    width: 100%;
-    max-width: 1450px;
-    margin: 0 auto;
-    padding: 42px 60px 80px;
+@media(min-width:1200px){
+    .main{padding-left:80px;padding-right:80px}
+    .card{padding:44px}
 }
-
-.page-title {
-    text-align: center;
-    margin-bottom: 36px;
+@media(max-width:900px){
+    .main{padding:32px 25px 60px}
+    .card{padding:30px}
+    .steps{max-width:800px}
+    .step{min-width:65px}
+    .step-line{margin-left:5px;margin-right:5px}
 }
-
-.page-title h1 {
-    font-size: 36px;
-    font-weight: 800;
-    color: #06447c;
-    margin-bottom: 9px;
+@media(max-width:700px){
+    .header{height:70px}
+    .header-left{left:14px}
+    .back-btn{width:38px;height:38px;font-size:26px}
+    .egc-logo{height:49px;max-width:210px}
+    .main{padding:25px 15px 45px}
+    .page-title{margin-bottom:29px}
+    .page-title h1{font-size:28px}
+    .page-title p{font-size:14px}
+    .steps{margin-bottom:30px}
+    .step{min-width:48px}
+    .step-circle{width:36px;height:36px;font-size:13px}
+    .step-name{font-size:9px}
+    .step-line{margin:17px 3px 0}
+    .card{padding:23px 17px;border-radius:17px}
+    .card-title{font-size:23px}
+    .card-subtitle{font-size:14px;margin-bottom:25px}
+    .form-grid{grid-template-columns:1fr;gap:19px}
+    .form-group.full{grid-column:auto}
+    .action{justify-content:stretch}
+    .continue-btn{width:100%;min-width:0}
 }
-
-.page-title p {
-    font-size: 17px;
-    color: #71879a;
-}
-
-/* STEPS */
-.steps {
-    width: 100%;
-    max-width: 950px;
-    margin: 0 auto 44px;
-    display: flex;
-    align-items: flex-start;
-}
-
-.step-box {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    min-width: 0;
-}
-
-.step-box:last-child {
-    flex: 0 0 auto;
-}
-
-.step {
-    min-width: 95px;
-    text-align: center;
-}
-
-.step-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-    font-size: 17px;
-    font-weight: 800;
-    background: #fff;
-    border: 3px solid #d0dfeb;
-    color: #8ba0b1;
-}
-
-.step.active .step-circle {
-    background: #0878d1;
-    border-color: #0878d1;
-    color: #fff;
-}
-
-.step-name {
-    margin-top: 9px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #8b9baa;
-    white-space: nowrap;
-}
-
-.step.active .step-name {
-    color: #0872c7;
-}
-
-.step-line {
-    flex: 1;
-    min-width: 5px;
-    height: 3px;
-    background: #d6e2ec;
-    margin: 23px 10px 0;
-}
-
-/* CARD */
-.card {
-    width: 100%;
-    max-width: 1120px;
-    margin: 0 auto;
-    background: #fff;
-    border: 1px solid #dfe9f1;
-    border-radius: 22px;
-    padding: 40px;
-    box-shadow: 0 12px 42px rgba(7, 65, 105, .08);
-}
-
-.card-title {
-    font-size: 28px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 7px;
-}
-
-.card-subtitle {
-    font-size: 15px;
-    color: #71879a;
-    margin-bottom: 31px;
-}
-
-/* FORM */
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.form-group.full {
-    grid-column: 1 / -1;
-}
-
-label {
-    font-size: 15px;
-    font-weight: 700;
-    color: #084a7e;
-    margin-bottom: 9px;
-}
-
-select {
-    width: 100%;
-    height: 56px;
-    border: 1.5px solid #d3e0eb;
-    border-radius: 13px;
-    padding: 0 15px;
-    font-size: 16px;
-    color: #254d6c;
-    background: #fff;
-    outline: none;
-    cursor: pointer;
-    transition: .2s;
-}
-
-select:hover {
-    border-color: #b8cedf;
-}
-
-select:focus {
-    border-color: #0878d1;
-    box-shadow: 0 0 0 3px rgba(8, 120, 209, .10);
-}
-
-select:disabled {
-    background: #f5f8fa;
-    color: #91a2ae;
-    cursor: not-allowed;
-}
-
-/* AGENCY STATUS */
-.agency-status {
-    margin-top: 9px;
-    font-size: 13px;
-    color: #6d879a;
-    min-height: 18px;
-}
-
-.agency-status.success {
-    color: #16833a;
-}
-
-.agency-status.error {
-    color: #bd2828;
-}
-
-/* INFO */
-.info {
-    margin-top: 27px;
-    padding: 18px 20px;
-    background: #eef8ff;
-    border: 1px solid #cce7fa;
-    border-radius: 14px;
-    color: #52728d;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-/* MESSAGE */
-.message {
-    display: none;
-    margin-top: 18px;
-    padding: 14px 17px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.5;
-    white-space: pre-line;
-    overflow-wrap: anywhere;
-}
-
-.message.error,
-.message.success {
-    display: block;
-}
-
-.message.error {
-    color: #bd2828;
-    background: #fff1f1;
-    border: 1px solid #ffc9c9;
-}
-
-.message.success {
-    color: #16833a;
-    background: #effcf3;
-    border: 1px solid #bde8c9;
-}
-
-/* BUTTON */
-.action {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 30px;
-}
-
-.continue-btn {
-    min-width: 250px;
-    min-height: 58px;
-    border: 0;
-    border-radius: 14px;
-    background: #ffc21a;
-    color: #063d70;
-    font-size: 17px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 7px 18px rgba(255, 194, 26, .24);
-    transition: .2s;
-}
-
-.continue-btn:hover {
-    background: #ffb900;
-    transform: translateY(-1px);
-}
-
-.continue-btn:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-@media (min-width: 1200px) {
-    .main {
-        padding-left: 80px;
-        padding-right: 80px;
-    }
-
-    .card {
-        padding: 44px;
-    }
-}
-
-@media (max-width: 900px) {
-    .main {
-        padding: 32px 25px 60px;
-    }
-
-    .card {
-        padding: 30px;
-    }
-
-    .steps {
-        max-width: 800px;
-    }
-
-    .step {
-        min-width: 65px;
-    }
-
-    .step-line {
-        margin-left: 5px;
-        margin-right: 5px;
-    }
-}
-
-@media (max-width: 700px) {
-    .header {
-        height: 70px;
-    }
-
-    .header-left {
-        left: 14px;
-    }
-
-    .back-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 26px;
-    }
-
-    .egc-logo {
-        height: 49px;
-        max-width: 210px;
-    }
-
-    .main {
-        padding: 25px 15px 45px;
-    }
-
-    .page-title {
-        margin-bottom: 29px;
-    }
-
-    .page-title h1 {
-        font-size: 28px;
-    }
-
-    .page-title p {
-        font-size: 14px;
-    }
-
-    .steps {
-        margin-bottom: 30px;
-    }
-
-    .step {
-        min-width: 48px;
-    }
-
-    .step-circle {
-        width: 36px;
-        height: 36px;
-        font-size: 13px;
-    }
-
-    .step-name {
-        font-size: 9px;
-    }
-
-    .step-line {
-        margin: 17px 3px 0;
-    }
-
-    .card {
-        padding: 23px 17px;
-        border-radius: 17px;
-    }
-
-    .card-title {
-        font-size: 23px;
-    }
-
-    .card-subtitle {
-        font-size: 14px;
-        margin-bottom: 25px;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-        gap: 19px;
-    }
-
-    .form-group.full {
-        grid-column: auto;
-    }
-
-    .action {
-        justify-content: stretch;
-    }
-
-    .continue-btn {
-        width: 100%;
-        min-width: 0;
-    }
-}
-
-@media (max-width: 380px) {
-    .step {
-        min-width: 42px;
-    }
-
-    .step-name {
-        font-size: 8px;
-    }
-
-    .step-line {
-        margin-left: 2px;
-        margin-right: 2px;
-    }
-
-    .main {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
+@media(max-width:380px){
+    .step{min-width:42px}
+    .step-name{font-size:8px}
+    .step-line{margin-left:2px;margin-right:2px}
+    .main{padding-left:10px;padding-right:10px}
 }
 </style>
 </head>
 
 <body>
-
 <div class="app">
 
-    <header class="header">
-        <div class="header-left">
-            <button
-                type="button"
-                class="back-btn"
-                id="backBtn"
-                aria-label="Back"
-            >‹</button>
+<header class="header">
+    <div class="header-left">
+        <button type="button" class="back-btn" id="backBtn" aria-label="Back">‹</button>
+    </div>
+
+    <img
+        src="assets/EGC - Emergency Gas Cylinder logo.png"
+        class="egc-logo"
+        alt="EGC - Emergency Gas Cylinder"
+        onerror="this.style.display='none';"
+    >
+</header>
+
+<main class="main">
+
+    <div class="page-title">
+        <h1>LPG Details</h1>
+        <p>Select your LPG connection details</p>
+    </div>
+
+    <div class="steps">
+        <div class="step-box">
+            <div class="step active">
+                <div class="step-circle">1</div>
+                <div class="step-name">LPG Details</div>
+            </div>
+            <div class="step-line"></div>
         </div>
 
-        <img
-            src="assets/EGC - Emergency Gas Cylinder logo.png"
-            class="egc-logo"
-            alt="EGC - Emergency Gas Cylinder"
-            onerror="this.style.display='none';"
-        >
-    </header>
-
-    <main class="main">
-
-        <div class="page-title">
-            <h1>LPG Details</h1>
-            <p>Select your LPG connection details</p>
+        <div class="step-box">
+            <div class="step">
+                <div class="step-circle">2</div>
+                <div class="step-name">Verification</div>
+            </div>
+            <div class="step-line"></div>
         </div>
 
-        <div class="steps">
+        <div class="step-box">
+            <div class="step">
+                <div class="step-circle">3</div>
+                <div class="step-name">Scheme</div>
+            </div>
+            <div class="step-line"></div>
+        </div>
 
-            <div class="step-box">
-                <div class="step active">
-                    <div class="step-circle">1</div>
-                    <div class="step-name">LPG Details</div>
-                </div>
-                <div class="step-line"></div>
+        <div class="step-box">
+            <div class="step">
+                <div class="step-circle">4</div>
+                <div class="step-name">Payment</div>
+            </div>
+            <div class="step-line"></div>
+        </div>
+
+        <div class="step-box">
+            <div class="step">
+                <div class="step-circle">5</div>
+                <div class="step-name">Complete</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="card">
+        <h2 class="card-title">LPG Details</h2>
+        <p class="card-subtitle">Select your location, LPG company and registered agency</p>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label for="state">State</label>
+                <select id="state" name="lpg-state" autocomplete="off">
+                    <option value="">Select State</option>
+                </select>
             </div>
 
-            <div class="step-box">
-                <div class="step">
-                    <div class="step-circle">2</div>
-                    <div class="step-name">Verification</div>
-                </div>
-                <div class="step-line"></div>
+            <div class="form-group">
+                <label for="district">District</label>
+                <select id="district" name="lpg-district" autocomplete="off" disabled>
+                    <option value="">Select District</option>
+                </select>
             </div>
 
-            <div class="step-box">
-                <div class="step">
-                    <div class="step-circle">3</div>
-                    <div class="step-name">Scheme</div>
-                </div>
-                <div class="step-line"></div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <select id="city" name="lpg-city" autocomplete="off" disabled>
+                    <option value="">Select City</option>
+                </select>
             </div>
 
-            <div class="step-box">
-                <div class="step">
-                    <div class="step-circle">4</div>
-                    <div class="step-name">Payment</div>
-                </div>
-                <div class="step-line"></div>
+            <div class="form-group">
+                <label for="company">LPG Company</label>
+                <select id="company" name="lpg-company" autocomplete="off">
+                    <option value="">Select LPG Company</option>
+                </select>
             </div>
 
-            <div class="step-box">
-                <div class="step">
-                    <div class="step-circle">5</div>
-                    <div class="step-name">Complete</div>
-                </div>
+            <div class="form-group full">
+                <label for="agency">LPG Agency</label>
+                <select id="agency" name="lpg-agency" autocomplete="off" disabled>
+                    <option value="">Select LPG Company first</option>
+                </select>
+                <div id="agencyStatus" class="agency-status" aria-live="polite"></div>
             </div>
 
         </div>
 
-        <section class="card">
+        <div class="info">
+            Select your LPG connection details to continue.
+            <br>
+            Your previous request records are not deleted when this form is cleared.
+        </div>
 
-            <h2 class="card-title">LPG Details</h2>
+        <div id="message" class="message" role="status" aria-live="polite"></div>
 
-            <p class="card-subtitle">
-                Select your location, LPG company and registered agency
-            </p>
+        <div class="action">
+            <button type="button" id="continueBtn" class="continue-btn">
+                CONTINUE →
+            </button>
+        </div>
+    </section>
 
-            <div class="form-grid">
-
-                <div class="form-group">
-                    <label for="state">State</label>
-                    <select id="state" name="lpg-state" autocomplete="off">
-                        <option value="">Select State</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="district">District</label>
-                    <select id="district" name="lpg-district" autocomplete="off" disabled>
-                        <option value="">Select District</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="city">City</label>
-                    <select id="city" name="lpg-city" autocomplete="off" disabled>
-                        <option value="">Select City</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="company">LPG Company</label>
-                    <select id="company" name="lpg-company" autocomplete="off">
-                        <option value="">Select LPG Company</option>
-                    </select>
-                </div>
-
-                <div class="form-group full">
-                    <label for="agency">LPG Agency</label>
-
-                    <select id="agency" name="lpg-agency" autocomplete="off" disabled>
-                        <option value="">Select LPG Company first</option>
-                    </select>
-
-                    <div id="agencyStatus" class="agency-status"></div>
-                </div>
-
-            </div>
-
-            <div class="info">
-                Select your LPG connection details to continue.
-                <br>
-                For privacy, this form starts empty each time you open
-                or refresh this page. Your submitted request records are
-                not deleted when the form is cleared.
-            </div>
-
-            <div id="message" class="message" role="status" aria-live="polite"></div>
-
-            <div class="action">
-                <button type="button" id="continueBtn" class="continue-btn">
-                    CONTINUE →
-                </button>
-            </div>
-
-        </section>
-
-    </main>
-
+</main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -635,11 +279,8 @@ select:disabled {
    SUPABASE CONFIGURATION
 ========================================================= */
 
-const SUPABASE_URL =
-    "https://szefvmvokkhvnzryodqu.supabase.co";
-
-const SUPABASE_ANON_KEY =
-    "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 let supabaseClient = null;
 
@@ -661,83 +302,34 @@ try {
 const LOCATION_DATA = {
     "Uttarakhand": {
         "Udham Singh Nagar": [
-            "Khatima",
-            "Nanakmatta",
-            "Sitarganj",
-            "Rudrapur",
-            "Kashipur",
-            "Bazpur",
-            "Gadarpur",
-            "Jaspur"
+            "Khatima", "Nanakmatta", "Sitarganj", "Rudrapur",
+            "Kashipur", "Bazpur", "Gadarpur", "Jaspur"
         ],
-        "Nainital": [
-            "Haldwani",
-            "Nainital",
-            "Ramnagar",
-            "Lalkuan"
-        ],
-        "Dehradun": [
-            "Dehradun",
-            "Rishikesh",
-            "Mussoorie"
-        ],
-        "Champawat": [
-            "Champawat",
-            "Lohaghat",
-            "Tanakpur"
-        ],
-        "Almora": [
-            "Almora",
-            "Ranikhet",
-            "Dwarahat"
-        ]
+        "Nainital": ["Haldwani", "Nainital", "Ramnagar", "Lalkuan"],
+        "Dehradun": ["Dehradun", "Rishikesh", "Mussoorie"],
+        "Champawat": ["Champawat", "Lohaghat", "Tanakpur"],
+        "Almora": ["Almora", "Ranikhet", "Dwarahat"]
     },
 
     "Uttar Pradesh": {
-        "Bareilly": [
-            "Bareilly",
-            "Faridpur",
-            "Aonla"
-        ],
-        "Pilibhit": [
-            "Pilibhit",
-            "Puranpur",
-            "Bisalpur"
-        ],
-        "Lucknow": [
-            "Lucknow"
-        ],
-        "Moradabad": [
-            "Moradabad",
-            "Thakurdwara"
-        ],
-        "Rampur": [
-            "Rampur",
-            "Milak"
-        ]
+        "Bareilly": ["Bareilly", "Faridpur", "Aonla"],
+        "Pilibhit": ["Pilibhit", "Puranpur", "Bisalpur"],
+        "Lucknow": ["Lucknow"],
+        "Moradabad": ["Moradabad", "Thakurdwara"],
+        "Rampur": ["Rampur", "Milak"]
     },
 
     "Delhi": {
-        "New Delhi": [
-            "New Delhi"
-        ]
+        "New Delhi": ["New Delhi"]
     },
 
     "Haryana": {
-        "Gurugram": [
-            "Gurugram"
-        ],
-        "Faridabad": [
-            "Faridabad"
-        ]
+        "Gurugram": ["Gurugram"],
+        "Faridabad": ["Faridabad"]
     }
 };
 
-const LPG_COMPANIES = [
-    "Indane",
-    "Bharatgas",
-    "HP Gas"
-];
+const LPG_COMPANIES = ["Indane", "Bharatgas", "HP Gas"];
 
 /* =========================================================
    ELEMENTS
@@ -754,38 +346,6 @@ const message = document.getElementById("message");
 const backBtn = document.getElementById("backBtn");
 
 /* =========================================================
-   CLEAR OLD LPG FORM DATA
-
-   The old version loaded egc_lpg_details from localStorage.
-   This version removes the old cached copy and never restores
-   saved dropdown selections when this page opens.
-
-   sessionStorage is cleared on each page load so refreshing
-   this page will not restore the previous form submission.
-========================================================= */
-
-function clearOldLpgCache() {
-    try {
-        localStorage.removeItem("egc_lpg_details");
-        localStorage.removeItem("egc_lpg_details_completed");
-        localStorage.removeItem("egc_lpg_completed_at");
-    } catch (error) {
-        console.warn("Could not clear old LPG cache:", error);
-    }
-
-    /*
-     * Remove stale form data from a previous visit.
-     * Other unrelated EGC session data is not touched.
-     */
-    try {
-        sessionStorage.removeItem("egc_lpg_details");
-        sessionStorage.removeItem("egc_lpg_details_completed");
-    } catch (error) {
-        console.warn("Could not clear session LPG cache:", error);
-    }
-}
-
-/* =========================================================
    HELPERS
 ========================================================= */
 
@@ -794,13 +354,6 @@ function normalize(value) {
         .trim()
         .toLowerCase()
         .replace(/\s+/g, " ");
-}
-
-function normalizeRequestStatus(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[ -]+/g, "_");
 }
 
 function safeSetSession(key, value) {
@@ -833,336 +386,112 @@ function setAgencyStatus(text, type = "") {
 }
 
 /* =========================================================
-   EXISTING REQUEST ROUTING
-========================================================= */
-
-function isCancelledOrRejected(request) {
-    const status = normalizeRequestStatus(request?.status);
-    const approval = normalizeRequestStatus(request?.owner_approval);
-
-    return [
-        "cancelled",
-        "canceled",
-        "rejected"
-    ].includes(status) || [
-        "rejected",
-        "cancelled",
-        "canceled"
-    ].includes(approval);
-}
-
-function isRequestApproved(request) {
-    const approval = normalizeRequestStatus(request?.owner_approval);
-    const status = normalizeRequestStatus(request?.status);
-
-    return [
-        "approved",
-        "accepted",
-        "complete",
-        "completed"
-    ].includes(approval) || [
-        "approved",
-        "processing",
-        "completed"
-    ].includes(status);
-}
-
-function isRequestFullyPaid(request) {
-    const paymentStatus = normalizeRequestStatus(
-        request?.payment_status
-    );
-
-    const repaymentStatus = normalizeRequestStatus(
-        request?.repayment_status
-    );
-
-    const hasRemainingAmount =
-        request?.remaining_amount !== null &&
-        request?.remaining_amount !== undefined &&
-        String(request.remaining_amount).trim() !== "";
-
-    const remainingAmount = Number(request?.remaining_amount);
-
-    const remainingIsZero =
-        hasRemainingAmount &&
-        Number.isFinite(remainingAmount) &&
-        remainingAmount <= 0;
-
-    return remainingIsZero ||
-        [
-            "fully_paid",
-            "paid_in_full",
-            "settled",
-            "fully_paid_verified"
-        ].includes(paymentStatus) ||
-        [
-            "fully_paid",
-            "fully_repaid",
-            "paid_in_full",
-            "settled",
-            "completed"
-        ].includes(repaymentStatus);
-}
-
-async function routeExistingRequest() {
-    if (!supabaseClient) {
-        showMessage(
-            "Supabase connection is unavailable. Please refresh the page and try again.",
-            "error"
-        );
-        return false;
-    }
-
-    let user;
-
-    try {
-        const { data, error } = await supabaseClient.auth.getUser();
-
-        if (error) {
-            console.error("Authentication lookup error:", error);
-            return false;
-        }
-
-        user = data?.user || null;
-    } catch (error) {
-        console.error("Authentication exception:", error);
-        return false;
-    }
-
-    if (!user) {
-        return false;
-    }
-
-    let requests;
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-
-        if (error) {
-            console.error("Existing request lookup failed:", error);
-
-            showMessage(
-                "We could not check your existing request. Please try again. Check your Supabase access policies if the problem continues.",
-                "error"
-            );
-
-            return false;
-        }
-
-        requests = Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error("Request lookup exception:", error);
-
-        showMessage(
-            "Unable to check your existing request. Please try again.",
-            "error"
-        );
-
-        return false;
-    }
-
-    if (requests.length === 0) {
-        return false;
-    }
-
-    const activeRequests = requests.filter(
-        request => !isCancelledOrRejected(request)
-    );
-
-    if (activeRequests.length === 0) {
-        return false;
-    }
-
-    activeRequests.sort(function(a, b) {
-        const dateA = new Date(
-            a.updated_at || a.created_at || 0
-        ).getTime() || 0;
-
-        const dateB = new Date(
-            b.updated_at || b.created_at || 0
-        ).getTime() || 0;
-
-        return dateB - dateA;
-    });
-
-    const request = activeRequests[0];
-
-    if (request.id) {
-        safeSetSession(
-            "egc_current_request_id",
-            String(request.id)
-        );
-    }
-
-    const approved = isRequestApproved(request);
-    const fullyPaid = isRequestFullyPaid(request);
-
-    if (!approved) {
-        window.location.replace("request-status.html");
-        return true;
-    }
-
-    if (!fullyPaid) {
-        window.location.replace("payment.html");
-        return true;
-    }
-
-    window.location.replace("repayment-scheme.html");
-    return true;
-}
-
-/* =========================================================
    LOAD STATES
 ========================================================= */
 
 function loadStates() {
-    stateSelect.innerHTML =
-        '<option value="">Select State</option>';
+    stateSelect.innerHTML = '<option value="">Select State</option>';
 
-    Object.keys(LOCATION_DATA).forEach(function(state) {
+    Object.keys(LOCATION_DATA).forEach(state => {
         const option = document.createElement("option");
-
         option.value = state;
         option.textContent = state;
-
         stateSelect.appendChild(option);
     });
 
     stateSelect.value = "";
 }
 
-/* =========================================================
-   LOAD DISTRICTS
-========================================================= */
-
 function loadDistricts() {
     const state = stateSelect.value;
 
-    districtSelect.innerHTML =
-        '<option value="">Select District</option>';
-
-    citySelect.innerHTML =
-        '<option value="">Select City</option>';
+    districtSelect.innerHTML = '<option value="">Select District</option>';
+    citySelect.innerHTML = '<option value="">Select City</option>';
 
     districtSelect.disabled = true;
     citySelect.disabled = true;
 
     resetAgency("Select location and LPG company first");
 
-    if (!state) {
-        return;
-    }
+    if (!state) return;
 
     const districts = LOCATION_DATA[state] || {};
 
-    Object.keys(districts).forEach(function(district) {
+    Object.keys(districts).forEach(district => {
         const option = document.createElement("option");
-
         option.value = district;
         option.textContent = district;
-
         districtSelect.appendChild(option);
     });
 
     districtSelect.disabled = false;
 }
 
-/* =========================================================
-   LOAD CITIES
-========================================================= */
-
 function loadCities() {
     const state = stateSelect.value;
     const district = districtSelect.value;
 
-    citySelect.innerHTML =
-        '<option value="">Select City</option>';
-
+    citySelect.innerHTML = '<option value="">Select City</option>';
     citySelect.disabled = true;
 
     resetAgency("Select location and LPG company first");
 
-    if (!state || !district) {
-        return;
-    }
+    if (!state || !district) return;
 
     const cities = LOCATION_DATA[state]?.[district] || [];
 
-    cities.forEach(function(city) {
+    cities.forEach(city => {
         const option = document.createElement("option");
-
         option.value = city;
         option.textContent = city;
-
         citySelect.appendChild(option);
     });
 
     citySelect.disabled = false;
 }
 
-/* =========================================================
-   LOAD COMPANIES
-========================================================= */
-
 function loadCompanies() {
-    companySelect.innerHTML =
-        '<option value="">Select LPG Company</option>';
+    companySelect.innerHTML = '<option value="">Select LPG Company</option>';
 
-    LPG_COMPANIES.forEach(function(company) {
+    LPG_COMPANIES.forEach(company => {
         const option = document.createElement("option");
-
         option.value = company;
         option.textContent = company;
-
         companySelect.appendChild(option);
     });
 
     companySelect.value = "";
 }
 
-/* =========================================================
-   RESET AGENCY
-========================================================= */
-
 function resetAgency(text) {
-    agencySelect.innerHTML =
-        '<option value="">' + text + '</option>';
+    agencySelect.innerHTML = "";
 
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = text;
+
+    agencySelect.appendChild(option);
     agencySelect.value = "";
     agencySelect.disabled = true;
 
     setAgencyStatus("");
 }
 
-/* =========================================================
-   AGENCY DROPDOWN
-========================================================= */
-
 function addAgenciesToDropdown(agencies) {
-    agencySelect.innerHTML =
-        '<option value="">Select LPG Agency</option>';
+    agencySelect.innerHTML = '<option value="">Select LPG Agency</option>';
 
     if (!agencies || agencies.length === 0) {
         resetAgency("No agency found");
         return;
     }
 
-    agencies.forEach(function(agency) {
+    agencies.forEach(agency => {
         const option = document.createElement("option");
 
         option.value = agency.id;
-
         option.textContent =
             (agency.agency_name || "Unnamed Agency") +
-            (
-                agency.agency_code
-                    ? " • " + agency.agency_code
-                    : ""
-            );
+            (agency.agency_code ? " • " + agency.agency_code : "");
 
         option.dataset.name = agency.agency_name || "";
         option.dataset.code = agency.agency_code || "";
@@ -1204,33 +533,21 @@ async function loadAgencies() {
 
     if (!supabaseClient) {
         resetAgency("Supabase unavailable");
-
-        setAgencyStatus(
-            "Supabase could not be initialized.",
-            "error"
-        );
+        setAgencyStatus("Supabase could not be initialized.", "error");
 
         showMessage(
             "Supabase could not be initialized. Check your internet connection and refresh.",
             "error"
         );
-
         return;
     }
 
-    agencySelect.innerHTML =
-        '<option value="">Loading agencies...</option>';
-
+    agencySelect.innerHTML = '<option value="">Loading agencies...</option>';
     agencySelect.disabled = true;
 
     setAgencyStatus("Searching registered agencies...");
 
-    const snapshot = {
-        company,
-        state,
-        district,
-        city
-    };
+    const snapshot = { company, state, district, city };
 
     let result;
 
@@ -1243,25 +560,22 @@ async function loadAgencies() {
             .eq("is_active", true)
             .eq("lpg_company", company)
             .order("agency_name", { ascending: true });
+
     } catch (error) {
         console.error("Agency request exception:", error);
 
         resetAgency("Unable to load agencies");
-
-        setAgencyStatus(
-            "Supabase request failed.",
-            "error"
-        );
+        setAgencyStatus("Supabase request failed.", "error");
 
         showMessage(
             "Unable to load LPG agencies.\n\n" +
             (error?.message || String(error)),
             "error"
         );
-
         return;
     }
 
+    /* Ignore an old response if the user changed the selections. */
     if (
         stateSelect.value !== snapshot.state ||
         districtSelect.value !== snapshot.district ||
@@ -1275,51 +589,40 @@ async function loadAgencies() {
         console.error("Supabase agency error:", result.error);
 
         resetAgency("Unable to load agencies");
-
-        setAgencyStatus(
-            "Supabase returned an error.",
-            "error"
-        );
+        setAgencyStatus("Supabase returned an error.", "error");
 
         showMessage(
             "Unable to load LPG agencies.\n\n" +
             (result.error.message || "Unknown error") +
-            "\nCode: " +
-            (result.error.code || "N/A"),
+            "\nCode: " + (result.error.code || "N/A"),
             "error"
         );
-
         return;
     }
 
     const data = result.data || [];
 
-    const filtered = data.filter(function(agency) {
-        return (
-            normalize(agency.lpg_company) === normalize(company) &&
-            normalize(agency.state) === normalize(state) &&
-            normalize(agency.district) === normalize(district) &&
-            normalize(agency.city) === normalize(city)
-        );
-    });
+    const filtered = data.filter(agency =>
+        normalize(agency.lpg_company) === normalize(company) &&
+        normalize(agency.state) === normalize(state) &&
+        normalize(agency.district) === normalize(district) &&
+        normalize(agency.city) === normalize(city)
+    );
 
     if (filtered.length === 0) {
         resetAgency("No agency found");
 
         setAgencyStatus(
-            "No registered " + company +
-            " agency found for " + city + ".",
+            "No registered " + company + " agency found for " + city + ".",
             "error"
         );
 
         showMessage(
             "No active LPG agency was found for:\n\n" +
-            company + " • " + city + " • " +
-            district + " • " + state +
+            company + " • " + city + " • " + district + " • " + state +
             "\n\nPlease check your location and LPG company.",
             "error"
         );
-
         return;
     }
 
@@ -1327,50 +630,19 @@ async function loadAgencies() {
 
     setAgencyStatus(
         filtered.length +
-        (filtered.length === 1
-            ? " agency found."
-            : " agencies found."),
+        (filtered.length === 1 ? " agency found." : " agencies found."),
         "success"
     );
 
-    /*
-     * Do not automatically select an agency.
-     * The user must select it explicitly.
-     */
     agencySelect.value = "";
 }
 
 /* =========================================================
-   GET CURRENT USER
-========================================================= */
+   SAVE LPG DETAILS FOR VERIFICATION PAGE
 
-async function getCurrentUser() {
-    if (!supabaseClient) {
-        return null;
-    }
-
-    try {
-        const { data, error } =
-            await supabaseClient.auth.getUser();
-
-        if (error) {
-            console.error("User lookup error:", error);
-            return null;
-        }
-
-        return data?.user || null;
-    } catch (error) {
-        console.error("User lookup exception:", error);
-        return null;
-    }
-}
-
-/* =========================================================
-   SAVE DETAILS FOR THE NEXT PAGE ONLY
-
-   We deliberately do not save LPG details to localStorage
-   or the profile. The details are temporarily passed to
-   verification.html through sessionStorage.
+   Important:
+   This page does not query cylinder_requests and does not
+   automatically redirect according to an existing request.
 ========================================================= */
 
 async function saveDetails() {
@@ -1407,22 +679,18 @@ async function saveDetails() {
         return false;
     }
 
-    const selectedAgency =
-        agencySelect.options[agencySelect.selectedIndex];
+    const selectedAgency = agencySelect.options[agencySelect.selectedIndex];
 
     if (!selectedAgency || !selectedAgency.value) {
-        showMessage(
-            "Please select a valid registered LPG Agency.",
-            "error"
-        );
+        showMessage("Please select a valid registered LPG Agency.", "error");
         return false;
     }
 
     const details = {
-        state,
-        district,
-        city,
-        company,
+        state: state,
+        district: district,
+        city: city,
+        company: company,
         agency_id: agencyId,
         agency_name: selectedAgency.dataset.name || "",
         agency_code: selectedAgency.dataset.code || "",
@@ -1431,17 +699,7 @@ async function saveDetails() {
         saved_at: new Date().toISOString()
     };
 
-    /*
-     * sessionStorage makes the current details available to
-     * verification.html in the same tab. It is not used to
-     * prefill this LPG page on a subsequent visit.
-     */
-    const saved = safeSetSession(
-        "egc_lpg_details",
-        JSON.stringify(details)
-    );
-
-    if (!saved) {
+    if (!safeSetSession("egc_lpg_details", JSON.stringify(details))) {
         showMessage(
             "Unable to pass LPG details to Verification. Check your browser storage settings.",
             "error"
@@ -1449,15 +707,12 @@ async function saveDetails() {
         return false;
     }
 
-    safeSetSession(
-        "egc_lpg_details_completed",
-        "true"
-    );
+    safeSetSession("egc_lpg_details_completed", "true");
 
     /*
-     * Clear the old persistent copy so the previous version
-     * cannot automatically reload it from localStorage.
-     */
+      Clear older local copies only.
+      Do not delete or change Supabase request records.
+    */
     try {
         localStorage.removeItem("egc_lpg_details");
         localStorage.removeItem("egc_lpg_details_completed");
@@ -1470,13 +725,11 @@ async function saveDetails() {
 }
 
 /* =========================================================
-   CONTINUE
+   CONTINUE BUTTON
 ========================================================= */
 
 continueBtn.addEventListener("click", async function() {
-    if (continueBtn.disabled) {
-        return;
-    }
+    if (continueBtn.disabled) return;
 
     clearMessage();
 
@@ -1492,20 +745,19 @@ continueBtn.addEventListener("click", async function() {
                 "success"
             );
 
-            setTimeout(function() {
+            setTimeout(() => {
                 window.location.href = "verification.html";
             }, 500);
+
         } else {
             continueBtn.disabled = false;
             continueBtn.textContent = "CONTINUE →";
         }
+
     } catch (error) {
         console.error("Continue error:", error);
 
-        showMessage(
-            "Something went wrong. Please try again.",
-            "error"
-        );
+        showMessage("Something went wrong. Please try again.", "error");
 
         continueBtn.disabled = false;
         continueBtn.textContent = "CONTINUE →";
@@ -1541,17 +793,13 @@ backBtn.addEventListener("click", function() {
 
 /* =========================================================
    START PAGE
+
+   No existing-request lookup.
+   No automatic redirect to request-status.html.
+   No automatic redirect to complete.html.
 ========================================================= */
 
-async function initializePage() {
-    /*
-     * Clear old data before anything can prefill the form.
-     */
-    clearOldLpgCache();
-
-    /*
-     * Always render the dropdowns from empty values.
-     */
+function initializePage() {
     loadStates();
     loadCompanies();
 
@@ -1563,15 +811,8 @@ async function initializePage() {
 
     resetAgency("Select LPG Company first");
 
-    /*
-     * Check existing request routing without restoring LPG form
-     * values. If an active request exists, preserve that workflow.
-     */
-    const redirected = await routeExistingRequest();
-
-    if (redirected) {
-        return;
-    }
+    continueBtn.disabled = false;
+    continueBtn.textContent = "CONTINUE →";
 }
 
 initializePage();

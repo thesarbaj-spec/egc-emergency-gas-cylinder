@@ -16,6 +16,7 @@ button,a{font-family:Arial,sans-serif}
 button{cursor:pointer}
 a{text-decoration:none}
 [hidden]{display:none!important}
+button:disabled{opacity:.55;cursor:not-allowed}
 
 .topbar{height:72px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 35px;box-shadow:0 3px 15px rgba(0,62,129,.08);position:sticky;top:0;z-index:1000}
 .brand{display:flex;align-items:center;gap:14px;min-width:0}
@@ -59,9 +60,9 @@ a{text-decoration:none}
 .request-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .request-id{font-weight:900;font-size:16px;color:#0754a9;overflow-wrap:anywhere}
 .status{padding:7px 11px;border-radius:20px;font-size:11px;font-weight:900;text-transform:uppercase;background:#fff3d0;color:#a36b00}
-.status.approved,.status.completed,.status.delivered{background:#e5f8ef;color:#087848}
-.status.processing,.status.out_for_delivery{background:#e8f1ff;color:#0754a9}
-.status.cancelled,.status.failed,.status.rejected{background:#fff0f0;color:#c62828}
+.status.approved,.status.completed,.status.delivered,.status.fully_paid{background:#e5f8ef;color:#087848}
+.status.processing,.status.out_for_delivery,.status.assigned,.status.ready{background:#e8f1ff;color:#0754a9}
+.status.cancelled,.status.canceled,.status.failed,.status.rejected{background:#fff0f0;color:#c62828}
 .request-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:18px}
 .detail-label{color:#8999a8;font-size:11px;margin-bottom:4px}
 .detail-value{font-size:14px;font-weight:800;color:#174e7e;overflow-wrap:anywhere}
@@ -228,7 +229,6 @@ a{text-decoration:none}
     <a class="nav-btn" href="#" onclick="event.preventDefault();requestCylinder()">🛢️ &nbsp; Request Cylinder</a>
     <a class="nav-btn" href="my-requests.html">📋 &nbsp; My Requests</a>
     <a class="nav-btn" href="payments.html">💰 &nbsp; Payments</a>
-    <a class="nav-btn" href="submit-payment.html">📋 &nbsp; Submit Payment</a>
     <a class="nav-btn" href="notifications.html">🔔 &nbsp; Notifications</a>
     <a class="nav-btn" href="profile.html">👤 &nbsp; Profile</a>
     <a class="nav-btn" href="setting.html">⚙️ &nbsp; Settings</a>
@@ -245,7 +245,6 @@ a{text-decoration:none}
     <a class="nav-btn" href="#" onclick="event.preventDefault();closeMobileMenu();requestCylinder()">🛢️ &nbsp; Request Cylinder</a>
     <a class="nav-btn" href="my-requests.html" onclick="closeMobileMenu()">📋 &nbsp; My Requests</a>
     <a class="nav-btn" href="payments.html" onclick="closeMobileMenu()">💰 &nbsp; Payments</a>
-    <a class="nav-btn" href="submit-payment.html" onclick="closeMobileMenu()">📋 &nbsp; Submit Payment</a>
     <a class="nav-btn" href="notifications.html" onclick="closeMobileMenu()">🔔 &nbsp; Notifications</a>
     <a class="nav-btn" href="profile.html" onclick="closeMobileMenu()">👤 &nbsp; Profile</a>
     <a class="nav-btn" href="setting.html" onclick="closeMobileMenu()">⚙️ &nbsp; Settings</a>
@@ -290,7 +289,6 @@ a{text-decoration:none}
         <div class="stat-number" id="cancelledRequests">0</div>
         <div class="stat-subtitle">Cancelled or rejected requests</div>
       </div>
-
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Total Paid</div><div class="stat-icon">💵</div></div>
         <div class="stat-number" id="totalPaidStat">₹0.00</div>
@@ -299,7 +297,7 @@ a{text-decoration:none}
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Remaining Amount</div><div class="stat-icon">🧾</div></div>
         <div class="stat-number" id="remainingStat">₹0.00</div>
-        <div class="stat-subtitle">After Owner approval and verified payment</div>
+        <div class="stat-subtitle">After approval and verified payments</div>
       </div>
       <div class="stat-card">
         <div class="stat-top"><div class="stat-label">Payment Status</div><div class="stat-icon">💳</div></div>
@@ -317,9 +315,9 @@ a{text-decoration:none}
       <div>
         <div class="box">
           <div class="box-title">🛢️ Current Request</div>
-          <div id="currentRequestArea"><div class="empty">No active cylinder request.</div></div>
+          <div id="currentRequestArea"><div class="empty">Loading your request...</div></div>
           <button id="requestCylinderBtn" type="button" class="request-btn" onclick="requestCylinder()">+ REQUEST CYLINDER</button>
-          <div id="requestButtonNote" class="payment-note" aria-live="polite"></div>
+          <div id="requestButtonNote" class="payment-note" aria-live="polite">Checking your existing request...</div>
         </div>
 
         <div class="box">
@@ -332,7 +330,6 @@ a{text-decoration:none}
               </tbody>
             </table>
           </div>
-
           <div id="latestPaymentDetails" class="payment-review-card" hidden>
             <div class="payment-review-title">Latest Payment Verification</div>
             <div class="payment-review-row"><span class="payment-review-label">Payment Amount</span><span class="payment-review-value" id="latestPaymentAmount">₹0.00</span></div>
@@ -347,35 +344,19 @@ a{text-decoration:none}
         <div class="box">
           <div class="box-title">💰 Payment Summary</div>
           <div class="payment-summary">
-            <div class="money-row">
-              <span class="money-label">Total Amount</span>
-              <span class="money-value" id="totalAmount">₹0.00</span>
-            </div>
-            <div class="money-row">
-              <span class="money-label">Extra Charge</span>
-              <span class="money-value extra-charge" id="extraChargeAmount">₹0.00</span>
-            </div>
-            <div class="money-row total-payable">
-              <span class="money-label">Total Payable (Including Extra Charge)</span>
-              <span class="money-value" id="totalPayableAmount">₹0.00</span>
-            </div>
-            <div class="money-row">
-              <span class="money-label">Amount Paid (Verified)</span>
-              <span class="money-value" id="paidAmount">₹0.00</span>
-            </div>
-            <div class="money-row">
-              <span class="money-label">Amount Remaining</span>
-              <span class="money-value remaining" id="remainingAmount">₹0.00</span>
-            </div>
+            <div class="money-row"><span class="money-label">Total Amount</span><span class="money-value" id="totalAmount">₹0.00</span></div>
+            <div class="money-row"><span class="money-label">Extra Charge</span><span class="money-value extra-charge" id="extraChargeAmount">₹0.00</span></div>
+            <div class="money-row total-payable"><span class="money-label">Total Payable (Including Extra Charge)</span><span class="money-value" id="totalPayableAmount">₹0.00</span></div>
+            <div class="money-row"><span class="money-label">Amount Paid (Verified)</span><span class="money-value" id="paidAmount">₹0.00</span></div>
+            <div class="money-row"><span class="money-label">Amount Remaining</span><span class="money-value remaining" id="remainingAmount">₹0.00</span></div>
             <div>
               <div class="pay-progress"><div class="pay-progress-bar" id="payProgressBar"></div></div>
               <div class="payment-note" id="paymentProgressText">0% paid</div>
             </div>
           </div>
-
           <div class="payment-due" id="paymentDueBox">
             <strong>💡 Payment information</strong>
-            <p>Your payment details will appear here after a cylinder request is approved.</p>
+            <p>Your payment details will appear here after Owner approval.</p>
           </div>
         </div>
 
@@ -414,6 +395,7 @@ a{text-decoration:none}
 <script>
 "use strict";
 
+/* SUPABASE CONFIGURATION */
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
@@ -428,6 +410,10 @@ let currentPayments = [];
 let currentNotifications = [];
 let realtimeChannel = null;
 let toastTimer = null;
+let requestLoadFailed = false;
+let paymentLoadFailed = false;
+let requestDataLoaded = false;
+let paymentDataLoaded = false;
 
 function $(id) {
   return document.getElementById(id);
@@ -440,6 +426,10 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
 function formatMoney(value) {
@@ -479,9 +469,8 @@ function formatDateTime(value) {
 }
 
 function showError(message) {
-  const box = $("errorBox");
-  box.textContent = message || "Something went wrong.";
-  box.style.display = "block";
+  $("errorBox").textContent = message || "Something went wrong.";
+  $("errorBox").style.display = "block";
 }
 
 function clearError() {
@@ -497,18 +486,9 @@ function toast(message) {
   toastTimer = setTimeout(() => element.classList.remove("show"), 3000);
 }
 
-function normalizeStatus(value) {
-  return String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
-}
-
 function firstMoneyValue(object, keys) {
   for (const key of keys) {
-    if (
-      object &&
-      object[key] !== undefined &&
-      object[key] !== null &&
-      object[key] !== ""
-    ) {
+    if (object && object[key] !== undefined && object[key] !== null && object[key] !== "") {
       const value = Number(object[key]);
       if (Number.isFinite(value) && value >= 0) return value;
     }
@@ -529,7 +509,14 @@ function getRequestTotal(request) {
 
 function isRequestCancelled(request) {
   if (!request) return true;
-  return ["cancelled", "canceled", "rejected"].includes(normalizeStatus(request.status));
+
+  const status = normalizeStatus(request.status);
+  const approval = normalizeStatus(request.owner_approval);
+
+  return [
+    "cancelled", "canceled", "rejected", "declined", "not_approved"
+  ].includes(status) ||
+  ["rejected", "declined", "not_approved"].includes(approval);
 }
 
 function isRequestApproved(request) {
@@ -538,39 +525,50 @@ function isRequestApproved(request) {
   const approval = normalizeStatus(request.owner_approval);
   const status = normalizeStatus(request.status);
 
-  // Owner approval is the primary approval source when the column exists.
-  if (request.owner_approval !== undefined && request.owner_approval !== null && request.owner_approval !== "") {
-    return ["approved", "accepted"].includes(approval);
+  if (request.owner_approval !== undefined &&
+      request.owner_approval !== null &&
+      request.owner_approval !== "") {
+    return ["approved", "approve", "accepted"].includes(approval);
   }
 
-  // Legacy fallback only when owner_approval is not present in returned row.
-  return ["approved", "processing", "completed"].includes(status);
+  return [
+    "approved", "processing", "assigned", "ready",
+    "out_for_delivery", "delivered", "completed"
+  ].includes(status);
 }
 
+/*
+ * Full payment is accepted only if:
+ * 1. verified payments cover the calculated payable amount, OR
+ * 2. the database explicitly records a recognized fully-paid state.
+ *
+ * A request's generic "completed" status does not prove payment completion.
+ */
 function isRequestFullyPaid(request) {
   if (!request || !isRequestApproved(request)) return false;
 
   const paymentStatus = normalizeStatus(request.payment_status);
-  const repaymentStatus = normalizeStatus(request.repayment_status);
-  const remaining = Number(request.remaining_amount);
+  const remaining = firstMoneyValue(request, ["remaining_amount", "balance_amount"]);
 
-  return (
-    request.remaining_amount !== null &&
-    request.remaining_amount !== undefined &&
-    request.remaining_amount !== "" &&
-    Number.isFinite(remaining) &&
-    remaining <= 0
-  ) ||
-    ["fully_paid", "paid_in_full", "settled", "fully_paid_verified"].includes(paymentStatus) ||
-    ["fully_paid", "fully_repaid", "paid_in_full", "settled", "completed"].includes(repaymentStatus);
+  if (remaining !== null && remaining <= 0) return true;
+
+  if ([
+    "fully_paid", "paid_in_full", "settled", "fully_paid_verified"
+  ].includes(paymentStatus)) {
+    return true;
+  }
+
+  const financials = getRequestFinancials(request);
+  return financials.totalPayable > 0 &&
+    financials.paidAmount >= financials.totalPayable;
 }
 
 function getLatestRequest() {
   if (!currentRequests.length) return null;
 
   const sorted = [...currentRequests].sort((a, b) => {
-    const dateA = new Date(a.updated_at || a.created_at || 0).getTime() || 0;
-    const dateB = new Date(b.updated_at || b.created_at || 0).getTime() || 0;
+    const dateA = new Date(a.updated_at || a.created_at || a.request_date || 0).getTime() || 0;
+    const dateB = new Date(b.updated_at || b.created_at || b.request_date || 0).getTime() || 0;
     return dateB - dateA;
   });
 
@@ -587,11 +585,7 @@ function getLatestPayment() {
   })[0];
 }
 
-/* =========================================================
-   PAYMENT VERIFICATION
-   Only verified payments count as paid.
-========================================================= */
-
+/* PAYMENT VERIFICATION: only verified payments count as paid. */
 function getPaymentState(payment) {
   if (!payment) {
     return {
@@ -603,13 +597,14 @@ function getPaymentState(payment) {
   }
 
   const verification = normalizeStatus(payment.verification_status);
-  const status = normalizeStatus(payment.payment_status);
+  const status = normalizeStatus(payment.payment_status || payment.status);
 
-  if (verification === "rejected" || ["failed", "cancelled"].includes(status)) {
+  if (verification === "rejected" ||
+      ["failed", "cancelled", "rejected"].includes(status)) {
     return {
       key: "rejected",
       label: "Rejected",
-      message: "Your payment was rejected. Please open Payments to review it and submit again if required.",
+      message: "Your payment was rejected. Open the payment center to review it.",
       verified: false
     };
   }
@@ -618,7 +613,7 @@ function getPaymentState(payment) {
     return {
       key: "refunded",
       label: "Refunded",
-      message: "This payment is marked as refunded and is not counted as paid.",
+      message: "This payment is refunded and is not counted as paid.",
       verified: false
     };
   }
@@ -650,8 +645,8 @@ function getPaymentState(payment) {
 
   return {
     key: "unknown",
-    label: payment.verification_status || payment.payment_status || "Unknown",
-    message: "Please refresh the dashboard or contact support if this status looks incorrect.",
+    label: payment.verification_status || payment.payment_status || payment.status || "Unknown",
+    message: "Refresh the dashboard or contact support if this status looks incorrect.",
     verified: false
   };
 }
@@ -687,8 +682,13 @@ function getDeliveryDayCount(request) {
   const deliveryDate = getDeliveryDate(request);
   if (!deliveryDate) return 0;
 
+  const start = new Date(
+    deliveryDate.getFullYear(),
+    deliveryDate.getMonth(),
+    deliveryDate.getDate()
+  );
+
   const now = new Date();
-  const start = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth(), deliveryDate.getDate());
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const diff = Math.floor((today.getTime() - start.getTime()) / 86400000);
 
@@ -718,31 +718,25 @@ function getRequestExtraCharge(request) {
   return calculateTierExtraCharge(getDeliveryDayCount(request));
 }
 
-/* =========================================================
-   FINANCIAL CALCULATION
-   Critical rule:
-   - Before Owner approval, do not display a future balance.
-   - After approval, show the balance.
-   - Only verified payments reduce the balance.
-========================================================= */
-
 function getRequestVerifiedPayments(requestId) {
   return currentPayments
     .filter(payment =>
       String(payment.request_id || "") === String(requestId) &&
       isPaymentVerified(payment)
     )
-    .reduce((sum, payment) => sum + Math.max(0, Number(payment.payment_amount || 0)), 0);
+    .reduce((sum, payment) => {
+      const amount = Number(payment.payment_amount || 0);
+      return sum + (Number.isFinite(amount) ? Math.max(0, amount) : 0);
+    }, 0);
 }
 
 function getRequestFinancials(request) {
   const approved = isRequestApproved(request);
   const baseAmount = getRequestTotal(request);
   const extraCharge = approved ? getRequestExtraCharge(request) : 0;
-  const totalPayable = baseAmount + extraCharge;
-  const paidAmount = getRequestVerifiedPayments(request.id);
+  const totalPayable = approved ? baseAmount + extraCharge : 0;
+  const paidAmount = approved ? getRequestVerifiedPayments(request.id) : 0;
 
-  // A pending/unapproved request must not show a calculated future balance.
   if (!approved) {
     return {
       approved: false,
@@ -754,24 +748,18 @@ function getRequestFinancials(request) {
     };
   }
 
-  // Use verified payments for calculation. Do not trust a stale remaining_amount
-  // that may already subtract an unsubmitted or unverified initial payment.
-  const remainingAmount = Math.max(0, totalPayable - paidAmount);
-
   return {
     approved: true,
     baseAmount,
     extraCharge,
     totalPayable,
     paidAmount,
-    remainingAmount
+    remainingAmount: Math.max(0, totalPayable - paidAmount)
   };
 }
 
 function calculatePaymentSummary() {
-  const activeRequests = currentRequests.filter(request =>
-    !isRequestCancelled(request)
-  );
+  const activeRequests = currentRequests.filter(request => !isRequestCancelled(request));
 
   let totalAmount = 0;
   let extraCharge = 0;
@@ -781,9 +769,6 @@ function calculatePaymentSummary() {
 
   activeRequests.forEach(request => {
     const financials = getRequestFinancials(request);
-
-    // Before Owner approval, exclude the future financial figures from the
-    // dashboard totals. Once approved, display the actual payment summary.
     if (!financials.approved) return;
 
     totalAmount += financials.baseAmount;
@@ -793,7 +778,7 @@ function calculatePaymentSummary() {
     remaining += financials.remainingAmount;
   });
 
-  remaining = Math.max(0, Math.min(remaining, totalPayable));
+  remaining = Math.max(0, remaining);
 
   const percentage = totalPayable > 0
     ? Math.min(100, Math.round((paidAmount / totalPayable) * 100))
@@ -807,12 +792,11 @@ function calculatePaymentSummary() {
 
   $("totalPaidStat").textContent = money(paidAmount);
   $("remainingStat").textContent = money(remaining);
-
   $("payProgressBar").style.width = percentage + "%";
   $("paymentProgressText").textContent = percentage + "% paid";
 
   updatePaymentAndRepaymentStatus(remaining, totalPayable);
-  updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining);
+  updatePaymentDueBox();
 }
 
 function humanizeStatus(value) {
@@ -823,54 +807,59 @@ function humanizeStatus(value) {
   ).join(" ");
 }
 
-function updatePaymentAndRepaymentStatus(remaining, totalPayable) {
-  const latestRequest = getLatestRequest();
+function updatePaymentAndRepaymentStatus() {
+  const request = getLatestRequest();
   const latestPayment = getLatestPayment();
-  const paymentState = getPaymentState(latestPayment);
+  const state = getPaymentState(latestPayment);
 
   let paymentLabel = "No Payment";
   let paymentSubtitle = "No payment submitted yet";
 
-  if (latestPayment) {
-    paymentLabel = paymentState.label;
-
-    if (paymentState.key === "approved") {
-      paymentSubtitle = "Latest payment verified";
-    } else if (paymentState.key === "pending") {
-      paymentSubtitle = "Waiting for Owner verification";
-    } else if (paymentState.key === "rejected") {
-      paymentSubtitle = "Review or resubmit payment";
-    }
-  } else if (latestRequest && isRequestApproved(latestRequest)) {
-    paymentLabel = "Payment Due";
-    paymentSubtitle = "Owner approved; payment can be submitted";
-  } else if (latestRequest && !isRequestCancelled(latestRequest)) {
+  if (request && !isRequestCancelled(request) && !isRequestApproved(request)) {
     paymentLabel = "Awaiting Approval";
     paymentSubtitle = "Payment opens after Owner approval";
+  } else if (request && isRequestApproved(request)) {
+    const financials = getRequestFinancials(request);
+
+    if (isRequestFullyPaid(request)) {
+      paymentLabel = "Fully Paid";
+      paymentSubtitle = "Verified balance is complete";
+    } else if (latestPayment && String(latestPayment.request_id || "") === String(request.id)) {
+      paymentLabel = state.label;
+      paymentSubtitle = state.key === "pending"
+        ? "Waiting for Owner verification"
+        : state.key === "rejected"
+          ? "Review or resubmit payment"
+          : state.key === "approved"
+            ? "Latest payment verified"
+            : "Payment status";
+    } else {
+      paymentLabel = financials.remainingAmount > 0 ? "Payment Due" : "Verify Balance";
+      paymentSubtitle = "Check the current request payment status";
+    }
   }
 
   $("paymentStatusStat").textContent = paymentLabel;
   $("paymentStatusSubtitle").textContent = paymentSubtitle;
 
-  const repaymentRaw = normalizeStatus(latestRequest?.repayment_status);
+  const repaymentRaw = normalizeStatus(request?.repayment_status);
   let repaymentLabel = "Not Started";
   let repaymentSubtitle = "Repayment progress";
 
-  if (latestRequest && isRequestApproved(latestRequest)) {
-    if (
-      ["fully_paid", "fully_repaid", "paid_in_full", "settled", "completed"].includes(repaymentRaw) ||
-      (totalPayable > 0 && remaining <= 0)
-    ) {
+  if (request && isRequestApproved(request)) {
+    const financials = getRequestFinancials(request);
+
+    if (isRequestFullyPaid(request)) {
       repaymentLabel = "Completed";
       repaymentSubtitle = "No amount remaining";
     } else if (repaymentRaw) {
       repaymentLabel = humanizeStatus(repaymentRaw);
-      repaymentSubtitle = "Remaining: " + money(remaining);
-    } else if (remaining > 0) {
+      repaymentSubtitle = "Remaining: " + money(financials.remainingAmount);
+    } else {
       repaymentLabel = "Pending";
-      repaymentSubtitle = "Remaining: " + money(remaining);
+      repaymentSubtitle = "Remaining: " + money(financials.remainingAmount);
     }
-  } else if (latestRequest && !isRequestCancelled(latestRequest)) {
+  } else if (request && !isRequestCancelled(request)) {
     repaymentLabel = "Awaiting Approval";
     repaymentSubtitle = "Repayment not started";
   }
@@ -879,22 +868,38 @@ function updatePaymentAndRepaymentStatus(remaining, totalPayable) {
   $("repaymentStatusSubtitle").textContent = repaymentSubtitle;
 }
 
-function updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining) {
+function updatePaymentDueBox() {
   const dueBox = $("paymentDueBox");
-  const approvedRequest = currentRequests.find(request =>
-    isRequestApproved(request) && !isRequestCancelled(request)
-  );
+  const request = getLatestRequest();
 
-  if (!approvedRequest) {
+  if (!request || isRequestCancelled(request)) {
+    dueBox.innerHTML = `
+      <strong>💡 Payment information</strong>
+      <p>Payment information will appear here after you submit a cylinder request and it is approved.</p>
+    `;
+    return;
+  }
+
+  if (!isRequestApproved(request)) {
     dueBox.innerHTML = `
       <strong>⏳ Waiting for Owner Approval</strong>
-      <p>Your request is waiting for Owner approval. Payment information and the remaining amount will appear here after approval.</p>
+      <p>Your request is waiting for Owner approval. Payment becomes available after approval.</p>
+    `;
+    return;
+  }
+
+  const financials = getRequestFinancials(request);
+
+  if (isRequestFullyPaid(request)) {
+    dueBox.innerHTML = `
+      <strong>✅ Payment Completed</strong>
+      <p>Your verified payments cover the current calculated balance. You can start another request.</p>
     `;
     return;
   }
 
   const latestForRequest = currentPayments
-    .filter(payment => String(payment.request_id || "") === String(approvedRequest.id))
+    .filter(payment => String(payment.request_id || "") === String(request.id))
     .sort((a, b) =>
       (new Date(b.payment_date || b.created_at || 0).getTime() || 0) -
       (new Date(a.payment_date || a.created_at || 0).getTime() || 0)
@@ -902,21 +907,12 @@ function updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining) {
 
   const state = getPaymentState(latestForRequest);
 
-  if (totalPayable > 0 && remaining <= 0) {
-    dueBox.innerHTML = `
-      <strong>✅ Payment Completed</strong>
-      <p>Your verified payment balance is fully paid.</p>
-      ${extraCharge > 0 ? `<p>Extra charge included: ${money(extraCharge)}</p>` : ""}
-    `;
-    return;
-  }
-
   if (latestForRequest && state.key === "pending") {
     dueBox.innerHTML = `
       <strong>⏳ Payment Verification Pending</strong>
-      <p>Your payment has been submitted and is waiting for Owner verification.</p>
+      <p>Your submitted payment is waiting for Owner verification.</p>
       <p><b>Submitted amount:</b> ${money(latestForRequest.payment_amount)}</p>
-      <p>This amount will count as paid only after verification.</p>
+      <p>This amount counts as paid only after verification.</p>
     `;
     return;
   }
@@ -926,21 +922,7 @@ function updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining) {
       <strong>❌ Payment Rejected</strong>
       <p>Your latest payment was rejected and has not been counted as paid.</p>
       <button type="button" class="pay-now-summary-btn"
-        onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
-        OPEN PAYMENT CENTER
-      </button>
-    `;
-    return;
-  }
-
-  if (remaining > 0) {
-    dueBox.innerHTML = `
-      <strong>💳 Payment Due</strong>
-      <p>Your request has been approved. Continue to the payment center.</p>
-      <p><b>Verified amount paid:</b> ${money(paidAmount)}</p>
-      <p><b>Remaining amount:</b> ${money(remaining)}</p>
-      <button type="button" class="pay-now-summary-btn"
-        onclick="openSubmitPayment('${escapeHtml(approvedRequest.id)}')">
+        onclick="openSubmitPayment('${escapeHtml(request.id)}')">
         OPEN PAYMENT CENTER
       </button>
     `;
@@ -948,13 +930,18 @@ function updatePaymentDueBox(totalPayable, extraCharge, paidAmount, remaining) {
   }
 
   dueBox.innerHTML = `
-    <strong>💡 Payment information</strong>
-    <p>Your payment information will appear here after Owner approval.</p>
+    <strong>💳 Payment Due</strong>
+    <p>Your request has been approved. Continue to the payment center.</p>
+    <p><b>Verified amount paid:</b> ${money(financials.paidAmount)}</p>
+    <p><b>Remaining amount:</b> ${money(financials.remainingAmount)}</p>
+    <button type="button" class="pay-now-summary-btn"
+      onclick="openSubmitPayment('${escapeHtml(request.id)}')">
+      OPEN PAYMENT CENTER
+    </button>
   `;
 }
 
 /* MOBILE MENU */
-
 function toggleMobileMenu() {
   const sidebar = $("mobileSidebar");
   const overlay = $("sidebarOverlay");
@@ -980,7 +967,43 @@ function closeMobileMenu() {
   document.body.classList.remove("menu-open");
 }
 
-/* REQUEST NAVIGATION */
+/*
+ * REQUEST ROUTING
+ *
+ * Pending owner approval -> request-status.html
+ * Approved, payment outstanding -> submit-payment.html
+ * Payment pending verification -> request-status.html
+ * Fully paid verified request -> request-cylinder.html
+ * No active request -> request-cylinder.html
+ *
+ * If request/payment loading failed, do not permit another request.
+ */
+function hasPendingPaymentForRequest(requestId) {
+  return currentPayments.some(payment =>
+    String(payment.request_id || "") === String(requestId) &&
+    getPaymentState(payment).key === "pending"
+  );
+}
+
+function getRequestNavigationState(request) {
+  if (!request || isRequestCancelled(request)) {
+    return {state: "new_request", label: "+ REQUEST CYLINDER", note: "Start a new cylinder request."};
+  }
+
+  if (!isRequestApproved(request)) {
+    return {state: "approval_pending", label: "REQUEST PENDING", note: "Your request is waiting for Owner approval."};
+  }
+
+  if (hasPendingPaymentForRequest(request.id)) {
+    return {state: "payment_pending", label: "PAYMENT VERIFICATION PENDING", note: "Your payment is awaiting Owner verification."};
+  }
+
+  if (isRequestFullyPaid(request)) {
+    return {state: "fully_paid", label: "+ REQUEST NEW CYLINDER", note: "Your previous request is fully paid. You can start the next request."};
+  }
+
+  return {state: "payment_due", label: "CONTINUE PAYMENT", note: "Your request is approved. Continue with payment before starting another request."};
+}
 
 function updateRequestButton() {
   const button = $("requestCylinderBtn");
@@ -988,28 +1011,31 @@ function updateRequestButton() {
   if (!button || !note) return;
 
   const request = getLatestRequest();
-  button.disabled = false;
 
-  if (!request || isRequestCancelled(request)) {
-    note.textContent = "Start a new cylinder request when you are ready.";
-    return;
-  }
-
-  if (!isRequestApproved(request)) {
+  if (!requestDataLoaded || !paymentDataLoaded || requestLoadFailed || paymentLoadFailed) {
     button.disabled = true;
-    note.textContent = "Your request is waiting for Owner approval. You can check its status here.";
+    button.textContent = "CHECKING REQUEST...";
+    note.textContent = "Unable to confirm your request and payment status. Refresh before continuing.";
     return;
   }
 
-  if (!isRequestFullyPaid(request)) {
-    note.textContent = "Your request is approved. Continue to the payment center.";
-    return;
-  }
-
-  note.textContent = "Your previous request is fully paid. You can apply for the next cylinder.";
+  const navigation = getRequestNavigationState(request);
+  button.disabled = false;
+  button.textContent = navigation.label;
+  note.textContent = navigation.note;
 }
 
 function requestCylinder() {
+  if (!currentUser) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  if (!requestDataLoaded || !paymentDataLoaded || requestLoadFailed || paymentLoadFailed) {
+    toast("Request/payment status is still loading or unavailable. Please refresh.");
+    return;
+  }
+
   const request = getLatestRequest();
 
   if (!request || isRequestCancelled(request)) {
@@ -1017,17 +1043,29 @@ function requestCylinder() {
     return;
   }
 
-  if (!isRequestApproved(request)) {
-    window.location.href = "request-status.html";
+  const navigation = getRequestNavigationState(request);
+
+  if (navigation.state === "approval_pending") {
+    window.location.href = "request-status.html?request_id=" + encodeURIComponent(request.id);
     return;
   }
 
-  if (!isRequestFullyPaid(request)) {
-    window.location.href = "payments.html";
+  if (navigation.state === "payment_pending") {
+    window.location.href = "request-status.html?request_id=" + encodeURIComponent(request.id);
     return;
   }
 
-  window.location.href = "repayment-scheme.html";
+  if (navigation.state === "payment_due") {
+    window.location.href = "submit-payment.html?request_id=" + encodeURIComponent(request.id);
+    return;
+  }
+
+  if (navigation.state === "fully_paid") {
+    window.location.href = "request-cylinder.html";
+    return;
+  }
+
+  window.location.href = "request-cylinder.html";
 }
 
 function openNotifications() {
@@ -1040,11 +1078,27 @@ function openSubmitPayment(requestId) {
     return;
   }
 
+  const request = currentRequests.find(item => String(item.id) === String(requestId));
+
+  if (!request || !isRequestApproved(request)) {
+    toast("Payment is available only after Owner approval.");
+    return;
+  }
+
+  if (isRequestFullyPaid(request)) {
+    toast("This request is already fully paid.");
+    return;
+  }
+
+  if (hasPendingPaymentForRequest(requestId)) {
+    window.location.href = "request-status.html?request_id=" + encodeURIComponent(requestId);
+    return;
+  }
+
   window.location.href = "submit-payment.html?request_id=" + encodeURIComponent(requestId);
 }
 
 /* LOGOUT */
-
 function openLogoutPopup() {
   closeMobileMenu();
   $("logoutOverlay").classList.add("show");
@@ -1068,13 +1122,13 @@ async function confirmLogout() {
   button.textContent = "Logging out...";
 
   try {
-    const result = await supabaseClient.auth.signOut();
-    if (result.error) throw result.error;
-
     if (realtimeChannel) {
       await supabaseClient.removeChannel(realtimeChannel);
       realtimeChannel = null;
     }
+
+    const result = await supabaseClient.auth.signOut();
+    if (result.error) throw result.error;
 
     window.location.replace("login.html");
   } catch (error) {
@@ -1085,7 +1139,6 @@ async function confirmLogout() {
 }
 
 /* PROFILE */
-
 async function loadProfile() {
   if (!currentUser?.id) return;
 
@@ -1111,18 +1164,12 @@ async function loadProfile() {
   $("topName").textContent = name;
   $("topEmail").textContent = email;
 
-  if (result.data.profile_photo) {
-    $("topPhoto").src = result.data.profile_photo;
-  } else {
-    $("topPhoto").src =
-      "https://ui-avatars.com/api/?name=" +
-      encodeURIComponent(name) +
-      "&background=eaf5fc&color=0754a9";
-  }
+  $("topPhoto").src = result.data.profile_photo ||
+    "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) +
+    "&background=eaf5fc&color=0754a9";
 }
 
 /* REQUESTS */
-
 async function loadRequests() {
   if (!currentUser?.id) return;
 
@@ -1133,12 +1180,19 @@ async function loadRequests() {
     .order("created_at", { ascending: false });
 
   if (result.error) {
-    console.warn("Requests load error:", result.error);
+    requestLoadFailed = true;
+    requestDataLoaded = false;
+    console.error("Requests load error:", result.error);
+
     $("currentRequestArea").innerHTML =
-      '<div class="empty">Unable to load requests. Please refresh the page.</div>';
+      '<div class="empty">Unable to load requests. Check your database columns and permissions, then refresh.</div>';
+
+    updateRequestButton();
     return;
   }
 
+  requestLoadFailed = false;
+  requestDataLoaded = true;
   currentRequests = result.data || [];
 
   updateRequestCounters();
@@ -1162,13 +1216,10 @@ function updateRequestCounters() {
     isRequestCancelled(item)
   ).length;
 
-  let totalCylinders = 0;
-
-  requests.forEach(item => {
-    if (isRequestApproved(item)) {
-      totalCylinders += Math.max(0, Number(item.quantity || 0));
-    }
-  });
+  const totalCylinders = requests.reduce((sum, item) => {
+    if (!isRequestApproved(item)) return sum;
+    return sum + Math.max(0, Number(item.quantity || 1));
+  }, 0);
 
   $("totalCylinders").textContent = totalCylinders;
   $("pendingRequests").textContent = pending;
@@ -1177,24 +1228,27 @@ function updateRequestCounters() {
 }
 
 /* CURRENT REQUEST */
-
 function showCurrentRequest() {
   const area = $("currentRequestArea");
   const active = getLatestRequest();
 
   if (!active || isRequestCancelled(active)) {
     area.innerHTML = '<div class="empty">No active cylinder request.</div>';
+    updateRequestButton();
     return;
   }
 
   const approved = isRequestApproved(active);
+  const fullyPaid = isRequestFullyPaid(active);
   const status = normalizeStatus(active.status || "pending");
   const deliveryStatus = normalizeStatus(active.delivery_status || "");
 
-  let displayStatus = status.replace(/_/g, " ");
+  let displayStatus = humanizeStatus(status);
   let progress = approved ? 50 : 20;
 
-  if (status === "processing") progress = 70;
+  if (status === "processing" || status === "assigned" || status === "ready") {
+    progress = 70;
+  }
 
   if (deliveryStatus === "out_for_delivery") {
     displayStatus = "Out for Delivery";
@@ -1206,26 +1260,43 @@ function showCurrentRequest() {
     progress = 100;
   }
 
-  if (status === "completed") {
-    displayStatus = "Completed";
+  if (fullyPaid) {
+    displayStatus = "Fully Paid";
     progress = 100;
   }
 
-  const quantity = Number(active.quantity || 1);
+  const quantity = Math.max(1, Number(active.quantity || 1));
   const financials = getRequestFinancials(active);
   const statusClass = normalizeStatus(displayStatus);
   const requestId = active.id || "";
+  const navigation = getRequestNavigationState(active);
 
   let paymentButton = "";
 
-  if (approved && financials.remainingAmount > 0) {
+  if (approved && !fullyPaid && financials.remainingAmount > 0) {
+    if (hasPendingPaymentForRequest(requestId)) {
+      paymentButton = `
+        <div class="status-message pending">
+          Your submitted payment is waiting for Owner verification.
+        </div>
+        <button type="button" class="payment-action-btn"
+          onclick="window.location.href='request-status.html?request_id=${encodeURIComponent(requestId)}'">
+          VIEW REQUEST STATUS
+        </button>
+      `;
+    } else {
+      paymentButton = `
+        <button type="button" class="payment-action-btn"
+          onclick="openSubmitPayment('${escapeHtml(requestId)}')">
+          💳 OPEN PAYMENT CENTER
+        </button>
+        <div class="payment-note">Only verified payments are counted as paid.</div>
+      `;
+    }
+  } else if (fullyPaid) {
     paymentButton = `
-      <button type="button" class="payment-action-btn"
-        onclick="openSubmitPayment('${escapeHtml(requestId)}')">
-        💳 OPEN PAYMENT CENTER
-      </button>
-      <div class="payment-note">
-        Only verified payments are counted as paid.
+      <div class="status-message approved">
+        Payment is complete. You can now start a new cylinder request.
       </div>
     `;
   }
@@ -1233,8 +1304,8 @@ function showCurrentRequest() {
   area.innerHTML = `
     <div class="request-card">
       <div class="request-head">
-        <div class="request-id">${escapeHtml(active.request_number || "EGC REQUEST")}</div>
-        <div class="status ${escapeHtml(statusClass)}">${escapeHtml(displayStatus)}</div>
+        <div class="request-id">${escapeHtml(active.request_number || ("EGC-" + String(requestId).substring(0, 8)))}</div>
+        <div class="status ${escapeHtml(statusClass)}">${escapeHtml(displayStatus || "Pending")}</div>
       </div>
 
       <div class="request-details">
@@ -1243,8 +1314,20 @@ function showCurrentRequest() {
           <div class="detail-value">${quantity}</div>
         </div>
         <div>
+          <div class="detail-label">Owner Approval</div>
+          <div class="detail-value">${approved ? "Approved" : "Pending"}</div>
+        </div>
+        <div>
+          <div class="detail-label">Payment Status</div>
+          <div class="detail-value">${fullyPaid ? "Fully Paid" : approved ? navigation.state === "payment_pending" ? "Verification Pending" : "Payment Due" : "Locked"}</div>
+        </div>
+        <div>
           <div class="detail-label">Total Payable</div>
-          <div class="detail-value">${approved ? money(financials.totalPayable) : "Pending Approval"}</div>
+          <div class="detail-value">${approved ? money(financials.totalPayable) : "After approval"}</div>
+        </div>
+        <div>
+          <div class="detail-label">Verified Paid</div>
+          <div class="detail-value">${approved ? money(financials.paidAmount) : "—"}</div>
         </div>
         <div>
           <div class="detail-label">Request Date</div>
@@ -1266,7 +1349,6 @@ function showCurrentRequest() {
 }
 
 /* PAYMENTS */
-
 async function loadPayments() {
   if (!currentUser?.id) return;
 
@@ -1277,7 +1359,9 @@ async function loadPayments() {
     .order("created_at", { ascending: false });
 
   if (result.error) {
-    console.warn("Payments load error:", result.error);
+    paymentLoadFailed = true;
+    paymentDataLoaded = false;
+    console.error("Payments load error:", result.error);
 
     $("paymentHistory").innerHTML = `
       <tr><td colspan="4">
@@ -1286,14 +1370,19 @@ async function loadPayments() {
     `;
 
     $("latestPaymentDetails").hidden = true;
+    updateRequestButton();
     return;
   }
 
+  paymentLoadFailed = false;
+  paymentDataLoaded = true;
   currentPayments = result.data || [];
 
   showPaymentHistory();
   renderLatestPaymentDetails();
   calculatePaymentSummary();
+  showCurrentRequest();
+  updateRequestButton();
 }
 
 function renderLatestPaymentDetails() {
@@ -1337,16 +1426,15 @@ function showPaymentHistory() {
   tbody.innerHTML = currentPayments.slice(0, 8).map(payment => {
     const state = getPaymentState(payment);
 
-    let requestText = "—";
     const request = currentRequests.find(item =>
       String(item.id) === String(payment.request_id)
     );
 
-    if (request) {
-      requestText = request.request_number || String(payment.request_id).substring(0, 8);
-    } else if (payment.request_id) {
-      requestText = String(payment.request_id).substring(0, 8);
-    }
+    const requestText = request
+      ? (request.request_number || String(payment.request_id).substring(0, 8))
+      : payment.request_id
+        ? String(payment.request_id).substring(0, 8)
+        : "—";
 
     return `
       <tr>
@@ -1360,7 +1448,6 @@ function showPaymentHistory() {
 }
 
 /* NOTIFICATIONS */
-
 async function loadNotifications() {
   if (!currentUser?.id) return;
 
@@ -1409,7 +1496,7 @@ function renderNotifications() {
     const unread = !item.is_read;
 
     return `
-      <div class="notification ${unread ? "unread" : ""}" data-notification-id="${escapeHtml(item.id)}">
+      <div class="notification ${unread ? "unread" : ""}">
         <div class="notification-icon">${notificationIcon(item.notification_type)}</div>
         <div>
           <div class="notification-title">${escapeHtml(item.title || "Notification")}</div>
@@ -1472,7 +1559,6 @@ $("notificationsArea").addEventListener("click", async function(event) {
 });
 
 /* REALTIME UPDATES */
-
 function subscribeRealtime() {
   if (!currentUser?.id || !supabaseClient) return;
 
@@ -1499,6 +1585,7 @@ function subscribeRealtime() {
       filter: "user_id=eq." + currentUser.id
     }, async function() {
       await loadPayments();
+      await loadRequests();
       toast("Payment information updated.");
     })
 
@@ -1518,21 +1605,7 @@ function subscribeRealtime() {
     });
 }
 
-/* BROWSER NOTIFICATIONS */
-
-async function requestBrowserNotificationPermission() {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "default") return;
-
-  try {
-    await Notification.requestPermission();
-  } catch (error) {
-    console.warn("Notification permission:", error);
-  }
-}
-
 /* KEYBOARD / RESIZE */
-
 document.addEventListener("keydown", function(event) {
   if (event.key === "Escape") {
     closeMobileMenu();
@@ -1544,18 +1617,7 @@ window.addEventListener("resize", function() {
   if (window.innerWidth > 800) closeMobileMenu();
 });
 
-document.addEventListener("click", function() {
-  if (
-    currentUser &&
-    "Notification" in window &&
-    Notification.permission === "default"
-  ) {
-    requestBrowserNotificationPermission();
-  }
-}, {once:true});
-
 /* AUTH STATE */
-
 if (supabaseClient) {
   supabaseClient.auth.onAuthStateChange(function(event) {
     if (event === "SIGNED_OUT") {
@@ -1570,20 +1632,17 @@ if (supabaseClient) {
 }
 
 /* INITIALIZE */
-
 async function initializeDashboard() {
   const requestButton = $("requestCylinderBtn");
   const requestButtonNote = $("requestButtonNote");
 
   if (requestButton) requestButton.disabled = true;
-
   if (requestButtonNote) {
-    requestButtonNote.textContent = "Checking your existing request...";
+    requestButtonNote.textContent = "Checking your existing request and payments...";
   }
 
   if (!supabaseClient) {
     showError("Supabase library could not load. Check your internet connection and reload the page.");
-    if (requestButton) requestButton.disabled = true;
     return;
   }
 
@@ -1600,15 +1659,24 @@ async function initializeDashboard() {
     currentUser = authResult.data.user;
 
     await loadProfile();
-    await loadRequests();
-    await loadPayments();
-    await loadNotifications();
+
+    /*
+     * Load both datasets before enabling the request button.
+     * This prevents routing based on incomplete or stale payment data.
+     */
+    await Promise.all([
+      loadRequests(),
+      loadPayments(),
+      loadNotifications()
+    ]);
 
     subscribeRealtime();
+    updateRequestButton();
   } catch (error) {
     console.error("Dashboard initialization error:", error);
     showError(error.message || "Unable to load customer dashboard.");
-  } finally {
+    requestLoadFailed = true;
+    paymentLoadFailed = true;
     updateRequestButton();
   }
 }

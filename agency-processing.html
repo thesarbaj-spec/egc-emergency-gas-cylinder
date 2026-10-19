@@ -1,2153 +1,1668 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Processing | EGC Agency</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="theme-color" content="#06477f">
+<title>Request Processing | EGC Agency</title>
 
 <style>
-
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    min-height:100vh;
-    color:#173f5f;
+:root {
+    --egc-navy: #06477f;
+    --egc-blue: #0871c3;
+    --egc-blue-dark: #07538d;
+    --egc-text: #31566f;
+    --egc-muted: #91a1ae;
+    --egc-border: #dce8f1;
+    --egc-bg: #eef7fc;
+    --egc-white: #ffffff;
+    --egc-green: #24804a;
+    --egc-red: #c33232;
+}
+
+body {
+    min-height: 100vh;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #173f5f;
     background:
-        radial-gradient(circle at 5% 5%,rgba(255,190,190,.25),transparent 28%),
-        radial-gradient(circle at 95% 5%,rgba(180,220,255,.35),transparent 30%),
-        #eef7fc;
+        radial-gradient(circle at 5% 5%, rgba(255,190,190,.25), transparent 28%),
+        radial-gradient(circle at 95% 5%, rgba(180,220,255,.35), transparent 30%),
+        var(--egc-bg);
 }
 
-button,input,select{
-    font-family:inherit;
+button, input, select {
+    font: inherit;
 }
 
-button{
-    cursor:pointer;
+button {
+    cursor: pointer;
 }
 
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.header{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    height:72px;
-    background:rgba(255,255,255,.96);
-    border-bottom:1px solid #dce8f1;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 24px;
-    z-index:1000;
-    box-shadow:0 5px 20px rgba(25,70,100,.07);
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid rgba(8,113,195,.25);
+    outline-offset: 2px;
 }
 
-.header-left{
-    display:flex;
-    align-items:center;
-    gap:13px;
+/* HEADER */
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: rgba(255,255,255,.97);
+    border-bottom: 1px solid var(--egc-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 1000;
+    box-shadow: 0 5px 20px rgba(25,70,100,.07);
 }
 
-.menu-btn{
-    display:none;
-    width:40px;
-    height:40px;
-    border:0;
-    border-radius:10px;
-    background:#eef7ff;
-    color:#0871c3;
-    font-size:22px;
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
 }
 
-.logo{
-    width:125px;
-    max-height:48px;
-    object-fit:contain;
+.menu-btn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border: 0;
+    border-radius: 10px;
+    background: #eef7ff;
+    color: var(--egc-blue);
+    font-size: 22px;
 }
 
-.agency-title{
-    color:#06477f;
-    font-size:17px;
-    font-weight:800;
+.logo {
+    width: 125px;
+    max-height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
-.agency-subtitle{
-    color:#91a1ae;
-    font-size:11px;
-    margin-top:3px;
+.agency-title {
+    color: var(--egc-navy);
+    font-size: 17px;
+    font-weight: 800;
 }
 
-.header-right{
-    display:flex;
-    align-items:center;
-    gap:12px;
+.agency-subtitle {
+    color: var(--egc-muted);
+    font-size: 11px;
+    margin-top: 3px;
 }
 
-.bell-wrap{
-    position:relative;
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.bell-btn{
-    width:42px;
-    height:42px;
-    border:1px solid #dce8f1;
-    border-radius:12px;
-    background:#fff;
-    color:#0871c3;
-    font-size:19px;
-    position:relative;
+.bell-wrap {
+    position: relative;
 }
 
-.bell-btn.has-unread{
-    animation:bellPulse 1.8s infinite;
+.bell-btn {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--egc-border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--egc-blue);
+    font-size: 19px;
+    position: relative;
 }
 
-@keyframes bellPulse{
-    0%,100%{
-        box-shadow:0 0 0 0 rgba(8,113,195,.12);
+.bell-btn.has-unread {
+    animation: bellPulse 1.8s infinite;
+}
+
+@keyframes bellPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(8,113,195,.12);
     }
-    50%{
-        box-shadow:0 0 0 7px rgba(8,113,195,0);
+    50% {
+        box-shadow: 0 0 0 7px rgba(8,113,195,0);
     }
 }
 
-.notification-count{
-    position:absolute;
-    top:-5px;
-    right:-5px;
-    min-width:19px;
-    height:19px;
-    padding:0 5px;
-    border-radius:20px;
-    background:#e53935;
-    color:#fff;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    font-size:10px;
-    font-weight:800;
-    border:2px solid #fff;
+.notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 20px;
+    background: #e53935;
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    border: 2px solid #fff;
 }
 
-.notification-count.show{
-    display:flex;
+.notification-count.show {
+    display: flex;
 }
 
+/* NOTIFICATIONS */
 
-/* =========================================================
-   NOTIFICATION POPUP
-========================================================= */
-
-.notification-popup{
-    position:fixed;
-    top:78px;
-    right:24px;
-    width:365px;
-    max-width:calc(100vw - 28px);
-    background:#fff;
-    border:1px solid #dce8f1;
-    border-radius:18px;
-    box-shadow:0 20px 60px rgba(20,70,100,.20);
-    z-index:3000;
-    display:none;
-    overflow:hidden;
+.notification-popup {
+    position: fixed;
+    top: 78px;
+    right: 24px;
+    width: 365px;
+    max-width: calc(100vw - 28px);
+    background: #fff;
+    border: 1px solid var(--egc-border);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(20,70,100,.20);
+    z-index: 3000;
+    display: none;
+    overflow: hidden;
 }
 
-.notification-popup.show{
-    display:block;
+.notification-popup.show {
+    display: block;
 }
 
-.notification-head{
-    padding:15px 16px;
-    border-bottom:1px solid #edf2f5;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
+.notification-head {
+    padding: 15px 16px;
+    border-bottom: 1px solid #edf2f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.notification-head-title{
-    color:#06477f;
-    font-size:14px;
-    font-weight:850;
+.notification-head-title {
+    color: var(--egc-navy);
+    font-size: 14px;
+    font-weight: 850;
 }
 
-.notification-head-sub{
-    color:#91a1ae;
-    font-size:9px;
-    margin-top:3px;
+.notification-head-sub {
+    color: var(--egc-muted);
+    font-size: 9px;
+    margin-top: 3px;
 }
 
-.mark-all-btn{
-    border:0;
-    background:#edf7ff;
-    color:#0871c3;
-    border-radius:8px;
-    padding:7px 9px;
-    font-size:9px;
-    font-weight:800;
+.mark-all-btn {
+    border: 0;
+    background: #edf7ff;
+    color: var(--egc-blue);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 800;
 }
 
-.notification-list{
-    max-height:370px;
-    overflow-y:auto;
+.notification-list {
+    max-height: 370px;
+    overflow-y: auto;
 }
 
-.notification-item{
-    padding:13px 15px;
-    border-bottom:1px solid #edf2f5;
-    display:flex;
-    gap:11px;
-    cursor:pointer;
-    transition:.2s;
+.notification-item {
+    padding: 13px 15px;
+    border-bottom: 1px solid #edf2f5;
+    display: flex;
+    gap: 11px;
+    cursor: pointer;
+    transition: background .2s;
 }
 
-.notification-item:hover{
-    background:#f8fcff;
+.notification-item:hover {
+    background: #f8fcff;
 }
 
-.notification-item.unread{
-    background:#f1f8ff;
+.notification-item.unread {
+    background: #f1f8ff;
 }
 
-.notification-icon{
-    flex:0 0 36px;
-    width:36px;
-    height:36px;
-    border-radius:11px;
-    background:#eaf4ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:16px;
+.notification-icon {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: #eaf4ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
 }
 
-.notification-content{
-    min-width:0;
-    flex:1;
+.notification-content {
+    min-width: 0;
+    flex: 1;
 }
 
-.notification-title{
-    color:#31566f;
-    font-size:11px;
-    font-weight:850;
-    line-height:1.3;
+.notification-title {
+    color: var(--egc-text);
+    font-size: 11px;
+    font-weight: 850;
+    line-height: 1.4;
 }
 
-.notification-message{
-    color:#718796;
-    font-size:9px;
-    line-height:1.45;
-    margin-top:3px;
-    word-break:break-word;
+.notification-message {
+    color: #718796;
+    font-size: 10px;
+    line-height: 1.5;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
 }
 
-.notification-time{
-    color:#a0adb6;
-    font-size:8px;
-    margin-top:5px;
+.notification-time {
+    color: #a0adb6;
+    font-size: 9px;
+    margin-top: 5px;
 }
 
-.notification-unread-dot{
-    width:7px;
-    height:7px;
-    background:#e53935;
-    border-radius:50%;
-    margin-top:5px;
-    flex:0 0 7px;
+.notification-unread-dot {
+    width: 7px;
+    height: 7px;
+    background: #e53935;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex: 0 0 7px;
 }
 
-.notification-empty{
-    padding:30px 15px;
-    text-align:center;
-    color:#91a1ae;
-    font-size:10px;
+.notification-empty {
+    padding: 30px 15px;
+    text-align: center;
+    color: var(--egc-muted);
+    font-size: 11px;
 }
 
-.notification-footer{
-    border-top:1px solid #edf2f5;
-    padding:10px;
-    text-align:center;
+.notification-footer {
+    border-top: 1px solid #edf2f5;
+    padding: 12px;
+    text-align: center;
 }
 
-.view-all-btn{
-    border:0;
-    background:transparent;
-    color:#0871c3;
-    font-size:10px;
-    font-weight:800;
+.view-all-btn {
+    border: 0;
+    background: transparent;
+    color: var(--egc-blue);
+    font-size: 11px;
+    font-weight: 800;
 }
 
+/* SIDEBAR */
 
-/* =========================================================
-   SIDEBAR - MASTER REPORTS DESIGN
-========================================================= */
-
-.sidebar{
-    position:fixed;
-    top:72px;
-    left:0;
-    bottom:0;
-    width:235px;
-    background:#fff;
-    border-right:1px solid #dce8f1;
-    padding:22px 14px;
-    z-index:900;
-    display:flex;
-    flex-direction:column;
-    overflow-y:auto;
+.sidebar {
+    position: fixed;
+    top: 72px;
+    left: 0;
+    bottom: 0;
+    width: 235px;
+    background: #fff;
+    border-right: 1px solid var(--egc-border);
+    padding: 22px 14px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-.sidebar-title{
-    color:#9aaab5;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:1.2px;
-    padding:0 11px 12px;
+.sidebar-title {
+    color: #9aaab5;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    padding: 0 11px 12px;
 }
 
-.nav-btn{
-    width:100%;
-    height:43px;
-    border:0;
-    border-radius:11px;
-    background:transparent;
-    color:#5d788b;
-    display:flex;
-    align-items:center;
-    gap:11px;
-    padding:0 12px;
-    margin-bottom:5px;
-    font-size:12px;
-    font-weight:700;
-    text-align:left;
-    transition:.2s ease;
-    flex-shrink:0;
+.nav-btn {
+    width: 100%;
+    min-height: 43px;
+    flex: 0 0 43px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #5d788b;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 12px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    transition: .2s ease;
 }
 
 .nav-btn:hover,
-.nav-btn.active{
-    background:#edf7ff;
-    color:#0871c3;
+.nav-btn.active {
+    background: #edf7ff;
+    color: var(--egc-blue);
 }
 
-.nav-icon{
-    width:23px;
-    min-width:23px;
-    text-align:center;
-    font-size:16px;
+.nav-icon {
+    width: 23px;
+    min-width: 23px;
+    text-align: center;
+    font-size: 16px;
 }
 
-.sidebar-bottom{
-    position:static;
-    width:100%;
-    height:1px;
-    flex:0 0 1px;
-    margin-top:auto;
-    margin-bottom:8px;
-    background:#edf2f5;
+.sidebar-bottom {
+    width: 100%;
+    height: 1px;
+    flex: 0 0 1px;
+    margin-top: auto;
+    margin-bottom: 8px;
+    background: #edf2f5;
 }
 
-.logout-nav-btn{
-    position:static;
-    width:100%;
-    height:43px;
-    flex:0 0 43px;
-    margin-bottom:0;
+.logout-nav-btn {
+    margin-bottom: 0;
 }
 
-.logout-nav-btn:hover{
-    background:#fff0f0;
-    color:#c33232;
+.logout-nav-btn:hover {
+    background: #fff0f0;
+    color: var(--egc-red);
 }
 
+/* MOBILE OVERLAY */
 
-/* =========================================================
-   OVERLAY
-========================================================= */
-
-.overlay{
-    display:none;
+.overlay {
+    display: none;
 }
 
-.overlay.show{
-    display:block;
+/* MAIN */
+
+.main {
+    margin-left: 235px;
+    padding: 98px 25px 35px;
 }
 
-
-/* =========================================================
-   MAIN
-========================================================= */
-
-.main{
-    margin-left:235px;
-    padding:98px 25px 35px;
+.container {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
 }
 
-.container{
-    max-width:1500px;
-    margin:auto;
+/* PAGE INTRO */
+
+.welcome {
+    margin-bottom: 20px;
 }
 
-
-/* =========================================================
-   WELCOME
-========================================================= */
-
-.welcome{
-    margin-bottom:20px;
+.welcome h1 {
+    color: var(--egc-navy);
+    font-size: 27px;
+    font-weight: 850;
+    line-height: 1.3;
 }
 
-.welcome h1{
-    color:#06477f;
-    font-size:27px;
-    font-weight:850;
+.welcome p {
+    margin-top: 6px;
+    color: #8295a3;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
-.welcome p{
-    margin-top:6px;
-    color:#8295a3;
-    font-size:12px;
+/* STAT CARDS */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
 }
 
-
-/* =========================================================
-   STATS
-========================================================= */
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:14px;
-    margin-bottom:18px;
+.stat {
+    min-width: 0;
+    background: #fff;
+    border: 1px solid var(--egc-border);
+    border-radius: 17px;
+    padding: 17px;
+    box-shadow: 0 7px 25px rgba(30,75,110,.05);
 }
 
-.stat{
-    background:#fff;
-    border:1px solid #dce8f1;
-    border-radius:17px;
-    padding:17px;
-    box-shadow:0 7px 25px rgba(30,75,110,.05);
+.stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.stat-top{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
+.stat-label {
+    color: #8da0ae;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .8px;
 }
 
-.stat-label{
-    color:#8da0ae;
-    font-size:9px;
-    font-weight:900;
-    letter-spacing:.8px;
+.stat-number {
+    color: var(--egc-navy);
+    font-size: 25px;
+    font-weight: 850;
+    margin-top: 7px;
 }
 
-.stat-number{
-    color:#06477f;
-    font-size:25px;
-    font-weight:850;
-    margin-top:7px;
+.stat-icon {
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    border-radius: 13px;
+    background: #eef7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
 }
 
-.stat-icon{
-    width:43px;
-    height:43px;
-    border-radius:13px;
-    background:#eef7ff;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
+/* PANEL */
+
+.panel {
+    background: #fff;
+    border: 1px solid var(--egc-border);
+    border-radius: 18px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    box-shadow: 0 7px 25px rgba(30,75,110,.04);
 }
 
-
-/* =========================================================
-   PANEL
-========================================================= */
-
-.panel{
-    background:#fff;
-    border:1px solid #dce8f1;
-    border-radius:18px;
-    margin-bottom:18px;
-    overflow:hidden;
-    box-shadow:0 7px 25px rgba(30,75,110,.04);
+.panel-header {
+    padding: 17px 18px;
+    border-bottom: 1px solid #edf2f5;
 }
 
-.panel-header{
-    padding:17px 18px;
-    border-bottom:1px solid #edf2f5;
+.panel-title {
+    color: var(--egc-navy);
+    font-size: 14px;
+    font-weight: 850;
 }
 
-.panel-title{
-    color:#06477f;
-    font-size:14px;
-    font-weight:850;
+.panel-subtitle {
+    color: var(--egc-muted);
+    font-size: 10px;
+    line-height: 1.5;
+    margin-top: 5px;
 }
 
-.panel-subtitle{
-    color:#91a1ae;
-    font-size:10px;
-    margin-top:5px;
-}
+/* SEARCH & FILTERS */
 
-
-/* =========================================================
-   FILTERS
-========================================================= */
-
-.search{
-    display:grid;
-    grid-template-columns:1fr 190px 190px;
-    gap:9px;
-    padding:14px 18px;
-    background:#fbfdff;
-    border-bottom:1px solid #edf2f5;
+.search {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 190px 190px;
+    gap: 9px;
+    padding: 14px 18px;
+    background: #fbfdff;
+    border-bottom: 1px solid #edf2f5;
 }
 
 .search-input,
-.filter{
-    width:100%;
-    height:40px;
-    border:1px solid #d7e3eb;
-    border-radius:10px;
-    outline:none;
-    background:#fff;
-    color:#31566f;
-    padding:0 12px;
-    font-size:11px;
+.filter {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    border: 1px solid #d7e3eb;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: var(--egc-text);
+    padding: 0 12px;
+    font-size: 11px;
 }
 
 .search-input:focus,
-.filter:focus{
-    border-color:#72b4df;
-    box-shadow:0 0 0 3px rgba(65,150,215,.07);
+.filter:focus {
+    border-color: #72b4df;
+    box-shadow: 0 0 0 3px rgba(65,150,215,.07);
 }
 
+/* TABLE */
 
-/* =========================================================
-   TABLE
-========================================================= */
-
-.table-wrap{
-    width:100%;
-    overflow-x:auto;
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-table{
-    width:100%;
-    min-width:1250px;
-    border-collapse:collapse;
+table {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: collapse;
 }
 
-th{
-    background:#f7fafc;
-    color:#718796;
-    font-size:9px;
-    font-weight:900;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    padding:12px 13px;
-    text-align:left;
-    white-space:nowrap;
+th {
+    background: #f7fafc;
+    color: #718796;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 13px;
+    text-align: left;
+    white-space: nowrap;
 }
 
-td{
-    border-top:1px solid #edf2f5;
-    padding:12px 13px;
-    color:#496a82;
-    font-size:10px;
-    vertical-align:middle;
+td {
+    border-top: 1px solid #edf2f5;
+    padding: 13px;
+    color: #496a82;
+    font-size: 10px;
+    vertical-align: middle;
 }
 
-tr:hover td{
-    background:#fbfdff;
+tbody tr:hover td {
+    background: #fbfdff;
 }
 
-.customer-name{
-    color:#31566f;
-    font-weight:800;
-    font-size:11px;
+.customer-name {
+    color: var(--egc-text);
+    font-weight: 800;
+    font-size: 11px;
 }
 
-.customer-email{
-    color:#9aaab5;
-    font-size:9px;
-    margin-top:3px;
+.customer-email {
+    color: #9aaab5;
+    font-size: 9px;
+    margin-top: 3px;
+    overflow-wrap: anywhere;
 }
 
-.request-number{
-    color:#07538d;
-    font-weight:800;
+.request-number {
+    color: var(--egc-blue-dark);
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-.money{
-    color:#31566f;
-    font-weight:850;
+.money {
+    color: var(--egc-text);
+    font-weight: 850;
 }
 
 .empty,
-.loading{
-    text-align:center !important;
-    padding:30px !important;
-    color:#91a1ae !important;
+.loading {
+    text-align: center !important;
+    padding: 32px 20px !important;
+    color: var(--egc-muted) !important;
 }
 
+/* STATUS BADGES */
 
-/* =========================================================
-   BADGES
-========================================================= */
-
-.badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:5px 8px;
-    border-radius:20px;
-    font-size:8px;
-    font-weight:900;
-    white-space:nowrap;
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 9px;
+    border-radius: 20px;
+    font-size: 8px;
+    font-weight: 900;
+    white-space: nowrap;
 }
 
-.green{
-    background:#eaf8ef;
-    color:#24804a;
+.green {
+    background: #eaf8ef;
+    color: var(--egc-green);
 }
 
-.yellow{
-    background:#fff7df;
-    color:#9b7310;
+.yellow {
+    background: #fff7df;
+    color: #9b7310;
 }
 
-.red{
-    background:#fff0f0;
-    color:#c33232;
+.red {
+    background: #fff0f0;
+    color: var(--egc-red);
 }
 
-.blue{
-    background:#eaf4ff;
-    color:#0871c3;
+.blue {
+    background: #eaf4ff;
+    color: var(--egc-blue);
 }
 
-.gray{
-    background:#eef2f5;
-    color:#6f818e;
+.gray {
+    background: #eef2f5;
+    color: #6f818e;
 }
 
+/* ACTION BUTTONS */
 
-/* =========================================================
-   ACTION BUTTONS
-========================================================= */
-
-.action-group{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    flex-wrap:wrap;
+.action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
-.action-btn{
-    border:0;
-    min-height:31px;
-    padding:0 9px;
-    border-radius:8px;
-    font-size:9px;
-    font-weight:800;
-    white-space:nowrap;
+.action-btn {
+    min-height: 34px;
+    border: 0;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-.view-btn{
-    background:#eef7ff;
-    color:#0871c3;
+.view-btn {
+    background: #eef7ff;
+    color: var(--egc-blue);
 }
 
-.view-btn:hover{
-    background:#dcefff;
+.view-btn:hover {
+    background: #dcefff;
 }
 
-.processing-btn{
-    background:#eaf4ff;
-    color:#0871c3;
+.processing-btn {
+    background: #eaf4ff;
+    color: var(--egc-blue);
 }
 
-.processing-btn:hover{
-    background:#dcefff;
+.processing-btn:hover {
+    background: #dcefff;
 }
 
-.ready-btn{
-    background:#eaf8ef;
-    color:#24804a;
+.ready-btn {
+    background: #eaf8ef;
+    color: var(--egc-green);
 }
 
-.ready-btn:hover{
-    background:#d9f1e2;
+.ready-btn:hover {
+    background: #d9f1e2;
 }
 
-.action-btn:disabled{
-    opacity:.55;
-    cursor:not-allowed;
+.action-btn:disabled,
+.status-save:disabled,
+.logout-action-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
 }
 
+/* REQUEST DETAILS MODAL */
 
-/* =========================================================
-   DETAILS MODAL
-========================================================= */
-
-.modal{
-    position:fixed;
-    inset:0;
-    background:rgba(4,30,50,.50);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    z-index:9998;
-    backdrop-filter:blur(4px);
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(4,30,50,.50);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 9998;
+    backdrop-filter: blur(4px);
 }
 
-.modal.show{
-    display:flex;
+.modal.show {
+    display: flex;
 }
 
-.modal-card{
-    width:100%;
-    max-width:650px;
-    max-height:90vh;
-    overflow-y:auto;
-    background:#fff;
-    border-radius:20px;
-    padding:23px;
-    position:relative;
-    box-shadow:0 25px 80px rgba(0,0,0,.25);
+.modal-card {
+    width: 100%;
+    max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 23px;
+    position: relative;
+    box-shadow: 0 25px 80px rgba(0,0,0,.25);
 }
 
-.modal-close{
-    position:absolute;
-    top:14px;
-    right:14px;
-    width:34px;
-    height:34px;
-    border:0;
-    border-radius:9px;
-    background:#eef4f8;
-    color:#527087;
-    font-size:18px;
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 9px;
+    background: #eef4f8;
+    color: #527087;
+    font-size: 20px;
 }
 
-.modal-title{
-    color:#06477f;
-    font-size:19px;
-    font-weight:850;
-    padding-right:40px;
+.modal-title {
+    color: var(--egc-navy);
+    font-size: 19px;
+    font-weight: 850;
+    padding-right: 42px;
 }
 
-.modal-subtitle{
-    color:#91a1ae;
-    font-size:10px;
-    margin-top:5px;
+.modal-subtitle {
+    color: var(--egc-muted);
+    font-size: 10px;
+    line-height: 1.5;
+    margin-top: 5px;
 }
 
-.details-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-top:18px;
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
 }
 
-.detail-box{
-    background:#f8fbfd;
-    border:1px solid #e4edf2;
-    border-radius:11px;
-    padding:11px;
+.detail-box {
+    min-width: 0;
+    background: #f8fbfd;
+    border: 1px solid #e4edf2;
+    border-radius: 11px;
+    padding: 12px;
 }
 
-.detail-label{
-    color:#91a1ae;
-    font-size:8px;
-    font-weight:900;
-    text-transform:uppercase;
-    letter-spacing:.5px;
+.detail-label {
+    color: var(--egc-muted);
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .5px;
 }
 
-.detail-value{
-    color:#31566f;
-    font-size:11px;
-    font-weight:800;
-    margin-top:5px;
-    word-break:break-word;
+.detail-value {
+    color: var(--egc-text);
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 6px;
+    overflow-wrap: anywhere;
 }
 
-.modal-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-top:18px;
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
 }
 
-.modal-action{
-    height:42px;
-    border:0;
-    border-radius:10px;
-    font-size:11px;
-    font-weight:800;
+.modal-action {
+    min-height: 44px;
+    border: 0;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 11px;
+    font-weight: 800;
 }
 
-.modal-processing{
-    background:#eaf4ff;
-    color:#0871c3;
+.modal-processing {
+    background: #eaf4ff;
+    color: var(--egc-blue);
 }
 
-.modal-ready{
-    background:#eaf8ef;
-    color:#24804a;
+.modal-ready {
+    background: #eaf8ef;
+    color: var(--egc-green);
 }
 
+/* STATUS MODAL */
 
-/* =========================================================
-   STATUS MODAL
-========================================================= */
-
-.status-modal-card{
-    width:100%;
-    max-width:430px;
-    background:#fff;
-    border-radius:20px;
-    padding:23px;
-    position:relative;
-    box-shadow:0 25px 80px rgba(0,0,0,.25);
+.status-modal-card {
+    width: 100%;
+    max-width: 430px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 23px;
+    position: relative;
+    box-shadow: 0 25px 80px rgba(0,0,0,.25);
 }
 
-.status-options{
-    display:grid;
-    gap:9px;
-    margin-top:18px;
+.status-options {
+    display: grid;
+    gap: 9px;
+    margin-top: 18px;
 }
 
-.status-option{
-    width:100%;
-    min-height:48px;
-    border:1px solid #dce8f1;
-    background:#f9fcfe;
-    border-radius:11px;
-    color:#31566f;
-    text-align:left;
-    padding:9px 12px;
-    font-size:10px;
-    font-weight:800;
+.status-option {
+    width: 100%;
+    min-height: 50px;
+    border: 1px solid var(--egc-border);
+    background: #f9fcfe;
+    border-radius: 11px;
+    color: var(--egc-text);
+    text-align: left;
+    padding: 11px 12px;
+    font-size: 11px;
+    font-weight: 800;
 }
 
-.status-option:hover{
-    background:#edf7ff;
-    border-color:#b9d9ec;
-    color:#0871c3;
+.status-option:hover {
+    background: #edf7ff;
+    border-color: #b9d9ec;
+    color: var(--egc-blue);
 }
 
-.status-option.active{
-    background:#eaf4ff;
-    border-color:#72b4df;
-    color:#0871c3;
+.status-option.active {
+    background: #eaf4ff;
+    border-color: #72b4df;
+    color: var(--egc-blue);
 }
 
-.status-option small{
-    display:block;
-    color:#91a1ae;
-    font-size:8px;
-    font-weight:600;
-    margin-top:3px;
+.status-option small {
+    display: block;
+    color: var(--egc-muted);
+    font-size: 9px;
+    line-height: 1.5;
+    font-weight: 600;
+    margin-top: 4px;
 }
 
-.status-save{
-    width:100%;
-    height:42px;
-    border:0;
-    border-radius:10px;
-    margin-top:16px;
-    background:#0871c3;
-    color:#fff;
-    font-size:11px;
-    font-weight:800;
+.status-save {
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: 10px;
+    margin-top: 16px;
+    background: var(--egc-blue);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
 }
 
-.status-save:disabled{
-    opacity:.6;
-    cursor:not-allowed;
+/* TOAST */
+
+.toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 310px;
+    max-width: calc(100vw - 40px);
+    background: #fff;
+    border: 1px solid var(--egc-border);
+    border-radius: 15px;
+    padding: 14px 16px;
+    box-shadow: 0 15px 45px rgba(20,70,100,.20);
+    transform: translateY(130px);
+    opacity: 0;
+    transition: .3s;
+    z-index: 9999;
+    pointer-events: none;
 }
 
-
-/* =========================================================
-   TOAST
-========================================================= */
-
-.toast{
-    position:fixed;
-    right:20px;
-    bottom:20px;
-    width:310px;
-    max-width:calc(100vw - 40px);
-    background:#fff;
-    border:1px solid #dce8f1;
-    border-radius:15px;
-    padding:14px 16px;
-    box-shadow:0 15px 45px rgba(20,70,100,.20);
-    transform:translateY(130px);
-    opacity:0;
-    transition:.3s;
-    z-index:9999;
+.toast.show {
+    transform: translateY(0);
+    opacity: 1;
 }
 
-.toast.show{
-    transform:translateY(0);
-    opacity:1;
+.toast-title {
+    color: var(--egc-navy);
+    font-size: 12px;
+    font-weight: 850;
 }
 
-.toast-title{
-    color:#06477f;
-    font-size:12px;
-    font-weight:850;
+.toast-text {
+    color: #718796;
+    font-size: 10px;
+    margin-top: 4px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
-.toast-text{
-    color:#718796;
-    font-size:10px;
-    margin-top:4px;
-    line-height:1.45;
+/* LOGOUT MODAL */
+
+.logout-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(4,30,50,.50);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
 }
 
-
-/* =========================================================
-   LOGOUT MODAL
-========================================================= */
-
-.logout-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(4,30,50,.50);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-    z-index:10000;
-    backdrop-filter:blur(4px);
+.logout-modal.show {
+    display: flex;
 }
 
-.logout-modal.show{
-    display:flex;
+.logout-card {
+    width: 100%;
+    max-width: 390px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 23px;
+    text-align: center;
+    box-shadow: 0 25px 80px rgba(0,0,0,.25);
 }
 
-.logout-card{
-    width:100%;
-    max-width:390px;
-    background:#fff;
-    border-radius:20px;
-    padding:23px;
-    text-align:center;
-    box-shadow:0 25px 80px rgba(0,0,0,.25);
+.logout-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 13px;
+    border-radius: 17px;
+    background: #fff0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
 }
 
-.logout-icon{
-    width:58px;
-    height:58px;
-    margin:0 auto 13px;
-    border-radius:17px;
-    background:#fff0f0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:26px;
+.logout-title {
+    color: var(--egc-navy);
+    font-size: 19px;
+    font-weight: 850;
 }
 
-.logout-title{
-    color:#06477f;
-    font-size:19px;
-    font-weight:850;
+.logout-text {
+    color: #718796;
+    font-size: 11px;
+    line-height: 1.5;
+    margin-top: 7px;
 }
 
-.logout-text{
-    color:#718796;
-    font-size:11px;
-    line-height:1.5;
-    margin-top:7px;
+.logout-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 20px;
 }
 
-.logout-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-top:20px;
+.logout-action-btn {
+    min-height: 44px;
+    border: 0;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
 }
 
-.logout-action-btn{
-    height:42px;
-    border:0;
-    border-radius:10px;
-    font-size:11px;
-    font-weight:800;
+.logout-cancel {
+    background: #eef4f8;
+    color: #527087;
 }
 
-.logout-cancel{
-    background:#eef4f8;
-    color:#527087;
+.logout-confirm {
+    background: var(--egc-red);
+    color: #fff;
 }
 
-.logout-confirm{
-    background:#c33232;
-    color:#fff;
-}
+/* TABLET */
 
-.logout-action-btn:disabled{
-    opacity:.65;
-    cursor:not-allowed;
-}
-
-
-/* =========================================================
-   TABLET
-========================================================= */
-
-@media(max-width:1050px){
-
-    .stats{
-        grid-template-columns:repeat(2,1fr);
+@media (max-width: 1100px) {
+    .main {
+        padding-left: 18px;
+        padding-right: 18px;
     }
 
-    .search{
-        grid-template-columns:1fr 1fr;
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .search-input{
-        grid-column:1 / -1;
+    .search {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .search-input {
+        grid-column: 1 / -1;
+    }
 }
 
+/* MOBILE */
 
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media(max-width:800px){
-
-    .header{
-        padding:0 14px;
+@media (max-width: 800px) {
+    .header {
+        padding: 0 14px;
     }
 
-    .menu-btn{
-        display:block;
+    .menu-btn {
+        display: block;
     }
 
-    .logo{
-        width:100px;
+    .logo {
+        width: 100px;
     }
 
-    .agency-title{
-        font-size:14px;
+    .agency-title {
+        font-size: 14px;
     }
 
-    .agency-subtitle{
-        display:none;
+    .agency-subtitle {
+        display: none;
     }
 
-    .sidebar{
-        transform:translateX(-100%);
-        transition:.25s;
-        box-shadow:10px 0 30px rgba(0,0,0,.08);
+    .sidebar {
+        top: 72px;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        box-shadow: 10px 0 30px rgba(0,0,0,.08);
     }
 
-    .sidebar.open{
-        transform:translateX(0);
+    .sidebar.open {
+        transform: translateX(0);
     }
 
-    .main{
-        margin-left:0;
-        padding:91px 14px 30px;
+    .main {
+        margin-left: 0;
+        padding: 91px 14px 30px;
     }
 
-    .overlay{
-        position:fixed;
-        inset:72px 0 0 0;
-        background:rgba(0,0,0,.35);
-        z-index:850;
-        display:none;
+    .overlay {
+        position: fixed;
+        inset: 72px 0 0;
+        background: rgba(0,0,0,.35);
+        z-index: 850;
+        display: none;
     }
 
-    .overlay.show{
-        display:block;
+    .overlay.show {
+        display: block;
     }
 
-    .stats{
-        grid-template-columns:1fr 1fr;
+    .notification-popup {
+        top: 78px;
+        right: 10px;
+        width: calc(100vw - 20px);
     }
-
-    .notification-popup{
-        top:70px;
-        right:10px;
-        width:calc(100vw - 20px);
-    }
-
 }
 
+/* SMALL MOBILE */
 
-/* =========================================================
-   SMALL MOBILE
-========================================================= */
-
-@media(max-width:520px){
-
-    .header{
-        height:65px;
+@media (max-width: 520px) {
+    .header {
+        height: 65px;
+        padding: 0 10px;
     }
 
-    .sidebar{
-        top:65px;
-        width:235px;
-        padding:20px 12px;
+    .header-left {
+        gap: 8px;
     }
 
-    .overlay{
-        inset:65px 0 0 0;
+    .menu-btn {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        font-size: 20px;
     }
 
-    .main{
-        padding-top:82px;
+    .logo {
+        width: 82px;
+        max-height: 42px;
     }
 
-    .welcome h1{
-        font-size:22px;
+    .agency-title {
+        font-size: 12px;
     }
 
-    .stats{
-        grid-template-columns:1fr 1fr;
+    .sidebar {
+        top: 65px;
+        width: 235px;
+        padding: 20px 12px;
     }
 
-    .stat:nth-child(3),
-    .stat:nth-child(4){
-        grid-column:1 / -1;
+    .overlay {
+        inset: 65px 0 0;
     }
 
-    .stat{
-        padding:13px 11px;
-        border-radius:15px;
+    .main {
+        padding-top: 82px;
+        padding-left: 12px;
+        padding-right: 12px;
     }
 
-    .stat-label{
-        font-size:8px;
-        line-height:1.3;
+    .welcome h1 {
+        font-size: 22px;
     }
 
-    .stat-number{
-        font-size:20px;
-        margin-top:6px;
+    .welcome p {
+        font-size: 11px;
     }
 
-    .stat-icon{
-        width:36px;
-        height:36px;
-        border-radius:11px;
-        font-size:17px;
+    .stats {
+        gap: 9px;
     }
 
-    .panel{
-        border-radius:17px;
+    .stat {
+        padding: 13px 11px;
+        border-radius: 15px;
     }
 
-    .panel-header{
-        padding:14px;
+    .stat-label {
+        font-size: 8px;
+        line-height: 1.4;
     }
 
-    .panel-title{
-        font-size:13px;
+    .stat-number {
+        font-size: 20px;
+        margin-top: 6px;
     }
 
-    .panel-subtitle{
-        font-size:9px;
+    .stat-icon {
+        width: 35px;
+        height: 35px;
+        flex-basis: 35px;
+        border-radius: 10px;
+        font-size: 17px;
     }
 
-    .search{
-        grid-template-columns:1fr 1fr;
-        padding:12px;
+    .panel {
+        border-radius: 16px;
     }
 
-    .search-input{
-        grid-column:1 / -1;
+    .panel-header {
+        padding: 14px;
+    }
+
+    .panel-title {
+        font-size: 13px;
+    }
+
+    .panel-subtitle {
+        font-size: 10px;
+    }
+
+    .search {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px;
+        gap: 9px;
+    }
+
+    .search-input {
+        grid-column: auto;
     }
 
     .search-input,
-    .filter{
-        height:40px;
-        font-size:10px;
-        padding:0 9px;
+    .filter {
+        height: 42px;
+        font-size: 11px;
     }
 
-    .logo{
-        width:90px;
+    th {
+        font-size: 8px;
+        padding: 11px;
     }
 
-    .agency-title{
-        font-size:13px;
+    td {
+        font-size: 9px;
+        padding: 11px;
     }
 
-    th{
-        font-size:8px;
-        padding:11px;
+    .details-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    td{
-        font-size:9px;
-        padding:11px;
+    .modal-actions {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .details-grid{
-        grid-template-columns:1fr;
+    .modal-card,
+    .status-modal-card {
+        padding: 20px 16px;
+        border-radius: 16px;
     }
 
-    .modal-actions{
-        grid-template-columns:1fr;
+    .toast {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        max-width: none;
     }
-
-    .toast{
-        left:10px;
-        right:10px;
-        width:auto;
-        max-width:none;
-    }
-
 }
 
+/* EXTRA SMALL */
 
-/* =========================================================
-   EXTRA SMALL
-========================================================= */
-
-@media(max-width:360px){
-
-    .header{
-        padding:0 8px;
+@media (max-width: 360px) {
+    .header {
+        padding: 0 7px;
     }
 
-    .menu-btn{
-        width:36px;
-        height:36px;
-        font-size:20px;
+    .header-left {
+        gap: 6px;
     }
 
-    .logo{
-        width:82px;
+    .menu-btn {
+        width: 33px;
+        height: 33px;
+        flex-basis: 33px;
+        font-size: 18px;
     }
 
-    .agency-title{
-        font-size:12px;
+    .logo {
+        width: 70px;
     }
 
-    .main{
-        padding-left:8px;
-        padding-right:8px;
+    .agency-title {
+        font-size: 11px;
     }
 
-    .stats{
-        gap:7px;
+    .header-right {
+        gap: 5px;
     }
 
-    .stat{
-        padding:11px 8px;
+    .bell-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
     }
 
-    .stat-label{
-        font-size:7px;
+    .main {
+        padding-left: 8px;
+        padding-right: 8px;
     }
 
-    .stat-number{
-        font-size:18px;
+    .stats {
+        gap: 7px;
     }
 
-    .stat-icon{
-        width:32px;
-        height:32px;
-        font-size:15px;
+    .stat {
+        padding: 11px 8px;
     }
 
-    .search{
-        gap:7px;
+    .stat-label {
+        font-size: 7px;
     }
 
-    .search-input,
-    .filter{
-        font-size:9px;
+    .stat-number {
+        font-size: 18px;
     }
 
-    .bell-btn{
-        width:36px;
-        height:36px;
-        font-size:16px;
+    .stat-icon {
+        width: 30px;
+        height: 30px;
+        flex-basis: 30px;
+        font-size: 15px;
     }
 
+    .notification-popup {
+        right: 8px;
+        width: calc(100vw - 16px);
+    }
 }
 
+/* SCROLLBARS */
 
-/* =========================================================
-   SCROLLBARS
-========================================================= */
-
-.sidebar::-webkit-scrollbar{
-    width:5px;
+.sidebar::-webkit-scrollbar,
+.notification-list::-webkit-scrollbar,
+.modal-card::-webkit-scrollbar,
+.status-modal-card::-webkit-scrollbar {
+    width: 5px;
 }
 
-.sidebar::-webkit-scrollbar-thumb{
-    background:#d8e7f0;
-    border-radius:10px;
+.sidebar::-webkit-scrollbar-thumb,
+.notification-list::-webkit-scrollbar-thumb,
+.modal-card::-webkit-scrollbar-thumb,
+.status-modal-card::-webkit-scrollbar-thumb {
+    background: #d8e7f0;
+    border-radius: 10px;
 }
 
-.table-wrap::-webkit-scrollbar{
-    height:7px;
+.table-wrap::-webkit-scrollbar {
+    height: 7px;
 }
 
-.table-wrap::-webkit-scrollbar-thumb{
-    background:#d5e5ee;
-    border-radius:10px;
+.table-wrap::-webkit-scrollbar-thumb {
+    background: #d5e5ee;
+    border-radius: 10px;
 }
 
-.notification-list::-webkit-scrollbar{
-    width:5px;
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
 }
-
-.notification-list::-webkit-scrollbar-thumb{
-    background:#d8e7f0;
-    border-radius:10px;
-}
-
-.modal-card::-webkit-scrollbar{
-    width:5px;
-}
-
-.modal-card::-webkit-scrollbar-thumb{
-    background:#d8e7f0;
-    border-radius:10px;
-}
-
 </style>
-
 </head>
-
 
 <body>
 
-
 <header class="header">
-
     <div class="header-left">
-
-        <button class="menu-btn" id="menuBtn">
+        <button class="menu-btn" id="menuBtn" type="button"
+                aria-label="Open navigation menu" aria-controls="sidebar"
+                aria-expanded="false">
             ☰
         </button>
 
         <img
             class="logo"
             src="assets/EGC - Emergency Gas Cylinder logo.png"
-            alt="EGC"
+            alt="EGC Emergency Gas Cylinder"
         >
 
         <div>
-
-            <div
-                class="agency-title"
-                id="headerAgencyName"
-            >
-                LPG Agency
-            </div>
-
-            <div class="agency-subtitle">
-                Emergency Gas Cylinder Agency Panel
-            </div>
-
+            <div class="agency-title" id="headerAgencyName">LPG Agency</div>
+            <div class="agency-subtitle">Emergency Gas Cylinder Agency Panel</div>
         </div>
-
     </div>
 
-
     <div class="header-right">
-
         <div class="bell-wrap">
-
             <button
                 class="bell-btn"
                 id="notificationBtn"
+                type="button"
                 title="Notifications"
-            >
-                🔔
-            </button>
+                aria-label="Open notifications"
+                aria-controls="notificationPopup"
+                aria-expanded="false"
+            >🔔</button>
 
-            <span
-                class="notification-count"
-                id="notificationCount"
-            >
-                0
-            </span>
-
+            <span class="notification-count" id="notificationCount">0</span>
         </div>
-
     </div>
-
 </header>
 
-
 <!-- NOTIFICATION POPUP -->
-
-<div
-    class="notification-popup"
-    id="notificationPopup"
->
-
+<div class="notification-popup" id="notificationPopup">
     <div class="notification-head">
-
         <div>
-
-            <div class="notification-head-title">
-                Notifications
-            </div>
-
-            <div
-                class="notification-head-sub"
-                id="notificationSummary"
-            >
+            <div class="notification-head-title">Notifications</div>
+            <div class="notification-head-sub" id="notificationSummary">
                 No unread notifications
             </div>
-
         </div>
 
-        <button
-            class="mark-all-btn"
-            id="markAllReadBtn"
-        >
+        <button class="mark-all-btn" id="markAllReadBtn" type="button">
             Mark all read
         </button>
-
     </div>
 
-
-    <div
-        class="notification-list"
-        id="notificationList"
-    >
-
-        <div class="notification-empty">
-            Loading notifications...
-        </div>
-
+    <div class="notification-list" id="notificationList" aria-live="polite">
+        <div class="notification-empty">Loading notifications...</div>
     </div>
-
 
     <div class="notification-footer">
-
-        <button
-            class="view-all-btn"
-            id="viewAllNotificationsBtn"
-        >
+        <button class="view-all-btn" id="viewAllNotificationsBtn" type="button">
             View All Notifications →
         </button>
-
     </div>
-
 </div>
 
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">AGENCY MANAGEMENT</div>
 
-<!-- =======================================================
-     SIDEBAR
-======================================================= -->
-
-<aside
-    class="sidebar"
-    id="sidebar"
->
-
-    <div class="sidebar-title">
-        AGENCY MANAGEMENT
-    </div>
-
-
-    <button
-        class="nav-btn"
-        id="dashboardBtn"
-    >
-        <span class="nav-icon">📊</span>
-        <span>Dashboard</span>
+    <button class="nav-btn" id="dashboardBtn" type="button">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="customersBtn"
-    >
-        <span class="nav-icon">👥</span>
-        <span>Customers</span>
+    <button class="nav-btn" id="customersBtn" type="button">
+        <span class="nav-icon">👥</span><span>Customers</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="requestsBtn"
-    >
-        <span class="nav-icon">🛢️</span>
-        <span>Cylinder Requests</span>
+    <button class="nav-btn" id="requestsBtn" type="button">
+        <span class="nav-icon">🛢️</span><span>Cylinder Requests</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="requestDetailsBtn"
-    >
-        <span class="nav-icon">📋</span>
-        <span>Request Details</span>
+    <button class="nav-btn" id="requestDetailsBtn" type="button">
+        <span class="nav-icon">📋</span><span>Request Details</span>
     </button>
 
-
-    <button
-        class="nav-btn active"
-        id="processingBtn"
-    >
-        <span class="nav-icon">⚙️</span>
-        <span>Request Processing</span>
+    <button class="nav-btn active" id="processingBtn" type="button" aria-current="page">
+        <span class="nav-icon">⚙️</span><span>Request Processing</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="paymentsBtn"
-    >
-        <span class="nav-icon">💳</span>
-        <span>Payments</span>
+    <button class="nav-btn" id="paymentsBtn" type="button">
+        <span class="nav-icon">💳</span><span>Payments</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="repaymentsBtn"
-    >
-        <span class="nav-icon">💰</span>
-        <span>Repayments</span>
+    <button class="nav-btn" id="repaymentsBtn" type="button">
+        <span class="nav-icon">💰</span><span>Repayments</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="deliveriesBtn"
-    >
-        <span class="nav-icon">🚚</span>
-        <span>Deliveries</span>
+    <button class="nav-btn" id="deliveriesBtn" type="button">
+        <span class="nav-icon">🚚</span><span>Deliveries</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="pendingBtn"
-    >
-        <span class="nav-icon">⏳</span>
-        <span>Pending / On Hold</span>
+    <button class="nav-btn" id="pendingBtn" type="button">
+        <span class="nav-icon">⏳</span><span>Pending / On Hold</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="slipsBtn"
-    >
-        <span class="nav-icon">🧾</span>
-        <span>Request / Payment Slips</span>
+    <button class="nav-btn" id="slipsBtn" type="button">
+        <span class="nav-icon">🧾</span><span>Request / Payment Slips</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="notificationsBtn"
-    >
-        <span class="nav-icon">🔔</span>
-        <span>Notifications</span>
+    <button class="nav-btn" id="notificationsBtn" type="button">
+        <span class="nav-icon">🔔</span><span>Notifications</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="reportsBtn"
-    >
-        <span class="nav-icon">📈</span>
-        <span>Reports</span>
+    <button class="nav-btn" id="reportsBtn" type="button">
+        <span class="nav-icon">📈</span><span>Reports</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="settingsBtn"
-    >
-        <span class="nav-icon">⚙️</span>
-        <span>Settings</span>
+    <button class="nav-btn" id="settingsBtn" type="button">
+        <span class="nav-icon">⚙️</span><span>Settings</span>
     </button>
 
-
-    <button
-        class="nav-btn"
-        id="aboutBtn"
-    >
-        <span class="nav-icon">ℹ️</span>
-        <span>About</span>
+    <button class="nav-btn" id="aboutBtn" type="button">
+        <span class="nav-icon">ℹ️</span><span>About</span>
     </button>
-
 
     <div class="sidebar-bottom"></div>
 
-
-    <button
-        class="nav-btn logout-nav-btn"
-        id="logoutBtn"
-    >
-        <span class="nav-icon">🚪</span>
-        <span>Logout</span>
+    <button class="nav-btn logout-nav-btn" id="logoutBtn" type="button">
+        <span class="nav-icon">🚪</span><span>Logout</span>
     </button>
-
 </aside>
 
+<div class="overlay" id="overlay"></div>
 
-<div
-    class="overlay"
-    id="overlay"
-></div>
-
-
-<!-- =======================================================
-     MAIN
-======================================================= -->
-
+<!-- MAIN -->
 <main class="main">
-
     <div class="container">
 
-
         <div class="welcome">
-
-            <h1>
-                ⚙️ Request Processing
-            </h1>
-
-            <p>
-                Manage assigned cylinder requests and update their processing status.
-            </p>
-
+            <h1>⚙️ Request Processing</h1>
+            <p>Manage assigned cylinder requests and update their agency processing status.</p>
         </div>
 
-
         <!-- STATS -->
-
-        <section class="stats">
-
+        <section class="stats" aria-label="Request processing summary">
 
             <div class="stat">
-
                 <div class="stat-top">
-
                     <div>
-
-                        <div class="stat-label">
-                            ASSIGNED
-                        </div>
-
-                        <div
-                            class="stat-number"
-                            id="assignedCount"
-                        >
-                            0
-                        </div>
-
+                        <div class="stat-label">ASSIGNED</div>
+                        <div class="stat-number" id="assignedCount">0</div>
                     </div>
-
-                    <div class="stat-icon">
-                        📋
-                    </div>
-
+                    <div class="stat-icon" aria-hidden="true">📋</div>
                 </div>
-
             </div>
 
-
             <div class="stat">
-
                 <div class="stat-top">
-
                     <div>
-
-                        <div class="stat-label">
-                            PROCESSING
-                        </div>
-
-                        <div
-                            class="stat-number"
-                            id="processingCount"
-                        >
-                            0
-                        </div>
-
+                        <div class="stat-label">PROCESSING</div>
+                        <div class="stat-number" id="processingCount">0</div>
                     </div>
-
-                    <div class="stat-icon">
-                        ⚙️
-                    </div>
-
+                    <div class="stat-icon" aria-hidden="true">⚙️</div>
                 </div>
-
             </div>
 
-
             <div class="stat">
-
                 <div class="stat-top">
-
                     <div>
-
-                        <div class="stat-label">
-                            READY
-                        </div>
-
-                        <div
-                            class="stat-number"
-                            id="readyCount"
-                        >
-                            0
-                        </div>
-
+                        <div class="stat-label">READY</div>
+                        <div class="stat-number" id="readyCount">0</div>
                     </div>
-
-                    <div class="stat-icon">
-                        ✅
-                    </div>
-
+                    <div class="stat-icon" aria-hidden="true">✅</div>
                 </div>
-
             </div>
 
-
             <div class="stat">
-
                 <div class="stat-top">
-
                     <div>
-
-                        <div class="stat-label">
-                            TOTAL PROCESSING
-                        </div>
-
-                        <div
-                            class="stat-number"
-                            id="totalCount"
-                        >
-                            0
-                        </div>
-
+                        <div class="stat-label">TOTAL PROCESSING</div>
+                        <div class="stat-number" id="totalCount">0</div>
                     </div>
-
-                    <div class="stat-icon">
-                        🛢️
-                    </div>
-
+                    <div class="stat-icon" aria-hidden="true">🛢️</div>
                 </div>
-
             </div>
 
         </section>
 
-
         <!-- PROCESSING TABLE -->
-
         <section class="panel">
-
-
             <div class="panel-header">
-
-                <div class="panel-title">
-                    Assigned Cylinder Requests
-                </div>
-
+                <div class="panel-title">Assigned Cylinder Requests</div>
                 <div class="panel-subtitle">
                     View assigned requests and update their agency processing status.
                 </div>
-
             </div>
 
-
             <div class="search">
-
                 <input
                     class="search-input"
                     id="search"
                     type="search"
                     placeholder="Search customer, mobile, email, request number..."
+                    aria-label="Search requests"
                 >
 
-
-                <select
-                    class="filter"
-                    id="statusFilter"
-                >
-
-                    <option value="">
-                        All Processing Status
-                    </option>
-
-                    <option value="assigned">
-                        Assigned
-                    </option>
-
-                    <option value="processing">
-                        Processing
-                    </option>
-
-                    <option value="ready">
-                        Ready
-                    </option>
-
-                    <option value="out_for_delivery">
-                        Out for Delivery
-                    </option>
-
+                <select class="filter" id="statusFilter" aria-label="Filter by processing status">
+                    <option value="">All Processing Status</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="processing">Processing</option>
+                    <option value="ready">Ready</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
                 </select>
 
-
-                <select
-                    class="filter"
-                    id="paymentFilter"
-                >
-
-                    <option value="">
-                        All Payment Status
-                    </option>
-
-                    <option value="approved">
-                        Payment Approved
-                    </option>
-
-                    <option value="verified">
-                        Payment Verified
-                    </option>
-
-                    <option value="pending">
-                        Payment Pending
-                    </option>
-
+                <select class="filter" id="paymentFilter" aria-label="Filter by payment status">
+                    <option value="">All Payment Status</option>
+                    <option value="approved">Payment Approved</option>
+                    <option value="verified">Payment Verified</option>
+                    <option value="pending">Payment Pending</option>
                 </select>
-
             </div>
-
 
             <div class="table-wrap">
-
                 <table>
-
                     <thead>
-
                         <tr>
-
-                            <th>
-                                Customer
-                            </th>
-
-                            <th>
-                                EGC User ID
-                            </th>
-
-                            <th>
-                                Request
-                            </th>
-
-                            <th>
-                                Qty
-                            </th>
-
-                            <th>
-                                Payment
-                            </th>
-
-                            <th>
-                                Agency Status
-                            </th>
-
-                            <th>
-                                Created
-                            </th>
-
-                            <th>
-                                Action
-                            </th>
-
+                            <th>Customer</th>
+                            <th>EGC User ID</th>
+                            <th>Request</th>
+                            <th>Qty</th>
+                            <th>Payment</th>
+                            <th>Agency Status</th>
+                            <th>Created</th>
+                            <th>Action</th>
                         </tr>
-
                     </thead>
 
-
                     <tbody id="tbody">
-
                         <tr>
-
-                            <td
-                                colspan="8"
-                                class="loading"
-                            >
+                            <td colspan="8" class="loading">
                                 Loading processing requests...
                             </td>
-
                         </tr>
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </section>
 
     </div>
-
 </main>
 
-
-<!-- =======================================================
-     REQUEST DETAILS MODAL
-======================================================= -->
-
-<div
-    class="modal"
-    id="detailsModal"
->
-
+<!-- REQUEST DETAILS MODAL -->
+<div class="modal" id="detailsModal" role="dialog" aria-modal="true" aria-labelledby="detailsModalTitle">
     <div class="modal-card">
+        <button class="modal-close" id="closeDetails" type="button" aria-label="Close request details">×</button>
 
-        <button
-            class="modal-close"
-            id="closeDetails"
-        >
-            ×
-        </button>
+        <div class="modal-title" id="detailsModalTitle">Request Details</div>
+        <div class="modal-subtitle" id="detailsSubtitle">Request information</div>
 
-        <div class="modal-title">
-            Request Details
-        </div>
-
-        <div
-            class="modal-subtitle"
-            id="detailsSubtitle"
-        >
-            Request information
-        </div>
-
-        <div
-            class="details-grid"
-            id="detailsGrid"
-        >
-        </div>
+        <div class="details-grid" id="detailsGrid"></div>
 
         <div class="modal-actions">
-
-            <button
-                class="modal-action modal-processing"
-                id="modalProcessingBtn"
-            >
+            <button class="modal-action modal-processing" id="modalProcessingBtn" type="button">
                 ⚙️ Mark Processing
             </button>
 
-            <button
-                class="modal-action modal-ready"
-                id="modalReadyBtn"
-            >
+            <button class="modal-action modal-ready" id="modalReadyBtn" type="button">
                 ✅ Mark Ready
             </button>
-
         </div>
-
     </div>
-
 </div>
 
-
-<!-- =======================================================
-     STATUS MODAL
-======================================================= -->
-
-<div
-    class="modal"
-    id="statusModal"
->
-
+<!-- STATUS MODAL -->
+<div class="modal" id="statusModal" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
     <div class="status-modal-card">
+        <button class="modal-close" id="closeStatus" type="button" aria-label="Close status dialog">×</button>
 
-        <button
-            class="modal-close"
-            id="closeStatus"
-        >
-            ×
-        </button>
-
-        <div class="modal-title">
-            Update Processing Status
-        </div>
-
-        <div
-            class="modal-subtitle"
-            id="statusSubtitle"
-        >
+        <div class="modal-title" id="statusModalTitle">Update Processing Status</div>
+        <div class="modal-subtitle" id="statusSubtitle">
             Select the current agency status.
         </div>
 
         <div class="status-options">
-
-
-            <button
-                class="status-option"
-                data-status="assigned"
-            >
+            <button class="status-option" type="button" data-status="assigned">
                 📋 Assigned
-
-                <small>
-                    Request has been assigned to this agency.
-                </small>
-
+                <small>Request has been assigned to this agency.</small>
             </button>
 
-
-            <button
-                class="status-option"
-                data-status="processing"
-            >
+            <button class="status-option" type="button" data-status="processing">
                 ⚙️ Processing
-
-                <small>
-                    Agency is currently preparing the request.
-                </small>
-
+                <small>Agency is currently preparing the request.</small>
             </button>
 
-
-            <button
-                class="status-option"
-                data-status="ready"
-            >
+            <button class="status-option" type="button" data-status="ready">
                 ✅ Ready
-
-                <small>
-                    Request is prepared and ready for delivery.
-                </small>
-
+                <small>Request is prepared and ready for delivery.</small>
             </button>
 
-
-            <button
-                class="status-option"
-                data-status="out_for_delivery"
-            >
+            <button class="status-option" type="button" data-status="out_for_delivery">
                 🚚 Out for Delivery
-
-                <small>
-                    Request has moved to the delivery stage.
-                </small>
-
+                <small>Request has moved to the delivery stage.</small>
             </button>
-
         </div>
 
-
-        <button
-            class="status-save"
-            id="saveStatusBtn"
-        >
+        <button class="status-save" id="saveStatusBtn" type="button">
             Save Status
         </button>
-
     </div>
-
 </div>
 
-
-<!-- =======================================================
-     LOGOUT MODAL
-======================================================= -->
-
-<div
-    class="logout-modal"
-    id="logoutModal"
->
-
+<!-- LOGOUT MODAL -->
+<div class="logout-modal" id="logoutModal" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
     <div class="logout-card">
+        <div class="logout-icon" aria-hidden="true">🚪</div>
 
-        <div class="logout-icon">
-            🚪
-        </div>
-
-        <div class="logout-title">
-            Logout?
-        </div>
+        <div class="logout-title" id="logoutModalTitle">Logout?</div>
 
         <div class="logout-text">
             Are you sure you want to logout from the EGC Agency Panel?
         </div>
 
         <div class="logout-actions">
-
-            <button
-                class="logout-action-btn logout-cancel"
-                id="cancelLogout"
-            >
+            <button class="logout-action-btn logout-cancel" id="cancelLogout" type="button">
                 Cancel
             </button>
 
-            <button
-                class="logout-action-btn logout-confirm"
-                id="confirmLogout"
-            >
+            <button class="logout-action-btn logout-confirm" id="confirmLogout" type="button">
                 Logout
             </button>
-
         </div>
-
     </div>
-
 </div>
 
-
-<!-- =======================================================
-     TOAST
-======================================================= -->
-
-<div
-    class="toast"
-    id="toast"
->
-
-    <div
-        class="toast-title"
-        id="toastTitle"
-    >
-        Notification
-    </div>
-
-    <div
-        class="toast-text"
-        id="toastText"
-    ></div>
-
+<!-- TOAST -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toast-title" id="toastTitle">Notification</div>
+    <div class="toast-text" id="toastText"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 
-const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
 "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
@@ -2952,114 +2467,93 @@ function customerFor(request){
 
 /* STATUS */
 
-function processingStatus(request){
+function processingStatus(request) {
+    const agencyStatus = String(
+        request.agency_status || ""
+    ).toLowerCase().trim();
 
-    const value =
-        String(
-            request.agency_status ||
-            request.processing_status ||
-            request.processing_stage ||
-            ""
-        )
-        .toLowerCase()
-        .trim();
+    const processing = String(
+        request.processing_status || ""
+    ).toLowerCase().trim();
 
-    if(value){
-        return value;
-    }
+    const stage = String(
+        request.processing_stage || ""
+    ).toLowerCase().trim();
 
-    const delivery =
-        String(
-            request.delivery_status ||
-            ""
-        )
-        .toLowerCase()
-        .trim();
+    const delivery = String(
+        request.delivery_status || ""
+    ).toLowerCase().trim();
 
-    if(delivery === "out_for_delivery"){
-        return "out_for_delivery";
-    }
+    const mainStatus = String(
+        request.status || ""
+    ).toLowerCase().trim();
 
-    const status =
-        String(
-            request.status ||
-            ""
-        )
-        .toLowerCase()
-        .trim();
-
-    if(status === "processing"){
-        return "processing";
-    }
-
-    if(status === "ready"){
-        return "ready";
-    }
-
-    return "assigned";
-
-}
-
-
-/* WHETHER REQUEST BELONGS ON PROCESSING PAGE */
-
-function isProcessingRequest(request){
-
-    const ownerApproval =
-        String(
-            request.owner_approval ||
-            ""
-        )
-        .toLowerCase();
-
-    const assignment =
-        String(
-            request.agency_assignment_status ||
-            request.assignment_status ||
-            ""
-        )
-        .toLowerCase();
-
-    const status =
-        processingStatus(request);
-
-
-    const allowedStatus = [
+    const validStatuses = [
         "assigned",
         "processing",
         "ready",
         "out_for_delivery"
     ];
 
+    if (validStatuses.includes(agencyStatus)) {
+        return agencyStatus;
+    }
 
-    const approved =
-        [
-            "approved",
-            "approve",
-            "accepted"
-        ].includes(
-            ownerApproval
-        );
+    if (validStatuses.includes(processing)) {
+        return processing;
+    }
 
+    if (validStatuses.includes(stage)) {
+        return stage;
+    }
 
-    const assigned =
-        [
-            "assigned",
-            "accepted",
-            "active"
-        ].includes(
-            assignment
-        );
+    if (delivery === "out_for_delivery") {
+        return "out_for_delivery";
+    }
 
+    if (validStatuses.includes(mainStatus)) {
+        return mainStatus;
+    }
 
-    return (
-        approved ||
-        assigned ||
-        allowedStatus.includes(status)
-    );
-
+    return "assigned";
 }
 
+/* WHETHER REQUEST BELONGS ON PROCESSING PAGE */
+
+function isProcessingRequest(request) {
+    const ownerApproval = String(
+        request.owner_approval || ""
+    ).toLowerCase().trim();
+
+    const assignment = String(
+        request.agency_assignment_status ||
+        request.assignment_status ||
+        ""
+    ).toLowerCase().trim();
+
+    const status = processingStatus(request);
+
+    const approved = [
+        "approved",
+        "approve",
+        "accepted"
+    ].includes(ownerApproval);
+
+    const assigned = [
+        "assigned",
+        "accepted",
+        "active"
+    ].includes(assignment);
+
+    const validProcessingStatus = [
+        "assigned",
+        "processing",
+        "ready",
+        "out_for_delivery"
+    ].includes(status);
+
+    return approved || assigned || validProcessingStatus;
+}
 
 /* LOAD DATA */
 

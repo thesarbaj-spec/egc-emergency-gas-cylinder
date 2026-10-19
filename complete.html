@@ -1375,7 +1375,6 @@ button:focus-visible {
 
 </main>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -1391,11 +1390,10 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
 
 /* =========================================================
    GLOBAL STATE
@@ -1426,7 +1424,7 @@ function readLocalJson(key) {
         const value = localStorage.getItem(key);
         return value ? JSON.parse(value) : null;
     } catch (error) {
-        console.warn("Could not read local data:", key, error);
+        console.warn("Local data read failed:", key, error);
         return null;
     }
 }
@@ -1449,6 +1447,10 @@ function formatMoney(value) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+}
+
+function moneyText(value) {
+    return "₹" + formatMoney(value);
 }
 
 function formatDate(value) {
@@ -1488,18 +1490,14 @@ function formatDateTime(value) {
 function setText(id, value) {
     const node = el(id);
 
-    if (node) {
-        node.textContent =
-            value === null ||
-            value === undefined ||
-            value === ""
-                ? "-"
-                : String(value);
-    }
-}
+    if (!node) return;
 
-function moneyText(value) {
-    return "₹" + formatMoney(value);
+    node.textContent =
+        value === null ||
+        value === undefined ||
+        value === ""
+            ? "-"
+            : String(value);
 }
 
 function firstValue(object, keys, fallback = null) {
@@ -1547,10 +1545,6 @@ function loadLocalData() {
     lpgDetails = readLocalJson("egc_lpg_details");
 }
 
-/* =========================================================
-   LOGIN DATA
-========================================================= */
-
 function getLoginData() {
     const data = readLocalJson("egc_customer_login");
 
@@ -1562,38 +1556,22 @@ function getLoginData() {
 }
 
 /* =========================================================
-   LOAD AUTHENTICATED CUSTOMER
+   AUTHENTICATED CUSTOMER
 ========================================================= */
 
 async function loadCustomer() {
     const loginData = getLoginData();
 
-    /*
-      Prefer the actual Supabase Auth session.
-      Local login data is retained as a fallback for
-      projects using a separate existing login workflow.
-    */
-
     let authUser = null;
 
     try {
-        const authResult =
-            await supabaseClient.auth.getUser();
+        const result = await supabaseClient.auth.getUser();
 
-        if (!authResult.error) {
-            authUser = authResult.data.user || null;
+        if (!result.error) {
+            authUser = result.data.user || null;
         }
     } catch (error) {
-        console.warn("Could not check Supabase session:", error);
-    }
-
-    if (!authUser && !loginData) {
-        showMessage(
-            "Customer login information was not found. Please log in again.",
-            "error"
-        );
-
-        return false;
+        console.warn("Supabase session check failed:", error);
     }
 
     const savedUser =
@@ -1602,12 +1580,34 @@ async function loadCustomer() {
         loginData?.customer ||
         {};
 
+    /*
+      The Supabase Auth user ID is the primary identity
+      when a Supabase session exists.
+
+      Local login information is only a fallback for
+      an existing custom login implementation.
+    */
+
+    const userId =
+        authUser?.id ||
+        loginData?.user_id ||
+        savedUser.id ||
+        "";
+
+    if (!userId) {
+        currentUser = null;
+        currentProfile = null;
+
+        showMessage(
+            "Login information nahi mili. Please dobara login karein.",
+            "error"
+        );
+
+        return false;
+    }
+
     currentUser = {
-        id:
-            authUser?.id ||
-            loginData?.user_id ||
-            savedUser.id ||
-            "",
+        id: userId,
 
         email:
             authUser?.email ||
@@ -1632,40 +1632,39 @@ async function loadCustomer() {
         loginData?.customer ||
         null;
 
-    if (currentUser.id) {
-        try {
-            const result = await supabaseClient
-                .from("profiles")
-                .select("*")
-                .eq("id", currentUser.id)
-                .maybeSingle();
+    try {
+        const result = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq("id", currentUser.id)
+            .maybeSingle();
 
-            if (result.error) {
-                console.warn(
-                    "Profile query:",
-                    result.error.message
-                );
-            } else if (result.data) {
-                currentProfile = result.data;
+        if (result.error) {
+            console.warn(
+                "Profile query failed:",
+                result.error.message
+            );
+        } else if (result.data) {
+            currentProfile = result.data;
 
-                currentUser.full_name =
-                    result.data.full_name ||
-                    currentUser.full_name;
+            currentUser.full_name =
+                result.data.full_name ||
+                currentUser.full_name;
 
-                currentUser.email =
-                    result.data.email ||
-                    currentUser.email;
+            currentUser.email =
+                result.data.email ||
+                currentUser.email;
 
-                currentUser.mobile =
-                    result.data.mobile ||
-                    currentUser.mobile;
-            }
-        } catch (error) {
-            console.warn("Profile loading failed:", error);
+            currentUser.mobile =
+                result.data.mobile ||
+                currentUser.mobile;
         }
+    } catch (error) {
+        console.warn("Profile loading failed:", error);
     }
 
     displayCustomer();
+
     return true;
 }
 
@@ -1674,37 +1673,22 @@ async function loadCustomer() {
 ========================================================= */
 
 function getVisibleEgcUserId() {
-    /*
-      Do not display the Supabase UUID as an EGC User ID.
-      Show the actual EGC ID only if it exists in the profile.
-    */
-
     return firstValue(
         currentProfile,
         [
             "egc_user_id",
             "egc_id",
             "user_code",
-            "customer_code",
-            "customer_id"
+            "customer_code"
         ],
         "-"
     );
 }
 
 function displayCustomer() {
-    const name =
-        currentUser?.full_name ||
-        "EGC Customer";
-
-    const email =
-        currentUser?.email ||
-        "-";
-
-    const mobile =
-        currentUser?.mobile ||
-        "-";
-
+    const name = currentUser?.full_name || "EGC Customer";
+    const email = currentUser?.email || "-";
+    const mobile = currentUser?.mobile || "-";
     const visibleId = getVisibleEgcUserId();
 
     setText("customerName", name);
@@ -1719,55 +1703,30 @@ function displayCustomer() {
 }
 
 /* =========================================================
-   REQUEST NUMBER
+   REQUEST IDENTIFICATION
 ========================================================= */
 
-function createLocalRequestNumber() {
-    const localRequest =
-        readLocalJson("egc_request_data");
+function getSavedRequestReference() {
+    const localRequest = readLocalJson("egc_request_data");
 
-    if (localRequest?.request_number) {
-        return String(localRequest.request_number);
-    }
+    const possibleIds = [
+        localRequest?.id,
+        localStorage.getItem("egc_current_request_id"),
+        localStorage.getItem("egc_request_id"),
+        localStorage.getItem("egc_last_request_id")
+    ].filter(Boolean);
 
-    const savedNumber =
-        localStorage.getItem("egc_request_number");
+    const possibleNumbers = [
+        localRequest?.request_number,
+        localRequest?.request_no,
+        localStorage.getItem("egc_request_number")
+    ].filter(Boolean);
 
-    if (savedNumber) {
-        return savedNumber;
-    }
-
-    /*
-      This is only a local display fallback.
-      The real database request_number takes precedence.
-    */
-
-    const now = new Date();
-
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-
-    const time =
-        String(now.getHours()).padStart(2, "0") +
-        String(now.getMinutes()).padStart(2, "0") +
-        String(now.getSeconds()).padStart(2, "0");
-
-    const random = Math.floor(1000 + Math.random() * 9000);
-
-    const value =
-        "EGC-" +
-        year +
-        month +
-        day +
-        "-" +
-        time +
-        "-" +
-        random;
-
-    localStorage.setItem("egc_request_number", value);
-
-    return value;
+    return {
+        localRequest,
+        ids: [...new Set(possibleIds.map(String))],
+        numbers: [...new Set(possibleNumbers.map(String))]
+    };
 }
 
 function updateRequestNumber(value) {
@@ -1784,60 +1743,68 @@ function updateRequestNumber(value) {
     setText("slipRequestNumber", requestNumber);
 }
 
-/* =========================================================
-   REQUEST MATCHING
-========================================================= */
-
 function findMatchingRequest(requests) {
-    const localRequest =
-        readLocalJson("egc_request_data");
-
     if (!Array.isArray(requests) || !requests.length) {
         return null;
     }
 
+    const reference = getSavedRequestReference();
+
     /*
-      Prefer the exact database request ID saved by the
-      request workflow, not just the newest request.
+      Exact database ID takes priority.
+      Do not show another request's payment slip by mistake.
     */
 
-    if (localRequest?.id) {
-        const byId = requests.find(item =>
-            String(item.id) === String(localRequest.id)
+    for (const id of reference.ids) {
+        const match = requests.find(item =>
+            String(item.id) === id
         );
 
-        if (byId) return byId;
+        if (match) return match;
     }
 
-    const localNumber =
-        localRequest?.request_number ||
-        requestNumber;
-
-    if (localNumber) {
-        const byNumber = requests.find(item =>
-            String(item.request_number || "") ===
-            String(localNumber)
+    for (const number of reference.numbers) {
+        const match = requests.find(item =>
+            String(
+                item.request_number ||
+                item.request_no ||
+                item.reference_number ||
+                ""
+            ) === number
         );
 
-        if (byNumber) return byNumber;
+        if (match) return match;
     }
 
     /*
-      Do not silently display a different older request.
-      The latest row is used only when there is no saved
-      request ID or request number to match.
+      If an explicit request reference was saved but
+      cannot be found, do not silently choose another request.
+    */
+
+    if (
+        reference.ids.length ||
+        reference.numbers.length
+    ) {
+        return null;
+    }
+
+    /*
+      Only use the newest request when no specific
+      request reference was saved.
     */
 
     return requests[0] || null;
 }
 
 /* =========================================================
-   LOAD REQUEST FROM SUPABASE
+   LOAD REQUEST
 ========================================================= */
 
 async function loadRequest() {
+    currentRequest = null;
+
     if (!currentUser?.id) {
-        displayLocalRequest();
+        await displayLocalRequest();
         return false;
     }
 
@@ -1846,47 +1813,62 @@ async function loadRequest() {
         .select("*")
         .eq("user_id", currentUser.id)
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(50);
 
     if (result.error) {
-        console.warn(
-            "Request loading error:",
+        console.error(
+            "Request loading failed:",
             result.error.message
         );
 
-        displayLocalRequest();
+        showMessage(
+            "Request database se load nahi ho saki. Please refresh karein.",
+            "error"
+        );
+
+        await displayLocalRequest();
+
         return false;
     }
 
-    currentRequest =
-        findMatchingRequest(result.data || []);
+    currentRequest = findMatchingRequest(result.data || []);
 
-    if (currentRequest) {
-        const dbRequestNumber =
-            currentRequest.request_number ||
-            currentRequest.request_no ||
-            currentRequest.reference_number;
+    if (!currentRequest) {
+        await displayLocalRequest();
 
-        if (dbRequestNumber) {
-            updateRequestNumber(dbRequestNumber);
-        } else {
-            updateRequestNumber(
-                currentRequest.id || requestNumber
+        if (result.data?.length) {
+            showMessage(
+                "Saved request reference nahi mili. Kisi doosri request ka status nahi dikhaya gaya.",
+                "error"
             );
         }
 
-        displayRequestDetails();
-        updateStatus();
-
-        return true;
+        return false;
     }
 
-    displayLocalRequest();
-    return false;
+    const dbRequestNumber = firstValue(
+        currentRequest,
+        [
+            "request_number",
+            "request_no",
+            "reference_number"
+        ],
+        currentRequest.id
+    );
+
+    updateRequestNumber(dbRequestNumber);
+
+    saveLocalRequest();
+
+    await displayRequestDetails();
+
+    updateStatus();
+
+    return true;
 }
 
 /* =========================================================
-   LOAD AGENCY NAME WHEN NEEDED
+   AGENCY NAME
 ========================================================= */
 
 async function resolveAgencyName(request) {
@@ -1922,6 +1904,11 @@ async function resolveAgencyName(request) {
         );
     }
 
+    /*
+      This optional lookup requires an agencies table
+      with a matching id column.
+    */
+
     try {
         const result = await supabaseClient
             .from("agencies")
@@ -1949,7 +1936,7 @@ async function resolveAgencyName(request) {
 }
 
 /* =========================================================
-   REQUEST DETAILS DISPLAY
+   REQUEST DETAILS
 ========================================================= */
 
 async function displayRequestDetails() {
@@ -1993,7 +1980,11 @@ async function displayRequestDetails() {
             "company_name",
             "gas_company"
         ],
-        firstValue(lpgDetails, ["lpg_company", "company"], "-")
+        firstValue(
+            lpgDetails,
+            ["lpg_company", "company"],
+            "-"
+        )
     );
 
     const scheme = firstValue(
@@ -2003,7 +1994,11 @@ async function displayRequestDetails() {
             "scheme",
             "selected_scheme"
         ],
-        firstValue(lpgDetails, ["scheme_name", "scheme"], "-")
+        firstValue(
+            lpgDetails,
+            ["scheme_name", "scheme"],
+            "-"
+        )
     );
 
     const agency = await resolveAgencyName(item);
@@ -2011,6 +2006,7 @@ async function displayRequestDetails() {
     setText("requestQuantity", quantity);
     setText("requestAmount", moneyText(amount));
     setText("requestDate", formatDateTime(date));
+
     setText("lpgCompany", company);
     setText("agencyName", agency);
     setText("schemeName", scheme);
@@ -2018,6 +2014,7 @@ async function displayRequestDetails() {
     setText("slipDate", formatDateTime(date));
     setText("slipQuantity", quantity);
     setText("slipCylinderAmount", moneyText(amount));
+
     setText("slipCompany", company);
     setText("slipAgency", agency);
     setText("slipScheme", scheme);
@@ -2032,8 +2029,10 @@ async function displayLocalRequest() {
 
     if (!item) return;
 
-    if (item.request_number) {
-        updateRequestNumber(item.request_number);
+    if (item.request_number || item.request_no) {
+        updateRequestNumber(
+            item.request_number || item.request_no
+        );
     }
 
     const date =
@@ -2045,14 +2044,15 @@ async function displayLocalRequest() {
         item.quantity ||
         item.cylinder_quantity ||
         1
-    );
+    ) || 1;
 
     const amount = Number(
         item.total_amount ||
         item.cylinder_amount ||
+        item.request_amount ||
         item.amount ||
         0
-    );
+    ) || 0;
 
     const company =
         item.lpg_company ||
@@ -2076,6 +2076,7 @@ async function displayLocalRequest() {
     setText("requestDate", formatDateTime(date));
     setText("requestQuantity", quantity);
     setText("requestAmount", moneyText(amount));
+
     setText("lpgCompany", company);
     setText("agencyName", agency);
     setText("schemeName", scheme);
@@ -2083,13 +2084,14 @@ async function displayLocalRequest() {
     setText("slipDate", formatDateTime(date));
     setText("slipQuantity", quantity);
     setText("slipCylinderAmount", moneyText(amount));
+
     setText("slipCompany", company);
     setText("slipAgency", agency);
     setText("slipScheme", scheme);
 }
 
 /* =========================================================
-   LOAD PAYMENT
+   LOAD PAYMENT FOR THE CURRENT REQUEST
 ========================================================= */
 
 async function loadPayment() {
@@ -2100,40 +2102,53 @@ async function loadPayment() {
         return false;
     }
 
-    const result = await supabaseClient
-        .from("payments")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-    if (result.error) {
-        console.warn(
-            "Payment loading error:",
-            result.error.message
-        );
+    if (!currentRequest?.id) {
+        /*
+          Do not associate a payment with a request
+          when the request ID is unknown.
+        */
 
         displayPaymentData();
         return false;
     }
 
+    const result = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .eq("request_id", currentRequest.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+    if (result.error) {
+        console.error(
+            "Payment loading failed:",
+            result.error.message
+        );
+
+        showMessage(
+            "Payment status database se load nahi ho saka.",
+            "error"
+        );
+
+        displayPaymentData();
+
+        return false;
+    }
+
     const payments = result.data || [];
 
-    if (currentRequest?.id) {
-        currentPayment = payments.find(item =>
-            String(item.request_id || "") ===
-            String(currentRequest.id)
-        ) || null;
-    }
-
     /*
-      If the request has an ID, never associate an unrelated
-      payment from a different request with this slip.
+      Prefer an approved/verified record if one exists.
+      Otherwise show the latest record for this request.
     */
 
-    if (!currentRequest?.id && payments.length) {
-        currentPayment = payments[0];
-    }
+    currentPayment =
+        payments.find(item =>
+            isPaymentVerified(getRawPaymentStatus(item))
+        ) ||
+        payments[0] ||
+        null;
 
     displayPaymentData();
 
@@ -2147,29 +2162,21 @@ async function loadPayment() {
 function getCylinderAmount() {
     return Number(
         firstValue(
-            currentPayment,
+            currentRequest,
             [
-                "cylinder_amount",
                 "total_amount",
-                "request_amount"
+                "cylinder_amount",
+                "request_amount",
+                "amount"
             ],
             firstValue(
-                currentRequest,
+                paymentData,
                 [
-                    "total_amount",
                     "cylinder_amount",
-                    "request_amount",
-                    "amount"
+                    "total_amount",
+                    "request_amount"
                 ],
-                firstValue(
-                    paymentData,
-                    [
-                        "cylinder_amount",
-                        "total_amount",
-                        "request_amount"
-                    ],
-                    0
-                )
+                0
             )
         )
     ) || 0;
@@ -2177,10 +2184,33 @@ function getCylinderAmount() {
 
 function getPaidAmount() {
     /*
-      payments.payment_amount is the primary field used
-      for the actual payment record.
+      Only use a verified payment as confirmed paid money.
+      Pending/rejected submissions must not reduce the
+      confirmed remaining amount.
     */
 
+    if (
+        currentPayment &&
+        isPaymentVerified(getRawPaymentStatus(currentPayment))
+    ) {
+        return Number(
+            firstValue(
+                currentPayment,
+                [
+                    "payment_amount",
+                    "amount_paid",
+                    "paid_amount",
+                    "paid_now"
+                ],
+                0
+            )
+        ) || 0;
+    }
+
+    return 0;
+}
+
+function getSubmittedAmount() {
     return Number(
         firstValue(
             currentPayment,
@@ -2212,15 +2242,7 @@ function getExtraCharge() {
                 "additional_charge",
                 "late_charge"
             ],
-            firstValue(
-                currentPayment,
-                [
-                    "extra_charge",
-                    "additional_charge",
-                    "late_charge"
-                ],
-                0
-            )
+            0
         )
     ) || 0;
 }
@@ -2244,16 +2266,17 @@ function getTransactionId() {
             "transaction_id",
             "payment_transaction_id",
             "utr_number",
+            "payment_reference",
             "reference_number"
         ],
         firstValue(
-            currentRequest,
-            ["transaction_id", "payment_transaction_id"],
-            firstValue(
-                paymentData,
-                ["transaction_id", "utr_number"],
-                "-"
-            )
+            paymentData,
+            [
+                "transaction_id",
+                "utr_number",
+                "payment_reference"
+            ],
+            "-"
         )
     );
 }
@@ -2262,36 +2285,43 @@ function getTransactionId() {
    PAYMENT STATUS
 ========================================================= */
 
-function getPaymentStatus() {
-    /*
-      Prefer the payment row's own status.
-      Do not assume payment is verified merely because a
-      transaction ID exists or a date has been saved.
-    */
-
+function getRawPaymentStatus(payment) {
     return normalizeStatus(
         firstValue(
-            currentPayment,
+            payment,
             [
                 "verification_status",
                 "payment_status",
                 "status"
             ],
-            firstValue(
-                currentRequest,
-                [
-                    "payment_status"
-                ],
-                firstValue(
-                    paymentData,
-                    [
-                        "verification_status",
-                        "payment_status",
-                        "status"
-                    ],
-                    "pending"
-                )
-            )
+            "pending"
+        )
+    );
+}
+
+function getPaymentStatus() {
+    /*
+      Database payment record is the source of truth.
+      Local data is only a fallback when no DB payment exists.
+    */
+
+    if (currentPayment) {
+        return getRawPaymentStatus(currentPayment);
+    }
+
+    if (currentRequest?.payment_status) {
+        return normalizeStatus(currentRequest.payment_status);
+    }
+
+    return normalizeStatus(
+        firstValue(
+            paymentData,
+            [
+                "verification_status",
+                "payment_status",
+                "status"
+            ],
+            "pending"
         )
     );
 }
@@ -2339,28 +2369,36 @@ function paymentStatusText(status = getPaymentStatus()) {
 
 function displayPaymentData() {
     const cylinderAmount = getCylinderAmount();
-    const paid = getPaidAmount();
-    const remaining = Math.max(0, cylinderAmount - paid);
+    const confirmedPaid = getPaidAmount();
+    const submittedAmount = getSubmittedAmount();
+
+    const remaining = Math.max(
+        0,
+        cylinderAmount - confirmedPaid
+    );
+
     const extraCharge = getExtraCharge();
     const method = getPaymentMethod();
     const transactionId = getTransactionId();
     const status = getPaymentStatus();
 
     setText("cylinderAmount", moneyText(cylinderAmount));
-    setText("initialPayment", moneyText(paid));
+    setText("initialPayment", moneyText(confirmedPaid));
     setText("remainingAmount", moneyText(remaining));
     setText("extraCharge", moneyText(extraCharge));
+
     setText("paymentMethod", method);
     setText("transactionId", transactionId);
-    setText("paidNow", moneyText(paid));
+    setText("paidNow", moneyText(submittedAmount));
 
-    setText("slipInitialPayment", moneyText(paid));
+    setText("slipInitialPayment", moneyText(confirmedPaid));
     setText("slipPaymentMethod", method);
     setText("slipTransactionId", transactionId);
+
     setText("slipPaymentState", paymentStatusText(status));
     setText("slipRemainingAmount", moneyText(remaining));
     setText("slipExtraCharge", moneyText(extraCharge));
-    setText("slipPaidNow", moneyText(paid));
+    setText("slipPaidNow", moneyText(submittedAmount));
 
     const paymentDate = firstValue(
         currentPayment,
@@ -2369,10 +2407,17 @@ function displayPaymentData() {
             "created_at",
             "updated_at"
         ],
-        null
+        firstValue(
+            paymentData,
+            ["payment_date", "created_at"],
+            null
+        )
     );
 
-    setText("slipPaymentDate", formatDateTime(paymentDate));
+    setText(
+        "slipPaymentDate",
+        formatDateTime(paymentDate)
+    );
 
     updateSlipPaymentStatus();
 }
@@ -2383,6 +2428,7 @@ function displayPaymentData() {
 
 function updateSlipPaymentStatus() {
     const status = getPaymentStatus();
+
     const badge = el("slipStatus");
     const note = el("slipNote");
 
@@ -2396,10 +2442,11 @@ function updateSlipPaymentStatus() {
 
         if (note) {
             note.textContent =
-                "EGC payment records show this payment as verified. Keep this slip for your records. Request approval and cylinder delivery have separate statuses.";
+                "Database payment record ke according payment verified hai. Request approval aur cylinder delivery ka status alag hai.";
         }
 
         setText("slipPaymentState", "VERIFIED");
+
         return;
     }
 
@@ -2409,10 +2456,11 @@ function updateSlipPaymentStatus() {
 
         if (note) {
             note.textContent =
-                "The payment status is marked rejected in the available EGC record. Please contact EGC support before making another payment.";
+                "Payment record rejected hai. Dobara payment karne se pehle EGC support ya Owner se contact karein.";
         }
 
         setText("slipPaymentState", "REJECTED");
+
         return;
     }
 
@@ -2420,14 +2468,14 @@ function updateSlipPaymentStatus() {
 
     if (note) {
         note.textContent =
-            "This slip shows the submitted payment information. Payment has not yet been confirmed as verified by the available database status.";
+            "Payment information submit hui hai, lekin database mein payment abhi verified nahi hai. Verification ka wait karein.";
     }
 
     setText("slipPaymentState", paymentStatusText(status));
 }
 
 /* =========================================================
-   OWNER APPROVAL AND REQUEST STATUS
+   REQUEST / OWNER STATUS
 ========================================================= */
 
 function getOwnerApproval() {
@@ -2448,13 +2496,12 @@ function isApproved(value) {
     return [
         "approved",
         "accepted",
-        "complete",
-        "completed",
         "verified",
         "paid",
         "success",
         "successful",
-        "delivered"
+        "delivered",
+        "completed"
     ].includes(normalizeStatus(value));
 }
 
@@ -2468,7 +2515,7 @@ function isRejected(value) {
     ].includes(normalizeStatus(value));
 }
 
-function readableStatus(value, fallback = "WAITING") {
+function readableStatus(value, fallback = "PENDING") {
     const normalized = normalizeStatus(value);
 
     if (!normalized) return fallback;
@@ -2492,7 +2539,8 @@ function readableStatus(value, fallback = "WAITING") {
         paid: "PAID",
         verified: "VERIFIED",
         failed: "FAILED",
-        cancelled: "CANCELLED"
+        cancelled: "CANCELLED",
+        canceled: "CANCELLED"
     };
 
     return labels[normalized] ||
@@ -2500,16 +2548,25 @@ function readableStatus(value, fallback = "WAITING") {
 }
 
 /* =========================================================
-   STATUS LINE RENDERING
+   STATUS LINE
 ========================================================= */
 
-function setStatusLine(lineId, badgeId, status, descriptionId) {
+function setStatusLine(
+    lineId,
+    badgeId,
+    status,
+    descriptionId
+) {
     const line = el(lineId);
     const badge = el(badgeId);
 
     if (!line || !badge) return;
 
-    line.classList.remove("done", "active", "rejected");
+    line.classList.remove(
+        "done",
+        "active",
+        "rejected"
+    );
 
     const normalized = normalizeStatus(status);
     const label = readableStatus(normalized);
@@ -2517,11 +2574,7 @@ function setStatusLine(lineId, badgeId, status, descriptionId) {
     badge.textContent = label;
 
     if (descriptionId) {
-        const description = el(descriptionId);
-
-        if (description) {
-            description.textContent = label;
-        }
+        setText(descriptionId, label);
     }
 
     if (isRejected(normalized)) {
@@ -2556,7 +2609,6 @@ function updateStatus() {
     const request = currentRequest || {};
 
     const paymentStatus = getPaymentStatus();
-
     const ownerApproval = getOwnerApproval();
 
     const agencyStatus = normalizeStatus(
@@ -2583,10 +2635,12 @@ function updateStatus() {
         )
     );
 
-    const rejected =
-        isRejected(paymentStatus) ||
+    const requestRejected =
         isRejected(ownerApproval) ||
         isRejected(requestStatus);
+
+    const paymentRejected =
+        isPaymentRejected(paymentStatus);
 
     const delivered = [
         "delivered",
@@ -2594,13 +2648,19 @@ function updateStatus() {
     ].includes(deliveryStatus);
 
     const fullyCompleted =
-        normalizeStatus(requestStatus) === "completed" ||
+        requestStatus === "completed" ||
         deliveryStatus === "completed";
 
     let overall = "REQUEST PENDING";
 
-    if (rejected) {
-        overall = "REJECTED";
+    /*
+      Request rejection and payment rejection are separate.
+      A rejected payment does not automatically mean the
+      cylinder request itself has been rejected.
+    */
+
+    if (requestRejected) {
+        overall = "REQUEST REJECTED";
     } else if (fullyCompleted) {
         overall = "COMPLETED";
     } else if (delivered) {
@@ -2619,6 +2679,8 @@ function updateStatus() {
         overall = "AGENCY PROCESSING";
     } else if (isApproved(ownerApproval)) {
         overall = "OWNER APPROVED";
+    } else if (paymentRejected) {
+        overall = "PAYMENT REJECTED";
     } else if (isPaymentVerified(paymentStatus)) {
         overall = "PAYMENT VERIFIED";
     } else if (
@@ -2627,7 +2689,7 @@ function updateStatus() {
     ) {
         overall = "PAYMENT SUBMITTED";
     } else {
-        overall = "PAYMENT PENDING";
+        overall = "REQUEST PENDING";
     }
 
     const current = el("currentStatus");
@@ -2645,7 +2707,10 @@ function updateStatus() {
             current.classList.add("approved");
         }
 
-        if (overall === "REJECTED") {
+        if (
+            overall === "REQUEST REJECTED" ||
+            overall === "PAYMENT REJECTED"
+        ) {
             current.classList.add("rejected");
         }
     }
@@ -2693,17 +2758,17 @@ function updateStatus() {
     if (isPaymentVerified(paymentStatus)) {
         setText(
             "paymentDescription",
-            "Your payment has been verified according to the payment record."
+            "Database record ke according payment verified hai."
         );
-    } else if (isPaymentRejected(paymentStatus)) {
+    } else if (paymentRejected) {
         setText(
             "paymentDescription",
-            "The payment record is marked rejected. Please contact EGC support."
+            "Payment rejected hai. Owner ya EGC support se contact karein."
         );
     } else {
         setText(
             "paymentDescription",
-            "Your payment is waiting for verification or an updated status."
+            "Payment verification ka wait hai. Status refresh karke check karein."
         );
     }
 
@@ -2717,7 +2782,7 @@ function updateStatus() {
 }
 
 /* =========================================================
-   PROGRESS DISPLAY
+   PROGRESS
 ========================================================= */
 
 function updateProgress(overall) {
@@ -2727,75 +2792,101 @@ function updateProgress(overall) {
     if (paymentStep) {
         paymentStep.classList.remove("done", "active");
 
+        const circle = paymentStep.querySelector(".step-circle");
+
         if (
             isPaymentVerified() ||
             isPaymentRejected()
         ) {
             paymentStep.classList.add("done");
-            paymentStep.querySelector(".step-circle").textContent = "✓";
+
+            if (circle) circle.textContent = "✓";
         } else {
             paymentStep.classList.add("active");
-            paymentStep.querySelector(".step-circle").textContent = "4";
+
+            if (circle) circle.textContent = "4";
         }
     }
 
     if (completeStep) {
         completeStep.classList.remove("done", "active");
 
+        const circle = completeStep.querySelector(".step-circle");
+
         if (overall === "COMPLETED") {
             completeStep.classList.add("done");
-            completeStep.querySelector(".step-circle").textContent = "✓";
+
+            if (circle) circle.textContent = "✓";
         } else {
             completeStep.classList.add("active");
-            completeStep.querySelector(".step-circle").textContent = "5";
+
+            if (circle) circle.textContent = "5";
         }
     }
 
     if (overall === "COMPLETED") {
         setText("mainHeading", "Request Completed");
+
         setText(
             "mainDescription",
-            "The available EGC request record shows this request as completed."
+            "Database request record ke according request completed hai."
         );
+
         return;
     }
 
-    if (overall === "REJECTED") {
+    if (overall === "REQUEST REJECTED") {
         setText("mainHeading", "Request Needs Attention");
+
         setText(
             "mainDescription",
-            "The available payment or request status is rejected. Please review the status below."
+            "Request rejected hai. Neeche status details check karein."
         );
+
         return;
     }
 
-    setText("mainHeading", "Request Submitted Successfully");
+    if (overall === "PAYMENT REJECTED") {
+        setText("mainHeading", "Payment Needs Attention");
+
+        setText(
+            "mainDescription",
+            "Payment rejected hai. Owner ya EGC support se contact karein."
+        );
+
+        return;
+    }
+
+    setText(
+        "mainHeading",
+        "Request Submitted Successfully"
+    );
+
     setText(
         "mainDescription",
-        "Your request details are shown below. Payment verification, owner approval and delivery are tracked separately."
+        "Request details yahan dikhengi. Payment verification, Owner approval aur delivery ke status alag-alag track honge."
     );
 }
 
 /* =========================================================
-   SAVE REQUEST REFERENCE LOCALLY
+   SAVE LOCAL REQUEST REFERENCE
 ========================================================= */
 
 function saveLocalRequest() {
+    if (!currentRequest) return;
+
     const old = readLocalJson("egc_request_data") || {};
 
     const data = {
         ...old,
 
+        id: currentRequest.id,
+
         request_number:
-            currentRequest?.request_number ||
-            currentRequest?.request_no ||
+            currentRequest.request_number ||
+            currentRequest.request_no ||
             requestNumber ||
             old.request_number ||
-            null,
-
-        id:
-            currentRequest?.id ||
-            old.id ||
             null,
 
         user_id:
@@ -2819,8 +2910,8 @@ function saveLocalRequest() {
             "",
 
         submitted_at:
-            currentRequest?.created_at ||
-            currentRequest?.submitted_at ||
+            currentRequest.created_at ||
+            currentRequest.submitted_at ||
             old.submitted_at ||
             null
     };
@@ -2829,6 +2920,13 @@ function saveLocalRequest() {
         "egc_request_data",
         JSON.stringify(data)
     );
+
+    if (currentRequest.id) {
+        localStorage.setItem(
+            "egc_current_request_id",
+            String(currentRequest.id)
+        );
+    }
 }
 
 /* =========================================================
@@ -2841,6 +2939,10 @@ function goHome() {
 
 function goDashboard() {
     window.location.href = "my-requests.html";
+}
+
+function goPayment() {
+    window.location.href = "payment.html";
 }
 
 function printPaymentSlip() {
@@ -2856,11 +2958,12 @@ function setupButtons() {
 
     if (backBtn) {
         backBtn.addEventListener("click", function () {
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                window.location.href = "payment.html";
-            }
+            /*
+              Complete page is not the place to restart
+              the request flow automatically.
+            */
+
+            goDashboard();
         });
     }
 
@@ -2887,6 +2990,43 @@ function setupButtons() {
     if (printBtn) {
         printBtn.addEventListener("click", printPaymentSlip);
     }
+
+    const paymentBtn = el("goPaymentBtn");
+
+    if (paymentBtn) {
+        paymentBtn.addEventListener("click", function () {
+            if (!currentRequest?.id) {
+                showMessage(
+                    "Payment page kholne se pehle valid request load hona zaroori hai.",
+                    "error"
+                );
+
+                return;
+            }
+
+            const ownerApproval = getOwnerApproval();
+
+            if (!isApproved(ownerApproval)) {
+                showMessage(
+                    "Payment se pehle Owner approval zaroori hai.",
+                    "error"
+                );
+
+                return;
+            }
+
+            if (isPaymentVerified()) {
+                showMessage(
+                    "Payment pehle hi verified hai. Dashboard par status check karein.",
+                    "success"
+                );
+
+                return;
+            }
+
+            goPayment();
+        });
+    }
 }
 
 /* =========================================================
@@ -2909,7 +3049,10 @@ async function refreshStatus() {
 
         clearMessage();
 
-        await loadCustomer();
+        const customerLoaded = await loadCustomer();
+
+        if (!customerLoaded) return;
+
         await loadRequest();
         await loadPayment();
 
@@ -2918,20 +3061,22 @@ async function refreshStatus() {
             updateStatus();
         }
 
+        displayCustomer();
         displayPaymentData();
+
         saveLocalRequest();
 
         showMessage(
-            "Request and payment information refreshed.",
+            "Request aur payment status refresh ho gaya.",
             "success"
         );
 
         window.setTimeout(clearMessage, 3000);
     } catch (error) {
-        console.error("Refresh error:", error);
+        console.error("Refresh failed:", error);
 
         showMessage(
-            "Unable to refresh the latest information. Please try again.",
+            "Latest information load nahi ho saki. Please dobara try karein.",
             "error"
         );
     } finally {
@@ -2953,7 +3098,8 @@ async function autoRefresh() {
     if (
         document.visibilityState !== "visible" ||
         isRefreshing ||
-        autoRefreshRunning
+        autoRefreshRunning ||
+        !currentUser?.id
     ) {
         return;
     }
@@ -2971,7 +3117,7 @@ async function autoRefresh() {
 
         displayPaymentData();
     } catch (error) {
-        console.warn("Auto refresh failed:", error);
+        console.warn("Automatic refresh failed:", error);
     } finally {
         autoRefreshRunning = false;
     }
@@ -2979,11 +3125,14 @@ async function autoRefresh() {
 
 window.setInterval(autoRefresh, 30000);
 
-document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") {
-        autoRefresh();
+document.addEventListener(
+    "visibilitychange",
+    function () {
+        if (document.visibilityState === "visible") {
+            autoRefresh();
+        }
     }
-});
+);
 
 /* =========================================================
    INITIALIZE
@@ -2992,19 +3141,34 @@ document.addEventListener("visibilitychange", function () {
 async function initializePage() {
     try {
         clearMessage();
+
         setupButtons();
         loadLocalData();
 
-        requestNumber = createLocalRequestNumber();
-        updateRequestNumber(requestNumber);
+        /*
+          Do not generate a fake request number here.
+          A real database request number or saved request
+          reference should be used instead.
+        */
+
+        const savedReference = getSavedRequestReference();
+
+        requestNumber =
+            savedReference.numbers[0] ||
+            "";
+
+        if (requestNumber) {
+            updateRequestNumber(requestNumber);
+        }
 
         const customerLoaded = await loadCustomer();
 
         if (!customerLoaded) {
             showMessage(
-                "Please log in to view your request details.",
+                "Apni request details dekhne ke liye login karein.",
                 "error"
             );
+
             return;
         }
 
@@ -3016,16 +3180,25 @@ async function initializePage() {
             updateStatus();
         } else {
             await displayLocalRequest();
+
+            showMessage(
+                "Database mein matching request nahi mili. Local details ko confirmed database status na samjhein.",
+                "error"
+            );
         }
 
         displayCustomer();
         displayPaymentData();
+
         saveLocalRequest();
     } catch (error) {
-        console.error("Complete page initialization error:", error);
+        console.error(
+            "Complete page initialization failed:",
+            error
+        );
 
         showMessage(
-            "Some details could not be loaded. Please refresh the page.",
+            "Kuch details load nahi ho sakin. Please refresh karein.",
             "error"
         );
     }

@@ -8,699 +8,105 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f3f8fc;
-    color: #073f73;
-    min-height: 100vh;
-}
-
-.app {
-    min-height: 100vh;
-    background: #fff;
-}
-
-.header {
-    height: 82px;
-    background: #fff;
-    border-bottom: 1px solid #e4edf5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-}
-
-.header-left {
-    position: absolute;
-    left: 28px;
-}
-
-.back-btn {
-    width: 42px;
-    height: 42px;
-    border: 0;
-    border-radius: 12px;
-    background: #eef7ff;
-    color: #075ca5;
-    font-size: 29px;
-    cursor: pointer;
-}
-
-.egc-logo {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-}
-
-.main {
-    width: 100%;
-    max-width: 1200px;
-    margin: auto;
-    padding: 38px 25px 70px;
-}
-
-.page-title {
-    text-align: center;
-    margin-bottom: 35px;
-}
-
-.page-title h1 {
-    font-size: 34px;
-    font-weight: 800;
-    color: #06447c;
-    margin-bottom: 8px;
-}
-
-.page-title p {
-    font-size: 17px;
-    color: #72899e;
-}
-
-.steps {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto 42px;
-    display: flex;
-    align-items: flex-start;
-}
-
-.step-box {
-    flex: 1;
-    display: flex;
-    align-items: center;
-}
-
-.step-box:last-child {
-    flex: 0 0 auto;
-}
-
-.step {
-    min-width: 88px;
-    text-align: center;
-}
-
-.step-circle {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-    font-size: 17px;
-    font-weight: 800;
-    background: #fff;
-    border: 3px solid #d0dfeb;
-    color: #8ba0b1;
-}
-
-.step.completed .step-circle {
-    background: #168c50;
-    border-color: #168c50;
-    color: #fff;
-}
-
-.step.active .step-circle {
-    background: #0878d1;
-    border-color: #0878d1;
-    color: #fff;
-}
-
-.step-name {
-    margin-top: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #8b9baa;
-}
-
-.step.completed .step-name {
-    color: #168c50;
-}
-
-.step.active .step-name {
-    color: #0872c7;
-}
-
-.step-line {
-    flex: 1;
-    height: 3px;
-    background: #d6e2ec;
-    margin: 22px 8px 0;
-}
-
-.step-line.completed {
-    background: #168c50;
-}
-
-.card {
-    width: 100%;
-    max-width: 850px;
-    margin: 0 auto 22px;
-    background: #fff;
-    border: 1px solid #e0eaf2;
-    border-radius: 22px;
-    padding: 32px;
-    box-shadow: 0 10px 40px rgba(7,65,105,.08);
-}
-
-.card-title {
-    font-size: 27px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 7px;
-}
-
-.card-subtitle {
-    color: #71879a;
-    font-size: 15px;
-    line-height: 1.6;
-    margin-bottom: 25px;
-}
-
-.summary {
-    background: #f7fbfe;
-    border: 1px solid #dcebf5;
-    border-radius: 16px;
-    padding: 20px;
-}
-
-.summary-title {
-    font-size: 18px;
-    font-weight: 800;
-    color: #075a96;
-    margin-bottom: 16px;
-}
-
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 11px 0;
-    border-bottom: 1px solid #e4edf4;
-    font-size: 15px;
-}
-
-.summary-row:last-child {
-    border-bottom: 0;
-}
-
-.summary-label {
-    color: #71879a;
-}
-
-.summary-value {
-    color: #164c72;
-    font-weight: 800;
-    text-align: right;
-}
-
-.summary-row.total {
-    margin-top: 8px;
-    padding-top: 16px;
-    border-top: 2px solid #d8e8f2;
-    border-bottom: 0;
-}
-
-.summary-row.total .summary-label,
-.summary-row.total .summary-value {
-    font-size: 18px;
-    color: #06477f;
-}
-
-.payment-box {
-    margin-top: 22px;
-    border-radius: 18px;
-    padding: 25px;
-    background: #eef8ff;
-    border: 1px solid #cde6f7;
-    text-align: center;
-}
-
-.payment-label {
-    color: #688298;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 7px;
-}
-
-.payment-amount {
-    font-size: 42px;
-    font-weight: 900;
-    color: #0878d1;
-}
-
-.payment-note {
-    margin-top: 7px;
-    color: #6d8497;
-    font-size: 13px;
-}
-
-.qr-section {
-    margin-top: 25px;
-    text-align: center;
-}
-
-.qr-title {
-    font-size: 19px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 7px;
-}
-
-.qr-subtitle {
-    color: #71879a;
-    font-size: 13px;
-    margin-bottom: 18px;
-}
-
-.qr-box {
-    width: 240px;
-    height: 240px;
-    margin: 0 auto 15px;
-    background: #fff;
-    border: 1px solid #d8e6ef;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.qr-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
-
-.qr-placeholder {
-    text-align: center;
-    color: #8aa0b0;
-    font-size: 14px;
-    line-height: 1.6;
-    padding: 20px;
-}
-
-.upi-id {
-    display: inline-block;
-    padding: 10px 15px;
-    background: #f4f9fc;
-    border: 1px solid #dce9f1;
-    border-radius: 10px;
-    color: #075a96;
-    font-weight: 800;
-    font-size: 14px;
-    word-break: break-word;
-}
-
-.status-box {
-    margin-top: 25px;
-    padding: 18px;
-    border-radius: 14px;
-    background: #fff9e8;
-    border: 1px solid #f3dfa5;
-    color: #755817;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.status-box strong {
-    color: #654b0e;
-}
-
-.payment-form {
-    margin-top: 25px;
-    padding: 22px;
-    background: #f8fbfd;
-    border: 1px solid #dfeaf1;
-    border-radius: 16px;
-}
-
-.form-title {
-    font-size: 19px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 5px;
-}
-
-.form-subtitle {
-    color: #71879a;
-    font-size: 13px;
-    line-height: 1.5;
-    margin-bottom: 20px;
-}
-
-.form-group {
-    margin-bottom: 17px;
-}
-
-.form-group:last-child {
-    margin-bottom: 0;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 7px;
-    color: #315873;
-    font-size: 14px;
-    font-weight: 800;
-}
-
-.required {
-    color: #d32f2f;
-}
-
-.optional {
-    color: #8a9aa8;
-    font-weight: 600;
-    font-size: 12px;
-}
-
-.form-input {
-    width: 100%;
-    min-height: 50px;
-    border: 1px solid #cfdee8;
-    border-radius: 12px;
-    background: #fff;
-    color: #164c72;
-    padding: 12px 14px;
-    font-size: 15px;
-    outline: none;
-    transition: .2s;
-}
-
-.form-input:focus {
-    border-color: #0878d1;
-    box-shadow: 0 0 0 3px rgba(8,120,209,.10);
-}
-
-textarea.form-input {
-    height: 90px;
-    resize: vertical;
-}
-
-.file-box {
-    width: 100%;
-    border: 1px dashed #b9d0df;
-    border-radius: 12px;
-    background: #fff;
-    padding: 15px;
-}
-
-.file-input {
-    width: 100%;
-    font-size: 13px;
-    color: #527087;
-}
-
-.file-help {
-    margin-top: 7px;
-    color: #8498a7;
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-.preview {
-    display: none;
-    margin-top: 12px;
-    text-align: center;
-}
-
-.preview.show {
-    display: block;
-}
-
-.preview img {
-    max-width: 180px;
-    max-height: 180px;
-    border-radius: 12px;
-    border: 1px solid #d5e3eb;
-    object-fit: cover;
-}
-
-.auto-date {
-    background: #f3f7fa;
-    color: #607d91;
-}
-
-.checkbox-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 11px;
-    cursor: pointer;
-    margin-top: 18px;
-}
-
-.checkbox-row input {
-    width: 20px;
-    height: 20px;
-    margin-top: 2px;
-    accent-color: #0878d1;
-    flex: 0 0 auto;
-}
-
-.checkbox-text {
-    font-size: 14px;
-    line-height: 1.5;
-    color: #315873;
-    font-weight: 600;
-}
-
-.message {
-    display: none;
-    margin-top: 18px;
-    padding: 14px 17px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.message.error {
-    display: block;
-    color: #bd2828;
-    background: #fff1f1;
-    border: 1px solid #ffc9c9;
-}
-
-.message.success {
-    display: block;
-    color: #16833a;
-    background: #effcf3;
-    border: 1px solid #bde8c9;
-}
-
-.request-box {
-    display: none;
-    margin-top: 18px;
-    padding: 16px;
-    background: #f0fbf5;
-    border: 1px solid #bfe8cf;
-    border-radius: 13px;
-}
-
-.request-box.show {
-    display: block;
-}
-
-.request-label {
-    font-size: 12px;
-    color: #5e806b;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.request-number {
-    font-size: 18px;
-    color: #08723d;
-    font-weight: 900;
-    word-break: break-all;
-}
-
-.action {
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    margin-top: 28px;
-}
-
-.back-step-btn,
-.pay-btn {
-    min-height: 56px;
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 900;
-    cursor: pointer;
-}
-
-.back-step-btn {
-    flex: 1;
-    border: 1px solid #d2e1ec;
-    background: #fff;
-    color: #15547d;
-}
-
-.pay-btn {
-    flex: 1;
-    border: 0;
-    background: #ffc21a;
-    color: #063d70;
-    box-shadow: 0 7px 18px rgba(255,194,26,.24);
-}
-
-.pay-btn:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-
-@media(max-width:800px) {
-    .header {
-        height: 70px;
-    }
-
-    .header-left {
-        left: 14px;
-    }
-
-    .back-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 26px;
-    }
-
-    .egc-logo {
-        height: 49px;
-        max-width: 65%;
-    }
-
-    .main {
-        padding: 24px 12px 45px;
-    }
-
-    .page-title {
-        margin-bottom: 25px;
-    }
-
-    .page-title h1 {
-        font-size: 27px;
-    }
-
-    .page-title p {
-        font-size: 14px;
-    }
-
-    .steps {
-        margin-bottom: 25px;
-    }
-
-    .step {
-        min-width: 50px;
-    }
-
-    .step-circle {
-        width: 35px;
-        height: 35px;
-        font-size: 13px;
-    }
-
-    .step-name {
-        font-size: 9px;
-    }
-
-    .step-line {
-        margin: 17px 2px 0;
-    }
-
-    .card {
-        padding: 21px 14px;
-        border-radius: 17px;
-    }
-
-    .card-title {
-        font-size: 22px;
-    }
-
-    .card-subtitle {
-        font-size: 13px;
-    }
-
-    .summary {
-        padding: 15px;
-    }
-
-    .summary-row {
-        font-size: 13px;
-        gap: 10px;
-    }
-
-    .summary-row.total .summary-label,
-    .summary-row.total .summary-value {
-        font-size: 16px;
-    }
-
-    .payment-box {
-        padding: 20px 14px;
-    }
-
-    .payment-amount {
-        font-size: 36px;
-    }
-
-    .qr-box {
-        width: 210px;
-        height: 210px;
-    }
-
-    .payment-form {
-        padding: 17px 13px;
-    }
-
-    .action {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .back-step-btn,
-    .pay-btn {
-        width: 100%;
-        flex: none;
-    }
-}
-
-@media(max-width:380px) {
-    .main {
-        padding-left: 9px;
-        padding-right: 9px;
-    }
-
-    .card {
-        padding: 18px 10px;
-    }
-
-    .summary-row {
-        font-size: 12px;
-    }
-
-    .payment-amount {
-        font-size: 32px;
-    }
-
-    .qr-box {
-        width: 190px;
-        height: 190px;
-    }
-
-    .payment-form {
-        padding: 15px 10px;
-    }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#f3f8fc;color:#073f73;min-height:100vh}
+.app{min-height:100vh;background:#fff}
+.header{height:82px;background:#fff;border-bottom:1px solid #e4edf5;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50}
+.header-left{position:absolute;left:28px}
+.back-btn{width:42px;height:42px;border:0;border-radius:12px;background:#eef7ff;color:#075ca5;font-size:29px;cursor:pointer}
+.egc-logo{height:60px;width:auto;max-width:70%;object-fit:contain}
+.main{width:100%;max-width:1200px;margin:auto;padding:38px 25px 70px}
+.page-title{text-align:center;margin-bottom:35px}
+.page-title h1{font-size:34px;font-weight:800;color:#06447c;margin-bottom:8px}
+.page-title p{font-size:17px;color:#72899e}
+.steps{width:100%;max-width:900px;margin:0 auto 42px;display:flex;align-items:flex-start}
+.step-box{flex:1;min-width:0;display:flex;align-items:center}
+.step-box:last-child{flex:0 0 auto}
+.step{min-width:88px;text-align:center}
+.step-circle{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;font-size:17px;font-weight:800;background:#fff;border:3px solid #d0dfeb;color:#8ba0b1}
+.step.completed .step-circle{background:#168c50;border-color:#168c50;color:#fff}
+.step.active .step-circle{background:#0878d1;border-color:#0878d1;color:#fff}
+.step-name{margin-top:8px;font-size:13px;font-weight:700;color:#8b9baa}
+.step.completed .step-name{color:#168c50}
+.step.active .step-name{color:#0872c7}
+.step-line{flex:1;height:3px;background:#d6e2ec;margin:22px 8px 0}
+.step-line.completed{background:#168c50}
+.card{width:100%;max-width:850px;margin:0 auto 22px;background:#fff;border:1px solid #e0eaf2;border-radius:22px;padding:32px;box-shadow:0 10px 40px rgba(7,65,105,.08)}
+.card-title{font-size:27px;font-weight:800;color:#06477f;margin-bottom:7px}
+.card-subtitle{color:#71879a;font-size:15px;line-height:1.6;margin-bottom:25px}
+.summary{background:#f7fbfe;border:1px solid #dcebf5;border-radius:16px;padding:20px}
+.summary-title{font-size:18px;font-weight:800;color:#075a96;margin-bottom:16px}
+.summary-row{display:flex;justify-content:space-between;gap:20px;padding:11px 0;border-bottom:1px solid #e4edf4;font-size:15px}
+.summary-row:last-child{border-bottom:0}
+.summary-label{color:#71879a}
+.summary-value{color:#164c72;font-weight:800;text-align:right;overflow-wrap:anywhere}
+.summary-row.total{margin-top:8px;padding-top:16px;border-top:2px solid #d8e8f2;border-bottom:0}
+.summary-row.total .summary-label,.summary-row.total .summary-value{font-size:18px;color:#06477f}
+.payment-box{margin-top:22px;border-radius:18px;padding:25px;background:#eef8ff;border:1px solid #cde6f7;text-align:center}
+.payment-label{color:#688298;font-size:14px;font-weight:700;margin-bottom:7px}
+.payment-amount{font-size:42px;font-weight:900;color:#0878d1}
+.payment-note{margin-top:7px;color:#6d8497;font-size:13px}
+.qr-section{margin-top:25px;text-align:center}
+.qr-title{font-size:19px;font-weight:800;color:#06477f;margin-bottom:7px}
+.qr-subtitle{color:#71879a;font-size:13px;margin-bottom:18px;line-height:1.5}
+.qr-box{width:240px;height:240px;margin:0 auto 15px;background:#fff;border:1px solid #d8e6ef;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.qr-box img{width:100%;height:100%;object-fit:contain;display:block}
+.qr-placeholder{text-align:center;color:#8aa0b0;font-size:14px;line-height:1.6;padding:20px}
+.upi-id{display:inline-block;padding:10px 15px;background:#f4f9fc;border:1px solid #dce9f1;border-radius:10px;color:#075a96;font-weight:800;font-size:14px;word-break:break-word}
+.status-box{margin-top:25px;padding:18px;border-radius:14px;background:#fff9e8;border:1px solid #f3dfa5;color:#755817;font-size:14px;line-height:1.6}
+.status-box strong{color:#654b0e}
+.payment-form{margin-top:25px;padding:22px;background:#f8fbfd;border:1px solid #dfeaf1;border-radius:16px}
+.form-title{font-size:19px;font-weight:800;color:#06477f;margin-bottom:5px}
+.form-subtitle{color:#71879a;font-size:13px;line-height:1.5;margin-bottom:20px}
+.form-group{margin-bottom:17px}
+.form-group:last-child{margin-bottom:0}
+.form-label{display:block;margin-bottom:7px;color:#315873;font-size:14px;font-weight:800}
+.required{color:#d32f2f}
+.optional{color:#8a9aa8;font-weight:600;font-size:12px}
+.form-input{width:100%;min-height:50px;border:1px solid #cfdee8;border-radius:12px;background:#fff;color:#164c72;padding:12px 14px;font-size:15px;outline:none;transition:.2s}
+.form-input:focus{border-color:#0878d1;box-shadow:0 0 0 3px rgba(8,120,209,.10)}
+textarea.form-input{height:90px;resize:vertical}
+.file-box{width:100%;border:1px dashed #b9d0df;border-radius:12px;background:#fff;padding:15px}
+.file-input{width:100%;font-size:13px;color:#527087}
+.file-help{margin-top:7px;color:#8498a7;font-size:12px;line-height:1.4}
+.preview{display:none;margin-top:12px;text-align:center}
+.preview.show{display:block}
+.preview img{max-width:180px;max-height:180px;border-radius:12px;border:1px solid #d5e3eb;object-fit:cover}
+.auto-date{background:#f3f7fa;color:#607d91}
+.checkbox-row{display:flex;align-items:flex-start;gap:11px;cursor:pointer;margin-top:18px}
+.checkbox-row input{width:20px;height:20px;margin-top:2px;accent-color:#0878d1;flex:0 0 auto}
+.checkbox-text{font-size:14px;line-height:1.5;color:#315873;font-weight:600}
+.message{display:none;margin-top:18px;padding:14px 17px;border-radius:12px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.message.error,.message.success,.message.info{display:block}
+.message.error{color:#bd2828;background:#fff1f1;border:1px solid #ffc9c9}
+.message.success{color:#16833a;background:#effcf3;border:1px solid #bde8c9}
+.message.info{color:#075a96;background:#eef8ff;border:1px solid #cde6f7}
+.request-box{display:none;margin-top:18px;padding:16px;background:#f0fbf5;border:1px solid #bfe8cf;border-radius:13px}
+.request-box.show{display:block}
+.request-label{font-size:12px;color:#5e806b;font-weight:700;margin-bottom:5px}
+.request-number{font-size:18px;color:#08723d;font-weight:900;word-break:break-all}
+.action{display:flex;justify-content:space-between;gap:15px;margin-top:28px}
+.back-step-btn,.pay-btn{min-height:56px;border-radius:14px;font-size:15px;font-weight:900;cursor:pointer}
+.back-step-btn{flex:1;border:1px solid #d2e1ec;background:#fff;color:#15547d}
+.pay-btn{flex:1;border:0;background:#ffc21a;color:#063d70;box-shadow:0 7px 18px rgba(255,194,26,.24)}
+.pay-btn:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:800px){
+.header{height:70px}.header-left{left:14px}.back-btn{width:38px;height:38px;font-size:26px}
+.egc-logo{height:49px;max-width:65%}.main{padding:24px 12px 45px}
+.page-title{margin-bottom:25px}.page-title h1{font-size:27px}.page-title p{font-size:14px}
+.steps{margin-bottom:25px}.step{min-width:50px}.step-circle{width:35px;height:35px;font-size:13px}
+.step-name{font-size:9px}.step-line{margin:17px 2px 0}
+.card{padding:21px 14px;border-radius:17px}.card-title{font-size:22px}
+.card-subtitle{font-size:13px}.summary{padding:15px}.summary-row{font-size:13px;gap:10px}
+.summary-row.total .summary-label,.summary-row.total .summary-value{font-size:16px}
+.payment-box{padding:20px 14px}.payment-amount{font-size:36px}.qr-box{width:210px;height:210px}
+.payment-form{padding:17px 13px}.action{flex-direction:column;gap:12px}
+.back-step-btn,.pay-btn{width:100%;flex:none}
+}
+@media(max-width:380px){
+.main{padding-left:9px;padding-right:9px}.card{padding:18px 10px}
+.summary-row{font-size:12px}.payment-amount{font-size:32px}
+.qr-box{width:190px;height:190px}.payment-form{padding:15px 10px}
 }
 </style>
 </head>
@@ -806,7 +212,7 @@ textarea.form-input {
 
         <div class="payment-box">
             <div class="payment-label">PAYMENT AMOUNT</div>
-            <div class="payment-amount" id="largePayAmount">₹200</div>
+            <div class="payment-amount" id="largePayAmount">₹200.00</div>
             <div class="payment-note">Pay exactly this amount using the QR code below.</div>
         </div>
 
@@ -818,13 +224,9 @@ textarea.form-input {
             </div>
 
             <div class="qr-box">
-                <img
-                    id="paymentQr"
-                    src="assets/qr.jpg"
-                    alt="EGC Payment QR"
-                >
+                <img id="paymentQr" src="assets/qr.jpg" alt="EGC Payment QR">
 
-                <div class="qr-placeholder" id="qrPlaceholder" style="display:none;">
+                <div class="qr-placeholder" id="qrPlaceholder" style="display:none">
                     <strong>EGC PAYMENT QR</strong>
                     <br><br>
                     QR code image not found.
@@ -841,9 +243,9 @@ textarea.form-input {
             <br><br>
             After making the ₹200 payment, enter your transaction ID below.
             <br><br>
-            You may also upload <strong>one payment screenshot</strong>. Screenshot is optional.
+            You may also upload one payment screenshot. Screenshot is optional.
             <br><br>
-            Your payment will be submitted to the owner for verification. The cylinder request will proceed only after the owner approves the payment.
+            Your payment will be submitted to the owner for verification. Payment submission does not mean payment approval.
         </div>
 
         <div class="payment-form">
@@ -894,12 +296,7 @@ textarea.form-input {
 
             <div class="form-group">
                 <label class="form-label" for="paymentDateTime">Payment Date &amp; Time</label>
-                <input
-                    type="text"
-                    id="paymentDateTime"
-                    class="form-input auto-date"
-                    readonly
-                >
+                <input type="text" id="paymentDateTime" class="form-input auto-date" readonly>
             </div>
 
             <div class="form-group">
@@ -938,7 +335,6 @@ textarea.form-input {
     </section>
 </main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 "use strict";
@@ -953,6 +349,9 @@ const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 const BUCKET_NAME = "payment-screenshots";
+const CYLINDER_AMOUNT_DEFAULT = 890;
+const INITIAL_PAYMENT = 200;
+const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024;
 
 if (!window.supabase) {
     alert("Supabase library load nahi hui. Internet connection check karein.");
@@ -965,7 +364,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 /* =========================================================
-   ELEMENTS
+   ELEMENTS AND STATE
 ========================================================= */
 
 const message = document.getElementById("message");
@@ -980,15 +379,28 @@ const previewImage = document.getElementById("previewImage");
 const paymentDateTime = document.getElementById("paymentDateTime");
 const paymentNote = document.getElementById("paymentNote");
 
-const CYLINDER_AMOUNT_DEFAULT = 890;
-const INITIAL_PAYMENT = 200;
-
 let schemeData = readJSON("egc_scheme");
-let lpgDetails = readJSON("egc_lpg_details");
-
 let currentRequest = null;
+let currentUser = null;
 let isSubmitting = false;
-let pageInitialised = false;
+let isRequestLoading = false;
+let existingPayments = [];
+
+let cylinderAmount = getPositiveNumber([
+    schemeData?.cylinder_amount,
+    schemeData?.cylinderAmount,
+    schemeData?.total_amount,
+    schemeData?.totalAmount
+], CYLINDER_AMOUNT_DEFAULT);
+
+let initialPayment = INITIAL_PAYMENT;
+let remainingAmount = Math.max(0, cylinderAmount - initialPayment);
+let chargeAmount = getNonNegativeNumber([
+    schemeData?.selected_charge,
+    schemeData?.extra_charge,
+    schemeData?.charge_amount,
+    schemeData?.charge
+], 0);
 
 /* =========================================================
    LOCAL STORAGE HELPERS
@@ -1005,13 +417,13 @@ function readJSON(key) {
 }
 
 function getStoredRequestId() {
-    const directKeys = [
+    const keys = [
         "egc_current_request_id",
         "egc_request_id",
         "egc_last_request_id"
     ];
 
-    for (const key of directKeys) {
+    for (const key of keys) {
         const value = localStorage.getItem(key);
 
         if (value && value.trim()) {
@@ -1037,8 +449,12 @@ function getStoredRequestId() {
 }
 
 /* =========================================================
-   DISPLAY HELPERS
+   GENERAL HELPERS
 ========================================================= */
+
+function normalized(value) {
+    return String(value ?? "").trim().toLowerCase();
+}
 
 function formatRupees(value) {
     const number = Number(value);
@@ -1048,46 +464,66 @@ function formatRupees(value) {
     ).toFixed(2);
 }
 
-function showMessage(text, type) {
-    if (!message) return;
+function getPositiveNumber(values, fallback) {
+    for (const value of values) {
+        if (value !== undefined && value !== null && value !== "") {
+            const parsed = Number(value);
 
-    message.className = "message " + (type || "");
+            if (Number.isFinite(parsed) && parsed > 0) {
+                return parsed;
+            }
+        }
+    }
+
+    return fallback;
+}
+
+function getNonNegativeNumber(values, fallback) {
+    for (const value of values) {
+        if (value !== undefined && value !== null && value !== "") {
+            const parsed = Number(value);
+
+            if (Number.isFinite(parsed) && parsed >= 0) {
+                return parsed;
+            }
+        }
+    }
+
+    return fallback;
+}
+
+function showMessage(text, type = "info") {
+    message.className = "message " + type;
     message.textContent = text;
 }
 
 function clearMessage() {
-    if (!message) return;
-
     message.className = "message";
     message.textContent = "";
 }
 
 function setSubmitting(value, label) {
     isSubmitting = value;
+    paidBtn.disabled = value;
 
-    if (paidBtn) {
-        paidBtn.disabled = value;
-
-        paidBtn.textContent =
-            label || (
-                value
-                    ? "SUBMITTING..."
-                    : "SUBMIT PAYMENT →"
-            );
-    }
+    paidBtn.textContent = label || (
+        value ? "PLEASE WAIT..." : "SUBMIT PAYMENT →"
+    );
 }
 
-function normalized(value) {
-    return String(value || "").trim().toLowerCase();
-}
+function saveCurrentRequest(request) {
+    if (!request) return;
 
-/* =========================================================
-   PAYMENT DATE & TIME
-========================================================= */
+    const id = String(request.id);
+
+    localStorage.setItem("egc_current_request_id", id);
+    localStorage.setItem("egc_request_id", id);
+    localStorage.setItem("egc_last_request_id", id);
+    localStorage.setItem("egc_request_number", request.request_number || "");
+    localStorage.setItem("egc_current_request", JSON.stringify(request));
+}
 
 function updatePaymentDateTime() {
-    if (!paymentDateTime) return;
-
     paymentDateTime.value = new Date().toLocaleString("en-IN", {
         day: "2-digit",
         month: "short",
@@ -1101,109 +537,42 @@ function updatePaymentDateTime() {
 
 updatePaymentDateTime();
 
-setInterval(updatePaymentDateTime, 1000);
-
 /* =========================================================
-   SCHEME AMOUNTS
+   PAYMENT AMOUNTS
 ========================================================= */
-
-function getPositiveNumber(values, fallback) {
-    for (const value of values) {
-        if (
-            value !== undefined &&
-            value !== null &&
-            value !== ""
-        ) {
-            const parsed = Number(value);
-
-            if (Number.isFinite(parsed) && parsed > 0) {
-                return parsed;
-            }
-        }
-    }
-
-    return fallback;
-}
-
-let cylinderAmount = getPositiveNumber([
-    schemeData && schemeData.cylinder_amount,
-    schemeData && schemeData.cylinderAmount,
-    schemeData && schemeData.total_amount,
-    schemeData && schemeData.totalAmount
-], CYLINDER_AMOUNT_DEFAULT);
-
-let initialPayment = INITIAL_PAYMENT;
-
-let remainingAmount = Math.max(
-    0,
-    cylinderAmount - initialPayment
-);
-
-let chargeAmount = 0;
-
-if (schemeData) {
-    const candidates = [
-        schemeData.selected_charge,
-        schemeData.extra_charge,
-        schemeData.charge_amount,
-        schemeData.charge
-    ];
-
-    for (const candidate of candidates) {
-        if (
-            candidate !== undefined &&
-            candidate !== null &&
-            candidate !== ""
-        ) {
-            const value = Number(candidate);
-
-            if (Number.isFinite(value) && value >= 0) {
-                chargeAmount = value;
-                break;
-            }
-        }
-    }
-}
 
 function renderAmounts() {
     const values = {
-        cylinderAmount: cylinderAmount,
-        initialPayment: initialPayment,
-        remainingAmount: remainingAmount,
-        chargeAmount: chargeAmount,
+        cylinderAmount,
+        initialPayment,
+        remainingAmount,
+        chargeAmount,
         payNowAmount: initialPayment,
         largePayAmount: initialPayment
     };
 
-    Object.keys(values).forEach(function (id) {
+    for (const [id, value] of Object.entries(values)) {
         const element = document.getElementById(id);
 
         if (element) {
-            element.textContent = formatRupees(values[id]);
+            element.textContent = formatRupees(value);
         }
-    });
+    }
 }
 
 renderAmounts();
 
 /* =========================================================
-   SCREENSHOT VALIDATION & PREVIEW
+   SCREENSHOT VALIDATION
 ========================================================= */
 
 function resetScreenshotPreview() {
-    if (screenshotPreview) {
-        screenshotPreview.classList.remove("show");
-    }
-
-    if (previewImage) {
-        previewImage.removeAttribute("src");
-    }
+    screenshotPreview.classList.remove("show");
+    previewImage.removeAttribute("src");
 }
 
 function validateScreenshot() {
-    if (!paymentScreenshot) return true;
-
-    const file = paymentScreenshot.files[0];
+    const file = paymentScreenshot.files?.[0];
 
     if (!file) return true;
 
@@ -1221,13 +590,10 @@ function validateScreenshot() {
 
         paymentScreenshot.value = "";
         resetScreenshotPreview();
-
         return false;
     }
 
-    const maxSize = 5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
+    if (file.size > MAX_SCREENSHOT_SIZE) {
         showMessage(
             "Payment screenshot must be 5 MB or smaller.",
             "error"
@@ -1235,51 +601,43 @@ function validateScreenshot() {
 
         paymentScreenshot.value = "";
         resetScreenshotPreview();
-
         return false;
     }
 
     return true;
 }
 
-if (paymentScreenshot) {
-    paymentScreenshot.addEventListener("change", function () {
-        clearMessage();
+paymentScreenshot.addEventListener("change", function () {
+    clearMessage();
 
-        const file = paymentScreenshot.files[0];
+    const file = paymentScreenshot.files?.[0];
 
-        if (!file) {
-            resetScreenshotPreview();
-            return;
-        }
+    if (!file) {
+        resetScreenshotPreview();
+        return;
+    }
 
-        if (!validateScreenshot()) return;
+    if (!validateScreenshot()) return;
 
-        const reader = new FileReader();
+    const reader = new FileReader();
 
-        reader.onload = function (event) {
-            if (previewImage) {
-                previewImage.src = event.target.result;
-            }
+    reader.onload = function (event) {
+        previewImage.src = event.target.result;
+        screenshotPreview.classList.add("show");
+    };
 
-            if (screenshotPreview) {
-                screenshotPreview.classList.add("show");
-            }
-        };
+    reader.onerror = function () {
+        showMessage(
+            "Could not preview screenshot. Please select it again.",
+            "error"
+        );
+    };
 
-        reader.onerror = function () {
-            showMessage(
-                "Could not preview screenshot. Please select it again.",
-                "error"
-            );
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
+    reader.readAsDataURL(file);
+});
 
 /* =========================================================
-   AUTHENTICATED USER
+   AUTHENTICATION
 ========================================================= */
 
 async function getLoggedInUser() {
@@ -1287,9 +645,9 @@ async function getLoggedInUser() {
 
     if (error) throw error;
 
-    if (!data || !data.user) {
+    if (!data?.user) {
         throw new Error(
-            "You are not logged in. Please log in and try again."
+            "Aap login nahi hain. Pehle login karke dobara try karein."
         );
     }
 
@@ -1306,173 +664,220 @@ function isRequestCancelledOrRejected(request) {
     const paymentStatus = normalized(request.payment_status);
 
     return (
-        status === "cancelled" ||
-        status === "rejected" ||
-        ownerApproval === "rejected" ||
-        ownerApproval === "declined" ||
-        paymentStatus === "rejected" ||
-        paymentStatus === "failed"
+        ["cancelled", "canceled", "rejected"].includes(status) ||
+        ["rejected", "declined"].includes(ownerApproval) ||
+        ["rejected", "failed"].includes(paymentStatus)
     );
 }
 
-/*
-  Payment submission is not approval.
+function isRequestOwnerApproved(request) {
+    const ownerApproval = normalized(request.owner_approval);
 
-  This helper checks only whether the request already records
-  a completed/approved payment.
-*/
+    return [
+        "approved",
+        "approve",
+        "accepted"
+    ].includes(ownerApproval);
+}
 
 function isPaymentAlreadyApproved(request) {
-    const paymentStatus = normalized(request.payment_status);
+    const status = normalized(request.payment_status);
 
-    return (
-        paymentStatus === "paid" ||
-        paymentStatus === "verified" ||
-        paymentStatus === "approved"
-    );
+    return [
+        "paid",
+        "verified",
+        "approved",
+        "fully_paid",
+        "paid_in_full",
+        "settled"
+    ].includes(status);
 }
 
 /* =========================================================
    LOAD EXISTING REQUEST
-   DO NOT CREATE A NEW REQUEST HERE
+   Never create a request from payment.html.
 ========================================================= */
 
 async function loadExistingRequest(user) {
-    currentRequest = null;
+    isRequestLoading = true;
 
-    const storedRequestId = getStoredRequestId();
+    try {
+        currentRequest = null;
 
-    if (storedRequestId) {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("id", storedRequestId)
-            .eq("user_id", user.id)
-            .maybeSingle();
+        const storedRequestId = getStoredRequestId();
 
-        if (error) throw error;
+        if (storedRequestId) {
+            const { data, error } = await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("id", storedRequestId)
+                .eq("user_id", user.id)
+                .maybeSingle();
 
-        if (data) {
-            currentRequest = data;
+            if (error) throw error;
+
+            if (data) {
+                currentRequest = data;
+            }
         }
-    }
 
-    /*
-      If the stored ID is missing or stale, find the latest
-      eligible request belonging to this authenticated user.
-    */
+        /*
+          If the stored request ID is unavailable, look for the
+          newest request belonging to this authenticated user.
+        */
 
-    if (!currentRequest) {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("request_date", { ascending: false })
-            .limit(50);
+        if (!currentRequest) {
+            const { data, error } = await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(50);
 
-        if (error) throw error;
+            if (error) throw error;
 
-        const rows = data || [];
+            const rows = data || [];
 
-        currentRequest = rows.find(function (request) {
-            return !isRequestCancelledOrRejected(request);
-        }) || null;
-    }
+            currentRequest = rows.find(function (request) {
+                return !isRequestCancelledOrRejected(request);
+            }) || null;
+        }
 
-    if (!currentRequest) {
-        throw new Error(
-            "Scheme ki existing cylinder request nahi mili. Pehle Scheme page par request submit karein."
-        );
-    }
+        if (!currentRequest) {
+            throw new Error(
+                "Existing cylinder request nahi mili. Pehle Scheme page par request submit karein."
+            );
+        }
 
-    if (isRequestCancelledOrRejected(currentRequest)) {
-        throw new Error(
-            "Yeh request cancel ya reject ho chuki hai. Is par payment submit nahi kiya ja sakta."
-        );
-    }
+        if (isRequestCancelledOrRejected(currentRequest)) {
+            throw new Error(
+                "Yeh request cancel ya reject ho chuki hai. Is par payment submit nahi ho sakta."
+            );
+        }
 
-    if (isPaymentAlreadyApproved(currentRequest)) {
-        throw new Error(
-            "Is request ka payment pehle hi approved/paid hai. Duplicate payment submit nahi kiya gaya."
-        );
-    }
+        /*
+          Only an owner-approved request may accept payment.
+          Payment submission is not the same as owner approval.
+        */
 
-    localStorage.setItem(
-        "egc_current_request_id",
-        currentRequest.id
-    );
+        if (!isRequestOwnerApproved(currentRequest)) {
+            throw new Error(
+                "Aapki cylinder request abhi Owner approval ke liye pending hai. Approval ke baad payment karein."
+            );
+        }
 
-    localStorage.setItem(
-        "egc_request_id",
-        currentRequest.id
-    );
+        if (isPaymentAlreadyApproved(currentRequest)) {
+            throw new Error(
+                "Is request ka payment pehle hi approved/paid hai. Duplicate payment submit nahi kiya gaya."
+            );
+        }
 
-    localStorage.setItem(
-        "egc_last_request_id",
-        currentRequest.id
-    );
+        saveCurrentRequest(currentRequest);
 
-    localStorage.setItem(
-        "egc_request_number",
-        currentRequest.request_number || ""
-    );
+        const dbCylinderAmount = getPositiveNumber([
+            currentRequest.cylinder_amount,
+            currentRequest.total_amount,
+            currentRequest.total_price,
+            currentRequest.amount
+        ], cylinderAmount);
 
-    localStorage.setItem(
-        "egc_current_request",
-        JSON.stringify(currentRequest)
-    );
-
-    const dbCylinderAmount = Number(
-        currentRequest.cylinder_amount ||
-        currentRequest.total_amount ||
-        cylinderAmount
-    );
-
-    if (
-        Number.isFinite(dbCylinderAmount) &&
-        dbCylinderAmount > 0
-    ) {
         cylinderAmount = dbCylinderAmount;
-    }
+        remainingAmount = Math.max(0, cylinderAmount - INITIAL_PAYMENT);
 
-    remainingAmount = Math.max(
-        0,
-        cylinderAmount - INITIAL_PAYMENT
-    );
+        chargeAmount = getNonNegativeNumber([
+            currentRequest.charge_amount,
+            currentRequest.extra_charge,
+            currentRequest.extra_charges
+        ], chargeAmount);
 
-    const dbCharge = Number(
-        currentRequest.charge_amount ??
-        currentRequest.extra_charge ??
-        chargeAmount
-    );
+        renderAmounts();
 
-    if (Number.isFinite(dbCharge) && dbCharge >= 0) {
-        chargeAmount = dbCharge;
-    }
-
-    renderAmounts();
-
-    if (requestNumberElement) {
         requestNumberElement.textContent =
             currentRequest.request_number || currentRequest.id;
-    }
 
-    if (requestBox) {
         requestBox.classList.add("show");
-    }
 
-    return currentRequest;
+        await loadExistingPayments(user, currentRequest);
+
+        return currentRequest;
+
+    } finally {
+        isRequestLoading = false;
+    }
 }
 
 /* =========================================================
-   UPLOAD SCREENSHOT
-   Returns private Storage path, not public URL
+   LOAD PAYMENTS FOR THE CURRENT REQUEST
+========================================================= */
+
+async function loadExistingPayments(user, request) {
+    const { data, error } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("request_id", request.id)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+    if (error) {
+        console.error("Payment status query failed:", error);
+        throw new Error(
+            "Existing payment status check nahi ho paya. Database permissions aur payments table check karein."
+        );
+    }
+
+    existingPayments = data || [];
+
+    const pendingPayment = existingPayments.find(function (payment) {
+        const verification = normalized(payment.verification_status);
+        const status = normalized(payment.payment_status);
+
+        return (
+            !["rejected", "declined", "failed"].includes(verification) &&
+            !["rejected", "declined", "failed"].includes(status) &&
+            (
+                ["pending", "submitted", "under_review"].includes(verification) ||
+                ["pending", "submitted", "under_review"].includes(status)
+            )
+        );
+    });
+
+    if (pendingPayment) {
+        throw new Error(
+            "Aapka payment pehle hi submit ho chuka hai aur Owner verification ke liye pending hai. Duplicate payment submit na karein."
+        );
+    }
+
+    const approvedPayment = existingPayments.find(function (payment) {
+        const verification = normalized(payment.verification_status);
+        const status = normalized(payment.payment_status);
+
+        return (
+            ["approved", "verified"].includes(verification) ||
+            ["approved", "verified", "paid"].includes(status)
+        );
+    });
+
+    if (approvedPayment) {
+        throw new Error(
+            "Is request ke liye payment record approved/verified hai. Dobara submit karne se pehle Owner Payments mein status check karein."
+        );
+    }
+}
+
+/* =========================================================
+   UPLOAD PAYMENT SCREENSHOT
+   Returns private Storage path.
 ========================================================= */
 
 async function uploadPaymentScreenshot(userId, requestId) {
-    const file = paymentScreenshot?.files?.[0];
+    const file = paymentScreenshot.files?.[0];
 
     if (!file) return null;
+
+    if (!validateScreenshot()) {
+        throw new Error("Screenshot validation failed.");
+    }
 
     const originalExtension = (
         file.name.split(".").pop() || ""
@@ -1482,12 +887,12 @@ async function uploadPaymentScreenshot(userId, requestId) {
 
     if (["jpg", "jpeg", "png", "webp"].includes(originalExtension)) {
         extension = originalExtension;
-    } else if (file.type === "image/png") {
-        extension = "png";
-    } else if (file.type === "image/webp") {
-        extension = "webp";
     } else {
-        extension = "jpg";
+        extension = file.type === "image/png"
+            ? "png"
+            : file.type === "image/webp"
+                ? "webp"
+                : "jpg";
     }
 
     const filePath =
@@ -1517,32 +922,32 @@ async function uploadPaymentScreenshot(userId, requestId) {
 }
 
 /* =========================================================
-   CHECK EXISTING PAYMENT
+   CHECK DUPLICATE TRANSACTION AND PENDING PAYMENTS
 ========================================================= */
 
-async function findExistingPayment(requestId, transactionId) {
+async function checkPaymentBeforeSubmit(
+    userId,
+    requestId,
+    transactionId
+) {
     const { data, error } = await supabaseClient
         .from("payments")
-        .select(
-            "id, payment_status, verification_status, transaction_id, payment_reference"
-        )
+        .select("id, user_id, request_id, payment_status, verification_status, transaction_id, payment_reference")
         .eq("request_id", requestId)
+        .eq("user_id", userId)
         .limit(100);
 
-    if (error) throw error;
+    if (error) {
+        console.error("Existing payment lookup failed:", error);
+        throw new Error(
+            "Payment status check nahi ho paya. Payment submit nahi kiya gaya."
+        );
+    }
 
     const rows = data || [];
+    const submittedTransaction = transactionId.trim().toLowerCase();
 
-    const submittedTransaction = transactionId
-        .trim()
-        .toLowerCase();
-
-    /*
-      Do not allow the same transaction ID to be reused
-      for this request, including a previously rejected attempt.
-    */
-
-    const exactMatch = rows.find(function (row) {
+    const duplicate = rows.find(function (row) {
         const savedTransaction = String(
             row.transaction_id || ""
         ).trim().toLowerCase();
@@ -1557,65 +962,125 @@ async function findExistingPayment(requestId, transactionId) {
         );
     });
 
-    if (exactMatch) {
-        return {
-            duplicate: true,
-            reason: "same_transaction",
-            payment: exactMatch
-        };
+    if (duplicate) {
+        throw new Error(
+            "Yeh Transaction ID pehle submit ho chuki hai. Dobara submit nahi ki ja sakti."
+        );
     }
 
-    /*
-      Allow a new transaction after rejection, but block another
-      submission while a payment is still awaiting verification.
-    */
+    const pendingPayment = rows.find(function (row) {
+        const status = normalized(row.payment_status);
+        const verification = normalized(row.verification_status);
 
-    const hasPendingPayment = rows.some(function (row) {
-        const paymentStatus = normalized(row.payment_status);
-        const verificationStatus = normalized(
-            row.verification_status
-        );
+        const rejected =
+            ["rejected", "declined", "failed"].includes(status) ||
+            ["rejected", "declined", "failed"].includes(verification);
+
+        if (rejected) return false;
 
         return (
-            paymentStatus === "pending" &&
-            verificationStatus !== "rejected" &&
-            verificationStatus !== "declined"
+            ["pending", "submitted", "under_review"].includes(status) ||
+            ["pending", "submitted", "under_review"].includes(verification)
         );
     });
 
-    if (hasPendingPayment) {
-        return {
-            duplicate: true,
-            reason: "verification_pending",
-            payment: null
-        };
+    if (pendingPayment) {
+        throw new Error(
+            "Is request ka ek payment Owner verification ke liye pending hai. Pehle Owner ke decision ka wait karein."
+        );
     }
 
-    return {
-        duplicate: false,
-        reason: null,
-        payment: null
-    };
+    const approvedPayment = rows.find(function (row) {
+        const status = normalized(row.payment_status);
+        const verification = normalized(row.verification_status);
+
+        return (
+            ["approved", "verified", "paid"].includes(status) ||
+            ["approved", "verified"].includes(verification)
+        );
+    });
+
+    if (approvedPayment) {
+        throw new Error(
+            "Is request ke liye pehle se approved payment record hai. Duplicate submission roki gayi."
+        );
+    }
 }
 
 /* =========================================================
-   UPDATE REQUEST PAYMENT DETAILS
+   INSERT PAYMENT RECORD
+
+   This creates a pending payment record.
+   It does not approve payment or request.
 ========================================================= */
 
-async function updateRequestPaymentDetails(
+async function insertPaymentRecord(
     request,
+    user,
     transactionId,
     screenshotPath,
     note,
     submittedAt
 ) {
+    const paymentData = {
+        user_id: user.id,
+        request_id: request.id,
+        payment_amount: INITIAL_PAYMENT,
+        payment_status: "pending",
+        verification_status: "pending",
+        payment_reference: transactionId,
+        transaction_id: transactionId,
+        payment_method: "UPI",
+        screenshot_path: screenshotPath,
+        notes: note || null
+    };
+
     /*
-      IMPORTANT:
-      "pending" is used instead of "submitted".
-      The payment remains unverified until Owner approves it.
-      Do not change owner_approval here.
+      Include agency_id only when the existing request has one.
+      This assumes the payments table contains agency_id.
     */
 
+    if (request.agency_id) {
+        paymentData.agency_id = request.agency_id;
+    }
+
+    /*
+      The payments table must have a compatible schema.
+      If it has no created_at default, add created_at explicitly.
+    */
+
+    paymentData.created_at = submittedAt;
+
+    const { data, error } = await supabaseClient
+        .from("payments")
+        .insert(paymentData)
+        .select("*")
+        .single();
+
+    if (error) {
+        console.error("Payment insert failed:", error);
+        throw error;
+    }
+
+    return data;
+}
+
+/* =========================================================
+   UPDATE REQUEST PAYMENT DETAILS
+
+   This happens only after a payment row has been inserted.
+   If this update fails, the payment record remains pending
+   and the user receives an explicit warning.
+========================================================= */
+
+async function updateRequestPaymentDetails(
+    request,
+    user,
+    transactionId,
+    screenshotPath,
+    note,
+    submittedAt
+) {
     const updateData = {
         payment_status: "pending",
         payment_method: "UPI",
@@ -1634,330 +1099,217 @@ async function updateRequestPaymentDetails(
         .from("cylinder_requests")
         .update(updateData)
         .eq("id", request.id)
-        .eq("user_id", request.user_id)
-        .select()
-        .single();
+        .eq("user_id", user.id)
+        .select("*")
+        .maybeSingle();
 
     if (error) {
-        console.error("Request payment update error:", error);
+        console.error("Request payment update failed:", error);
         throw error;
+    }
+
+    if (!data) {
+        throw new Error(
+            "Payment record save ho gaya, lekin cylinder request update nahi hui. Payment pending hai. Dobara payment submit na karein; Owner se status check karein."
+        );
     }
 
     return data;
 }
 
 /* =========================================================
-   INSERT PAYMENTS TABLE ROW
+   PAYMENT SUBMISSION
 ========================================================= */
 
-async function insertPaymentRecord(
-    request,
-    transactionId,
-    screenshotPath,
-    note,
-    submittedAt
-) {
-    const paymentData = {
-        user_id: request.user_id,
-        request_id: request.id,
-        payment_amount: INITIAL_PAYMENT,
+paidBtn.addEventListener("click", async function () {
+    if (isSubmitting || isRequestLoading) return;
+
+    clearMessage();
+
+    const transactionId = transactionIdInput.value.trim();
+    const note = paymentNote.value.trim();
+
+    if (!transactionId) {
+        showMessage("Please enter your UPI transaction ID.", "error");
+        transactionIdInput.focus();
+        return;
+    }
+
+    if (transactionId.length < 4) {
+        showMessage("Please enter a valid transaction ID.", "error");
+        transactionIdInput.focus();
+        return;
+    }
+
+    if (!paymentCheck.checked) {
+        showMessage(
+            "Please confirm that you have made the ₹200 payment.",
+            "error"
+        );
+        return;
+    }
+
+    if (!validateScreenshot()) return;
+
+    setSubmitting(true, "CHECKING PAYMENT STATUS...");
+
+    let paymentRecord = null;
+    let screenshotPath = null;
+    let requestUpdateSucceeded = false;
+
+    try {
+        const user = await getLoggedInUser();
+        currentUser = user;
 
         /*
-          Use only valid CHECK constraint values:
-          payment_status = pending
-          verification_status = pending
+          Reuse the request already submitted through Scheme.
+          Never create a new cylinder request here.
         */
 
-        payment_status: "pending",
-        verification_status: "pending",
+        const request = await loadExistingRequest(user);
 
-        payment_reference: transactionId,
-        transaction_id: transactionId,
-        payment_method: "UPI",
-        screenshot_path: screenshotPath,
-        notes: note || null,
-        agency_id: request.agency_id || null
-    };
+        /*
+          Check the database again immediately before insertion.
+        */
 
-    const { data, error } = await supabaseClient
-        .from("payments")
-        .insert(paymentData)
-        .select()
-        .single();
+        await checkPaymentBeforeSubmit(
+            user.id,
+            request.id,
+            transactionId
+        );
 
-    if (error) {
-        console.error("Payments table insert error:", error);
-        throw error;
+        const submittedAt = new Date().toISOString();
+
+        if (paymentScreenshot.files?.[0]) {
+            setSubmitting(true, "UPLOADING SCREENSHOT...");
+
+            screenshotPath = await uploadPaymentScreenshot(
+                user.id,
+                request.id
+            );
+        }
+
+        /*
+          Save the payment record first so that a submitted payment
+          is not silently lost if the request update fails.
+        */
+
+        setSubmitting(true, "SAVING PAYMENT...");
+
+        paymentRecord = await insertPaymentRecord(
+            request,
+            user,
+            transactionId,
+            screenshotPath,
+            note,
+            submittedAt
+        );
+
+        /*
+          Update the request summary after the payment row exists.
+        */
+
+        setSubmitting(true, "UPDATING REQUEST...");
+
+        const updatedRequest = await updateRequestPaymentDetails(
+            request,
+            user,
+            transactionId,
+            screenshotPath,
+            note,
+            submittedAt
+        );
+
+        requestUpdateSucceeded = true;
+
+        const localPaymentData = {
+            payment_id: paymentRecord.id,
+            request_id: request.id,
+            request_number: request.request_number || "",
+            user_id: user.id,
+            cylinder_amount: cylinderAmount,
+            initial_payment: INITIAL_PAYMENT,
+            remaining_amount: remainingAmount,
+            charge: chargeAmount,
+            transaction_id: transactionId,
+            screenshot_path: screenshotPath,
+            payment_status: "pending",
+            verification_status: "pending",
+            owner_approval: request.owner_approval || "pending",
+            agency_status: request.agency_status || "waiting",
+            user_status: request.user_status || "pending",
+            payment_method: "UPI",
+            submitted_at: submittedAt,
+            payment_note: note
+        };
+
+        localStorage.setItem(
+            "egc_payment_data",
+            JSON.stringify(localPaymentData)
+        );
+
+        saveCurrentRequest({
+            ...request,
+            ...updatedRequest,
+            payment_status: "pending",
+            payment_method: "UPI",
+            payment_reference: transactionId,
+            payment_transaction_id: transactionId,
+            payment_submitted_at: submittedAt,
+            payment_note: note || null,
+            payment_screenshot_1: screenshotPath || null
+        });
+
+        showMessage(
+            "₹200 payment details successfully submit ho gayi hain. Payment ab Owner verification ke liye pending hai.",
+            "success"
+        );
+
+        setSubmitting(true, "SUBMITTED ✓");
+
+        /*
+          complete.html must display the payment as pending,
+          not as approved or fully paid.
+        */
+
+        setTimeout(function () {
+            window.location.replace("complete.html");
+        }, 1200);
+
+    } catch (error) {
+        console.error("Payment submission error:", error);
+
+        setSubmitting(false);
+
+        /*
+          If a payment record was inserted but the request update
+          failed, do not allow the user to retry blindly. That could
+          create another payment record for the same transaction.
+        */
+
+        if (paymentRecord && !requestUpdateSucceeded) {
+            setSubmitting(true, "PAYMENT SAVED — CHECK STATUS");
+
+            showMessage(
+                "Payment record database mein save ho gaya hai, lekin request update complete nahi hui. Payment abhi approved nahi hai. Dobara submit na karein. Owner Payments mein status check karein. Details: " +
+                (error?.message || "Unknown error"),
+                "error"
+            );
+
+            return;
+        }
+
+        let errorMessage = error?.message ||
+            "Unable to submit your payment. Please try again.";
+
+        if (error?.code === "42501") {
+            errorMessage =
+                "Supabase permission denied. cylinder_requests, payments aur Storage ki RLS policies check karein.";
+        }
+
+        showMessage(errorMessage, "error");
     }
-
-    return data;
-}
-
-/* =========================================================
-   SUBMIT PAYMENT
-========================================================= */
-
-if (paidBtn) {
-    paidBtn.addEventListener("click", async function () {
-        if (isSubmitting) return;
-
-        clearMessage();
-
-        const transactionId = transactionIdInput
-            ? transactionIdInput.value.trim()
-            : "";
-
-        const note = paymentNote
-            ? paymentNote.value.trim()
-            : "";
-
-        if (!transactionId) {
-            showMessage(
-                "Please enter your UPI transaction ID.",
-                "error"
-            );
-
-            transactionIdInput?.focus();
-            return;
-        }
-
-        if (transactionId.length < 4) {
-            showMessage(
-                "Please enter a valid transaction ID.",
-                "error"
-            );
-
-            transactionIdInput?.focus();
-            return;
-        }
-
-        if (!paymentCheck || !paymentCheck.checked) {
-            showMessage(
-                "Please confirm that you have made the ₹200 payment.",
-                "error"
-            );
-
-            return;
-        }
-
-        if (!validateScreenshot()) return;
-
-        setSubmitting(true, "CHECKING REQUEST...");
-
-        let screenshotPath = null;
-        let requestPaymentUpdated = false;
-        let paymentRowInserted = false;
-
-        try {
-            const user = await getLoggedInUser();
-
-            /*
-              Reuse the existing Scheme request.
-              Never create another cylinder request here.
-            */
-
-            const request = await loadExistingRequest(user);
-
-            const existing = await findExistingPayment(
-                request.id,
-                transactionId
-            );
-
-            if (existing.duplicate) {
-                if (existing.reason === "same_transaction") {
-                    throw new Error(
-                        "Yeh Transaction ID pehle submit ho chuki hai. Ek hi transaction ko dobara submit nahi kiya ja sakta."
-                    );
-                }
-
-                throw new Error(
-                    "Is request ka payment abhi Owner verification ke liye pending hai. Owner ke decision ka wait karein."
-                );
-            }
-
-            const submittedAt = new Date().toISOString();
-
-            /*
-              Upload screenshot only when a file was selected.
-            */
-
-            if (paymentScreenshot?.files?.[0]) {
-                setSubmitting(true, "UPLOADING SCREENSHOT...");
-
-                screenshotPath = await uploadPaymentScreenshot(
-                    user.id,
-                    request.id
-                );
-            }
-
-            /*
-              Update request record first.
-              The request payment remains pending.
-            */
-
-            setSubmitting(true, "SAVING REQUEST...");
-
-            const updatedRequestFromDB =
-                await updateRequestPaymentDetails(
-                    request,
-                    transactionId,
-                    screenshotPath,
-                    note,
-                    submittedAt
-                );
-
-            requestPaymentUpdated = true;
-
-            /*
-              Insert the payment record that the Owner Payments
-              page should display.
-            */
-
-            setSubmitting(true, "SAVING PAYMENT...");
-
-            const paymentRecord = await insertPaymentRecord(
-                request,
-                transactionId,
-                screenshotPath,
-                note,
-                submittedAt
-            );
-
-            paymentRowInserted = true;
-
-            /*
-              Keep the local copy in sync.
-              This does NOT mean the Owner approved the payment.
-            */
-
-            const updatedRequest = {
-                ...request,
-                ...updatedRequestFromDB,
-                payment_status: "pending",
-                payment_method: "UPI",
-                payment_reference: transactionId,
-                payment_transaction_id: transactionId,
-                payment_submitted_at: submittedAt,
-                payment_note: note || null,
-                payment_screenshot_1:
-                    screenshotPath ||
-                    request.payment_screenshot_1 ||
-                    null
-            };
-
-            const localPaymentData = {
-                payment_id: paymentRecord.id,
-                request_id: request.id,
-                request_number: request.request_number || "",
-                user_id: user.id,
-
-                cylinder_amount: cylinderAmount,
-                initial_payment: INITIAL_PAYMENT,
-                remaining_amount: remainingAmount,
-                charge: chargeAmount,
-
-                transaction_id: transactionId,
-                screenshot_path: screenshotPath,
-
-                payment_status: "pending",
-                verification_status: "pending",
-
-                owner_approval: request.owner_approval || "pending",
-                agency_status: request.agency_status || "waiting",
-                user_status: request.user_status || "pending",
-
-                payment_method: "UPI",
-                submitted_at: submittedAt,
-                payment_note: note || ""
-            };
-
-            localStorage.setItem(
-                "egc_payment_data",
-                JSON.stringify(localPaymentData)
-            );
-
-            localStorage.setItem(
-                "egc_current_request_id",
-                request.id
-            );
-
-            localStorage.setItem(
-                "egc_request_id",
-                request.id
-            );
-
-            localStorage.setItem(
-                "egc_last_request_id",
-                request.id
-            );
-
-            localStorage.setItem(
-                "egc_request_number",
-                request.request_number || ""
-            );
-
-            localStorage.setItem(
-                "egc_current_request",
-                JSON.stringify(updatedRequest)
-            );
-
-            if (requestNumberElement) {
-                requestNumberElement.textContent =
-                    request.request_number || request.id;
-            }
-
-            if (requestBox) {
-                requestBox.classList.add("show");
-            }
-
-            showMessage(
-                "₹200 payment details submitted successfully. Payment ab Owner verification ke liye pending hai.",
-                "success"
-            );
-
-            setSubmitting(true, "SUBMITTED ✓");
-
-            /*
-              complete.html should show "Pending Owner Verification".
-              Submission here must not be presented as approval.
-            */
-
-            setTimeout(function () {
-                window.location.replace("complete.html");
-            }, 1200);
-
-        } catch (error) {
-            console.error("Payment submission error:", error);
-
-            setSubmitting(false, "SUBMIT PAYMENT →");
-
-            let errorMessage =
-                error && error.message
-                    ? error.message
-                    : "Unable to submit your payment. Please try again.";
-
-            if (error && error.code === "42501") {
-                errorMessage =
-                    "Supabase permission denied. cylinder_requests, payments aur Storage ki RLS policies check karein.";
-            }
-
-            /*
-              If request update succeeded but payment row failed,
-              clearly report partial failure instead of claiming success.
-            */
-
-            if (requestPaymentUpdated && !paymentRowInserted) {
-                errorMessage =
-                    "Request update ho gayi, lekin payments table mein record save nahi hua. Payment ko approved nahi maana gaya. Supabase error: " +
-                    (error && error.message
-                        ? error.message
-                        : "Unknown error");
-            }
-
-            showMessage(errorMessage, "error");
-        }
-    });
-}
+});
 
 /* =========================================================
    BACK BUTTONS
@@ -1967,16 +1319,11 @@ function goBackToScheme() {
     window.location.href = "scheme.html";
 }
 
-const backStepBtn = document.getElementById("backStepBtn");
-const backBtn = document.getElementById("backBtn");
+document.getElementById("backStepBtn")
+    .addEventListener("click", goBackToScheme);
 
-if (backStepBtn) {
-    backStepBtn.addEventListener("click", goBackToScheme);
-}
-
-if (backBtn) {
-    backBtn.addEventListener("click", goBackToScheme);
-}
+document.getElementById("backBtn")
+    .addEventListener("click", goBackToScheme);
 
 /* =========================================================
    QR IMAGE FALLBACK
@@ -1999,42 +1346,38 @@ function checkQrImage() {
 
 const paymentQr = document.getElementById("paymentQr");
 
-if (paymentQr) {
-    paymentQr.addEventListener("error", checkQrImage);
-}
-
+paymentQr.addEventListener("error", checkQrImage);
 window.addEventListener("load", checkQrImage);
 
 /* =========================================================
-   INITIAL REQUEST CHECK
+   INITIALISE PAYMENT PAGE
 ========================================================= */
 
 (async function initialisePaymentPage() {
-    if (pageInitialised) return;
-
-    pageInitialised = true;
+    setSubmitting(true, "CHECKING REQUEST...");
 
     try {
         const user = await getLoggedInUser();
+        currentUser = user;
 
         await loadExistingRequest(user);
 
+        clearMessage();
+        setSubmitting(false);
+
     } catch (error) {
-        console.error("Initial request check:", error);
+        console.error("Initial payment check failed:", error);
 
         showMessage(
-            error && error.message
-                ? error.message
-                : "Could not load your existing cylinder request.",
+            error?.message ||
+            "Could not load your existing cylinder request.",
             "error"
         );
 
-        if (paidBtn) {
-            paidBtn.disabled = true;
-            paidBtn.textContent = "REQUEST NOT AVAILABLE";
-        }
+        setSubmitting(true, "PAYMENT NOT AVAILABLE");
     }
 })();
 </script>
+
 </body>
 </html>

@@ -503,22 +503,25 @@
             overflow-wrap: anywhere;
         }
 
-        .message.error {
+        .message.error,
+        .message.success,
+        .message.info {
             display: block;
+        }
+
+        .message.error {
             color: #bd2828;
             background: #fff1f1;
             border: 1px solid #ffc9c9;
         }
 
         .message.success {
-            display: block;
             color: #16833a;
             background: #effcf3;
             border: 1px solid #bde8c9;
         }
 
         .message.info {
-            display: block;
             color: #075a96;
             background: #eef8ff;
             border: 1px solid #cde5f5;
@@ -750,7 +753,7 @@
                 <h3>Repayment Charges</h3>
                 <p>
                     You do not need to choose a charge. The applicable charge
-                    will automatically depend on when the remaining payment is fully cleared.
+                    will depend on when the remaining payment is fully cleared.
                 </p>
             </div>
 
@@ -823,17 +826,16 @@
 
             <div class="fixed-rule">
                 <strong>Important:</strong>
-                You are not selecting a charge or scheme. These charges are fixed.
-                The applicable amount will be calculated automatically according
-                to the actual date on which the remaining payment is completely cleared.
+                These charges are fixed. The applicable amount will be calculated
+                according to the actual date on which the remaining payment is completely cleared.
             </div>
 
             <div class="rule-box">
                 <div class="rule-title">Important Agency Rule</div>
                 <div class="rule-text">
                     The previous cylinder payment must be completely cleared before
-                    another cylinder can be issued by the agency. Until the previous
-                    payment is fully cleared, the Request Cylinder option will remain disabled.
+                    another cylinder can be issued. Until the previous payment is
+                    fully cleared, the Request Cylinder option will remain disabled.
                 </div>
             </div>
 
@@ -883,14 +885,11 @@
     "use strict";
 
     // ==========================================
-    // EGC SUPABASE CONFIGURATION
+    // SUPABASE CONFIGURATION
     // ==========================================
 
-    const SUPABASE_URL =
-        "https://szefvmvokkhvnzryodqu.supabase.co";
-
-    const SUPABASE_KEY =
-        "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+    const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
     const CYLINDER_AMOUNT = 890;
     const FIRST_PAYMENT = 200;
@@ -907,18 +906,12 @@
 
     let supabaseClient = null;
     let isSubmitting = false;
-    let existingRequestId = null;
 
     // ==========================================
-    // BASIC PAGE UTILITIES
+    // PAGE UTILITIES
     // ==========================================
 
     function showMessage(text, type = "error") {
-        if (!message) {
-            console[type === "error" ? "error" : "log"](text);
-            return;
-        }
-
         message.className = "message " + type;
         message.textContent = text;
 
@@ -929,8 +922,6 @@
     }
 
     function clearMessage() {
-        if (!message) return;
-
         message.className = "message";
         message.textContent = "";
     }
@@ -938,31 +929,18 @@
     function setLoading(status) {
         isSubmitting = status;
 
-        if (loadingOverlay) {
-            loadingOverlay.classList.toggle("show", status);
-            loadingOverlay.setAttribute(
-                "aria-hidden",
-                String(!status)
-            );
-        }
+        loadingOverlay.classList.toggle("show", status);
+        loadingOverlay.setAttribute("aria-hidden", String(!status));
 
-        if (continueBtn) {
-            continueBtn.disabled = status;
-            continueBtn.textContent = status
-                ? "SUBMITTING..."
-                : "REQUEST SUBMIT";
-        }
+        continueBtn.disabled = status;
+        continueBtn.textContent = status
+            ? "SUBMITTING..."
+            : "REQUEST SUBMIT";
     }
-
-    // ==========================================
-    // READ AND SAVE JSON
-    // Read sessionStorage first, then localStorage.
-    // ==========================================
 
     function readJSONFromStorage(storage, key) {
         try {
             const value = storage.getItem(key);
-
             if (!value) return null;
 
             const parsed = JSON.parse(value);
@@ -970,43 +948,30 @@
             return parsed && typeof parsed === "object"
                 ? parsed
                 : null;
-
         } catch (error) {
-            console.warn(
-                "Unable to read stored JSON:",
-                key,
-                error.message
-            );
-
+            console.warn("Could not read storage key:", key, error);
             return null;
         }
     }
 
     function readJSON(key) {
-        // Current browser tab/session data first.
-        const sessionData = readJSONFromStorage(
-            sessionStorage,
-            key
-        );
-
-        if (sessionData) return sessionData;
-
-        // Backward compatibility with previous EGC pages.
-        return readJSONFromStorage(localStorage, key);
+        return readJSONFromStorage(sessionStorage, key) ||
+               readJSONFromStorage(localStorage, key);
     }
 
     function saveJSON(key, value) {
+        const serialized = JSON.stringify(value);
+
         try {
-            localStorage.setItem(
-                key,
-                JSON.stringify(value)
-            );
+            sessionStorage.setItem(key, serialized);
         } catch (error) {
-            console.warn(
-                "Unable to save local data:",
-                key,
-                error.message
-            );
+            console.warn("Session storage save failed:", error);
+        }
+
+        try {
+            localStorage.setItem(key, serialized);
+        } catch (error) {
+            console.warn("Local storage save failed:", error);
         }
     }
 
@@ -1014,28 +979,17 @@
         try {
             const sessionValue = sessionStorage.getItem(key);
 
-            if (
-                sessionValue !== null &&
-                String(sessionValue).trim() !== ""
-            ) {
+            if (sessionValue && sessionValue.trim()) {
                 return sessionValue;
             }
 
             const localValue = localStorage.getItem(key);
 
-            if (
-                localValue !== null &&
-                String(localValue).trim() !== ""
-            ) {
+            if (localValue && localValue.trim()) {
                 return localValue;
             }
-
         } catch (error) {
-            console.warn(
-                "Unable to read stored value:",
-                key,
-                error.message
-            );
+            console.warn("Unable to read stored value:", key, error);
         }
 
         return null;
@@ -1046,7 +1000,7 @@
     // ==========================================
 
     function getLpgDetails() {
-        const possibleKeys = [
+        const keys = [
             "egc_lpg_details",
             "egcLpgDetails",
             "lpgDetails",
@@ -1055,24 +1009,14 @@
             "egc_lpg_form_data"
         ];
 
-        for (const key of possibleKeys) {
+        for (const key of keys) {
             const data = readJSON(key);
 
-            if (
-                data &&
-                typeof data === "object" &&
-                !Array.isArray(data)
-            ) {
-                console.log(
-                    "LPG Details loaded from:",
-                    key
-                );
-
+            if (data && typeof data === "object" && !Array.isArray(data)) {
                 return data;
             }
         }
 
-        // Some older pages may have saved individual fields.
         const state = readStoredValue("egc_lpg_state");
         const district = readStoredValue("egc_lpg_district");
         const city = readStoredValue("egc_lpg_city");
@@ -1090,7 +1034,7 @@
         }
 
         throw new Error(
-            "Saved LPG Details were not found. Please return to the LPG Details page, complete all required fields, and save them before continuing."
+            "Saved LPG Details were not found. Please return to LPG Details and complete the form first."
         );
     }
 
@@ -1111,80 +1055,22 @@
         for (const key of keys) {
             const data = readJSON(key);
 
-            if (
-                data &&
-                typeof data === "object" &&
-                !Array.isArray(data)
-            ) {
-                console.log(
-                    "Verification data loaded from:",
-                    key
-                );
-
+            if (data && typeof data === "object" && !Array.isArray(data)) {
                 return data;
             }
         }
 
-        return null;
+        throw new Error(
+            "Verification information was not found. Please complete Verification first."
+        );
     }
 
     // ==========================================
-    // REQUEST ID
-    // ==========================================
-
-    function readStoredRequestId() {
-        const directKeys = [
-            "egc_current_request_id",
-            "egc_last_request_id"
-        ];
-
-        for (const key of directKeys) {
-            const value = readStoredValue(key);
-
-            if (value && String(value).trim()) {
-                return String(value).trim();
-            }
-        }
-
-        const objectKeys = [
-            "egc_current_request",
-            "egc_request_data",
-            "egc_cylinder_request",
-            "egc_verification_data"
-        ];
-
-        for (const key of objectKeys) {
-            const obj = readJSON(key);
-
-            if (!obj || typeof obj !== "object") continue;
-
-            const id =
-                obj.request_id ||
-                obj.requestId ||
-                obj.cylinder_request_id ||
-                obj.cylinderRequestId ||
-                obj.id;
-
-            if (
-                id !== undefined &&
-                id !== null &&
-                String(id).trim()
-            ) {
-                return String(id).trim();
-            }
-        }
-
-        return null;
-    }
-
-    // ==========================================
-    // AGENCY DETECTION
+    // AGENCY ID
     // ==========================================
 
     function findAgencyId(obj) {
-        if (!obj || typeof obj !== "object") {
-            return null;
-        }
+        if (!obj || typeof obj !== "object") return null;
 
         const keys = [
             "agency_id",
@@ -1198,11 +1084,8 @@
         for (const key of keys) {
             const value = obj[key];
 
-            if (
-                value !== undefined &&
-                value !== null &&
-                String(value).trim() !== ""
-            ) {
+            if (value !== undefined && value !== null &&
+                String(value).trim() !== "") {
                 return String(value).trim();
             }
         }
@@ -1216,12 +1099,8 @@
         ];
 
         for (const key of nestedKeys) {
-            if (
-                obj[key] &&
-                typeof obj[key] === "object"
-            ) {
+            if (obj[key] && typeof obj[key] === "object") {
                 const nestedId = findAgencyId(obj[key]);
-
                 if (nestedId) return nestedId;
             }
         }
@@ -1230,15 +1109,14 @@
     }
 
     function getSelectedAgency(lpgDetails) {
-        const id = findAgencyId(lpgDetails);
+        const directId = findAgencyId(lpgDetails);
 
-        if (id) {
+        if (directId) {
             return {
-                id,
+                id: directId,
                 agency_name:
                     lpgDetails.agency_name ||
                     lpgDetails.agencyName ||
-                    lpgDetails.agency ||
                     "",
                 agency_code:
                     lpgDetails.agency_code ||
@@ -1255,21 +1133,13 @@
             };
         }
 
-        const savedAgencyKeys = [
+        for (const key of [
             "egc_selected_agency",
             "selectedAgency",
             "selected_agency"
-        ];
-
-        for (const key of savedAgencyKeys) {
+        ]) {
             const savedAgency = readJSON(key);
-
-            if (
-                !savedAgency ||
-                typeof savedAgency !== "object"
-            ) {
-                continue;
-            }
+            if (!savedAgency) continue;
 
             const agencyId = findAgencyId(savedAgency);
 
@@ -1304,18 +1174,16 @@
 
     function getAddress(verificationData, lpgDetails) {
         const candidates = [
-            verificationData?.personal_details,
-            verificationData?.personalDetails,
-            verificationData?.personal,
+            verificationData.personal_details,
+            verificationData.personalDetails,
+            verificationData.personal,
             verificationData,
             readJSON("egc_verification_personal"),
             lpgDetails
         ];
 
         for (const obj of candidates) {
-            if (!obj || typeof obj !== "object") {
-                continue;
-            }
+            if (!obj || typeof obj !== "object") continue;
 
             const address =
                 obj.address ||
@@ -1324,10 +1192,7 @@
                 obj.delivery_address ||
                 obj.deliveryAddress;
 
-            if (
-                address &&
-                String(address).trim()
-            ) {
+            if (address && String(address).trim()) {
                 return String(address).trim();
             }
         }
@@ -1336,69 +1201,7 @@
     }
 
     // ==========================================
-    // REQUEST NUMBER
-    // ==========================================
-
-    function generateRequestNumber() {
-        const datePart = new Date()
-            .toISOString()
-            .slice(0, 10)
-            .replace(/-/g, "");
-
-        const randomPart = Math.floor(
-            100000 + Math.random() * 900000
-        );
-
-        return "EGC-" + datePart + "-" + randomPart;
-    }
-
-    // ==========================================
-    // AUTHENTICATED USER AND PROFILE
-    // ==========================================
-
-    async function getCurrentUser() {
-        const { data, error } =
-            await supabaseClient.auth.getUser();
-
-        if (error) {
-            throw new Error(
-                "Login verification failed: " + error.message
-            );
-        }
-
-        if (!data?.user) {
-            throw new Error(
-                "Your login session was not found. Please login again."
-            );
-        }
-
-        return data.user;
-    }
-
-    async function getProfile(userId) {
-        const { data, error } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("id", userId)
-            .maybeSingle();
-
-        if (error) {
-            throw new Error(
-                "Unable to load your profile: " + error.message
-            );
-        }
-
-        if (!data) {
-            throw new Error(
-                "Your EGC profile could not be found. Please complete your profile first."
-            );
-        }
-
-        return data;
-    }
-
-    // ==========================================
-    // REQUEST STATUS HELPERS
+    // STATUS HELPERS
     // ==========================================
 
     function normalStatus(value) {
@@ -1412,23 +1215,17 @@
         const status = normalStatus(request.status);
         const approval = normalStatus(request.owner_approval);
 
-        return [
-            "cancelled",
-            "canceled",
-            "rejected"
-        ].includes(status) || [
-            "rejected",
-            "cancelled",
-            "canceled"
-        ].includes(approval);
+        return ["cancelled", "canceled", "rejected"].includes(status) ||
+               ["rejected", "cancelled", "canceled"].includes(approval);
     }
 
     function isFullyCleared(request) {
         const remaining = Number(request.remaining_amount);
+
         const paymentStatus = normalStatus(request.payment_status);
         const repaymentStatus = normalStatus(request.repayment_status);
 
-        const completionStatuses = [
+        const completedStatuses = [
             "completed",
             "paid",
             "cleared",
@@ -1441,19 +1238,89 @@
         return Number.isFinite(remaining) &&
             remaining <= 0 &&
             (
-                completionStatuses.includes(paymentStatus) ||
-                completionStatuses.includes(repaymentStatus)
+                completedStatuses.includes(paymentStatus) ||
+                completedStatuses.includes(repaymentStatus)
             );
     }
 
     function isActiveRequest(request) {
         return !isRejectedOrCancelled(request) &&
-            !isFullyCleared(request);
+               !isFullyCleared(request);
     }
 
     // ==========================================
-    // FETCH EXISTING REQUEST
+    // AUTHENTICATED USER AND PROFILE
     // ==========================================
+
+    async function getCurrentUser() {
+        const { data, error } = await supabaseClient.auth.getUser();
+
+        if (error) {
+            throw new Error("Login verification failed: " + error.message);
+        }
+
+        if (!data || !data.user) {
+            throw new Error("Your login session was not found. Please login again.");
+        }
+
+        return data.user;
+    }
+
+    async function getProfile(userId) {
+        const { data, error } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (error) {
+            throw new Error("Unable to load your profile: " + error.message);
+        }
+
+        if (!data) {
+            throw new Error("Your EGC profile could not be found. Please complete your profile first.");
+        }
+
+        return data;
+    }
+
+    // ==========================================
+    // REQUEST ID HELPERS
+    // ==========================================
+
+    function readStoredRequestId() {
+        for (const key of [
+            "egc_current_request_id",
+            "egc_last_request_id"
+        ]) {
+            const value = readStoredValue(key);
+
+            if (value && String(value).trim()) {
+                return String(value).trim();
+            }
+        }
+
+        for (const key of [
+            "egc_current_request",
+            "egc_request_data",
+            "egc_cylinder_request"
+        ]) {
+            const obj = readJSON(key);
+            if (!obj) continue;
+
+            const id =
+                obj.request_id ||
+                obj.requestId ||
+                obj.cylinder_request_id ||
+                obj.cylinderRequestId;
+
+            if (id !== undefined && id !== null && String(id).trim()) {
+                return String(id).trim();
+            }
+        }
+
+        return null;
+    }
 
     async function getRequestById(requestId, userId) {
         if (!requestId) return null;
@@ -1466,12 +1333,7 @@
             .maybeSingle();
 
         if (error) {
-            console.warn(
-                "Saved request lookup failed:",
-                error.message
-            );
-
-            return null;
+            throw new Error("Unable to check the saved request: " + error.message);
         }
 
         return data || null;
@@ -1481,15 +1343,9 @@
         const savedId = readStoredRequestId();
 
         if (savedId) {
-            const savedRequest = await getRequestById(
-                savedId,
-                userId
-            );
+            const savedRequest = await getRequestById(savedId, userId);
 
-            if (
-                savedRequest &&
-                isActiveRequest(savedRequest)
-            ) {
+            if (savedRequest && isActiveRequest(savedRequest)) {
                 return savedRequest;
             }
         }
@@ -1503,14 +1359,11 @@
 
         if (error) {
             throw new Error(
-                "Unable to check your existing request: " +
-                error.message
+                "Unable to check your existing request: " + error.message
             );
         }
 
-        const requests = data || [];
-
-        return requests.find(isActiveRequest) || null;
+        return (data || []).find(isActiveRequest) || null;
     }
 
     // ==========================================
@@ -1520,7 +1373,7 @@
     async function getVerifiedAgency(lpgDetails) {
         const detectedAgency = getSelectedAgency(lpgDetails);
 
-        if (!detectedAgency?.id) {
+        if (!detectedAgency || !detectedAgency.id) {
             throw new Error(
                 "Saved agency information was not found. Please return to LPG Details and select your agency again."
             );
@@ -1533,9 +1386,7 @@
             .maybeSingle();
 
         if (error) {
-            throw new Error(
-                "Agency verification failed: " + error.message
-            );
+            throw new Error("Agency verification failed: " + error.message);
         }
 
         if (!data) {
@@ -1545,18 +1396,11 @@
         }
 
         if (data.is_active === false) {
-            throw new Error(
-                "The selected agency is currently inactive."
-            );
+            throw new Error("The selected agency is currently inactive.");
         }
 
-        if (
-            data.status &&
-            normalStatus(data.status) !== "active"
-        ) {
-            throw new Error(
-                "The selected agency is currently inactive."
-            );
+        if (data.status && normalStatus(data.status) !== "active") {
+            throw new Error("The selected agency is currently inactive.");
         }
 
         return {
@@ -1579,16 +1423,25 @@
     }
 
     // ==========================================
-    // BUILD EXISTING REQUEST UPDATE
+    // REQUEST NUMBER
     // ==========================================
 
-    function buildRequestUpdate(
-        request,
-        profile,
-        agency,
-        lpgDetails,
-        verificationData
-    ) {
+    function generateRequestNumber() {
+        const datePart = new Date()
+            .toISOString()
+            .slice(0, 10)
+            .replace(/-/g, "");
+
+        const randomPart = Math.floor(100000 + Math.random() * 900000);
+
+        return "EGC-" + datePart + "-" + randomPart;
+    }
+
+    // ==========================================
+    // CREATE REQUEST
+    // ==========================================
+
+    async function createRequest(user, profile, agency, lpgDetails, verificationData) {
         const company =
             lpgDetails.lpg_company ||
             lpgDetails.lpgCompany ||
@@ -1597,113 +1450,7 @@
             agency.lpg_company ||
             null;
 
-        const address = getAddress(
-            verificationData,
-            lpgDetails
-        );
-
-        const update = {
-            agency_id: agency.id,
-            cylinder_amount: CYLINDER_AMOUNT,
-            total_amount: CYLINDER_AMOUNT,
-            advance_amount: FIRST_PAYMENT,
-            remaining_amount: REMAINING_AMOUNT,
-            extra_charge: Number(request.extra_charge || 0),
-            charge_amount: Number(request.charge_amount || 0),
-            total_payable: FIRST_PAYMENT,
-            lpg_company: company,
-            owner_approval: request.owner_approval || "pending",
-            payment_status: request.payment_status || "pending",
-            repayment_status: request.repayment_status || "pending",
-            user_status: request.user_status || "pending",
-            notes: request.notes ||
-                "Cylinder request submitted after repayment scheme agreement."
-        };
-
-        // Preserve existing workflow statuses.
-        if (!request.status) {
-            update.status = "Pending";
-        }
-
-        if (!request.agency_status) {
-            update.agency_status = "waiting";
-        }
-
-        if (!request.delivery_status) {
-            update.delivery_status = "pending";
-        }
-
-        if (address) {
-            update.address = address;
-        }
-
-        if (lpgDetails.city || profile.city) {
-            update.city = lpgDetails.city || profile.city;
-        }
-
-        return update;
-    }
-
-    // ==========================================
-    // UPDATE EXISTING REQUEST
-    // ==========================================
-
-    async function updateExistingRequest(
-        request,
-        profile,
-        agency,
-        lpgDetails,
-        verificationData
-    ) {
-        const updateData = buildRequestUpdate(
-            request,
-            profile,
-            agency,
-            lpgDetails,
-            verificationData
-        );
-
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .update(updateData)
-            .eq("id", request.id)
-            .eq("user_id", profile.id)
-            .select("*")
-            .single();
-
-        if (error) {
-            throw new Error(
-                "The existing request could not be updated: " +
-                error.message
-            );
-        }
-
-        return data;
-    }
-
-    // ==========================================
-    // CREATE NEW REQUEST
-    // ==========================================
-
-    async function createRequest(
-        user,
-        profile,
-        agency,
-        lpgDetails,
-        verificationData
-    ) {
-        const company =
-            lpgDetails.lpg_company ||
-            lpgDetails.lpgCompany ||
-            lpgDetails.company ||
-            profile.lpg_company ||
-            agency.lpg_company ||
-            null;
-
-        const address = getAddress(
-            verificationData,
-            lpgDetails
-        );
+        const address = getAddress(verificationData, lpgDetails);
 
         const insertData = {
             user_id: user.id,
@@ -1750,17 +1497,8 @@
         if (error) {
             console.error("Request insert error:", error);
 
-            // Check whether a previous attempt already created
-            // an active request before showing an error.
-            const duplicateCheck =
-                await getExistingActiveRequest(user.id);
-
-            if (duplicateCheck) {
-                return duplicateCheck;
-            }
-
             throw new Error(
-                "Request could not be saved: " + error.message
+                "Request could not be saved. Database message: " + error.message
             );
         }
 
@@ -1768,7 +1506,8 @@
     }
 
     // ==========================================
-    // SAVE CURRENT REQUEST LOCALLY
+    // SAVE REQUEST REFERENCE LOCALLY
+    // Database remains the source of truth.
     // ==========================================
 
     function saveCurrentRequest(request, user, agency) {
@@ -1779,129 +1518,79 @@
             agency_id: request.agency_id || agency.id,
             agency_name: agency.agency_name || "",
             agency_code: agency.agency_code || "",
-            lpg_company:
-                request.lpg_company ||
-                agency.lpg_company ||
-                "",
-            cylinder_amount: Number(
-                request.cylinder_amount || CYLINDER_AMOUNT
-            ),
-            first_payment: Number(
-                request.advance_amount || FIRST_PAYMENT
-            ),
-            remaining_amount: Number(
-                request.remaining_amount ?? REMAINING_AMOUNT
-            ),
+            lpg_company: request.lpg_company || agency.lpg_company || "",
+            cylinder_amount: Number(request.cylinder_amount || CYLINDER_AMOUNT),
+            first_payment: Number(request.advance_amount || FIRST_PAYMENT),
+            remaining_amount: Number(request.remaining_amount ?? REMAINING_AMOUNT),
             extra_charge: Number(request.extra_charge || 0),
-            total_payable: Number(
-                request.total_payable || FIRST_PAYMENT
-            ),
+            total_payable: Number(request.total_payable || FIRST_PAYMENT),
             status: request.status || "Pending",
             payment_status: request.payment_status || "pending",
             owner_approval: request.owner_approval || "pending",
+            user_status: request.user_status || "pending",
             repayment_status: request.repayment_status || "pending",
-            submitted_at:
-                request.created_at ||
-                new Date().toISOString()
+            submitted_at: request.created_at || new Date().toISOString()
         };
 
         saveJSON("egc_current_request", requestData);
+        saveJSON("egc_request_data", requestData);
 
-        try {
-            localStorage.setItem(
-                "egc_current_request_id",
-                String(request.id)
-            );
+        for (const key of [
+            "egc_current_request_id",
+            "egc_last_request_id"
+        ]) {
+            try {
+                sessionStorage.setItem(key, String(request.id));
+                localStorage.setItem(key, String(request.id));
+            } catch (error) {
+                console.warn("Unable to save request ID:", error);
+            }
+        }
 
-            localStorage.setItem(
-                "egc_last_request_id",
-                String(request.id)
-            );
-
-            if (request.request_number) {
+        if (request.request_number) {
+            try {
                 localStorage.setItem(
                     "egc_last_request_number",
                     String(request.request_number)
                 );
+            } catch (error) {
+                console.warn("Unable to save request number:", error);
             }
-        } catch (error) {
-            console.warn(
-                "Unable to save request reference locally:",
-                error.message
-            );
         }
 
         return requestData;
     }
 
     // ==========================================
-    // MAIN SUBMISSION
+    // MAIN REQUEST SUBMISSION
     // ==========================================
 
     async function submitRequest() {
         const user = await getCurrentUser();
 
-        // Both LPG Details and Verification must already be saved.
+        // Both previous steps must have saved their data.
         const lpgDetails = getLpgDetails();
         const verificationData = getVerificationData();
-
-        if (!verificationData) {
-            throw new Error(
-                "Verification information was not found. Please complete Verification first."
-            );
-        }
-
         const profile = await getProfile(user.id);
 
-        // Look up an existing active request before creating another.
-        const existingRequest =
-            await getExistingActiveRequest(user.id);
+        // Ensure the user has a valid selected agency before saving.
+        const agency = await getVerifiedAgency(lpgDetails);
+
+        // Do not create a second active request.
+        const existingRequest = await getExistingActiveRequest(user.id);
 
         if (existingRequest) {
-            const existingAgencyId = String(
-                existingRequest.agency_id || ""
-            );
-
-            const selectedAgencyId = String(
-                findAgencyId(lpgDetails) || ""
-            );
-
-            // Do not silently change an agency for an existing request.
-            if (
-                existingAgencyId &&
-                selectedAgencyId &&
-                existingAgencyId !== selectedAgencyId
-            ) {
-                throw new Error(
-                    "Your existing request is linked to a different agency. Please contact EGC support before changing the agency."
-                );
-            }
-
-            const agency = await getVerifiedAgency(lpgDetails);
-
-            const updatedRequest = await updateExistingRequest(
-                existingRequest,
-                profile,
-                agency,
-                lpgDetails,
-                verificationData
-            );
-
-            saveCurrentRequest(
-                updatedRequest,
-                user,
-                agency
-            );
+            // A pending/active request must not be reset or overwritten
+            // by submitting the scheme page again.
+            saveCurrentRequest(existingRequest, user, agency);
 
             return {
-                request: updatedRequest,
+                request: existingRequest,
                 reused: true
             };
         }
 
-        const agency = await getVerifiedAgency(lpgDetails);
-
-        const newRequest = await createRequest(
+        const request = await createRequest(
             user,
             profile,
             agency,
@@ -1909,14 +1598,10 @@
             verificationData
         );
 
-        saveCurrentRequest(
-            newRequest,
-            user,
-            agency
-        );
+        saveCurrentRequest(request, user, agency);
 
         return {
-            request: newRequest,
+            request,
             reused: false
         };
     }
@@ -1929,98 +1614,26 @@
         window.location.href = "request-status.html";
     }
 
-    if (continueBtn) {
-        continueBtn.addEventListener("click", async () => {
-            if (isSubmitting) return;
+    backBtn.addEventListener("click", () => {
+        window.location.href = "verification.html";
+    });
 
-            clearMessage();
-
-            if (!agreeCheck || !agreeCheck.checked) {
-                showMessage(
-                    "Please tick the agreement checkbox before submitting your request.",
-                    "error"
-                );
-                return;
-            }
-
-            if (!supabaseClient) {
-                showMessage(
-                    "The database connection is unavailable. Please refresh the page and try again.",
-                    "error"
-                );
-                return;
-            }
-
-            setLoading(true);
-
-            try {
-                const result = await submitRequest();
-                const request = result.request;
-
-                console.log(
-                    result.reused
-                        ? "Existing EGC request updated:"
-                        : "New EGC request created:",
-                    request
-                );
-
-                setLoading(false);
-
-                showMessage(
-                    result.reused
-                        ? "Your existing request record has been updated. No new request was created."
-                        : "Your request has been submitted successfully.",
-                    "success"
-                );
-
-                continueBtn.disabled = true;
-                continueBtn.textContent = "REQUEST SAVED";
-
-                setTimeout(goToStatusPage, 1100);
-
-            } catch (error) {
-                console.error(
-                    "EGC scheme submission error:",
-                    error
-                );
-
-                setLoading(false);
-
-                showMessage(
-                    error?.message ||
-                    "Unable to save your request. Please try again.",
-                    "error"
-                );
-            }
-        });
-    }
-
-    if (backStepBtn) {
-        backStepBtn.addEventListener("click", () => {
-            window.location.href = "dashboard.html";
-        });
-    }
-
-    if (backBtn) {
-        backBtn.addEventListener("click", () => {
-            window.location.href = "verification.html";
-        });
-    }
+    backStepBtn.addEventListener("click", () => {
+        window.location.href = "dashboard.html";
+    });
 
     // ==========================================
     // DISPLAY PAYMENT AMOUNTS
     // ==========================================
 
-    const amountElements = [
+    [
         ["cylinderAmount", CYLINDER_AMOUNT],
         ["firstPayment", FIRST_PAYMENT],
         ["remainingAmount", REMAINING_AMOUNT],
         ["summaryCylinder", CYLINDER_AMOUNT],
         ["summaryFirst", FIRST_PAYMENT],
         ["summaryRemaining", REMAINING_AMOUNT]
-    ];
-
-    amountElements.forEach(([id, amount]) => {
+    ].forEach(([id, amount]) => {
         const element = $(id);
 
         if (element) {
@@ -2041,10 +1654,7 @@
             "error"
         );
 
-        if (continueBtn) {
-            continueBtn.disabled = true;
-        }
-
+        continueBtn.disabled = true;
         return;
     }
 
@@ -2053,67 +1663,78 @@
             SUPABASE_URL,
             SUPABASE_KEY
         );
-
-        existingRequestId = readStoredRequestId();
-
-        console.log("EGC Scheme page initialized.");
-        console.log(
-            "Saved request ID:",
-            existingRequestId
-        );
-
-        // Inform the user if an active request already exists.
-        // Final duplicate checking also happens on submission.
-        (async () => {
-            try {
-                const { data, error } =
-                    await supabaseClient.auth.getUser();
-
-                if (error || !data?.user) return;
-
-                const existing =
-                    await getExistingActiveRequest(data.user.id);
-
-                if (existing) {
-                    existingRequestId = existing.id;
-
-                    try {
-                        localStorage.setItem(
-                            "egc_current_request_id",
-                            String(existing.id)
-                        );
-                    } catch (_) {}
-
-                    showMessage(
-                        "An existing active request was found. Submitting this page will update that request instead of creating another one.",
-                        "info"
-                    );
-                }
-
-            } catch (error) {
-                console.warn(
-                    "Unable to pre-check existing request:",
-                    error.message
-                );
-            }
-        })();
-
     } catch (error) {
-        console.error(
-            "Supabase initialization failed:",
-            error
-        );
+        console.error("Supabase initialization failed:", error);
 
         showMessage(
-            "Unable to initialize the EGC database connection. Please refresh this page.",
+            "Unable to initialize the database connection. Please refresh the page.",
             "error"
         );
 
-        if (continueBtn) {
-            continueBtn.disabled = true;
-        }
+        continueBtn.disabled = true;
+        return;
     }
 
+    // ==========================================
+    // SUBMIT BUTTON
+    // ==========================================
+
+    continueBtn.addEventListener("click", async () => {
+        if (isSubmitting) return;
+
+        clearMessage();
+
+        if (!agreeCheck.checked) {
+            showMessage(
+                "Please tick the agreement checkbox before submitting your request.",
+                "error"
+            );
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const result = await submitRequest();
+            const request = result.request;
+
+            console.log(
+                result.reused
+                    ? "Existing active EGC request found:"
+                    : "New EGC request saved:",
+                request
+            );
+
+            // Do not navigate until the database operation succeeds.
+            setLoading(false);
+
+            continueBtn.disabled = true;
+            continueBtn.textContent = "REQUEST SAVED";
+
+            showMessage(
+                result.reused
+                    ? "You already have an active request. Opening its status page."
+                    : "Your cylinder request has been saved successfully. Opening request status.",
+                "success"
+            );
+
+            setTimeout(goToStatusPage, 1000);
+
+        } catch (error) {
+            console.error("EGC scheme submission error:", error);
+
+            setLoading(false);
+
+            showMessage(
+                error && error.message
+                    ? error.message
+                    : "Unable to save your request. Please try again.",
+                "error"
+            );
+        }
+    });
+
+    console.log("EGC Scheme page initialized.");
 })();
 </script>
 

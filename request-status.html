@@ -395,6 +395,43 @@ button {
     overflow-wrap: anywhere;
 }
 
+.payment-status-box {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 15px;
+    background: #f6faff;
+    border: 1px solid #d7e8f7;
+}
+
+.payment-status-heading {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 7px;
+    color: #06477f;
+}
+
+.payment-status-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #496a83;
+    overflow-wrap: anywhere;
+}
+
+.payment-status-box.pending {
+    background: #fff9eb;
+    border-color: #f4d899;
+}
+
+.payment-status-box.paid {
+    background: #effaf4;
+    border-color: #c6e8d3;
+}
+
+.payment-status-box.failed {
+    background: #fff1f1;
+    border-color: #f4caca;
+}
+
 .action {
     margin-top: 24px;
     display: flex;
@@ -583,10 +620,7 @@ button {
         font-size: 18px;
     }
 
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-
+    .info-grid,
     .amount-grid {
         grid-template-columns: 1fr;
     }
@@ -601,13 +635,15 @@ button {
 
     .wait-title,
     .approved-title,
-    .rejected-title {
+    .rejected-title,
+    .payment-status-heading {
         font-size: 15px;
     }
 
     .wait-text,
     .approved-text,
-    .rejected-text {
+    .rejected-text,
+    .payment-status-text {
         font-size: 12px;
     }
 
@@ -642,7 +678,8 @@ button {
 
     <header class="header">
         <div class="header-left">
-            <button type="button" class="back-btn" id="backBtn" aria-label="Back to dashboard">‹</button>
+            <button type="button" class="back-btn" id="backBtn"
+                    aria-label="Back to dashboard">‹</button>
         </div>
 
         <img
@@ -713,7 +750,6 @@ button {
                 <div class="info-title">Request Details</div>
 
                 <div class="info-grid">
-
                     <div class="info-box">
                         <div class="info-label">Agency</div>
                         <div class="info-value" id="agencyName">---</div>
@@ -734,6 +770,15 @@ button {
                         <div class="info-value" id="requestDate">---</div>
                     </div>
 
+                    <div class="info-box">
+                        <div class="info-label">Owner Approval</div>
+                        <div class="info-value" id="ownerApprovalValue">Checking...</div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-label">Payment Status</div>
+                        <div class="info-value" id="paymentStatusValue">Checking...</div>
+                    </div>
                 </div>
             </section>
 
@@ -741,7 +786,6 @@ button {
                 <div class="info-title">Payment Details</div>
 
                 <div class="amount-grid">
-
                     <div class="amount-box">
                         <div class="amount-label">Cylinder Amount</div>
                         <div class="amount-value" id="cylinderAmount">₹890</div>
@@ -756,7 +800,6 @@ button {
                         <div class="amount-label">Remaining</div>
                         <div class="amount-value" id="remainingAmount">₹690</div>
                     </div>
-
                 </div>
 
                 <div class="wait-box" id="waitBox">
@@ -773,7 +816,6 @@ button {
                     <div class="approved-title">✓ Request Approved</div>
                     <div class="approved-text" id="approvedText">
                         Your cylinder request has been approved by the EGC owner.
-                        You can now proceed with the first payment.
                     </div>
                 </div>
 
@@ -781,6 +823,15 @@ button {
                     <div class="rejected-title">Request Not Approved</div>
                     <div class="rejected-text" id="rejectedText">
                         Your request was not approved.
+                    </div>
+                </div>
+
+                <div class="payment-status-box pending" id="paymentStatusBox">
+                    <div class="payment-status-heading" id="paymentStatusHeading">
+                        Payment Status
+                    </div>
+                    <div class="payment-status-text" id="paymentStatusText">
+                        Checking your payment status...
                     </div>
                 </div>
 
@@ -807,7 +858,7 @@ button {
 "use strict";
 
 /* =========================================================
-   EGC SUPABASE CONFIG
+   SUPABASE CONFIG
 ========================================================= */
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
@@ -815,14 +866,13 @@ const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-let supabaseClient = null;
-
-if (window.supabase && window.supabase.createClient) {
-    supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY
-    );
-}
+const supabaseClient =
+    window.supabase && window.supabase.createClient
+        ? window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        )
+        : null;
 
 /* =========================================================
    ELEMENTS
@@ -840,6 +890,9 @@ const agencyCode = document.getElementById("agencyCode");
 const lpgCompany = document.getElementById("lpgCompany");
 const requestDate = document.getElementById("requestDate");
 
+const ownerApprovalValue = document.getElementById("ownerApprovalValue");
+const paymentStatusValue = document.getElementById("paymentStatusValue");
+
 const cylinderAmount = document.getElementById("cylinderAmount");
 const firstPayment = document.getElementById("firstPayment");
 const remainingAmount = document.getElementById("remainingAmount");
@@ -849,6 +902,10 @@ const approvedBox = document.getElementById("approvedBox");
 const approvedText = document.getElementById("approvedText");
 const rejectedBox = document.getElementById("rejectedBox");
 const rejectedText = document.getElementById("rejectedText");
+
+const paymentStatusBox = document.getElementById("paymentStatusBox");
+const paymentStatusHeading = document.getElementById("paymentStatusHeading");
+const paymentStatusText = document.getElementById("paymentStatusText");
 
 const paymentBtn = document.getElementById("paymentBtn");
 
@@ -860,10 +917,10 @@ const progressComplete = document.getElementById("progressComplete");
 let currentUser = null;
 let currentRequest = null;
 let realtimeChannel = null;
-let realtimeRefreshTimer = null;
+let refreshInProgress = false;
 
 /* =========================================================
-   SAFE TEXT / MESSAGE
+   MESSAGES
 ========================================================= */
 
 function showError(text) {
@@ -882,7 +939,7 @@ function clearMessage() {
 }
 
 function setLoadingText(text) {
-    loadingBox.innerHTML = "";
+    loadingBox.replaceChildren();
 
     const box = document.createElement("div");
     box.className = "loading";
@@ -892,7 +949,7 @@ function setLoadingText(text) {
 }
 
 function showLoadError(text) {
-    loadingBox.innerHTML = "";
+    loadingBox.replaceChildren();
 
     const wrapper = document.createElement("div");
     wrapper.className = "loading";
@@ -906,16 +963,15 @@ function showLoadError(text) {
     retry.textContent = "TRY AGAIN";
     retry.addEventListener("click", loadRequest);
 
-    wrapper.appendChild(description);
-    wrapper.appendChild(retry);
-    loadingBox.appendChild(wrapper);
+    wrapper.append(description, retry);
 
+    loadingBox.appendChild(wrapper);
     loadingBox.classList.remove("hidden");
     content.classList.add("hidden");
 }
 
 /* =========================================================
-   FORMAT HELPERS
+   HELPERS
 ========================================================= */
 
 function formatDate(value) {
@@ -949,7 +1005,23 @@ function money(value) {
 }
 
 function normalise(value) {
-    return String(value || "").trim().toLowerCase();
+    return String(value ?? "").trim().toLowerCase()
+        .replace(/[\s-]+/g, "_");
+}
+
+function firstExistingValue(object, keys) {
+    for (const key of keys) {
+        if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null &&
+            object[key] !== ""
+        ) {
+            return object[key];
+        }
+    }
+
+    return null;
 }
 
 function isRejected(request) {
@@ -957,60 +1029,214 @@ function isRejected(request) {
     const status = normalise(request.status);
 
     return [
-        "rejected", "declined", "not_approved"
+        "rejected",
+        "declined",
+        "not_approved"
     ].includes(approval) ||
     [
-        "rejected", "declined", "not_approved"
+        "rejected",
+        "declined",
+        "not_approved"
     ].includes(status);
-}
-
-function isApproved(request) {
-    if (isRejected(request)) return false;
-
-    const approval = normalise(request.owner_approval);
-    const status = normalise(request.status);
-
-    return [
-        "approved", "approve", "accepted"
-    ].includes(approval) ||
-    [
-        "approved", "processing", "assigned",
-        "ready", "out_for_delivery", "delivered",
-        "completed"
-    ].includes(status);
-}
-
-function isFullyPaid(request) {
-    const paymentStatus = normalise(request.payment_status);
-    const remaining = Number(request.remaining_amount);
-
-    if (Number.isFinite(remaining) && remaining <= 0) {
-        return true;
-    }
-
-    return [
-        "fully_paid", "paid_in_full", "settled"
-    ].includes(paymentStatus);
 }
 
 function isCancelled(request) {
     const status = normalise(request.status);
     const approval = normalise(request.owner_approval);
 
-    return status === "cancelled" ||
-           status === "canceled" ||
-           approval === "cancelled" ||
-           approval === "canceled";
+    return [
+        "cancelled",
+        "canceled"
+    ].includes(status) ||
+    [
+        "cancelled",
+        "canceled"
+    ].includes(approval);
+}
+
+/*
+ * Approval is based primarily on owner_approval.
+ * Agency processing/delivery status alone must not
+ * grant payment access if owner approval is pending.
+ */
+function isApproved(request) {
+    if (isRejected(request) || isCancelled(request)) {
+        return false;
+    }
+
+    const approval = normalise(request.owner_approval);
+
+    return [
+        "approved",
+        "approve",
+        "accepted"
+    ].includes(approval);
+}
+
+function getPaymentStatus(request) {
+    const rawStatus = firstExistingValue(request, [
+        "payment_status",
+        "initial_payment_status"
+    ]);
+
+    const status = normalise(rawStatus);
+
+    const paidAmountRaw = firstExistingValue(request, [
+        "paid_amount",
+        "total_paid",
+        "amount_paid"
+    ]);
+
+    const remainingRaw = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
+
+    const totalRaw = firstExistingValue(request, [
+        "cylinder_amount",
+        "total_amount",
+        "amount"
+    ]);
+
+    const paidAmount = paidAmountRaw === null
+        ? null
+        : Number(paidAmountRaw);
+
+    const remaining = remainingRaw === null
+        ? null
+        : Number(remainingRaw);
+
+    const total = totalRaw === null
+        ? 890
+        : Number(totalRaw);
+
+    /*
+     * Do not treat remaining_amount = 0 by itself as
+     * definitive proof of completed payment if the
+     * database has an explicit unpaid/pending status.
+     */
+    if ([
+        "fully_paid",
+        "paid_in_full",
+        "settled",
+        "completed"
+    ].includes(status)) {
+        return {
+            key: "paid",
+            label: "Fully Paid",
+            description: "The database marks this request as fully paid.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    if ([
+        "rejected",
+        "failed",
+        "declined"
+    ].includes(status)) {
+        return {
+            key: "failed",
+            label: "Payment Failed / Rejected",
+            description: "The payment has not been approved. Please check the payment details or contact EGC support.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    if ([
+        "submitted",
+        "pending_verification",
+        "pending_approval",
+        "under_review",
+        "processing"
+    ].includes(status)) {
+        return {
+            key: "pending",
+            label: "Payment Verification Pending",
+            description: "Your payment has been submitted and is waiting for verification. Please do not submit the same payment again unless instructed.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    if ([
+        "paid",
+        "verified",
+        "success",
+        "successful",
+        "approved"
+    ].includes(status)) {
+        const isFull = (
+            remaining !== null &&
+            Number.isFinite(remaining) &&
+            remaining <= 0
+        ) || (
+            paidAmount !== null &&
+            Number.isFinite(paidAmount) &&
+            paidAmount >= total
+        );
+
+        return {
+            key: isFull ? "paid" : "partial",
+            label: isFull ? "Fully Paid" : "Payment Verified",
+            description: isFull
+                ? "Your payment is marked as fully paid."
+                : "Your payment has been verified. Any remaining balance must still be paid.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    if (
+        remaining !== null &&
+        Number.isFinite(remaining) &&
+        remaining > 0
+    ) {
+        return {
+            key: "unpaid",
+            label: "Payment Not Completed",
+            description: "A balance remains on this request. Continue to the payment page when available.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    if (
+        paidAmount !== null &&
+        Number.isFinite(paidAmount) &&
+        paidAmount > 0
+    ) {
+        return {
+            key: "partial",
+            label: "Partial Payment",
+            description: "A payment amount is recorded, but the request is not explicitly marked fully paid.",
+            paidAmount,
+            remaining
+        };
+    }
+
+    return {
+        key: "unpaid",
+        label: "Payment Not Started",
+        description: "No verified full payment is recorded for this request.",
+        paidAmount,
+        remaining
+    };
+}
+
+function isFullyPaid(request) {
+    return getPaymentStatus(request).key === "paid";
 }
 
 /* =========================================================
-   CURRENT USER
+   AUTHENTICATION
 ========================================================= */
 
 async function getCurrentUser() {
     if (!supabaseClient) {
         throw new Error(
-            "Supabase is not available. Check your internet connection and reload the page."
+            "Supabase is unavailable. Check the internet connection and reload this page."
         );
     }
 
@@ -1022,7 +1248,7 @@ async function getCurrentUser() {
 
     if (!result.data || !result.data.user) {
         throw new Error(
-            "Your login session has expired. Please login again."
+            "Your login session has expired. Please log in again."
         );
     }
 
@@ -1030,15 +1256,16 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   REQUEST ID LOOKUP
-   Supports both keys used by the EGC pages.
+   REQUEST ID
 ========================================================= */
 
 function getSavedRequestId() {
     const queryId = new URLSearchParams(window.location.search)
         .get("request_id");
 
-    if (queryId) return queryId;
+    if (queryId) {
+        return queryId;
+    }
 
     const keys = [
         "egc_current_request",
@@ -1065,21 +1292,21 @@ function getSavedRequestId() {
                     parsed.id ||
                     parsed.requestId;
 
-                if (id) return String(id);
+                if (id) {
+                    return String(id);
+                }
             }
 
-            /* Some pages may save the ID as plain text. */
-            if (typeof value === "string" && value.trim()) {
-                const trimmed = value.trim();
+            const trimmed = value.trim();
 
-                if (
-                    trimmed !== "null" &&
-                    trimmed !== "undefined" &&
-                    !trimmed.startsWith("{") &&
-                    !trimmed.startsWith("[")
-                ) {
-                    return trimmed;
-                }
+            if (
+                trimmed &&
+                trimmed !== "null" &&
+                trimmed !== "undefined" &&
+                !trimmed.startsWith("{") &&
+                !trimmed.startsWith("[")
+            ) {
+                return trimmed;
             }
         } catch (error) {
             console.warn("Could not read saved request:", error);
@@ -1089,29 +1316,44 @@ function getSavedRequestId() {
     return null;
 }
 
-/* =========================================================
-   SAVE CURRENT REQUEST
-========================================================= */
-
 function saveCurrentRequest(request, userId) {
-    const remaining = request.remaining_amount != null
-        ? Number(request.remaining_amount)
-        : Math.max(
-            0,
-            Number(request.cylinder_amount || request.total_amount || 890) -
-            Number(request.advance_amount || 200)
-        );
+    const cylinderRaw = firstExistingValue(request, [
+        "cylinder_amount",
+        "total_amount"
+    ]);
+
+    const firstRaw = firstExistingValue(request, [
+        "advance_amount",
+        "first_payment"
+    ]);
+
+    const cylinder = cylinderRaw === null
+        ? 890
+        : Number(cylinderRaw);
+
+    const first = firstRaw === null
+        ? 200
+        : Number(firstRaw);
+
+    const remainingRaw = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
+
+    const remaining = remainingRaw === null
+        ? Math.max(0, cylinder - first)
+        : Number(remainingRaw);
 
     const saved = {
         request_id: request.id,
         request_number: request.request_number || null,
         user_id: userId,
         agency_id: request.agency_id || null,
-        cylinder_amount: Number(
-            request.cylinder_amount || request.total_amount || 890
-        ),
-        first_payment: Number(request.advance_amount || 200),
-        remaining_amount: Number.isFinite(remaining) ? remaining : 0
+        cylinder_amount: cylinder,
+        first_payment: first,
+        remaining_amount: Number.isFinite(remaining)
+            ? remaining
+            : Math.max(0, cylinder - first)
     };
 
     try {
@@ -1130,18 +1372,17 @@ function saveCurrentRequest(request, userId) {
 }
 
 /* =========================================================
-   FIND CURRENT REQUEST
+   LOAD EXACT REQUEST
 ========================================================= */
 
 async function findCurrentRequest(userId) {
     const savedId = getSavedRequestId();
 
     /*
-      If an exact request was saved, use that same request.
-      Do not silently switch to another request when the
-      saved ID does not belong to this logged-in user.
-    */
-
+     * If an ID exists, show only that exact request.
+     * Never silently switch to a different request when
+     * the saved ID does not belong to this user.
+     */
     if (savedId) {
         const exact = await supabaseClient
             .from("cylinder_requests")
@@ -1154,50 +1395,31 @@ async function findCurrentRequest(userId) {
             throw exact.error;
         }
 
-        if (exact.data) {
-            return exact.data;
+        if (!exact.data) {
+            throw new Error(
+                "The saved request could not be found for your account. Please return to the dashboard and check your latest request."
+            );
         }
 
-        /*
-          The stored ID may refer to an old or deleted request.
-          Only search the latest request when no exact record
-          is found for this user.
-        */
-        console.warn(
-            "Saved request was not found for this user. Looking up the latest request."
-        );
+        return exact.data;
     }
 
+    /*
+     * No saved ID: find the newest request belonging
+     * to the authenticated user.
+     */
     const result = await supabaseClient
         .from("cylinder_requests")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(1);
 
     if (result.error) {
         throw result.error;
     }
 
     const requests = result.data || [];
-
-    /*
-      Prefer a non-cancelled, non-rejected request that is
-      still awaiting approval, payment or delivery.
-    */
-
-    const activeRequest = requests.find(function(request) {
-        return !isCancelled(request) && !isRejected(request);
-    });
-
-    if (activeRequest) {
-        return activeRequest;
-    }
-
-    /*
-      If all requests are rejected/cancelled, show the newest
-      one so the user can still see its actual status.
-    */
 
     return requests.length ? requests[0] : null;
 }
@@ -1207,10 +1429,14 @@ async function findCurrentRequest(userId) {
 ========================================================= */
 
 function resetProgress() {
-    [progressRequest, progressApproval, progressPayment, progressComplete]
-        .forEach(function(item) {
-            item.classList.remove("active", "done");
-        });
+    [
+        progressRequest,
+        progressApproval,
+        progressPayment,
+        progressComplete
+    ].forEach(function(item) {
+        item.classList.remove("active", "done");
+    });
 
     progressRequest.classList.add("done");
     progressRequest.querySelector(".progress-circle").textContent = "✓";
@@ -1225,7 +1451,10 @@ function markStepDone(element, symbol) {
     element.classList.add("done");
 
     const circle = element.querySelector(".progress-circle");
-    if (circle && symbol) circle.textContent = symbol;
+
+    if (circle && symbol) {
+        circle.textContent = symbol;
+    }
 }
 
 function markStepActive(element) {
@@ -1247,9 +1476,19 @@ function setProgress(request) {
 
     markStepDone(progressApproval, "✓");
 
-    if (isFullyPaid(request)) {
+    const payment = getPaymentStatus(request);
+
+    if (payment.key === "paid") {
         markStepDone(progressPayment, "✓");
         markStepDone(progressComplete, "✓");
+        return;
+    }
+
+    if (
+        payment.key === "partial" ||
+        payment.key === "pending"
+    ) {
+        markStepActive(progressPayment);
         return;
     }
 
@@ -1261,8 +1500,9 @@ function setProgress(request) {
 ========================================================= */
 
 function updateStatusUI(request) {
-    const ownerApproval = normalise(request.owner_approval);
+    const approval = normalise(request.owner_approval);
     const status = normalise(request.status);
+    const payment = getPaymentStatus(request);
 
     waitBox.style.display = "none";
     approvedBox.classList.remove("show");
@@ -1271,17 +1511,23 @@ function updateStatusUI(request) {
 
     statusBadge.className = "status-badge";
 
+    /*
+     * Display the actual Owner Approval field.
+     */
     if (isCancelled(request)) {
         statusBadge.textContent = "CANCELLED";
         statusBadge.classList.add("rejected");
 
+        ownerApprovalValue.textContent = "Cancelled";
+
         rejectedBox.classList.add("show");
         rejectedText.textContent =
             request.owner_note ||
-            request.agency_note ||
+            request.rejection_reason ||
             "This request has been cancelled.";
 
         setProgress(request);
+        updatePaymentStatusUI(payment);
         return;
     }
 
@@ -1289,52 +1535,92 @@ function updateStatusUI(request) {
         statusBadge.textContent = "NOT APPROVED";
         statusBadge.classList.add("rejected");
 
+        ownerApprovalValue.textContent = "Rejected";
+
         rejectedBox.classList.add("show");
         rejectedText.textContent =
             request.owner_note ||
-            request.agency_note ||
             request.rejection_reason ||
             "The owner did not approve this request.";
 
         setProgress(request);
+        updatePaymentStatusUI(payment);
         return;
     }
 
     if (!isApproved(request)) {
         statusBadge.textContent = "PENDING APPROVAL";
+        statusBadge.classList.add("processing");
+
+        ownerApprovalValue.textContent =
+            approval
+                ? approval.replace(/_/g, " ").toUpperCase()
+                : "Pending";
+
         waitBox.style.display = "block";
 
-        markStepActive(progressApproval);
+        approvedText.textContent =
+            "Your request is waiting for the EGC owner's approval. Payment access will be enabled only after approval is confirmed.";
+
+        setProgress(request);
+        updatePaymentStatusUI(payment);
         return;
     }
 
-    if (isFullyPaid(request)) {
-        statusBadge.textContent = "COMPLETED";
+    ownerApprovalValue.textContent = "Approved";
+
+    if (payment.key === "paid") {
+        statusBadge.textContent = "FULLY PAID";
         statusBadge.classList.add("completed");
 
         approvedBox.classList.add("show");
         approvedText.textContent =
-            "Your request shows no remaining amount. You can check your dashboard for the latest delivery and repayment details.";
+            "Your request is approved and the database marks the payment as fully paid. Check your dashboard for the latest delivery and repayment details.";
 
         setProgress(request);
+        updatePaymentStatusUI(payment);
         return;
     }
 
-    statusBadge.textContent = "APPROVED";
+    statusBadge.textContent =
+        status === "delivered"
+            ? "APPROVED — DELIVERED"
+            : "APPROVED";
+
     statusBadge.classList.add("approved");
 
     approvedBox.classList.add("show");
+
     approvedText.textContent =
-        "Your cylinder request has been approved by the EGC owner. You can now proceed to the payment page.";
+        "Your cylinder request has been approved by the EGC owner. You can continue to the payment page.";
 
     /*
-      Payment button is shown only when approval is confirmed.
-      The click handler also checks the database again.
-    */
-
+     * Payment button is shown only after explicit owner approval.
+     * A second database check is performed on click.
+     */
     paymentBtn.classList.add("show");
 
     setProgress(request);
+    updatePaymentStatusUI(payment);
+}
+
+function updatePaymentStatusUI(payment) {
+    paymentStatusValue.textContent = payment.label;
+    paymentStatusHeading.textContent = payment.label;
+    paymentStatusText.textContent = payment.description;
+
+    paymentStatusBox.className = "payment-status-box";
+
+    if (payment.key === "paid") {
+        paymentStatusBox.classList.add("paid");
+    } else if (
+        payment.key === "pending" ||
+        payment.key === "unpaid"
+    ) {
+        paymentStatusBox.classList.add("pending");
+    } else if (payment.key === "failed") {
+        paymentStatusBox.classList.add("failed");
+    }
 }
 
 /* =========================================================
@@ -1350,6 +1636,11 @@ async function loadAgencyDetails(request) {
         return;
     }
 
+    /*
+     * This lookup is optional. If your agencies table has
+     * different column names, the request's saved agency
+     * information remains visible.
+     */
     const result = await supabaseClient
         .from("agencies")
         .select("agency_name,agency_code,lpg_company")
@@ -1391,27 +1682,40 @@ async function renderRequest(request, userId) {
         request.id ||
         "---";
 
-    const cylinder = Number(
-        request.cylinder_amount || request.total_amount || 890
-    );
+    const cylinderRaw = firstExistingValue(request, [
+        "cylinder_amount",
+        "total_amount"
+    ]);
 
-    const first = Number(
-        request.advance_amount != null
-            ? request.advance_amount
-            : 200
-    );
+    const firstRaw = firstExistingValue(request, [
+        "advance_amount",
+        "first_payment"
+    ]);
 
-    let remaining;
+    const remainingRaw = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
 
-    if (request.remaining_amount != null) {
-        remaining = Number(request.remaining_amount);
-    } else {
-        remaining = Math.max(0, cylinder - first);
-    }
+    const cylinder = cylinderRaw === null
+        ? 890
+        : Number(cylinderRaw);
+
+    const first = firstRaw === null
+        ? 200
+        : Number(firstRaw);
+
+    const remaining = remainingRaw === null
+        ? Math.max(0, cylinder - first)
+        : Number(remainingRaw);
 
     cylinderAmount.textContent = money(cylinder);
     firstPayment.textContent = money(first);
-    remainingAmount.textContent = money(remaining);
+    remainingAmount.textContent = money(
+        Number.isFinite(remaining)
+            ? remaining
+            : Math.max(0, cylinder - first)
+    );
 
     requestDate.textContent = formatDate(
         request.request_date || request.created_at
@@ -1431,8 +1735,15 @@ async function renderRequest(request, userId) {
 ========================================================= */
 
 async function loadRequest() {
+    if (refreshInProgress) {
+        return;
+    }
+
+    refreshInProgress = true;
     clearMessage();
+
     paymentBtn.disabled = false;
+    paymentBtn.textContent = "PROCEED TO PAYMENT";
 
     setLoadingText("Loading your request...");
     loadingBox.classList.remove("hidden");
@@ -1445,7 +1756,7 @@ async function loadRequest() {
 
         if (!request) {
             showLoadError(
-                "No cylinder request was found for your account. Please return to your dashboard and submit a request first."
+                "No cylinder request was found for your account. Please return to the dashboard and submit a request first."
             );
             return;
         }
@@ -1461,6 +1772,8 @@ async function loadRequest() {
                 ? error.message
                 : "Unable to load request status. Please try again."
         );
+    } finally {
+        refreshInProgress = false;
     }
 }
 
@@ -1469,7 +1782,9 @@ async function loadRequest() {
 ========================================================= */
 
 function startRealtime(requestId) {
-    if (!supabaseClient || !requestId) return;
+    if (!supabaseClient || !requestId) {
+        return;
+    }
 
     if (realtimeChannel) {
         supabaseClient.removeChannel(realtimeChannel);
@@ -1487,25 +1802,19 @@ function startRealtime(requestId) {
                 filter: "id=eq." + requestId
             },
             function(payload) {
-                if (!payload.new || !currentUser) return;
-
-                const updatedRequest = payload.new;
-
-                /*
-                  Keep the update restricted to the request
-                  already loaded for the authenticated user.
-                */
+                if (!payload.new || !currentUser) {
+                    return;
+                }
 
                 if (
-                    currentRequest &&
-                    String(updatedRequest.id) !== String(currentRequest.id)
+                    !currentRequest ||
+                    String(payload.new.id) !== String(currentRequest.id) ||
+                    String(payload.new.user_id) !== String(currentUser.id)
                 ) {
                     return;
                 }
 
-                currentRequest = updatedRequest;
-
-                renderRequest(updatedRequest, currentUser.id)
+                renderRequest(payload.new, currentUser.id)
                     .catch(function(error) {
                         console.error(
                             "Could not refresh request display:",
@@ -1521,13 +1830,16 @@ function startRealtime(requestId) {
 
 /* =========================================================
    PAYMENT BUTTON
-   Always verify owner approval from Supabase again.
+   No automatic redirects.
+   Recheck the exact request and owner approval first.
 ========================================================= */
 
 paymentBtn.addEventListener("click", async function() {
     clearMessage();
 
-    if (paymentBtn.disabled) return;
+    if (paymentBtn.disabled) {
+        return;
+    }
 
     paymentBtn.disabled = true;
     paymentBtn.textContent = "CHECKING APPROVAL...";
@@ -1577,14 +1889,33 @@ paymentBtn.addEventListener("click", async function() {
             );
         }
 
+        saveCurrentRequest(request, user.id);
+
+        /*
+         * Important:
+         * Do not automatically redirect fully paid users
+         * to another page from this status page.
+         *
+         * Keep the user on Request Status. The dashboard's
+         * Cylinder button and finalization logic should decide
+         * the next step based on the application's full flow.
+         */
         if (isFullyPaid(request)) {
-            window.location.href = "repayment-scheme.html";
+            showSuccess(
+                "This request is already marked fully paid. No payment is required on this page."
+            );
+
+            await renderRequest(request, user.id);
             return;
         }
 
-        saveCurrentRequest(request, user.id);
-
-        window.location.href = "payment.html";
+        /*
+         * Approved and not fully paid:
+         * open the payment page for this exact request.
+         */
+        window.location.href =
+            "payment.html?request_id=" +
+            encodeURIComponent(request.id);
 
     } catch (error) {
         console.error("PAYMENT NAVIGATION ERROR:", error);
@@ -1602,7 +1933,7 @@ paymentBtn.addEventListener("click", async function() {
 });
 
 /* =========================================================
-   BACK / DASHBOARD
+   DASHBOARD NAVIGATION
 ========================================================= */
 
 document.getElementById("backBtn").addEventListener("click", function() {
@@ -1620,10 +1951,7 @@ document.getElementById("homeBtn").addEventListener("click", function() {
 window.addEventListener("beforeunload", function() {
     if (realtimeChannel && supabaseClient) {
         supabaseClient.removeChannel(realtimeChannel);
-    }
-
-    if (realtimeRefreshTimer) {
-        clearTimeout(realtimeRefreshTimer);
+        realtimeChannel = null;
     }
 });
 

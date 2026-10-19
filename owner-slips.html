@@ -3,1719 +3,1657 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>EGC - Owner Slips</title>
+<title>EGC - Owner Payment Slips</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-
-/* =========================================================
-   EGC OWNER PANEL — MASTER DASHBOARD STYLE
-   PAGE: OWNER SLIPS
-========================================================= */
-
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+:root {
+    --primary: #075ca5;
+    --primary-dark: #06477f;
+    --primary-light: #eaf6ff;
+    --text: #073f73;
+    --muted: #8094a6;
+    --border: #dce6ef;
+    --white: #ffffff;
+    --success: #138a52;
+    --success-bg: #e8f8ef;
+    --warning: #b77908;
+    --warning-bg: #fff5db;
+    --danger: #d93645;
+    --danger-bg: #fff0f1;
+    --shadow: 0 8px 25px rgba(22, 70, 110, .07);
 }
 
-html,
-body{
-    width:100%;
-    min-height:100%;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-body{
-    font-family:Arial, Helvetica, sans-serif;
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
     background:
-        linear-gradient(
-            135deg,
-            #eef7fc 0%,
-            #f7fbfe 50%,
-            #eef7fc 100%
-        );
-    color:#12344d;
+        radial-gradient(circle at 0% 0%, rgba(255, 230, 235, .48), transparent 35%),
+        radial-gradient(circle at 100% 0%, rgba(218, 239, 255, .65), transparent 38%),
+        radial-gradient(circle at 100% 100%, rgba(255, 232, 240, .30), transparent 35%),
+        #f8fbfe;
+    min-height: 100vh;
 }
 
+/* HEADER */
 
-/* =========================================================
-   MASTER HEADER
-========================================================= */
-
-.egc-header{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-
-    height:78px;
-
-    background:#ffffff;
-
-    border-bottom:1px solid #e5edf3;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 24px;
-
-    z-index:1000;
-
-    box-shadow:
-        0 2px 10px rgba(0,62,129,.05);
+.egc-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    height: 78px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 0 25px;
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid #e1e9f0;
 }
 
-.egc-header-left{
-    display:flex;
-    align-items:center;
-    gap:14px;
+.egc-header-left,
+.egc-header-right {
+    display: flex;
+    align-items: center;
+    gap: 13px;
 }
 
-.egc-menu-btn{
-    width:42px;
-    height:42px;
-
-    border:1px solid #dce8ef;
-    border-radius:10px;
-
-    background:#ffffff;
-    color:#06477f;
-
-    font-size:22px;
-
-    cursor:pointer;
-
-    display:none;
-
-    align-items:center;
-    justify-content:center;
+.egc-menu-btn {
+    display: none;
+    width: 43px;
+    height: 43px;
+    border: 1px solid var(--border);
+    background: #eef7ff;
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 22px;
+    cursor: pointer;
 }
 
-.egc-header-logo{
-    height:44px;
-    width:auto;
-
-    object-fit:contain;
+.egc-header-logo {
+    width: 57px;
+    height: 57px;
+    object-fit: contain;
 }
 
-.egc-header-title{
-    color:#06477f;
-
-    font-size:18px;
-    font-weight:900;
+.egc-header-title {
+    color: var(--primary-dark);
+    font-size: 20px;
+    font-weight: 800;
 }
 
-.egc-header-subtitle{
-    color:#8a9baa;
-
-    font-size:10px;
-    font-weight:700;
-
-    margin-top:2px;
+.egc-header-subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 4px;
 }
 
-
-/* =========================================================
-   HEADER RIGHT
-========================================================= */
-
-.egc-header-right{
-    display:flex;
-    align-items:center;
-    gap:14px;
+.egc-notification-wrap {
+    position: relative;
 }
 
-.egc-notification-wrap{
-    position:relative;
+.egc-notification-btn {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: #eef7ff;
+    color: var(--primary);
+    font-size: 20px;
+    cursor: pointer;
+    position: relative;
 }
 
-.egc-notification-btn{
-    position:relative;
-
-    width:42px;
-    height:42px;
-
-    border:1px solid #dce8ef;
-    border-radius:10px;
-
-    background:#ffffff;
-    color:#06477f;
-
-    font-size:18px;
-
-    cursor:pointer;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.egc-notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 4px;
+    border: 2px solid white;
+    border-radius: 20px;
+    background: #e44250;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    justify-content: center;
 }
 
-.egc-notification-count{
-    position:absolute;
-
-    top:-5px;
-    right:-5px;
-
-    min-width:18px;
-    height:18px;
-
-    padding:0 5px;
-
-    border-radius:20px;
-
-    background:#d44752;
-    color:#ffffff;
-
-    font-size:9px;
-    font-weight:900;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    border:2px solid #ffffff;
+.egc-notification-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 57px;
+    width: 300px;
+    background: white;
+    border: 1px solid #e1eaf1;
+    border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(20, 60, 90, .15);
+    padding: 18px;
+    z-index: 1200;
 }
 
-.egc-notification-panel{
-    position:absolute;
-
-    top:52px;
-    right:0;
-
-    width:310px;
-
-    background:#ffffff;
-
-    border:1px solid #e1ebf1;
-    border-radius:13px;
-
-    box-shadow:
-        0 15px 40px rgba(0,25,50,.13);
-
-    padding:15px;
-
-    display:none;
+.egc-notification-panel.show {
+    display: block;
 }
 
-.egc-notification-panel.show{
-    display:block;
+.egc-notification-panel-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 14px;
 }
 
-.egc-notification-panel-title{
-    color:#06477f;
-
-    font-size:13px;
-    font-weight:900;
-
-    padding-bottom:10px;
-
-    border-bottom:1px solid #edf2f5;
+.egc-notification-empty {
+    padding: 17px 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
 }
 
-.egc-notification-empty{
-    padding:22px 8px;
-
-    text-align:center;
-
-    color:#8a9ba7;
-
-    font-size:10px;
-    font-weight:700;
+.egc-owner-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px 7px 7px;
+    background: #eef8ff;
+    border: 1px solid #dceefb;
+    border-radius: 15px;
 }
 
-
-/* =========================================================
-   OWNER BADGE
-========================================================= */
-
-.egc-owner-badge{
-    display:flex;
-    align-items:center;
-    gap:9px;
-
-    padding:7px 10px;
-
-    border-radius:10px;
-
-    background:#f3f8fc;
-
-    border:1px solid #e1edf3;
+.egc-owner-avatar {
+    width: 39px;
+    height: 39px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0871c3, #06477f);
+    color: white;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 800;
 }
 
-.egc-owner-avatar{
-    width:31px;
-    height:31px;
+.egc-owner-name {
+    color: var(--primary-dark);
+    font-size: 13px;
+    font-weight: 800;
+}
 
-    border-radius:9px;
+.egc-owner-role {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
 
+/* SIDEBAR */
+
+.egc-sidebar {
+    position: fixed;
+    z-index: 950;
+    top: 78px;
+    bottom: 0;
+    left: 0;
+    width: 245px;
+    padding: 20px 15px 22px;
+    overflow-y: auto;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 245, 245, .98),
+        rgba(242, 248, 255, .98),
+        #fff
+    );
+    border-right: 1px solid #e1e9f0;
+    box-shadow: 5px 0 22px rgba(40, 75, 110, .035);
+    display: flex;
+    flex-direction: column;
+}
+
+.egc-sidebar-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 8px 20px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e6edf3;
+}
+
+.egc-sidebar-logo img {
+    width: 150px;
+    height: 63px;
+    object-fit: contain;
+}
+
+.egc-nav-section {
+    margin-bottom: 22px;
+}
+
+.egc-nav-label {
+    color: #7990a4;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    padding: 0 13px 12px;
+}
+
+.egc-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.egc-nav-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 13px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #496a82;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+
+.egc-nav-btn:hover {
+    background: #eaf6ff;
+    color: var(--primary);
+}
+
+.egc-nav-btn.active {
+    background: linear-gradient(110deg, #eaf6ff, #fff0f0);
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(30, 95, 145, .06);
+}
+
+.egc-nav-icon {
+    width: 25px;
+    flex-shrink: 0;
+    font-size: 17px;
+    text-align: center;
+}
+
+.egc-sidebar-bottom {
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.egc-logout-nav {
+    color: #d93645;
+}
+
+.egc-logout-nav:hover {
+    background: #fff0f1;
+    color: #c62838;
+}
+
+.egc-overlay {
+    display: none;
+}
+
+/* MAIN */
+
+.egc-main {
+    min-height: calc(100vh - 78px);
+    margin-left: 245px;
+    padding: 30px;
     background:
-        linear-gradient(
-            135deg,
-            #06477f,
-            #0871c3
-        );
-
-    color:#ffffff;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    font-size:13px;
-    font-weight:900;
+        radial-gradient(circle at 0% 0%, rgba(255, 235, 240, .25), transparent 32%),
+        radial-gradient(circle at 100% 0%, rgba(222, 242, 255, .35), transparent 35%);
 }
 
-.egc-owner-info{
-    line-height:1.2;
+.egc-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 25px;
 }
 
-.egc-owner-name{
-    color:#06477f;
-
-    font-size:10px;
-    font-weight:900;
+.egc-page-title {
+    color: var(--primary-dark);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.5px;
 }
 
-.egc-owner-role{
-    color:#91a0aa;
-
-    font-size:8px;
-    font-weight:700;
-
-    margin-top:2px;
+.egc-page-subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-top: 7px;
 }
 
-
-/* =========================================================
-   MASTER SIDEBAR
-========================================================= */
-
-.egc-sidebar{
-    position:fixed;
-
-    left:0;
-    top:78px;
-    bottom:0;
-
-    width:245px;
-
-    background:
-        linear-gradient(
-            180deg,
-            #ffffff 0%,
-            #f5fbfe 52%,
-            #eef7fc 100%
-        );
-
-    border-right:1px solid #e3edf3;
-
-    z-index:900;
-
-    padding:18px 14px;
-
-    display:flex;
-    flex-direction:column;
-
-    overflow-y:auto;
-
-    transition:transform .25s ease;
+.egc-page-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
 }
 
-.egc-sidebar-logo{
-    padding:4px 8px 18px;
-
-    border-bottom:1px solid #edf2f5;
-
-    margin-bottom:15px;
+.egc-top-btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 15px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    color: #496a82;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: .2s;
 }
 
-.egc-sidebar-logo img{
-    width:145px;
-    max-width:100%;
-
-    height:auto;
-
-    object-fit:contain;
+.egc-top-btn:hover {
+    background: #f0f8ff;
+    border-color: #b9d9f0;
+    color: var(--primary);
 }
 
-
-/* =========================================================
-   SIDEBAR NAV
-========================================================= */
-
-.egc-nav-section{
-    margin-bottom:4px;
+.egc-top-btn.primary {
+    color: white;
+    background: linear-gradient(135deg, #0871c3, #06477f);
+    border-color: transparent;
+    box-shadow: 0 5px 13px rgba(7, 92, 165, .16);
 }
 
-.egc-nav-label{
-    color:#9aaab5;
-
-    font-size:9px;
-    font-weight:900;
-
-    letter-spacing:.8px;
-
-    padding:0 9px 8px;
+.egc-top-btn.primary:hover {
+    transform: translateY(-1px);
 }
 
-.egc-nav{
-    display:flex;
-    flex-direction:column;
-    gap:5px;
+/* STATS */
+
+.egc-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 17px;
+    margin-bottom: 23px;
 }
 
-.egc-nav-btn{
-    width:100%;
-
-    min-height:43px;
-
-    border:0;
-    border-radius:9px;
-
-    background:transparent;
-
-    color:#647b8b;
-
-    display:flex;
-    align-items:center;
-
-    gap:10px;
-
-    padding:0 11px;
-
-    font-size:14px;
-    font-weight:800;
-
-    cursor:pointer;
-
-    text-align:left;
-
-    transition:
-        background .18s ease,
-        color .18s ease,
-        transform .18s ease;
+.egc-stat-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid rgba(220, 230, 239, .95);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .92);
+    box-shadow: var(--shadow);
+    transition: transform .2s, box-shadow .2s;
 }
 
-.egc-nav-btn:hover{
-    background:#eef7fc;
-    color:#0871c3;
+.egc-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(22, 70, 110, .10);
 }
 
-.egc-nav-btn.active{
-    background:
-        linear-gradient(
-            135deg,
-            #e9f5fc,
-            #f9edf6
-        );
-
-    color:#0871c3;
-
-    box-shadow:
-        inset 3px 0 0 #0871c3;
+.egc-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 17px;
 }
 
-.egc-nav-icon{
-    width:21px;
-    min-width:21px;
-
-    text-align:center;
-
-    font-size:16px;
-
-    line-height:1;
+.egc-stat-label {
+    color: #71899e;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 800;
+    letter-spacing: .45px;
 }
 
-.egc-sidebar-bottom{
-    margin-top:auto;
-
-    padding-top:15px;
-
-    border-top:1px solid #e8f0f4;
+.egc-stat-icon {
+    width: 43px;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    background: #eaf6ff;
+    color: var(--primary);
+    font-size: 21px;
+    flex-shrink: 0;
 }
 
-.egc-logout-nav{
-    color:#d14b55;
+.egc-stat-icon.green {
+    color: #138a52;
+    background: #e8f8ef;
 }
 
-.egc-logout-nav:hover{
-    background:#fff2f3;
-    color:#c53642;
+.egc-stat-icon.orange {
+    color: #b77908;
+    background: #fff5db;
 }
 
-
-/* =========================================================
-   MOBILE OVERLAY
-========================================================= */
-
-.egc-overlay{
-    position:fixed;
-    inset:0;
-
-    background:rgba(0,25,50,.35);
-
-    z-index:850;
-
-    display:none;
+.egc-stat-icon.purple {
+    color: #7950bd;
+    background: #f3edff;
 }
 
-.egc-overlay.show{
-    display:block;
+.egc-stat-value {
+    color: var(--primary-dark);
+    font-size: 27px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
 }
 
-
-/* =========================================================
-   MAIN
-========================================================= */
-
-.egc-main{
-    margin-left:245px;
-
-    padding:104px 28px 35px;
-
-    min-height:100vh;
+.egc-stat-note {
+    color: #8a9bac;
+    font-size: 11px;
+    margin-top: 7px;
 }
 
-.egc-page-head{
-    display:flex;
+/* FILTERS */
 
-    align-items:flex-start;
-    justify-content:space-between;
-
-    gap:20px;
-
-    margin-bottom:22px;
+.egc-filter-card {
+    padding: 20px;
+    margin-bottom: 22px;
+    background: rgba(255, 255, 255, .95);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    box-shadow: var(--shadow);
 }
 
-.egc-page-title{
-    color:#06477f;
-
-    font-size:25px;
-    font-weight:950;
+.egc-filter-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 15px;
 }
 
-.egc-page-subtitle{
-    color:#7c919f;
-
-    font-size:11px;
-    font-weight:650;
-
-    margin-top:5px;
+.egc-filter-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) 210px auto;
+    gap: 12px;
+    align-items: center;
 }
 
-.egc-page-actions{
-    display:flex;
-    gap:8px;
+.egc-search-wrap {
+    position: relative;
 }
 
-.egc-top-btn{
-    min-height:38px;
-
-    padding:0 14px;
-
-    border-radius:9px;
-
-    border:1px solid #d9e7ef;
-
-    background:#ffffff;
-
-    color:#06477f;
-
-    font-size:11px;
-    font-weight:850;
-
-    cursor:pointer;
-}
-
-.egc-top-btn:hover{
-    background:#f2f8fb;
-}
-
-.egc-top-btn.primary{
-    background:#0871c3;
-    color:#ffffff;
-
-    border-color:#0871c3;
-}
-
-
-/* =========================================================
-   STATS
-========================================================= */
-
-.egc-stats{
-    display:grid;
-
-    grid-template-columns:repeat(4,1fr);
-
-    gap:14px;
-
-    margin-bottom:18px;
-}
-
-.egc-stat-card{
-    background:#ffffff;
-
-    border:1px solid #e5eef3;
-
-    border-radius:14px;
-
-    padding:16px;
-
-    box-shadow:
-        0 5px 18px rgba(20,80,120,.045);
-}
-
-.egc-stat-top{
-    display:flex;
-
-    justify-content:space-between;
-    align-items:center;
-}
-
-.egc-stat-label{
-    color:#8497a5;
-
-    font-size:10px;
-    font-weight:850;
-}
-
-.egc-stat-icon{
-    width:31px;
-    height:31px;
-
-    border-radius:9px;
-
-    background:#eef8fd;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    font-size:15px;
-}
-
-.egc-stat-value{
-    color:#06477f;
-
-    font-size:23px;
-    font-weight:950;
-
-    margin-top:8px;
-}
-
-
-/* =========================================================
-   FILTER
-========================================================= */
-
-.egc-filter-card{
-    background:#ffffff;
-
-    border:1px solid #e3edf3;
-
-    border-radius:14px;
-
-    padding:15px;
-
-    margin-bottom:15px;
-
-    box-shadow:
-        0 5px 18px rgba(20,80,120,.04);
-}
-
-.egc-filter-row{
-    display:grid;
-
-    grid-template-columns:
-        minmax(220px,1fr)
-        170px
-        auto;
-
-    gap:10px;
-}
-
-.egc-search-wrap{
-    position:relative;
-}
-
-.egc-search-icon{
-    position:absolute;
-
-    left:13px;
-    top:50%;
-
-    transform:translateY(-50%);
-
-    color:#91a2ae;
-
-    font-size:14px;
+.egc-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #8298aa;
+    font-size: 17px;
+    pointer-events: none;
 }
 
 .egc-input,
-.egc-select{
-    width:100%;
-
-    height:40px;
-
-    border:1px solid #dbe7ee;
-
-    border-radius:9px;
-
-    background:#ffffff;
-
-    color:#23485f;
-
-    padding:0 12px;
-
-    font-size:11px;
-    font-weight:700;
-
-    outline:none;
+.egc-select {
+    width: 100%;
+    height: 45px;
+    padding: 0 13px;
+    border: 1px solid #dce6ef;
+    border-radius: 11px;
+    outline: none;
+    background: #fbfdff;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color .2s, box-shadow .2s;
 }
 
-.egc-search-input{
-    padding-left:35px;
+.egc-search-input {
+    padding-left: 40px;
 }
 
 .egc-input:focus,
-.egc-select:focus{
-    border-color:#69add7;
-
-    box-shadow:
-        0 0 0 3px rgba(8,113,195,.08);
+.egc-select:focus {
+    border-color: #80b9e4;
+    box-shadow: 0 0 0 3px rgba(7, 92, 165, .08);
 }
 
-.egc-clear-btn{
-    height:40px;
-
-    padding:0 14px;
-
-    border:1px solid #dbe7ee;
-
-    border-radius:9px;
-
-    background:#f8fbfd;
-
-    color:#607888;
-
-    font-size:11px;
-    font-weight:850;
-
-    cursor:pointer;
+.egc-clear-btn {
+    height: 45px;
+    padding: 0 17px;
+    border: 1px solid #dce6ef;
+    border-radius: 11px;
+    background: #f5f9fc;
+    color: #52718a;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
-.egc-clear-btn:hover{
-    background:#eef7fc;
+.egc-clear-btn:hover {
+    background: #eaf6ff;
+    color: var(--primary);
 }
 
+/* TABLE */
 
-/* =========================================================
-   TABLE
-========================================================= */
-
-.egc-table-card{
-    background:#ffffff;
-
-    border:1px solid #e3edf3;
-
-    border-radius:14px;
-
-    overflow:hidden;
-
-    box-shadow:
-        0 5px 18px rgba(20,80,120,.04);
+.egc-table-card {
+    overflow: hidden;
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
 }
 
-.egc-table-wrap{
-    width:100%;
-
-    overflow-x:auto;
+.egc-table-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 20px 22px;
+    border-bottom: 1px solid #e8eef4;
 }
 
-.egc-table{
-    width:100%;
-
-    border-collapse:collapse;
-
-    min-width:1050px;
+.egc-table-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--primary-dark);
 }
 
-.egc-table th{
-    background:#f7fafc;
-
-    color:#7b8e9b;
-
-    font-size:9px;
-    font-weight:950;
-
-    text-transform:uppercase;
-
-    letter-spacing:.4px;
-
-    padding:13px 12px;
-
-    text-align:left;
-
-    border-bottom:1px solid #e8eff3;
-
-    white-space:nowrap;
+.egc-table-subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 5px;
 }
 
-.egc-table td{
-    padding:13px 12px;
-
-    border-bottom:1px solid #edf2f5;
-
-    color:#36576a;
-
-    font-size:11px;
-    font-weight:700;
-
-    vertical-align:middle;
+.egc-record-count {
+    padding: 7px 11px;
+    border-radius: 9px;
+    background: #eef7ff;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-.egc-table tbody tr:hover{
-    background:#fbfdfe;
+.egc-table-wrap {
+    width: 100%;
+    overflow-x: auto;
 }
 
-
-/* =========================================================
-   CUSTOMER
-========================================================= */
-
-.egc-customer{
-    display:flex;
-
-    align-items:center;
-
-    gap:9px;
+.egc-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
 }
 
-.egc-avatar{
-    width:32px;
-    height:32px;
-
-    flex:0 0 32px;
-
-    border-radius:9px;
-
-    background:#eaf5fb;
-
-    color:#0871c3;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    font-size:11px;
-    font-weight:950;
+.egc-table thead {
+    background: #f7fafd;
 }
 
-.egc-customer-name{
-    color:#06477f;
-
-    font-size:11px;
-    font-weight:900;
+.egc-table th {
+    padding: 15px 17px;
+    color: #7890a4;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .55px;
+    text-align: left;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e8eef4;
 }
 
-.egc-customer-phone{
-    color:#91a0aa;
-
-    font-size:9px;
-    font-weight:650;
-
-    margin-top:2px;
+.egc-table td {
+    padding: 15px 17px;
+    border-bottom: 1px solid #edf2f6;
+    font-size: 12px;
+    color: #496a82;
+    vertical-align: middle;
 }
 
-.egc-id{
-    max-width:150px;
-
-    overflow:hidden;
-    text-overflow:ellipsis;
-
-    white-space:nowrap;
-
-    color:#6f8491;
-
-    font-size:9px;
+.egc-table tbody tr:hover {
+    background: #f8fbfe;
 }
 
-
-/* =========================================================
-   STATUS
-========================================================= */
-
-.egc-status{
-    display:inline-flex;
-
-    align-items:center;
-
-    min-height:24px;
-
-    padding:0 9px;
-
-    border-radius:20px;
-
-    font-size:9px;
-    font-weight:900;
+.egc-table tbody tr:last-child td {
+    border-bottom: 0;
 }
 
-.egc-status.paid{
-    background:#eaf8f0;
-    color:#37805b;
+.egc-customer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
 }
 
-.egc-status.pending{
-    background:#fff7e8;
-    color:#ad751e;
+.egc-avatar {
+    width: 39px;
+    height: 39px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e7f4ff, #f1eaff);
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 800;
 }
 
-.egc-status.failed{
-    background:#fff0f1;
-    color:#cf4a55;
+.egc-customer-name {
+    color: #173f60;
+    font-size: 12px;
+    font-weight: 800;
+    max-width: 175px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.egc-status.other{
-    background:#eef3f7;
-    color:#667d8c;
+.egc-customer-phone {
+    margin-top: 5px;
+    color: #8a9bac;
+    font-size: 11px;
 }
 
-
-/* =========================================================
-   AMOUNT
-========================================================= */
-
-.egc-amount{
-    color:#06477f;
-
-    font-size:12px;
-    font-weight:950;
+.egc-id {
+    color: #52718a;
+    font-size: 11px;
+    font-weight: 700;
 }
 
-
-/* =========================================================
-   ACTION
-========================================================= */
-
-.egc-action-btn{
-    min-height:31px;
-
-    padding:0 10px;
-
-    border:1px solid #d6e6ee;
-
-    border-radius:8px;
-
-    background:#ffffff;
-
-    color:#0871c3;
-
-    font-size:9px;
-    font-weight:900;
-
-    cursor:pointer;
-
-    margin-right:4px;
+.egc-amount {
+    color: var(--primary-dark);
+    font-size: 13px;
+    font-weight: 800;
 }
 
-.egc-action-btn:hover{
-    background:#edf7fc;
+.egc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: capitalize;
 }
 
-.egc-action-btn.print{
-    color:#536c7b;
+.egc-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    border-radius: 50%;
 }
 
+.egc-status.paid {
+    color: #138a52;
+    background: #e8f8ef;
+}
 
-/* =========================================================
-   LOADING / EMPTY
-========================================================= */
+.egc-status.pending {
+    color: #b77908;
+    background: #fff5db;
+}
+
+.egc-status.failed {
+    color: #d93645;
+    background: #fff0f1;
+}
+
+.egc-status.other {
+    color: #59748b;
+    background: #eef3f7;
+}
+
+.egc-action-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 11px;
+    border: 1px solid #d5e9f8;
+    border-radius: 9px;
+    background: #eef7ff;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.egc-action-btn:hover {
+    background: #dcefff;
+}
+
+.egc-action-btn.print {
+    background: #f0fbf4;
+    border-color: #d6f0df;
+    color: #138a52;
+}
+
+.egc-action-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
 
 .egc-loading,
-.egc-empty{
-    padding:55px 20px;
-
-    text-align:center;
-
-    color:#8c9ca7;
-
-    font-size:12px;
-    font-weight:750;
+.egc-empty {
+    padding: 55px 20px !important;
+    text-align: center !important;
+    color: #8298aa !important;
+    font-size: 13px !important;
+    white-space: normal;
 }
 
-.egc-spinner{
-    width:30px;
-    height:30px;
-
-    border:3px solid #dcebf3;
-
-    border-top-color:#0871c3;
-
-    border-radius:50%;
-
-    animation:egcSpin .8s linear infinite;
-
-    margin:0 auto 12px;
+.egc-empty-icon {
+    font-size: 35px;
+    margin-bottom: 10px;
 }
 
-@keyframes egcSpin{
-    to{
-        transform:rotate(360deg);
+.egc-spinner {
+    width: 27px;
+    height: 27px;
+    margin: 0 auto 12px;
+    border: 3px solid #dceefb;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: egcSpin .8s linear infinite;
+}
+
+@keyframes egcSpin {
+    to { transform: rotate(360deg); }
+}
+
+.egc-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+    padding: 16px 21px;
+    border-top: 1px solid #e8eef4;
+    background: #fcfdff;
+}
+
+.egc-pagination-info {
+    color: #8298aa;
+    font-size: 12px;
+}
+
+.egc-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.egc-page-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid #dce6ef;
+    border-radius: 9px;
+    background: white;
+    color: #52718a;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.egc-page-btn:hover:not(:disabled) {
+    background: #eef7ff;
+    color: var(--primary);
+}
+
+.egc-page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.egc-page-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+/* PAYMENT MODAL */
+
+.egc-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(12, 34, 52, .48);
+    backdrop-filter: blur(4px);
+}
+
+.egc-modal.show {
+    display: flex;
+}
+
+.egc-modal-box {
+    width: 100%;
+    max-width: 760px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 25px 70px rgba(0, 30, 60, .24);
+    animation: egcModalIn .2s ease;
+}
+
+@keyframes egcModalIn {
+    from { opacity: 0; transform: translateY(12px) scale(.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.egc-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 21px 23px;
+    border-bottom: 1px solid #e8eef4;
+}
+
+.egc-modal-title {
+    color: var(--primary-dark);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.egc-modal-subtitle {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.egc-modal-close {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 10px;
+    background: #f0f5f9;
+    color: #58748a;
+    font-size: 21px;
+    cursor: pointer;
+}
+
+.egc-modal-body {
+    padding: 23px;
+}
+
+.egc-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.egc-detail-box {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #e4edf4;
+    border-radius: 12px;
+    background: #fbfdff;
+}
+
+.egc-detail-label {
+    color: #8195a7;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .45px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.egc-detail-value {
+    color: #173f60;
+    font-size: 13px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.egc-slip-box {
+    max-width: 590px;
+    margin: 0 auto;
+    padding: 25px;
+    border: 1px solid #dce6ef;
+    border-radius: 12px;
+    background: white;
+    color: #173f60;
+}
+
+.egc-slip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding-bottom: 19px;
+    border-bottom: 2px solid #075ca5;
+}
+
+.egc-slip-logo {
+    width: 115px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.egc-slip-heading {
+    color: var(--primary-dark);
+    font-size: 17px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.egc-slip-small {
+    color: #8094a6;
+    font-size: 10px;
+    text-align: right;
+    margin-top: 5px;
+}
+
+.egc-slip-status {
+    display: inline-block;
+    padding: 6px 9px;
+    border-radius: 7px;
+    background: #e8f8ef;
+    color: #138a52;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.egc-slip-body {
+    padding-top: 16px;
+}
+
+.egc-slip-section-title {
+    margin: 13px 0 7px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid #e8eef4;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.egc-slip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 9px 0;
+    border-bottom: 1px dashed #e6edf3;
+    font-size: 12px;
+}
+
+.egc-slip-row span:first-child {
+    color: #7890a4;
+}
+
+.egc-slip-row strong {
+    max-width: 60%;
+    color: #173f60;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.egc-slip-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #eef7ff;
+    color: var(--primary-dark);
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.egc-slip-note {
+    margin-top: 20px;
+    padding-top: 13px;
+    border-top: 1px solid #e8eef4;
+    color: #8298aa;
+    font-size: 10px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+.egc-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    flex-wrap: wrap;
+    padding: 17px 23px;
+    border-top: 1px solid #e8eef4;
+    background: #fcfdff;
+}
+
+.egc-modal-btn {
+    min-height: 41px;
+    padding: 0 16px;
+    border: 1px solid #dce6ef;
+    border-radius: 10px;
+    background: white;
+    color: #496a82;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.egc-modal-btn.primary {
+    border-color: transparent;
+    background: linear-gradient(135deg, #0871c3, #06477f);
+    color: white;
+}
+
+.egc-modal-btn:hover {
+    filter: brightness(.97);
+}
+
+/* LOGOUT MODAL */
+
+.egc-logout-box {
+    width: 100%;
+    max-width: 390px;
+    padding: 30px;
+    text-align: center;
+    background: white;
+    border-radius: 21px;
+    box-shadow: 0 25px 70px rgba(0, 30, 60, .24);
+}
+
+.egc-logout-icon {
+    width: 67px;
+    height: 67px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    background: #fff0f1;
+    border-radius: 20px;
+    font-size: 30px;
+}
+
+.egc-logout-title {
+    color: var(--primary-dark);
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.egc-logout-text {
+    color: #8094a6;
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 10px 0 22px;
+}
+
+.egc-logout-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.egc-logout-actions button {
+    flex: 1;
+    min-height: 43px;
+    border: 0;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.egc-logout-cancel {
+    background: #eef3f7;
+    color: #496a82;
+}
+
+.egc-logout-confirm {
+    background: #d93645;
+    color: white;
+}
+
+/* TOAST */
+
+.egc-toast {
+    position: fixed;
+    z-index: 3000;
+    right: 24px;
+    bottom: 24px;
+    max-width: calc(100% - 35px);
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: #173f60;
+    color: white;
+    box-shadow: 0 12px 30px rgba(0, 30, 60, .2);
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: .25s;
+}
+
+.egc-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.egc-toast.error {
+    background: #b82d3b;
+}
+
+.egc-toast.success {
+    background: #13794a;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1200px) {
+    .egc-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .egc-main {
+        padding: 25px;
     }
 }
 
+@media (max-width: 1000px) {
+    .egc-filter-row {
+        grid-template-columns: minmax(180px, 1fr) 180px auto;
+    }
 
-/* =========================================================
-   TABLE FOOTER
-========================================================= */
-
-.egc-table-footer{
-    display:flex;
-
-    justify-content:space-between;
-    align-items:center;
-
-    gap:12px;
-
-    padding:13px 15px;
-
-    border-top:1px solid #edf2f5;
-
-    background:#ffffff;
+    .egc-page-title {
+        font-size: 25px;
+    }
+    
 }
 
-.egc-pagination-info{
-    color:#8a9ba7;
+@media (max-width: 760px) {
+    .egc-header {
+        height: 70px;
+        padding: 0 13px;
+    }
 
-    font-size:10px;
-    font-weight:750;
+    .egc-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .egc-header-logo {
+        width: 46px;
+        height: 46px;
+    }
+
+    .egc-header-left {
+        gap: 8px;
+    }
+
+    .egc-header-title {
+        font-size: 16px;
+    }
+
+    .egc-header-subtitle {
+        font-size: 10px;
+    }
+
+    .egc-owner-badge {
+        padding: 5px;
+        background: transparent;
+        border: 0;
+    }
+
+    .egc-owner-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .egc-owner-info {
+        display: none;
+    }
+
+    .egc-notification-btn {
+        width: 42px;
+        height: 42px;
+    }
+
+    .egc-sidebar {
+        top: 70px;
+        bottom: 0;
+        left: -260px;
+        width: 245px;
+        transition: left .25s ease;
+        z-index: 1100;
+    }
+
+    .egc-sidebar.open {
+        left: 0;
+    }
+
+    .egc-overlay {
+        position: fixed;
+        z-index: 1050;
+        top: 70px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(10, 35, 55, .35);
+    }
+
+    .egc-overlay.show {
+        display: block;
+    }
+
+    .egc-main {
+        margin-left: 0;
+        padding: 23px 17px 30px;
+        min-height: calc(100vh - 70px);
+    }
+
+    .egc-page-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .egc-page-title {
+        font-size: 23px;
+    }
+
+    .egc-page-subtitle {
+        font-size: 13px;
+    }
+
+    .egc-page-actions {
+        width: 100%;
+    }
+
+    .egc-page-actions .egc-top-btn {
+        flex: 1;
+    }
+
+    .egc-stats {
+        gap: 12px;
+    }
+
+    .egc-stat-card {
+        padding: 15px;
+    }
+
+    .egc-stat-value {
+        font-size: 23px;
+    }
+
+    .egc-stat-icon {
+        width: 37px;
+        height: 37px;
+        font-size: 18px;
+    }
+
+    .egc-filter-card {
+        padding: 16px;
+    }
+
+    .egc-filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .egc-table-head {
+        padding: 17px;
+    }
+
+    .egc-table th,
+    .egc-table td {
+        padding: 13px 14px;
+    }
+
+    .egc-table-footer {
+        padding: 15px;
+    }
+
+    .egc-modal-box {
+        max-height: 94vh;
+    }
 }
 
-.egc-pagination{
-    display:flex;
-    gap:5px;
+@media (max-width: 480px) {
+    .egc-header {
+        padding: 0 9px;
+        gap: 6px;
+    }
+
+    .egc-header-left {
+        gap: 6px;
+    }
+
+    .egc-menu-btn {
+        width: 37px;
+        height: 37px;
+        font-size: 19px;
+    }
+
+    .egc-header-logo {
+        width: 39px;
+        height: 39px;
+    }
+
+    .egc-header-title {
+        font-size: 14px;
+    }
+
+    .egc-header-subtitle {
+        font-size: 9px;
+    }
+
+    .egc-header-right {
+        gap: 5px;
+    }
+
+    .egc-notification-btn {
+        width: 37px;
+        height: 37px;
+        font-size: 17px;
+    }
+
+    .egc-owner-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .egc-main {
+        padding: 20px 12px 25px;
+    }
+
+    .egc-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .egc-stat-card {
+        padding: 13px;
+        border-radius: 14px;
+    }
+
+    .egc-stat-top {
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .egc-stat-label {
+        font-size: 9px;
+    }
+
+    .egc-stat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+
+    .egc-stat-value {
+        font-size: 21px;
+    }
+
+    .egc-stat-note {
+        font-size: 10px;
+    }
+
+    .egc-filter-card {
+        padding: 13px;
+    }
+
+    .egc-table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .egc-pagination {
+        width: 100%;
+    }
+
+    .egc-pagination .egc-page-btn {
+        min-width: 31px;
+    }
+
+    .egc-modal {
+        padding: 10px;
+    }
+
+    .egc-modal-header,
+    .egc-modal-body {
+        padding: 16px;
+    }
+
+    .egc-detail-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .egc-detail-box {
+        padding: 10px;
+    }
+
+    .egc-detail-value {
+        font-size: 11px;
+    }
+
+    .egc-slip-box {
+        padding: 14px;
+    }
+
+    .egc-slip-logo {
+        width: 85px;
+        height: 45px;
+    }
+
+    .egc-slip-heading {
+        font-size: 14px;
+    }
+
+    .egc-slip-row {
+        font-size: 11px;
+    }
+
+    .egc-modal-footer {
+        padding: 13px;
+    }
+
+    .egc-modal-footer .egc-modal-btn {
+        flex: 1;
+    }
+
+    .egc-notification-panel {
+        right: -48px;
+        width: 275px;
+    }
 }
 
-.egc-page-btn{
-    width:31px;
-    height:31px;
-
-    border:1px solid #dce8ee;
-
-    background:#ffffff;
-
-    color:#647c8b;
-
-    border-radius:7px;
-
-    font-size:10px;
-    font-weight:900;
-
-    cursor:pointer;
-}
-
-.egc-page-btn.active{
-    background:#0871c3;
-    color:#ffffff;
-
-    border-color:#0871c3;
-}
-
-.egc-page-btn:disabled{
-    opacity:.4;
-    cursor:not-allowed;
-}
-
-
-/* =========================================================
-   MODAL
-========================================================= */
-
-.egc-modal{
-    position:fixed;
-
-    inset:0;
-
-    background:rgba(2,25,45,.48);
-
-    z-index:2000;
-
-    display:none;
-
-    align-items:center;
-    justify-content:center;
-
-    padding:20px;
-}
-
-.egc-modal.show{
-    display:flex;
-}
-
-.egc-modal-box{
-    width:min(850px,100%);
-
-    max-height:92vh;
-
-    overflow:auto;
-
-    background:#ffffff;
-
-    border-radius:17px;
-
-    box-shadow:
-        0 25px 70px rgba(0,25,50,.25);
-}
-
-.egc-modal-header{
-    position:sticky;
-    top:0;
-
-    z-index:2;
-
-    background:#ffffff;
-
-    display:flex;
-
-    align-items:center;
-    justify-content:space-between;
-
-    gap:15px;
-
-    padding:18px 20px;
-
-    border-bottom:1px solid #edf2f5;
-}
-
-.egc-modal-title{
-    color:#06477f;
-
-    font-size:18px;
-    font-weight:950;
-}
-
-.egc-modal-subtitle{
-    color:#91a0aa;
-
-    font-size:10px;
-    font-weight:700;
-
-    margin-top:3px;
-}
-
-.egc-modal-close{
-    width:35px;
-    height:35px;
-
-    border:0;
-
-    border-radius:9px;
-
-    background:#f3f7f9;
-
-    color:#647c8b;
-
-    font-size:21px;
-
-    cursor:pointer;
-}
-
-.egc-modal-body{
-    padding:20px;
-}
-
-.egc-detail-grid{
-    display:grid;
-
-    grid-template-columns:repeat(2,1fr);
-
-    gap:10px;
-
-    margin-bottom:18px;
-}
-
-.egc-detail-box{
-    background:#f8fbfd;
-
-    border:1px solid #e5eef3;
-
-    border-radius:10px;
-
-    padding:12px;
-}
-
-.egc-detail-label{
-    color:#8b9ca7;
-
-    font-size:8px;
-    font-weight:950;
-
-    text-transform:uppercase;
-
-    letter-spacing:.5px;
-
-    margin-bottom:5px;
-}
-
-.egc-detail-value{
-    color:#244b62;
-
-    font-size:11px;
-    font-weight:850;
-
-    word-break:break-word;
-}
-
-.egc-detail-value.amount{
-    color:#0871c3;
-
-    font-size:18px;
-}
-
-
-/* =========================================================
-   PAYMENT SLIP
-========================================================= */
-
-.egc-slip-box{
-    border:1px solid #dfeaf0;
-
-    border-radius:13px;
-
-    overflow:hidden;
-
-    background:#ffffff;
-}
-
-.egc-slip-head{
-    background:
-        linear-gradient(
-            135deg,
-            #eef8fd,
-            #ffffff
-        );
-
-    padding:17px;
-
-    text-align:center;
-
-    border-bottom:1px dashed #cfdde5;
-}
-
-.egc-slip-logo{
-    width:125px;
-    max-width:100%;
-
-    height:auto;
-
-    margin-bottom:7px;
-}
-
-.egc-slip-heading{
-    color:#06477f;
-
-    font-size:17px;
-    font-weight:950;
-}
-
-.egc-slip-small{
-    color:#8b9ca7;
-
-    font-size:9px;
-    font-weight:700;
-
-    margin-top:3px;
-}
-
-.egc-slip-status{
-    display:inline-flex;
-
-    margin-top:9px;
-
-    padding:5px 12px;
-
-    border-radius:20px;
-
-    font-size:9px;
-    font-weight:900;
-}
-
-.egc-slip-status.paid{
-    background:#eaf8f0;
-    color:#37805b;
-}
-
-.egc-slip-status.pending{
-    background:#fff7e8;
-    color:#ad751e;
-}
-
-.egc-slip-status.failed{
-    background:#fff0f1;
-    color:#cf4a55;
-}
-
-.egc-slip-body{
-    padding:18px;
-}
-
-.egc-slip-row{
-    display:flex;
-
-    justify-content:space-between;
-
-    gap:15px;
-
-    padding:9px 0;
-
-    border-bottom:1px dashed #e4edf2;
-}
-
-.egc-slip-row:last-child{
-    border-bottom:0;
-}
-
-.egc-slip-row span:first-child{
-    color:#8395a1;
-
-    font-size:9px;
-    font-weight:800;
-}
-
-.egc-slip-row span:last-child{
-    color:#264c61;
-
-    font-size:10px;
-    font-weight:900;
-
-    text-align:right;
-
-    word-break:break-word;
-}
-
-.egc-slip-total{
-    margin-top:12px;
-
-    padding-top:13px;
-
-    border-top:2px solid #dfeaf0;
-
-    display:flex;
-
-    justify-content:space-between;
-    align-items:center;
-}
-
-.egc-slip-total span:first-child{
-    color:#06477f;
-
-    font-size:11px;
-    font-weight:950;
-}
-
-.egc-slip-total span:last-child{
-    color:#0871c3;
-
-    font-size:20px;
-    font-weight:950;
-}
-
-.egc-slip-note{
-    margin-top:15px;
-
-    padding:10px;
-
-    border-radius:9px;
-
-    background:#f7fafc;
-
-    color:#7c909e;
-
-    font-size:9px;
-    font-weight:700;
-
-    line-height:1.6;
-
-    text-align:center;
-}
-
-.egc-modal-footer{
-    display:flex;
-
-    justify-content:flex-end;
-
-    gap:8px;
-
-    padding:14px 20px;
-
-    border-top:1px solid #edf2f5;
-}
-
-.egc-modal-btn{
-    min-height:38px;
-
-    padding:0 14px;
-
-    border-radius:9px;
-
-    border:1px solid #dce8ee;
-
-    background:#ffffff;
-
-    color:#536d7b;
-
-    font-size:10px;
-    font-weight:900;
-
-    cursor:pointer;
-}
-
-.egc-modal-btn:hover{
-    background:#f3f8fb;
-}
-
-.egc-modal-btn.primary{
-    background:#0871c3;
-    border-color:#0871c3;
-    color:#ffffff;
-}
-
-
-/* =========================================================
-   LOGOUT MODAL — MASTER
-========================================================= */
-
-.egc-logout-box{
-    width:min(390px,100%);
-
-    background:#ffffff;
-
-    border-radius:16px;
-
-    padding:24px;
-
-    text-align:center;
-}
-
-.egc-logout-icon{
-    width:52px;
-    height:52px;
-
-    border-radius:50%;
-
-    background:#fff1f2;
-    color:#d0444e;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    margin:0 auto 13px;
-
-    font-size:22px;
-}
-
-.egc-logout-title{
-    color:#06477f;
-
-    font-size:17px;
-    font-weight:950;
-}
-
-.egc-logout-text{
-    color:#8798a4;
-
-    font-size:10px;
-    font-weight:700;
-
-    line-height:1.6;
-
-    margin-top:7px;
-}
-
-.egc-logout-actions{
-    display:flex;
-
-    gap:8px;
-
-    margin-top:19px;
-}
-
-.egc-logout-actions button{
-    flex:1;
-
-    height:39px;
-
-    border-radius:9px;
-
-    border:1px solid #dce8ee;
-
-    background:#ffffff;
-
-    color:#5b7382;
-
-    font-size:10px;
-    font-weight:900;
-
-    cursor:pointer;
-}
-
-.egc-logout-actions button:hover{
-    background:#f4f8fa;
-}
-
-.egc-logout-actions .confirm{
-    background:#d44752;
-    color:#ffffff;
-
-    border-color:#d44752;
-}
-
-.egc-logout-actions .confirm:hover{
-    background:#c53642;
-}
-
-
-/* =========================================================
-   PRINT
-========================================================= */
-
-@media print{
-
-    body *{
-        visibility:hidden !important;
+/* PRINT RECEIPT */
+
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    body {
+        background: white !important;
+    }
+
+    body * {
+        visibility: hidden !important;
     }
 
     #slipPrintArea,
-    #slipPrintArea *{
-        visibility:visible !important;
+    #slipPrintArea * {
+        visibility: visible !important;
     }
 
-    #slipPrintArea{
-        position:absolute;
-
-        left:0;
-        top:0;
-
-        width:100%;
-
-        background:#ffffff;
+    #slipPrintArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 20px !important;
+        border-radius: 0 !important;
     }
 
+    .egc-slip-box {
+        max-width: 100% !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+
+    /* Payment screenshot inside receipt */
+
+.egc-screenshot-section {
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid #dbe5ef;
+    border-radius: 12px;
+    background: #f8fbff;
 }
 
-
-/* =========================================================
-   MASTER RESPONSIVE — 1050
-========================================================= */
-
-@media(max-width:1050px){
-
-    .egc-stats{
-        grid-template-columns:repeat(2,1fr);
-    }
-
+.egc-screenshot-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #06477f;
+    margin-bottom: 12px;
 }
 
-
-/* =========================================================
-   MASTER RESPONSIVE — 800
-========================================================= */
-
-@media(max-width:800px){
-
-    .egc-header{
-        height:70px;
-
-        padding:0 14px;
-    }
-
-    .egc-menu-btn{
-        display:flex;
-    }
-
-    .egc-header-right{
-        gap:7px;
-    }
-
-    .egc-owner-badge{
-        display:none;
-    }
-
-    .egc-sidebar{
-        top:70px;
-
-        transform:translateX(-260px);
-
-        width:245px;
-
-        box-shadow:
-            8px 0 25px rgba(0,25,50,.12);
-    }
-
-    .egc-sidebar.open{
-        transform:translateX(0);
-    }
-
-    .egc-main{
-        margin-left:0;
-
-        padding:92px 15px 25px;
-    }
-
-    .egc-page-head{
-        flex-direction:column;
-    }
-
-    .egc-page-actions{
-        width:100%;
-    }
-
-    .egc-page-actions .egc-top-btn{
-        flex:1;
-    }
-
-    .egc-filter-row{
-        grid-template-columns:1fr 1fr;
-    }
-
-    .egc-filter-row .egc-search-wrap{
-        grid-column:1 / -1;
-    }
-
-    .egc-clear-btn{
-        width:100%;
-    }
-
-    .egc-notification-panel{
-        right:-8px;
-    }
-
+.egc-screenshot-link {
+    display: block;
+    text-align: center;
 }
 
-
-/* =========================================================
-   MASTER RESPONSIVE — 520
-========================================================= */
-
-@media(max-width:520px){
-
-    .egc-header-title{
-        font-size:15px;
-    }
-
-    .egc-header-subtitle{
-        font-size:8px;
-    }
-
-    .egc-header-logo{
-        height:36px;
-    }
-
-    .egc-main{
-        padding:86px 10px 20px;
-    }
-
-    .egc-page-title{
-        font-size:21px;
-    }
-
-    .egc-page-subtitle{
-        line-height:1.5;
-    }
-
-    .egc-stats{
-        grid-template-columns:1fr 1fr;
-
-        gap:8px;
-    }
-
-    .egc-stat-card{
-        padding:12px;
-    }
-
-    .egc-stat-value{
-        font-size:19px;
-    }
-
-    .egc-filter-row{
-        grid-template-columns:1fr;
-    }
-
-    .egc-filter-row .egc-search-wrap{
-        grid-column:auto;
-    }
-
-    .egc-table-footer{
-        flex-direction:column;
-
-        align-items:flex-start;
-    }
-
-    .egc-detail-grid{
-        grid-template-columns:1fr;
-    }
-
-    .egc-modal{
-        padding:8px;
-    }
-
-    .egc-modal-box{
-        max-height:96vh;
-
-        border-radius:14px;
-    }
-
-    .egc-modal-header{
-        padding:14px;
-    }
-
-    .egc-modal-body{
-        padding:14px;
-    }
-
-    .egc-modal-footer{
-        padding:12px 14px;
-    }
-
-    .egc-notification-panel{
-        position:fixed;
-
-        top:68px;
-        left:10px;
-        right:10px;
-
-        width:auto;
-    }
-
+.egc-payment-screenshot {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    max-height: 520px;
+    object-fit: contain;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #dbe5ef;
+    border-radius: 8px;
 }
 
+.egc-screenshot-open {
+    display: inline-block;
+    margin-top: 12px;
+    color: #0871c3;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.egc-screenshot-open:hover {
+    text-decoration: underline;
+}
+
+@media print {
+    .egc-payment-screenshot {
+        max-height: 400px;
+        object-fit: contain;
+    }
+
+    .egc-screenshot-section {
+        break-inside: avoid;
+    }
+}
+/* EGC Payment Screenshot */
+
+.egc-screenshot-section {
+    margin: 18px 0;
+    padding: 16px;
+    border: 1px solid #dce7f0;
+    border-radius: 12px;
+    background: #f8fbff;
+}
+
+.egc-screenshot-title {
+    margin-bottom: 12px;
+    color: #06477f;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.egc-screenshot-link {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.egc-payment-screenshot {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+    border: 1px solid #dce7f0;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.egc-screenshot-open {
+    display: inline-block;
+    margin-top: 12px;
+    color: #0871c3;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.egc-screenshot-open:hover {
+    text-decoration: underline;
+}
+
+.egc-screenshot-unavailable,
+.egc-screenshot-error {
+    padding: 12px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+}
 </style>
 </head>
 
 <body>
 
-
-<!-- =======================================================
-     MASTER HEADER
-======================================================== -->
-
+<!-- HEADER -->
 <header class="egc-header">
-
     <div class="egc-header-left">
-
-        <button
-            type="button"
-            id="menuBtn"
-            class="egc-menu-btn"
-            aria-label="Open menu"
-        >
-            ☰
-        </button>
+        <button type="button" id="menuBtn" class="egc-menu-btn" aria-label="Open menu">☰</button>
 
         <img
             src="assets/EGC - Emergency Gas Cylinder logo.png"
@@ -1724,24 +1662,13 @@ body{
         >
 
         <div>
-
-            <div class="egc-header-title">
-                Owner Panel
-            </div>
-
-            <div class="egc-header-subtitle">
-                Emergency Gas Cylinder
-            </div>
-
+            <div class="egc-header-title">Owner Panel</div>
+            <div class="egc-header-subtitle">Emergency Gas Cylinder</div>
         </div>
-
     </div>
 
-
     <div class="egc-header-right">
-
         <div class="egc-notification-wrap">
-
             <button
                 type="button"
                 id="headerNotificationBtn"
@@ -1749,725 +1676,331 @@ body{
                 aria-label="Notifications"
             >
                 🔔
-
-                <span
-                    id="headerNotificationCount"
-                    class="egc-notification-count"
-                >
-                    0
-                </span>
-
+                <span id="headerNotificationCount" class="egc-notification-count">0</span>
             </button>
 
-
-            <div
-                id="headerNotificationPanel"
-                class="egc-notification-panel"
-            >
-
-                <div class="egc-notification-panel-title">
-                    Notifications
-                </div>
-
-                <div class="egc-notification-empty">
-                    No new notifications
-                </div>
-
+            <div id="headerNotificationPanel" class="egc-notification-panel">
+                <div class="egc-notification-panel-title">Notifications</div>
+                <div class="egc-notification-empty">No new notifications</div>
             </div>
-
         </div>
-
-
-        <div class="egc-owner-badge">
-
-            <div class="egc-owner-avatar">
-                O
-            </div>
-
-            <div class="egc-owner-info">
-
-                <div class="egc-owner-name">
-                    Owner
-                </div>
-
-                <div class="egc-owner-role">
-                    EGC Administrator
-                </div>
-
-            </div>
-
-        </div>
-
     </div>
-
 </header>
 
+<div id="overlay" class="egc-overlay"></div>
 
-<!-- =======================================================
-     MOBILE OVERLAY
-======================================================== -->
+<!-- SIDEBAR -->
+<aside id="sidebar" class="egc-sidebar">
 
-<div
-    id="overlay"
-    class="egc-overlay"
-></div>
+    <div class="egc-nav-section">
+        <div class="egc-nav-label">Management</div>
 
+        <nav class="egc-nav">
+            <a class="egc-nav-btn" href="owner-dashboard.html">
+                <span class="egc-nav-icon">▦</span> Dashboard
+            </a>
 
-<!-- =======================================================
-     MASTER OWNER SIDEBAR
-======================================================== -->
+            <a class="egc-nav-btn" href="owner-users.html">
+                <span class="egc-nav-icon">👥</span> Users
+            </a>
 
-<aside
-    id="sidebar"
-    class="egc-sidebar"
->
+            <a class="egc-nav-btn" href="owner-agencies.html">
+                <span class="egc-nav-icon">🏢</span> LPG Agencies
+            </a>
 
-    <div class="egc-sidebar-logo">
+            <a class="egc-nav-btn" href="owner-companies.html">
+                <span class="egc-nav-icon">🏭</span> LPG Companies
+            </a>
 
-        <img
-            src="assets/EGC - Emergency Gas Cylinder logo.png"
-            alt="EGC"
-        >
+            <a class="egc-nav-btn" href="owner-pending-approvals.html">
+                <span class="egc-nav-icon">✓</span> Pending Approvals
+            </a>
 
+            <a class="egc-nav-btn" href="owner-requests.html">
+                <span class="egc-nav-icon">📋</span> Cylinder Requests
+            </a>
+
+            <a class="egc-nav-btn" href="owner-payments.html">
+                <span class="egc-nav-icon">₹</span> Payments
+            </a>
+
+            <a class="egc-nav-btn" href="owner-reports.html">
+                <span class="egc-nav-icon">📊</span> Reports
+            </a>
+        </nav>
     </div>
 
+    <div class="egc-nav-section">
+        <div class="egc-nav-label">Owner Pages</div>
 
-    <!-- MANAGEMENT -->
+        <nav class="egc-nav">
+            <a class="egc-nav-btn" href="owner-request-details.html">
+                <span class="egc-nav-icon">📄</span> Request Details
+            </a>
 
-    <div class="egc-nav-label">
-        MANAGEMENT
+            <a class="egc-nav-btn" href="owner-payment-details.html">
+                <span class="egc-nav-icon">💳</span> Payment Details
+            </a>
+
+            <a class="egc-nav-btn" href="owner-agency-details.html">
+                <span class="egc-nav-icon">🏬</span> Agency Details
+            </a>
+
+            <a class="egc-nav-btn" href="owner-deliveries.html">
+                <span class="egc-nav-icon">🚚</span> Deliveries
+            </a>
+
+            <a class="egc-nav-btn" href="owner-repayments.html">
+                <span class="egc-nav-icon">🔄</span> Repayments
+            </a>
+
+            <a class="egc-nav-btn" href="owner-notifications.html">
+                <span class="egc-nav-icon">🔔</span> Notifications
+            </a>
+
+            <a class="egc-nav-btn active" href="owner-slips.html">
+                <span class="egc-nav-icon">🧾</span> Slips
+            </a>
+
+            <a class="egc-nav-btn" href="owner-profile.html">
+                <span class="egc-nav-icon">👤</span> Profile
+            </a>
+        </nav>
     </div>
 
-    <nav class="egc-nav">
+    <div class="egc-nav-section">
+        <div class="egc-nav-label">System</div>
 
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="dashboardBtn"
-        >
-            <span class="egc-nav-icon">▦</span>
-            Dashboard
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="usersBtn"
-        >
-            <span class="egc-nav-icon">👥</span>
-            Users
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="agenciesBtn"
-        >
-            <span class="egc-nav-icon">🏪</span>
-            LPG Agencies
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="companiesBtn"
-        >
-            <span class="egc-nav-icon">🏢</span>
-            LPG Companies
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="pendingApprovalsBtn"
-        >
-            <span class="egc-nav-icon">⏳</span>
-            Pending Approvals
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="requestsBtn"
-        >
-            <span class="egc-nav-icon">🛢</span>
-            Cylinder Requests
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="paymentsBtn"
-        >
-            <span class="egc-nav-icon">₹</span>
-            Payments
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="reportsBtn"
-        >
-            <span class="egc-nav-icon">▤</span>
-            Reports
-        </button>
-
-    </nav>
-
-
-    <!-- OWNER PAGES -->
-
-    <div
-        class="egc-nav-label"
-        style="margin-top:22px;"
-    >
-        OWNER PAGES
+        <nav class="egc-nav">
+            <a class="egc-nav-btn" href="owner-settings.html">
+                <span class="egc-nav-icon">⚙</span> Settings
+            </a>
+        </nav>
     </div>
-
-    <nav class="egc-nav">
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="requestDetailsBtn"
-        >
-            <span class="egc-nav-icon">📄</span>
-            Request Details
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="paymentDetailsBtn"
-        >
-            <span class="egc-nav-icon">💳</span>
-            Payment Details
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="agencyDetailsBtn"
-        >
-            <span class="egc-nav-icon">🏪</span>
-            Agency Details
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="deliveriesBtn"
-        >
-            <span class="egc-nav-icon">🚚</span>
-            Deliveries
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="repaymentsBtn"
-        >
-            <span class="egc-nav-icon">💰</span>
-            Repayments
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="notificationsBtn"
-        >
-            <span class="egc-nav-icon">🔔</span>
-            Notifications
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn active"
-            id="slipsBtn"
-        >
-            <span class="egc-nav-icon">🧾</span>
-            Slips
-        </button>
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="profileBtn"
-        >
-            <span class="egc-nav-icon">👤</span>
-            Profile
-        </button>
-
-    </nav>
-
-
-    <!-- SYSTEM -->
-
-    <div
-        class="egc-nav-label"
-        style="margin-top:22px;"
-    >
-        SYSTEM
-    </div>
-
-    <nav class="egc-nav">
-
-        <button
-            type="button"
-            class="egc-nav-btn"
-            id="settingsBtn"
-        >
-            <span class="egc-nav-icon">⚙</span>
-            Settings
-        </button>
-
-    </nav>
-
-
-    <!-- LOGOUT -->
 
     <div class="egc-sidebar-bottom">
-
-        <button
-            type="button"
-            id="logoutBtn"
-            class="egc-nav-btn egc-logout-nav"
-        >
-            <span class="egc-nav-icon">🚪</span>
-            Logout
+        <button type="button" id="logoutBtn" class="egc-nav-btn egc-logout-nav">
+            <span class="egc-nav-icon">↪</span> Logout
         </button>
-
     </div>
 
 </aside>
 
-
-<!-- =======================================================
-     MAIN CONTENT — OWNER SLIPS
-======================================================== -->
-
+<!-- MAIN CONTENT -->
 <main class="egc-main">
 
     <section class="egc-page-head">
-
         <div>
-
-            <h1 class="egc-page-title">
-                Payment Slips
-            </h1>
-
+            <h1 class="egc-page-title">Payment Slips</h1>
             <div class="egc-page-subtitle">
                 View customer payments and generate payment receipts.
             </div>
-
         </div>
 
-
         <div class="egc-page-actions">
-
-            <button
-                type="button"
-                id="backBtn"
-                class="egc-top-btn"
-            >
+            <button type="button" id="backBtn" class="egc-top-btn">
                 ← Back
             </button>
 
-            <button
-                type="button"
-                id="refreshBtn"
-                class="egc-top-btn primary"
-            >
+            <button type="button" id="refreshBtn" class="egc-top-btn primary">
                 ↻ Refresh
             </button>
-
         </div>
-
     </section>
 
-
-    <!-- ===================================================
-         STATS
-    ==================================================== -->
-
+    <!-- STATISTICS -->
     <section class="egc-stats">
 
         <div class="egc-stat-card">
-
             <div class="egc-stat-top">
-
-                <div class="egc-stat-label">
-                    TOTAL PAYMENTS
-                </div>
-
-                <div class="egc-stat-icon">
-                    🧾
-                </div>
-
+                <div class="egc-stat-label">TOTAL PAYMENTS</div>
+                <div class="egc-stat-icon">💳</div>
             </div>
-
-            <div
-                id="totalPayments"
-                class="egc-stat-value"
-            >
-                0
-            </div>
-
+            <div class="egc-stat-value" id="totalPayments">0</div>
+            <div class="egc-stat-note">All payment records</div>
         </div>
 
-
         <div class="egc-stat-card">
-
             <div class="egc-stat-top">
-
-                <div class="egc-stat-label">
-                    PAID
-                </div>
-
-                <div class="egc-stat-icon">
-                    ✓
-                </div>
-
+                <div class="egc-stat-label">PAID PAYMENTS</div>
+                <div class="egc-stat-icon green">✓</div>
             </div>
-
-            <div
-                id="paidPayments"
-                class="egc-stat-value"
-            >
-                0
-            </div>
-
+            <div class="egc-stat-value" id="paidPayments">0</div>
+            <div class="egc-stat-note">Successfully paid records</div>
         </div>
 
-
         <div class="egc-stat-card">
-
             <div class="egc-stat-top">
-
-                <div class="egc-stat-label">
-                    PENDING
-                </div>
-
-                <div class="egc-stat-icon">
-                    ⏳
-                </div>
-
+                <div class="egc-stat-label">PENDING PAYMENTS</div>
+                <div class="egc-stat-icon orange">◷</div>
             </div>
-
-            <div
-                id="pendingPayments"
-                class="egc-stat-value"
-            >
-                0
-            </div>
-
+            <div class="egc-stat-value" id="pendingPayments">0</div>
+            <div class="egc-stat-note">Awaiting payment confirmation</div>
         </div>
 
-
         <div class="egc-stat-card">
-
             <div class="egc-stat-top">
-
-                <div class="egc-stat-label">
-                    TOTAL PAID AMOUNT
-                </div>
-
-                <div class="egc-stat-icon">
-                    ₹
-                </div>
-
+                <div class="egc-stat-label">TOTAL PAID AMOUNT</div>
+                <div class="egc-stat-icon purple">₹</div>
             </div>
-
-            <div
-                id="totalAmount"
-                class="egc-stat-value"
-            >
-                ₹0
-            </div>
-
+            <div class="egc-stat-value" id="totalAmount">₹0</div>
+            <div class="egc-stat-note">Sum of paid payments</div>
         </div>
 
     </section>
 
-
-    <!-- ===================================================
-         FILTER
-    ==================================================== -->
-
+    <!-- SEARCH AND FILTER -->
     <section class="egc-filter-card">
+        <div class="egc-filter-title">Search & Filter Payments</div>
 
         <div class="egc-filter-row">
 
             <div class="egc-search-wrap">
-
-                <span class="egc-search-icon">
-                    🔎
-                </span>
-
+                <span class="egc-search-icon">⌕</span>
                 <input
                     type="search"
                     id="searchInput"
                     class="egc-input egc-search-input"
-                    placeholder="Search customer, phone, payment ID..."
+                    placeholder="Search customer, request ID or payment ID..."
                     autocomplete="off"
                 >
-
             </div>
 
-
-            <select
-                id="statusFilter"
-                class="egc-select"
-            >
-
-                <option value="all">
-                    All Status
-                </option>
-
-                <option value="paid">
-                    Paid
-                </option>
-
-                <option value="pending">
-                    Pending
-                </option>
-
-                <option value="failed">
-                    Failed
-                </option>
-
+            <select id="statusFilter" class="egc-select">
+                <option value="all">All Payment Statuses</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed / Rejected</option>
             </select>
 
-
-            <button
-                type="button"
-                id="clearSearch"
-                class="egc-clear-btn"
-            >
-                Clear
+            <button type="button" id="clearSearch" class="egc-clear-btn">
+                ✕ Clear Filters
             </button>
 
         </div>
-
     </section>
 
-
-    <!-- ===================================================
-         PAYMENT TABLE
-    ==================================================== -->
-
+    <!-- PAYMENTS TABLE -->
     <section class="egc-table-card">
 
+        <div class="egc-table-head">
+            <div>
+                <div class="egc-table-title">Payment Records</div>
+                <div class="egc-table-subtitle">
+                    View payment details and print receipts.
+                </div>
+            </div>
+
+            <div id="recordCount" class="egc-record-count">
+                0 records
+            </div>
+        </div>
+
         <div class="egc-table-wrap">
-
             <table class="egc-table">
-
                 <thead>
-
                     <tr>
-
-                        <th>
-                            Customer
-                        </th>
-
-                        <th>
-                            Request ID
-                        </th>
-
-                        <th>
-                            Payment ID
-                        </th>
-
-                        <th>
-                            Amount
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                        <th>
-                            Date
-                        </th>
-
-                        <th>
-                            Action
-                        </th>
-
+                        <th>Customer</th>
+                        <th>Request ID</th>
+                        <th>Payment ID</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Action</th>
                     </tr>
-
                 </thead>
 
                 <tbody id="paymentsBody">
-
                     <tr>
-
-                        <td
-                            colspan="7"
-                            class="egc-loading"
-                        >
-
+                        <td colspan="7" class="egc-loading">
                             <div class="egc-spinner"></div>
-
-                            Loading payment slips...
-
+                            Loading payment records...
                         </td>
-
                     </tr>
-
                 </tbody>
-
             </table>
-
         </div>
 
-
         <div class="egc-table-footer">
-
-            <div
-                id="paginationInfo"
-                class="egc-pagination-info"
-            >
-                Showing 0 payments
+            <div id="paginationInfo" class="egc-pagination-info">
+                Showing 0 records
             </div>
 
-            <div
-                id="paginationButtons"
-                class="egc-pagination"
-            >
-            </div>
-
+            <div id="paginationButtons" class="egc-pagination"></div>
         </div>
 
     </section>
 
 </main>
 
-
-<!-- =======================================================
-     PAYMENT DETAIL MODAL
-======================================================== -->
-
-<div
-    id="paymentModal"
-    class="egc-modal"
->
+<!-- PAYMENT DETAILS MODAL -->
+<div id="paymentModal" class="egc-modal" role="dialog" aria-modal="true">
 
     <div class="egc-modal-box">
 
         <div class="egc-modal-header">
-
             <div>
-
-                <div
-                    id="paymentModalTitle"
-                    class="egc-modal-title"
-                >
-                    Payment Slip
+                <div id="paymentModalTitle" class="egc-modal-title">
+                    Payment Details
                 </div>
-
-                <div
-                    id="paymentModalSubtitle"
-                    class="egc-modal-subtitle"
-                >
-                    Customer payment details
+                <div id="paymentModalSubtitle" class="egc-modal-subtitle">
+                    Customer payment receipt
                 </div>
-
             </div>
 
             <button
                 type="button"
                 id="paymentModalClose"
                 class="egc-modal-close"
-            >
-                ×
-            </button>
-
+                aria-label="Close"
+            >×</button>
         </div>
 
-
-        <div class="egc-modal-body">
-
-            <div id="paymentDetails"></div>
-
-        </div>
-
+        <div class="egc-modal-body" id="paymentDetails"></div>
 
         <div class="egc-modal-footer">
-
-            <button
-                type="button"
-                id="paymentCloseBtn"
-                class="egc-modal-btn"
-            >
+            <button type="button" id="paymentCloseBtn" class="egc-modal-btn">
                 Close
             </button>
 
-            <button
-                type="button"
-                id="printSlipBtn"
-                class="egc-modal-btn primary"
-            >
-                🖨 Print Slip
+            <button type="button" id="printSlipBtn" class="egc-modal-btn primary">
+                🖨 Print Payment Slip
             </button>
-
         </div>
 
     </div>
-
 </div>
 
-
-<!-- =======================================================
-     LOGOUT CONFIRMATION MODAL
-======================================================== -->
-
-<div
-    id="logoutModal"
-    class="egc-modal"
->
+<!-- LOGOUT CONFIRMATION -->
+<div id="logoutModal" class="egc-modal" role="dialog" aria-modal="true">
 
     <div class="egc-logout-box">
+        <div class="egc-logout-icon">↪</div>
 
-        <div class="egc-logout-icon">
-            🚪
-        </div>
-
-        <div class="egc-logout-title">
-            Logout?
-        </div>
+        <div class="egc-logout-title">Logout Confirmation</div>
 
         <div class="egc-logout-text">
-            Are you sure you want to logout from Owner Panel?
+            Are you sure you want to log out of the EGC Owner Panel?
         </div>
 
         <div class="egc-logout-actions">
-
-            <button
-                type="button"
-                id="logoutCancel"
-            >
+            <button type="button" id="logoutCancel" class="egc-logout-cancel">
                 Cancel
             </button>
 
-            <button
-                type="button"
-                id="logoutConfirm"
-                class="confirm"
-            >
-                Logout
+            <button type="button" id="logoutConfirm" class="egc-logout-confirm">
+                Yes, Logout
             </button>
-
         </div>
-
     </div>
 
 </div>
 
+<div id="toast" class="egc-toast"></div>
 <script>
 /* =========================================================
-   EGC OWNER SLIPS
-   SUPABASE CONFIGURATION
+   EGC OWNER SLIPS — GROUP PAYMENTS BY USER
+   Supabase Configuration
 ========================================================= */
 
 const SUPABASE_URL =
@@ -2495,105 +2028,63 @@ const supabaseClient = window.supabase.createClient(
    CONFIGURATION
 ========================================================= */
 
-const PAYMENTS_PER_PAGE = 10;
-
 const PAYMENT_TABLE = "payments";
 const REQUEST_TABLE = "cylinder_requests";
 const PROFILE_TABLE = "profiles";
+const PAYMENTS_PER_PAGE = 10;
 
 /* =========================================================
    STATE
 ========================================================= */
 
 let allPayments = [];
-let filteredPayments = [];
-
+let filteredGroups = [];
 let currentPage = 1;
 let currentPayment = null;
 let paymentsRealtimeChannel = null;
-
 let isLoadingPayments = false;
 let isSigningOut = false;
 let isPrinting = false;
+let activePrintWindow = null;
 
 /* =========================================================
-   DOM ELEMENTS
+   DOM
 ========================================================= */
 
-const menuBtn =
-    document.getElementById("menuBtn");
+const $ = id => document.getElementById(id);
 
-const sidebar =
-    document.getElementById("sidebar");
+const menuBtn = $("menuBtn");
+const sidebar = $("sidebar");
+const overlay = $("overlay");
 
-const overlay =
-    document.getElementById("overlay");
+const paymentsBody = $("paymentsBody");
+const searchInput = $("searchInput");
+const statusFilter = $("statusFilter");
+const clearSearch = $("clearSearch");
+const refreshBtn = $("refreshBtn");
+const backBtn = $("backBtn");
 
-const paymentsBody =
-    document.getElementById("paymentsBody");
+const totalPayments = $("totalPayments");
+const paidPayments = $("paidPayments");
+const pendingPayments = $("pendingPayments");
+const totalAmount = $("totalAmount");
 
-const searchInput =
-    document.getElementById("searchInput");
+const paginationInfo = $("paginationInfo");
+const paginationButtons = $("paginationButtons");
 
-const statusFilter =
-    document.getElementById("statusFilter");
+const paymentModal = $("paymentModal");
+const paymentModalClose = $("paymentModalClose");
+const paymentCloseBtn = $("paymentCloseBtn");
+const paymentDetails = $("paymentDetails");
+const printSlipBtn = $("printSlipBtn");
 
-const clearSearch =
-    document.getElementById("clearSearch");
-
-const refreshBtn =
-    document.getElementById("refreshBtn");
-
-const backBtn =
-    document.getElementById("backBtn");
-
-const totalPayments =
-    document.getElementById("totalPayments");
-
-const paidPayments =
-    document.getElementById("paidPayments");
-
-const pendingPayments =
-    document.getElementById("pendingPayments");
-
-const totalAmount =
-    document.getElementById("totalAmount");
-
-const paginationInfo =
-    document.getElementById("paginationInfo");
-
-const paginationButtons =
-    document.getElementById("paginationButtons");
-
-const paymentModal =
-    document.getElementById("paymentModal");
-
-const paymentModalClose =
-    document.getElementById("paymentModalClose");
-
-const paymentCloseBtn =
-    document.getElementById("paymentCloseBtn");
-
-const paymentDetails =
-    document.getElementById("paymentDetails");
-
-const printSlipBtn =
-    document.getElementById("printSlipBtn");
-
-const logoutBtn =
-    document.getElementById("logoutBtn");
-
-const logoutModal =
-    document.getElementById("logoutModal");
-
-const logoutCancel =
-    document.getElementById("logoutCancel");
-
-const logoutConfirm =
-    document.getElementById("logoutConfirm");
+const logoutBtn = $("logoutBtn");
+const logoutModal = $("logoutModal");
+const logoutCancel = $("logoutCancel");
+const logoutConfirm = $("logoutConfirm");
 
 /* =========================================================
-   SAFE HTML
+   GENERAL HELPERS
 ========================================================= */
 
 function escapeHtml(value) {
@@ -2606,9 +2097,7 @@ function escapeHtml(value) {
 }
 
 function getValue(object, keys, fallback = "") {
-    if (!object) {
-        return fallback;
-    }
+    if (!object) return fallback;
 
     for (const key of keys) {
         if (
@@ -2623,19 +2112,19 @@ function getValue(object, keys, fallback = "") {
     return fallback;
 }
 
-function getInitial(name) {
-    const text = String(name || "C").trim();
-    return (text.charAt(0) || "C").toUpperCase();
+function formatAmount(value) {
+    const amount = Number(value || 0);
+
+    return "₹" + (
+        Number.isFinite(amount) ? amount : 0
+    ).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
-/* =========================================================
-   DATE HELPERS
-========================================================= */
-
 function formatDateTime(value) {
-    if (!value) {
-        return "—";
-    }
+    if (!value) return "—";
 
     const date = new Date(value);
 
@@ -2652,97 +2141,8 @@ function formatDateTime(value) {
     });
 }
 
-function formatDate(value) {
-    if (!value) {
-        return "—";
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return String(value);
-    }
-
-    return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    });
-}
-
-/* =========================================================
-   CURRENCY
-========================================================= */
-
-function formatAmount(value) {
-    const amount = Number(value || 0);
-
-    if (!Number.isFinite(amount)) {
-        return "₹0.00";
-    }
-
-    return "₹" + amount.toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-/* =========================================================
-   STATUS NORMALIZATION
-========================================================= */
-
-function normalizeStatus(payment) {
-    const raw = String(
-        getValue(
-            payment,
-            [
-                "status",
-                "payment_status",
-                "transaction_status"
-            ],
-            "pending"
-        )
-    ).toLowerCase().trim();
-
-    if (
-        [
-            "paid",
-            "success",
-            "successful",
-            "completed",
-            "complete",
-            "verified",
-            "approved"
-        ].includes(raw)
-    ) {
-        return "paid";
-    }
-
-    if (
-        [
-            "failed",
-            "failure",
-            "cancelled",
-            "canceled",
-            "rejected"
-        ].includes(raw)
-    ) {
-        return "failed";
-    }
-
-    return "pending";
-}
-
-function statusLabel(status) {
-    if (status === "paid") {
-        return "Paid";
-    }
-
-    if (status === "failed") {
-        return "Failed";
-    }
-
-    return "Pending";
+function getInitial(name) {
+    return String(name || "C").trim().charAt(0).toUpperCase() || "C";
 }
 
 /* =========================================================
@@ -2752,11 +2152,7 @@ function statusLabel(status) {
 function getUserId(payment) {
     return getValue(
         payment,
-        [
-            "user_id",
-            "customer_id",
-            "profile_id"
-        ],
+        ["user_id", "customer_id", "profile_id"],
         ""
     );
 }
@@ -2764,11 +2160,7 @@ function getUserId(payment) {
 function getRequestId(payment) {
     return getValue(
         payment,
-        [
-            "request_id",
-            "cylinder_request_id",
-            "requestId"
-        ],
+        ["request_id", "cylinder_request_id", "requestId"],
         ""
     );
 }
@@ -2789,147 +2181,336 @@ function getPaymentId(payment) {
 }
 
 function getPaymentAmount(payment) {
-    return getValue(
+    return Number(getValue(
         payment,
-        [
-            "amount",
-            "payment_amount",
-            "paid_amount",
-            "total_amount"
-        ],
+        ["amount", "payment_amount", "paid_amount", "total_amount"],
         0
-    );
+    )) || 0;
 }
 
 function getPaymentDate(payment) {
     return getValue(
         payment,
-        [
-            "paid_at",
-            "payment_date",
-            "created_at",
-            "updated_at"
-        ],
+        ["paid_at", "payment_date", "created_at", "updated_at"],
         null
-    );
-}
-
-function getPaymentReference(payment) {
-    return getValue(
-        payment,
-        [
-            "payment_reference",
-            "reference",
-            "transaction_reference",
-            "utr",
-            "upi_transaction_id",
-            "transaction_id"
-        ],
-        "—"
     );
 }
 
 function getPaymentMethod(payment) {
     return getValue(
         payment,
-        [
-            "payment_method",
-            "method",
-            "mode"
-        ],
+        ["payment_method", "method", "mode"],
         "UPI"
     );
+}
+
+/* =========================================================
+   SCREENSHOT DETECTION
+========================================================= */
+
+/*
+  Screenshot can be stored in a dedicated screenshot column
+  or, in some records, inside a reference field.
+
+  Detect only URLs that appear to be image/storage URLs.
+  A normal transaction reference must not be treated as
+  a screenshot.
+*/
+
+function isScreenshotUrl(value) {
+    if (typeof value !== "string") return false;
+
+    const text = value.trim();
+
+    if (!/^https?:\/\//i.test(text)) {
+        return false;
+    }
+
+    try {
+        const url = new URL(text);
+        const path = decodeURIComponent(url.pathname).toLowerCase();
+
+        const isPaymentScreenshotBucket =
+            path.includes("/payment-screenshots/");
+
+        const isImageFile =
+            /\.(png|jpe?g|webp|gif|bmp|avif)(?:$|\/)/i.test(path);
+
+        return isPaymentScreenshotBucket || isImageFile;
+
+    } catch {
+        return false;
+    }
+}
+
+function getPaymentScreenshot(payment) {
+    if (!payment) return "";
+
+    /*
+      First look for dedicated screenshot fields.
+    */
+
+    const screenshotFields = [
+        "screenshot_url",
+        "payment_screenshot",
+        "payment_screenshot_url",
+        "screenshot",
+        "proof_url",
+        "proof_image",
+        "receipt_url",
+        "image_url",
+        "payment_proof",
+        "screenshot_path"
+    ];
+
+    for (const field of screenshotFields) {
+        const value = payment[field];
+
+        if (typeof value === "string" && value.trim()) {
+            if (isScreenshotUrl(value)) {
+                return value.trim();
+            }
+        }
+    }
+
+    /*
+      Some existing records may have the screenshot URL
+      stored in payment_reference instead of a screenshot
+      column. Check the likely reference fields.
+    */
+
+    const possibleReferenceFields = [
+        "payment_reference",
+        "reference",
+        "transaction_reference",
+        "utr",
+        "upi_transaction_id",
+        "transaction_id"
+    ];
+
+    for (const field of possibleReferenceFields) {
+        const value = payment[field];
+
+        if (isScreenshotUrl(value)) {
+            return String(value).trim();
+        }
+    }
+
+    return "";
+}
+
+/*
+  Return the first actual reference that is NOT a screenshot
+  URL. If none exists, return a dash.
+*/
+
+function getPaymentReference(payment) {
+    const referenceFields = [
+        "payment_reference",
+        "reference",
+        "transaction_reference",
+        "utr",
+        "upi_transaction_id",
+        "transaction_ref",
+        "bank_reference",
+        "external_transaction_id"
+    ];
+
+    for (const field of referenceFields) {
+        const value = payment?.[field];
+
+        if (
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== "" &&
+            !isScreenshotUrl(String(value))
+        ) {
+            return String(value).trim();
+        }
+    }
+
+    /*
+      Use a transaction ID only if it is not an image URL.
+    */
+
+    const transactionId = getValue(
+        payment,
+        [
+            "razorpay_payment_id",
+            "txn_id",
+            "transaction_id"
+        ],
+        ""
+    );
+
+    if (
+        transactionId &&
+        !isScreenshotUrl(String(transactionId))
+    ) {
+        return String(transactionId);
+    }
+
+    return "—";
+}
+
+function createScreenshotRow(payment) {
+    const screenshotUrl = getPaymentScreenshot(payment);
+
+    if (!screenshotUrl) {
+        return `
+            <div class="egc-screenshot-section">
+                <div class="egc-screenshot-title">
+                    Payment Screenshot
+                </div>
+
+                <div class="egc-screenshot-unavailable">
+                    No screenshot available for this payment.
+                </div>
+            </div>
+        `;
+    }
+
+    const safeUrl = escapeHtml(screenshotUrl);
+
+    return `
+        <div class="egc-screenshot-section">
+            <div class="egc-screenshot-title">
+                Payment Screenshot
+            </div>
+
+            <a
+                href="${safeUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="egc-screenshot-link"
+            >
+                <img
+                    src="${safeUrl}"
+                    alt="Payment Screenshot"
+                    class="egc-payment-screenshot"
+                    loading="eager"
+                    onerror="
+                        this.style.display='none';
+                        const message=this.parentElement.querySelector('.egc-screenshot-error');
+                        if(message) message.style.display='block';
+                    "
+                >
+            </a>
+
+            <div
+                class="egc-screenshot-error"
+                style="display:none;"
+            >
+                Screenshot could not be loaded.
+                Check the Storage bucket permissions.
+            </div>
+
+            <a
+                href="${safeUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="egc-screenshot-open"
+            >
+                View Full Screenshot ↗
+            </a>
+        </div>
+    `;
+}
+
+/* =========================================================
+   PAYMENT STATUS
+========================================================= */
+
+function normalizeStatus(payment) {
+    const value = String(getValue(
+        payment,
+        ["status", "payment_status", "transaction_status"],
+        "pending"
+    )).toLowerCase().trim();
+
+    if ([
+        "paid",
+        "success",
+        "successful",
+        "completed",
+        "complete",
+        "verified",
+        "approved"
+    ].includes(value)) {
+        return "paid";
+    }
+
+    if ([
+        "failed",
+        "failure",
+        "cancelled",
+        "canceled",
+        "rejected"
+    ].includes(value)) {
+        return "failed";
+    }
+
+    return "pending";
+}
+
+function statusLabel(status) {
+    if (status === "paid") return "Paid";
+    if (status === "failed") return "Failed";
+
+    return "Pending";
 }
 
 /* =========================================================
    CUSTOMER DETAILS
 ========================================================= */
 
-function getCustomerName(payment) {
-    return getValue(
-        payment,
-        [
-            "customer_name",
-            "full_name",
-            "name"
-        ],
-        "Customer"
-    );
-}
-
-function getCustomerPhone(payment) {
-    return getValue(
-        payment,
-        [
-            "mobile",
-            "phone",
-            "mobile_number",
-            "customer_mobile"
-        ],
-        "—"
-    );
-}
-
 function getFinalCustomerName(payment) {
-    const profile = payment.__profile;
-    const request = payment.__request;
-
     return getValue(
         payment,
-        [
-            "customer_name",
-            "full_name",
-            "name"
-        ],
+        ["customer_name", "full_name", "name"],
         getValue(
-            profile,
-            [
-                "full_name",
-                "name"
-            ],
+            payment.__profile,
+            ["full_name", "name"],
             getValue(
-                request,
-                [
-                    "customer_name",
-                    "full_name",
-                    "name"
-                ],
-                getCustomerName(payment)
+                payment.__request,
+                ["customer_name", "full_name", "name"],
+                "Customer"
             )
         )
     );
 }
 
 function getFinalCustomerPhone(payment) {
-    const profile = payment.__profile;
-    const request = payment.__request;
-
     return getValue(
         payment,
-        [
-            "mobile",
-            "phone",
-            "mobile_number",
-            "customer_mobile"
-        ],
+        ["mobile", "phone", "mobile_number", "customer_mobile"],
         getValue(
-            profile,
-            [
-                "mobile",
-                "phone",
-                "mobile_number"
-            ],
+            payment.__profile,
+            ["mobile", "phone", "mobile_number"],
             getValue(
-                request,
-                [
-                    "mobile",
-                    "phone",
-                    "mobile_number",
-                    "customer_mobile"
-                ],
+                payment.__request,
+                ["mobile", "phone", "mobile_number", "customer_mobile"],
                 "—"
             )
         )
+    );
+}
+
+function getEmail(payment) {
+    return getValue(
+        payment,
+        ["email", "customer_email"],
+        getValue(payment.__profile, ["email"], "—")
+    );
+}
+
+function getReadableUserId(payment) {
+    const profile = payment.__profile || {};
+
+    return getValue(
+        profile,
+        ["egc_user_id", "egc_id", "user_code", "customer_code"],
+        getUserId(payment) || "Unknown User"
     );
 }
 
@@ -2942,117 +2523,91 @@ async function checkOwnerSession() {
         const { data, error } =
             await supabaseClient.auth.getSession();
 
-        if (error) {
-            console.error("Session error:", error);
-            window.location.replace("owner-login.html");
-            return false;
-        }
-
-        if (!data?.session?.user) {
+        if (error || !data?.session?.user) {
             window.location.replace("owner-login.html");
             return false;
         }
 
         return true;
+
     } catch (error) {
-        console.error("Session exception:", error);
+        console.error("Owner session error:", error);
         window.location.replace("owner-login.html");
+
         return false;
     }
 }
 
 /* =========================================================
-   ENRICH PAYMENTS WITH PROFILES AND REQUESTS
+   ENRICH PAYMENT DATA
 ========================================================= */
 
 async function enrichPayments(payments) {
-    if (!Array.isArray(payments) || payments.length === 0) {
-        return [];
-    }
+    if (!payments.length) return [];
 
     const userIds = [
         ...new Set(
-            payments
-                .map(payment => getUserId(payment))
-                .filter(Boolean)
-                .map(String)
+            payments.map(getUserId).filter(Boolean).map(String)
         )
     ];
 
     const requestIds = [
         ...new Set(
-            payments
-                .map(payment => getRequestId(payment))
-                .filter(Boolean)
-                .map(String)
+            payments.map(getRequestId).filter(Boolean).map(String)
         )
     ];
 
     let profiles = [];
     let requests = [];
 
-    /* Load matching profiles */
+    if (userIds.length) {
+        const { data, error } = await supabaseClient
+            .from(PROFILE_TABLE)
+            .select("*")
+            .in("id", userIds);
 
-    if (userIds.length > 0) {
-        try {
-            const { data, error } = await supabaseClient
-                .from(PROFILE_TABLE)
-                .select("*")
-                .in("id", userIds);
-
-            if (error) {
-                console.warn("Profiles lookup warning:", error);
-            } else {
-                profiles = data || [];
-            }
-        } catch (error) {
-            console.warn("Profiles lookup exception:", error);
+        if (error) {
+            console.warn("Profile lookup:", error.message);
+        } else {
+            profiles = data || [];
         }
     }
 
-    /* Load matching cylinder requests */
+    if (requestIds.length) {
+        const { data, error } = await supabaseClient
+            .from(REQUEST_TABLE)
+            .select("*")
+            .in("id", requestIds);
 
-    if (requestIds.length > 0) {
-        try {
-            const { data, error } = await supabaseClient
-                .from(REQUEST_TABLE)
-                .select("*")
-                .in("id", requestIds);
-
-            if (error) {
-                console.warn("Requests lookup warning:", error);
-            } else {
-                requests = data || [];
-            }
-        } catch (error) {
-            console.warn("Requests lookup exception:", error);
+        if (error) {
+            console.warn("Request lookup:", error.message);
+        } else {
+            requests = data || [];
         }
     }
 
-    const profileMap = new Map();
+    const profileMap = new Map(
+        profiles.map(profile => [String(profile.id), profile])
+    );
 
-    profiles.forEach(profile => {
-        if (profile?.id) {
-            profileMap.set(String(profile.id), profile);
-        }
-    });
-
-    const requestMap = new Map();
-
-    requests.forEach(request => {
-        if (request?.id) {
-            requestMap.set(String(request.id), request);
-        }
-    });
+    const requestMap = new Map(
+        requests.map(request => [String(request.id), request])
+    );
 
     return payments.map(payment => {
-        const userId = getUserId(payment);
-        const requestId = getRequestId(payment);
+        const request =
+            requestMap.get(String(getRequestId(payment))) || null;
+
+        const linkedUserId = getUserId(payment) ||
+            getValue(request, ["user_id", "customer_id", "profile_id"], "");
+
+        const profile =
+            profileMap.get(String(linkedUserId)) || null;
 
         return {
             ...payment,
-            __profile: profileMap.get(String(userId)) || null,
-            __request: requestMap.get(String(requestId)) || null
+            __profile: profile,
+            __request: request
         };
     });
 }
@@ -3062,103 +2617,171 @@ async function enrichPayments(payments) {
 ========================================================= */
 
 async function loadPayments() {
-    if (isLoadingPayments) {
-        return;
-    }
-
-    if (!paymentsBody) {
-        console.error("paymentsBody element not found.");
-        return;
-    }
+    if (isLoadingPayments || !paymentsBody) return;
 
     isLoadingPayments = true;
 
     paymentsBody.innerHTML = `
         <tr>
             <td colspan="7" class="egc-loading">
-                <div class="egc-spinner"></div>
                 Loading payment slips...
             </td>
         </tr>
     `;
 
     try {
-        let paymentRows = [];
-        let paymentResult = await supabaseClient
+        let result = await supabaseClient
             .from(PAYMENT_TABLE)
             .select("*")
-            .order("created_at", {
-                ascending: false
-            });
+            .order("created_at", { ascending: false });
 
-        if (!paymentResult.error) {
-            paymentRows = paymentResult.data || [];
+        let rows;
+
+        if (!result.error) {
+            rows = result.data || [];
+
         } else {
             console.warn(
-                "Payments table load failed:",
-                paymentResult.error
+                "Payments query failed; trying request records:",
+                result.error.message
             );
-
-            /*
-             * Fallback is used only if the payments query fails.
-             * It does not merge the two tables, preventing duplicates.
-             */
 
             const requestResult = await supabaseClient
                 .from(REQUEST_TABLE)
                 .select("*")
-                .order("created_at", {
-                    ascending: false
-                });
+                .order("created_at", { ascending: false });
 
             if (requestResult.error) {
                 throw requestResult.error;
             }
 
-            paymentRows = (requestResult.data || []).filter(item => {
-                return Boolean(
-                    item.payment_id ||
-                    item.transaction_id ||
-                    item.paid_amount ||
-                    item.payment_amount ||
-                    item.payment_status ||
-                    item.payment_date
-                );
-            });
+            rows = (requestResult.data || []).filter(item =>
+                item.payment_id ||
+                item.transaction_id ||
+                item.paid_amount ||
+                item.payment_amount ||
+                item.payment_status ||
+                item.payment_date
+            );
         }
 
-        allPayments = await enrichPayments(paymentRows);
-
-        currentPage = 1;
+        allPayments = await enrichPayments(rows);
 
         applyFilters();
+
     } catch (error) {
         console.error("Load payments error:", error);
-
-        allPayments = [];
-        filteredPayments = [];
 
         paymentsBody.innerHTML = `
             <tr>
                 <td colspan="7" class="egc-empty">
-                    Unable to load payment slips.
+                    Payment records load nahi ho sake.
                     <br><br>
-                    ${escapeHtml(
-                        error?.message || "Database error"
-                    )}
+                    ${escapeHtml(error.message || "Database error")}
                 </td>
             </tr>
         `;
 
         updateStats();
         renderPagination();
+
     } finally {
         isLoadingPayments = false;
     }
 }
 
 /* =========================================================
-   FILTER PAYMENTS
+   GROUP PAYMENTS BY USER
+========================================================= */
+
+function getUserGroupKey(payment) {
+    const userId = getUserId(payment);
+
+    if (userId) {
+        return "user:" + String(userId);
+    }
+
+    const requestUserId = getValue(
+        payment.__request,
+        ["user_id", "customer_id", "profile_id"],
+        ""
+    );
+
+    if (requestUserId) {
+        return "user:" + String(requestUserId);
+    }
+
+    return "payment:" + String(
+        payment.id || getPaymentId(payment)
+    );
+}
+
+function groupPaymentsByUser(payments) {
+    const groups = new Map();
+
+    payments.forEach(payment => {
+        const key = getUserGroupKey(payment);
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                key,
+                userId: getUserId(payment) ||
+                    getValue(
+                        payment.__request,
+                        ["user_id", "customer_id", "profile_id"],
+                        ""
+                    ),
+                profile: payment.__profile || null,
+                payments: []
+            });
+        }
+
+        const group = groups.get(key);
+
+        group.payments.push(payment);
+
+        if (!group.profile && payment.__profile) {
+            group.profile = payment.__profile;
+        }
+    });
+
+    return [...groups.values()].map(group => {
+        const firstPayment = group.payments[0];
+
+        const paidList = group.payments.filter(
+            payment => normalizeStatus(payment) === "paid"
+        );
+
+        const pendingList = group.payments.filter(
+            payment => normalizeStatus(payment) === "pending"
+        );
+
+        const failedList = group.payments.filter(
+            payment => normalizeStatus(payment) === "failed"
+        );
+
+        const paidTotal = paidList.reduce(
+            (sum, payment) => sum + getPaymentAmount(payment),
+            0
+        );
+
+        return {
+            ...group,
+            name: getFinalCustomerName(firstPayment),
+            phone: getFinalCustomerPhone(firstPayment),
+            readableId: getReadableUserId(firstPayment),
+            totalCount: group.payments.length,
+            paidCount: paidList.length,
+            pendingCount: pendingList.length,
+            failedCount: failedList.length,
+            paidTotal,
+            firstDate: getPaymentDate(firstPayment)
+        };
+    });
+}
+
+/* =========================================================
+   FILTERS
 ========================================================= */
 
 function applyFilters() {
@@ -3170,36 +2793,34 @@ function applyFilters() {
         statusFilter?.value || "all"
     ).toLowerCase();
 
-    filteredPayments = allPayments.filter(payment => {
-        const status = normalizeStatus(payment);
+    let groups = groupPaymentsByUser(allPayments);
 
-        if (
-            selectedStatus !== "all" &&
-            status !== selectedStatus
-        ) {
-            return false;
+    groups = groups.filter(group => {
+        if (selectedStatus !== "all") {
+            const matching = group.payments.some(
+                payment =>
+                    normalizeStatus(payment) === selectedStatus
+            );
+
+            if (!matching) return false;
         }
 
-        if (!search) {
-            return true;
-        }
+        if (!search) return true;
 
         const searchable = [
-            getFinalCustomerName(payment),
-            getFinalCustomerPhone(payment),
-            getUserId(payment),
-            getRequestId(payment),
-            getPaymentId(payment),
-            getPaymentReference(payment),
-            getPaymentMethod(payment)
-        ]
-            .map(value => String(value || ""))
-            .join(" ")
-            .toLowerCase();
+            group.name,
+            group.phone,
+            group.readableId,
+            group.userId,
+            ...group.payments.map(payment => getRequestId(payment)),
+            ...group.payments.map(payment => getPaymentId(payment)),
+            ...group.payments.map(payment => getPaymentReference(payment))
+        ].join(" ").toLowerCase();
 
         return searchable.includes(search);
     });
 
+    filteredGroups = groups;
     currentPage = 1;
 
     renderPayments();
@@ -3212,56 +2833,44 @@ function applyFilters() {
 ========================================================= */
 
 function updateStats() {
-    const total = allPayments.length;
+    const paid = allPayments.filter(
+        payment => normalizeStatus(payment) === "paid"
+    );
 
-    let paid = 0;
-    let pending = 0;
-    let amount = 0;
+    const pending = allPayments.filter(
+        payment => normalizeStatus(payment) === "pending"
+    );
 
-    allPayments.forEach(payment => {
-        const status = normalizeStatus(payment);
-
-        if (status === "paid") {
-            paid++;
-
-            const numericAmount =
-                Number(getPaymentAmount(payment));
-
-            if (Number.isFinite(numericAmount)) {
-                amount += numericAmount;
-            }
-        } else if (status === "pending") {
-            pending++;
-        }
-    });
+    const paidTotal = paid.reduce(
+        (sum, payment) => sum + getPaymentAmount(payment),
+        0
+    );
 
     if (totalPayments) {
-        totalPayments.textContent = total;
+        totalPayments.textContent = allPayments.length;
     }
 
     if (paidPayments) {
-        paidPayments.textContent = paid;
+        paidPayments.textContent = paid.length;
     }
 
     if (pendingPayments) {
-        pendingPayments.textContent = pending;
+        pendingPayments.textContent = pending.length;
     }
 
     if (totalAmount) {
-        totalAmount.textContent = formatAmount(amount);
+        totalAmount.textContent = formatAmount(paidTotal);
     }
 }
 
 /* =========================================================
-   RENDER PAYMENTS TABLE
+   RENDER ONE ROW PER USER
 ========================================================= */
 
 function renderPayments() {
-    if (!paymentsBody) {
-        return;
-    }
+    if (!paymentsBody) return;
 
-    if (filteredPayments.length === 0) {
+    if (!filteredGroups.length) {
         paymentsBody.innerHTML = `
             <tr>
                 <td colspan="7" class="egc-empty">
@@ -3273,38 +2882,41 @@ function renderPayments() {
         return;
     }
 
-    const start =
-        (currentPage - 1) * PAYMENTS_PER_PAGE;
+    const start = (currentPage - 1) * PAYMENTS_PER_PAGE;
 
-    const pageItems = filteredPayments.slice(
+    const pageGroups = filteredGroups.slice(
         start,
         start + PAYMENTS_PER_PAGE
     );
 
-    paymentsBody.innerHTML = pageItems.map(payment => {
-        const name = getFinalCustomerName(payment);
-        const phone = getFinalCustomerPhone(payment);
-        const requestId = getRequestId(payment) || "—";
-        const paymentId = getPaymentId(payment);
-        const amount = getPaymentAmount(payment);
-        const status = normalizeStatus(payment);
-        const date = formatDateTime(getPaymentDate(payment));
+    paymentsBody.innerHTML = pageGroups.map(group => {
+        const statusText = group.pendingCount
+            ? "Pending"
+            : group.paidCount
+                ? "Paid"
+                : "Failed";
+
+        const statusClass = group.pendingCount
+            ? "pending"
+            : group.paidCount
+                ? "paid"
+                : "failed";
 
         return `
             <tr>
                 <td>
                     <div class="egc-customer">
                         <div class="egc-avatar">
-                            ${escapeHtml(getInitial(name))}
+                            ${escapeHtml(getInitial(group.name))}
                         </div>
 
                         <div>
                             <div class="egc-customer-name">
-                                ${escapeHtml(name)}
+                                ${escapeHtml(group.name)}
                             </div>
 
                             <div class="egc-customer-phone">
-                                ${escapeHtml(phone)}
+                                ${escapeHtml(group.phone)}
                             </div>
                         </div>
                     </div>
@@ -3312,47 +2924,47 @@ function renderPayments() {
 
                 <td>
                     <div class="egc-id">
-                        ${escapeHtml(requestId)}
+                        ${escapeHtml(group.readableId)}
                     </div>
+                    <small>EGC User ID</small>
                 </td>
 
                 <td>
                     <div class="egc-id">
-                        ${escapeHtml(paymentId)}
+                        ${escapeHtml(group.userId || "—")}
+                    </div>
+                    <small>Database User ID</small>
+                </td>
+
+                <td>
+                    <strong>${group.totalCount}</strong>
+                    <div class="egc-customer-phone">
+                        ${group.paidCount} paid
+                        ${group.pendingCount
+                            ? " · " + group.pendingCount + " pending"
+                            : ""}
                     </div>
                 </td>
 
                 <td>
                     <div class="egc-amount">
-                        ${formatAmount(amount)}
+                        ${formatAmount(group.paidTotal)}
                     </div>
                 </td>
 
                 <td>
-                    <span class="egc-status ${status}">
-                        ${statusLabel(status)}
+                    <span class="egc-status ${statusClass}">
+                        ${statusText}
                     </span>
-                </td>
-
-                <td>
-                    ${escapeHtml(date)}
                 </td>
 
                 <td>
                     <button
                         type="button"
                         class="egc-action-btn"
-                        data-view-payment="${escapeHtml(payment.id)}"
+                        data-view-user="${escapeHtml(group.key)}"
                     >
-                        View
-                    </button>
-
-                    <button
-                        type="button"
-                        class="egc-action-btn print"
-                        data-print-payment="${escapeHtml(payment.id)}"
-                    >
-                        Print
+                        View All Slips (${group.totalCount})
                     </button>
                 </td>
             </tr>
@@ -3361,251 +2973,199 @@ function renderPayments() {
 }
 
 /* =========================================================
-   TABLE ACTIONS
+   SLIP ROW HELPER
 ========================================================= */
 
-if (paymentsBody) {
-    paymentsBody.addEventListener("click", function(event) {
-        const viewButton = event.target.closest(
-            "[data-view-payment]"
-        );
-
-        const printButton = event.target.closest(
-            "[data-print-payment]"
-        );
-
-        if (viewButton) {
-            const id = viewButton.dataset.viewPayment;
-
-            const payment = filteredPayments.find(item =>
-                String(item.id) === String(id)
-            );
-
-            if (payment) {
-                openPaymentModal(payment);
-            }
-        }
-
-        if (printButton) {
-            const id = printButton.dataset.printPayment;
-
-            const payment = filteredPayments.find(item =>
-                String(item.id) === String(id)
-            );
-
-            if (payment) {
-                printPaymentSlip(payment);
-            }
-        }
-    });
+function createSlipRow(label, value) {
+    return `
+        <div class="egc-slip-row">
+            <span>${escapeHtml(label)}</span>
+            <span>${escapeHtml(value)}</span>
+        </div>
+    `;
 }
 
 /* =========================================================
-   PAGINATION
+   VIEW ALL SLIPS FOR A USER
 ========================================================= */
 
-function renderPagination() {
-    if (!paginationButtons || !paginationInfo) {
-        return;
-    }
-
-    paginationButtons.innerHTML = "";
-
-    if (filteredPayments.length === 0) {
-        paginationInfo.textContent = "Showing 0 payments";
-        return;
-    }
-
-    const totalPages = Math.ceil(
-        filteredPayments.length / PAYMENTS_PER_PAGE
+function openUserSlips(groupKey) {
+    const group = filteredGroups.find(
+        item => item.key === groupKey
     );
 
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
+    if (!group || !paymentModal || !paymentDetails) return;
+
+    currentPayment = null;
+
+    const title = $("paymentModalTitle");
+    const subtitle = $("paymentModalSubtitle");
+
+    if (title) {
+        title.textContent = "Customer Payment Slips";
     }
 
-    const start =
-        (currentPage - 1) * PAYMENTS_PER_PAGE + 1;
-
-    const end = Math.min(
-        currentPage * PAYMENTS_PER_PAGE,
-        filteredPayments.length
-    );
-
-    paginationInfo.textContent =
-        `Showing ${start}–${end} of ${filteredPayments.length} payments`;
-
-    if (totalPages <= 1) {
-        return;
+    if (subtitle) {
+        subtitle.textContent =
+            group.name + " · " + group.totalCount + " payment(s)";
     }
 
-    function createPageButton(label, page, disabled = false, active = false) {
-        const button = document.createElement("button");
+    const firstPayment = group.payments[0];
 
-        button.type = "button";
-        button.className = "egc-page-btn";
-        button.textContent = label;
-        button.disabled = disabled;
+    paymentDetails.innerHTML = `
+        <div class="egc-detail-grid">
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Customer</div>
+                <div class="egc-detail-value">
+                    ${escapeHtml(group.name)}
+                </div>
+            </div>
 
-        if (active) {
-            button.classList.add("active");
-        }
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">EGC User ID</div>
+                <div class="egc-detail-value">
+                    ${escapeHtml(group.readableId)}
+                </div>
+            </div>
 
-        button.addEventListener("click", function() {
-            if (page < 1 || page > totalPages) {
-                return;
-            }
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Database User ID</div>
+                <div class="egc-detail-value">
+                    ${escapeHtml(group.userId || "—")}
+                </div>
+            </div>
 
-            currentPage = page;
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Mobile</div>
+                <div class="egc-detail-value">
+                    ${escapeHtml(group.phone)}
+                </div>
+            </div>
 
-            renderPayments();
-            renderPagination();
-        });
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Email</div>
+                <div class="egc-detail-value">
+                    ${escapeHtml(getEmail(firstPayment))}
+                </div>
+            </div>
 
-        paginationButtons.appendChild(button);
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Total Payments</div>
+                <div class="egc-detail-value">
+                    ${group.totalCount}
+                </div>
+            </div>
+
+            <div class="egc-detail-box">
+                <div class="egc-detail-label">Total Paid</div>
+                <div class="egc-detail-value amount">
+                    ${formatAmount(group.paidTotal)}
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin:22px 0 12px;">
+            All Payment Slips
+        </h3>
+
+        <div class="egc-user-slip-list">
+            ${group.payments.map((payment, index) => {
+                const status = normalizeStatus(payment);
+
+                return `
+                    <div class="egc-slip-box">
+                        <div class="egc-slip-head">
+                            <div class="egc-slip-heading">
+                                Payment Slip ${index + 1}
+                            </div>
+
+                            <div class="egc-slip-small">
+                                ${escapeHtml(formatDateTime(
+                                    getPaymentDate(payment)
+                                ))}
+                            </div>
+
+                            <span class="egc-slip-status ${status}">
+                                ${statusLabel(status)}
+                            </span>
+                        </div>
+
+                        <div class="egc-slip-body">
+                            ${createSlipRow("Customer", group.name)}
+                            ${createSlipRow("EGC User ID", group.readableId)}
+                            ${createSlipRow("Database User ID", group.userId || "—")}
+                            ${createSlipRow("Mobile", group.phone)}
+                            ${createSlipRow("Request ID", getRequestId(payment) || "—")}
+                            ${createSlipRow("Payment ID", getPaymentId(payment))}
+                            ${createSlipRow("Payment Method", getPaymentMethod(payment))}
+                            ${createSlipRow("Transaction Reference", getPaymentReference(payment))}
+                            ${createScreenshotRow(payment)}
+                            ${createSlipRow("Payment Date", formatDateTime(getPaymentDate(payment)))}
+                            ${createSlipRow("Status", statusLabel(status))}
+
+                            <div class="egc-slip-total">
+                                <span>Payment Amount</span>
+                                <span>${formatAmount(getPaymentAmount(payment))}</span>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="egc-action-btn print"
+                                data-print-user-payment="${escapeHtml(
+                                    String(payment.id || "")
+                                )}"
+                                data-print-group="${escapeHtml(group.key)}"
+                            >
+                                Print This Slip
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join("")}
+        </div>
+    `;
+
+    if (printSlipBtn) {
+        printSlipBtn.style.display = "none";
     }
 
-    createPageButton(
-        "‹",
-        currentPage - 1,
-        currentPage === 1
-    );
-
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-
-    if (endPage - startPage < 4) {
-        startPage = Math.max(1, endPage - 4);
-    }
-
-    for (let page = startPage; page <= endPage; page++) {
-        createPageButton(
-            String(page),
-            page,
-            false,
-            page === currentPage
-        );
-    }
-
-    createPageButton(
-        "›",
-        currentPage + 1,
-        currentPage === totalPages
-    );
+    paymentModal.classList.add("show");
+    document.body.style.overflow = "hidden";
 }
 
 /* =========================================================
-   PAYMENT MODAL
+   INDIVIDUAL PAYMENT SLIP
 ========================================================= */
 
 function openPaymentModal(payment) {
-    if (!payment || !paymentModal || !paymentDetails) {
-        return;
-    }
+    if (!payment || !paymentModal || !paymentDetails) return;
 
     currentPayment = payment;
 
     const name = getFinalCustomerName(payment);
     const phone = getFinalCustomerPhone(payment);
     const userId = getUserId(payment) || "—";
+    const readableId = getReadableUserId(payment);
     const requestId = getRequestId(payment) || "—";
     const paymentId = getPaymentId(payment);
     const amount = getPaymentAmount(payment);
     const status = normalizeStatus(payment);
-    const paymentDate = getPaymentDate(payment);
-    const reference = getPaymentReference(payment);
-    const method = getPaymentMethod(payment);
-
     const request = payment.__request || {};
-    const profile = payment.__profile || {};
 
-    const state = getValue(request, ["state"], "—");
-    const district = getValue(request, ["district"], "—");
-    const city = getValue(request, ["city"], "—");
-
-    const lpgCompany = getValue(
-        request,
-        ["lpg_company", "gas_company", "company"],
-        "—"
-    );
-
-    const agency = getValue(
-        request,
-        ["lpg_agency", "gas_agency", "agency_name", "agency"],
-        "—"
-    );
-
-    const email = getValue(
-        payment,
-        ["email"],
-        getValue(profile, ["email"], "—")
-    );
-
-    const titleElement =
-        document.getElementById("paymentModalTitle");
-
-    const subtitleElement =
-        document.getElementById("paymentModalSubtitle");
-
-    if (titleElement) {
-        titleElement.textContent =
-            status === "paid" ? "Payment Receipt" : "Payment Details";
+    if ($("paymentModalTitle")) {
+        $("paymentModalTitle").textContent = "Payment Receipt";
     }
 
-    if (subtitleElement) {
-        subtitleElement.textContent =
-            `${name} • ${statusLabel(status)}`;
+    if ($("paymentModalSubtitle")) {
+        $("paymentModalSubtitle").textContent =
+            name + " · " + statusLabel(status);
+    }
+
+    if (printSlipBtn) {
+        printSlipBtn.style.display = "";
     }
 
     paymentDetails.innerHTML = `
-        <div class="egc-detail-grid">
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Customer</div>
-                <div class="egc-detail-value">${escapeHtml(name)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Mobile</div>
-                <div class="egc-detail-value">${escapeHtml(phone)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Email</div>
-                <div class="egc-detail-value">${escapeHtml(email)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">User ID</div>
-                <div class="egc-detail-value">${escapeHtml(userId)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Request ID</div>
-                <div class="egc-detail-value">${escapeHtml(requestId)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Payment ID</div>
-                <div class="egc-detail-value">${escapeHtml(paymentId)}</div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Status</div>
-                <div class="egc-detail-value">
-                    <span class="egc-status ${status}">
-                        ${statusLabel(status)}
-                    </span>
-                </div>
-            </div>
-
-            <div class="egc-detail-box">
-                <div class="egc-detail-label">Amount</div>
-                <div class="egc-detail-value amount">
-                    ${formatAmount(amount)}
-                </div>
-            </div>
-        </div>
-
         <div id="slipPrintArea" class="egc-slip-box">
             <div class="egc-slip-head">
                 <img
@@ -3614,9 +3174,7 @@ function openPaymentModal(payment) {
                     alt="EGC Logo"
                 >
 
-                <div class="egc-slip-heading">
-                    Payment Receipt
-                </div>
+                <div class="egc-slip-heading">Payment Receipt</div>
 
                 <div class="egc-slip-small">
                     Short-Term Emergency LPG Finance
@@ -3630,27 +3188,29 @@ function openPaymentModal(payment) {
             <div class="egc-slip-body">
                 ${createSlipRow("Customer", name)}
                 ${createSlipRow("Mobile", phone)}
-                ${createSlipRow("Email", email)}
-                ${createSlipRow("User ID", userId)}
+                ${createSlipRow("Email", getEmail(payment))}
+                ${createSlipRow("EGC User ID", readableId)}
+                ${createSlipRow("Database User ID", userId)}
                 ${createSlipRow("Request ID", requestId)}
                 ${createSlipRow("Payment ID", paymentId)}
-                ${createSlipRow("Payment Method", method)}
-                ${createSlipRow("Transaction Reference", reference)}
-                ${createSlipRow("State", state)}
-                ${createSlipRow("District", district)}
-                ${createSlipRow("City", city)}
-                ${createSlipRow("LPG Company", lpgCompany)}
-                ${createSlipRow("LPG Agency", agency)}
-                ${createSlipRow("Payment Date", formatDateTime(paymentDate))}
+                ${createSlipRow("Payment Method", getPaymentMethod(payment))}
+                ${createSlipRow("Transaction Reference", getPaymentReference(payment))}
+                ${createScreenshotRow(payment)}
+                ${createSlipRow("State", getValue(request, ["state"], "—"))}
+                ${createSlipRow("District", getValue(request, ["district"], "—"))}
+                ${createSlipRow("City", getValue(request, ["city"], "—"))}
+                ${createSlipRow("LPG Company", getValue(request, ["lpg_company", "gas_company", "company"], "—"))}
+                ${createSlipRow("LPG Agency", getValue(request, ["lpg_agency", "gas_agency", "agency_name"], "—"))}
+                ${createSlipRow("Payment Date", formatDateTime(getPaymentDate(payment)))}
 
                 <div class="egc-slip-total">
-                    <span>Amount Paid</span>
+                    <span>Payment Amount</span>
                     <span>${formatAmount(amount)}</span>
                 </div>
 
                 <div class="egc-slip-note">
-                    This receipt is generated by EGC Emergency Gas Cylinder.
-                    The displayed payment status reflects the database record.
+                    This receipt reflects the payment information
+                    available in the EGC database.
                 </div>
             </div>
         </div>
@@ -3661,16 +3221,233 @@ function openPaymentModal(payment) {
 }
 
 /* =========================================================
-   RECEIPT ROW HELPER
+   PRINT HELPERS
 ========================================================= */
 
-function createSlipRow(label, value) {
-    return `
-        <div class="egc-slip-row">
-            <span>${escapeHtml(label)}</span>
-            <span>${escapeHtml(value)}</span>
-        </div>
-    `;
+function waitForImages(container, timeoutMs = 8000) {
+    const images = Array.from(container.querySelectorAll("img"));
+
+    const imagePromises = images.map(img => {
+        if (img.complete) {
+            return Promise.resolve();
+        }
+
+        return new Promise(resolve => {
+            const finish = () => resolve();
+
+            img.addEventListener("load", finish, { once: true });
+            img.addEventListener("error", finish, { once: true });
+        });
+    });
+
+    return Promise.race([
+        Promise.all(imagePromises),
+        new Promise(resolve => setTimeout(resolve, timeoutMs))
+    ]);
+}
+
+async function printPaymentSlip(payment) {
+    if (!payment || isPrinting) return;
+
+    /*
+      Open the print window immediately after the user click,
+      to reduce popup-blocker issues.
+    */
+
+    const printWindow = window.open(
+        "",
+        "_blank",
+        "width=850,height=700"
+    );
+
+    if (!printWindow) {
+        alert("Print window blocked. Please allow pop-ups.");
+        return;
+    }
+
+    activePrintWindow = printWindow;
+    isPrinting = true;
+
+    try {
+        openPaymentModal(payment);
+
+        const printArea = $("slipPrintArea");
+
+        if (!printArea) {
+            throw new Error("Payment slip could not be created.");
+        }
+
+        const slipHtml = printArea.outerHTML;
+
+        printWindow.document.open();
+
+        printWindow.document.write();
+
+        printWindow.document.close();
+
+        await waitForImages(printWindow.document.body);
+
+        printWindow.focus();
+
+        setTimeout(() => {
+            try {
+                printWindow.print();
+            } catch (error) {
+                console.error("Print error:", error);
+                alert("Unable to print the receipt.");
+            } finally {
+                isPrinting = false;
+                activePrintWindow = null;
+            }
+        }, 300);
+
+    } catch (error) {
+        console.error("Print slip error:", error);
+
+        isPrinting = false;
+        activePrintWindow = null;
+
+        try {
+            printWindow.close();
+        } catch {}
+
+        alert(error.message || "Unable to print the receipt.");
+    }
+}
+
+/* =========================================================
+   TABLE ACTIONS
+========================================================= */
+
+if (paymentsBody) {
+    paymentsBody.addEventListener("click", event => {
+        const userButton = event.target.closest("[data-view-user]");
+
+        if (userButton) {
+            openUserSlips(userButton.dataset.viewUser);
+            return;
+        }
+
+        const printButton = event.target.closest(
+            "[data-print-user-payment]"
+        );
+
+        if (printButton) {
+            const paymentId =
+                printButton.dataset.printUserPayment;
+
+            const payment = allPayments.find(
+                item => String(item.id) === String(paymentId)
+            );
+
+            if (payment) {
+                printPaymentSlip(payment);
+            }
+
+            return;
+        }
+
+        const viewButton = event.target.closest("[data-view-payment]");
+
+        if (viewButton) {
+            const payment = allPayments.find(
+                item => String(item.id) ===
+                    String(viewButton.dataset.viewPayment)
+            );
+
+            if (payment) openPaymentModal(payment);
+
+            return;
+        }
+
+        const singlePrint = event.target.closest("[data-print-payment]");
+
+        if (singlePrint) {
+            const payment = allPayments.find(
+                item => String(item.id) ===
+                    String(singlePrint.dataset.printPayment)
+            );
+
+            if (payment) printPaymentSlip(payment);
+        }
+    });
+}
+
+/* =========================================================
+   PAGINATION
+========================================================= */
+
+function renderPagination() {
+    if (!paginationButtons || !paginationInfo) return;
+
+    paginationButtons.innerHTML = "";
+
+    if (!filteredGroups.length) {
+        paginationInfo.textContent = "Showing 0 users";
+        return;
+    }
+
+    const totalPages = Math.ceil(
+        filteredGroups.length / PAYMENTS_PER_PAGE
+    );
+
+    currentPage = Math.min(currentPage, totalPages);
+
+    const start = (currentPage - 1) * PAYMENTS_PER_PAGE + 1;
+
+    const end = Math.min(
+        currentPage * PAYMENTS_PER_PAGE,
+        filteredGroups.length
+    );
+
+    paginationInfo.textContent =
+        `Showing ${start}–${end} of ${filteredGroups.length} users`;
+
+    if (totalPages <= 1) return;
+
+    function addButton(label, page, disabled = false, active = false) {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "egc-page-btn";
+        button.textContent = label;
+        button.disabled = disabled;
+
+        if (active) {
+            button.classList.add("active");
+        }
+
+        button.addEventListener("click", () => {
+            if (page < 1 || page > totalPages) return;
+
+            currentPage = page;
+
+            renderPayments();
+            renderPagination();
+        });
+
+        paginationButtons.appendChild(button);
+    }
+
+    addButton("‹", currentPage - 1, currentPage === 1);
+
+    let first = Math.max(1, currentPage - 2);
+    let last = Math.min(totalPages, first + 4);
+
+    if (last - first < 4) {
+        first = Math.max(1, last - 4);
+    }
+
+    for (let page = first; page <= last; page++) {
+        addButton(
+            String(page),
+            page,
+            false,
+            page === currentPage
+        );
+    }
+
+    addButton("›", currentPage + 1, currentPage === totalPages);
 }
 
 /* =========================================================
@@ -3678,209 +3455,113 @@ function createSlipRow(label, value) {
 ========================================================= */
 
 function closePaymentModal() {
-    if (paymentModal) {
-        paymentModal.classList.remove("show");
-    }
+    paymentModal?.classList.remove("show");
 
     currentPayment = null;
+
+    if (printSlipBtn) {
+        printSlipBtn.style.display = "";
+    }
 
     if (!logoutModal?.classList.contains("show")) {
         document.body.style.overflow = "";
     }
 }
 
-if (paymentModalClose) {
-    paymentModalClose.addEventListener(
-        "click",
-        closePaymentModal
-    );
-}
+paymentModalClose?.addEventListener("click", closePaymentModal);
+paymentCloseBtn?.addEventListener("click", closePaymentModal);
 
-if (paymentCloseBtn) {
-    paymentCloseBtn.addEventListener(
-        "click",
-        closePaymentModal
-    );
-}
+paymentModal?.addEventListener("click", event => {
+    if (event.target === paymentModal) {
+        closePaymentModal();
+    }
+});
 
-if (paymentModal) {
-    paymentModal.addEventListener("click", function(event) {
-        if (event.target === paymentModal) {
-            closePaymentModal();
-        }
-    });
-}
+printSlipBtn?.addEventListener("click", () => {
+    if (currentPayment) {
+        printPaymentSlip(currentPayment);
+    }
+});
 
 /* =========================================================
-   PRINT RECEIPT
+   SEARCH AND FILTER EVENTS
 ========================================================= */
 
-function printPaymentSlip(payment) {
-    if (!payment || isPrinting) {
-        return;
-    }
+searchInput?.addEventListener("input", applyFilters);
+statusFilter?.addEventListener("change", applyFilters);
 
-    openPaymentModal(payment);
+clearSearch?.addEventListener("click", () => {
+    if (searchInput) searchInput.value = "";
+    if (statusFilter) statusFilter.value = "all";
 
-    isPrinting = true;
-
-    setTimeout(() => {
-        try {
-            window.print();
-        } finally {
-            isPrinting = false;
-        }
-    }, 350);
-}
-
-if (printSlipBtn) {
-    printSlipBtn.addEventListener("click", function() {
-        if (currentPayment) {
-            printPaymentSlip(currentPayment);
-        }
-    });
-}
+    applyFilters();
+});
 
 /* =========================================================
-   MOBILE SIDEBAR
+   REFRESH
 ========================================================= */
 
-function closeMobileMenu() {
-    if (sidebar) {
-        sidebar.classList.remove("open");
+refreshBtn?.addEventListener("click", async () => {
+    if (isLoadingPayments) return;
+
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Loading...";
+
+    try {
+        await loadPayments();
+    } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "↻ Refresh";
     }
-
-    if (overlay) {
-        overlay.classList.remove("show");
-    }
-}
-
-if (menuBtn) {
-    menuBtn.addEventListener("click", function() {
-        if (sidebar) {
-            sidebar.classList.toggle("open");
-        }
-
-        if (overlay) {
-            overlay.classList.toggle("show");
-        }
-    });
-}
-
-if (overlay) {
-    overlay.addEventListener("click", closeMobileMenu);
-}
+});
 
 /* =========================================================
    NAVIGATION
 ========================================================= */
+
+function closeMobileMenu() {
+    sidebar?.classList.remove("open");
+    overlay?.classList.remove("show");
+}
+
+menuBtn?.addEventListener("click", () => {
+    sidebar?.classList.toggle("open");
+    overlay?.classList.toggle("show");
+});
+
+overlay?.addEventListener("click", closeMobileMenu);
 
 function goToPage(page) {
     closeMobileMenu();
     window.location.href = page;
 }
 
-const dashboardBtn =
-    document.getElementById("dashboardBtn");
+$("dashboardBtn")?.addEventListener("click", () =>
+    goToPage("owner-dashboard.html")
+);
 
-const customersBtn =
-    document.getElementById("customersBtn");
+$("customersBtn")?.addEventListener("click", () =>
+    goToPage("owner-users.html")
+);
 
-const agenciesBtn =
-    document.getElementById("agenciesBtn");
+$("agenciesBtn")?.addEventListener("click", () =>
+    goToPage("owner-agencies.html")
+);
 
-const requestsBtn =
-    document.getElementById("requestsBtn");
+$("requestsBtn")?.addEventListener("click", () =>
+    goToPage("owner-requests.html")
+);
 
-const settingsBtn =
-    document.getElementById("settingsBtn");
+$("settingsBtn")?.addEventListener("click", () =>
+    goToPage("owner-settings.html")
+);
 
-if (dashboardBtn) {
-    dashboardBtn.addEventListener("click", function() {
-        goToPage("owner-dashboard.html");
-    });
-}
-
-if (customersBtn) {
-    customersBtn.addEventListener("click", function() {
-        goToPage("owner-users.html");
-    });
-}
-
-if (agenciesBtn) {
-    agenciesBtn.addEventListener("click", function() {
-        goToPage("owner-agencies.html");
-    });
-}
-
-if (requestsBtn) {
-    requestsBtn.addEventListener("click", function() {
-        goToPage("owner-cylinder-requests.html");
-    });
-}
-
-if (settingsBtn) {
-    settingsBtn.addEventListener("click", function() {
-        goToPage("owner-settings.html");
-    });
-}
-
-if (backBtn) {
-    backBtn.addEventListener("click", function() {
-        goToPage("owner-dashboard.html");
-    });
-}
+backBtn?.addEventListener("click", () =>
+    goToPage("owner-dashboard.html")
+);
 
 /* =========================================================
-   SEARCH AND STATUS FILTER
-========================================================= */
-
-if (searchInput) {
-    searchInput.addEventListener("input", applyFilters);
-}
-
-if (statusFilter) {
-    statusFilter.addEventListener("change", applyFilters);
-}
-
-if (clearSearch) {
-    clearSearch.addEventListener("click", function() {
-        if (searchInput) {
-            searchInput.value = "";
-        }
-
-        if (statusFilter) {
-            statusFilter.value = "all";
-        }
-
-        applyFilters();
-    });
-}
-
-/* =========================================================
-   REFRESH
-========================================================= */
-
-if (refreshBtn) {
-    refreshBtn.addEventListener("click", async function() {
-        if (isLoadingPayments) {
-            return;
-        }
-
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = "Loading...";
-
-        try {
-            await loadPayments();
-        } finally {
-            refreshBtn.disabled = false;
-            refreshBtn.textContent = "↻ Refresh";
-        }
-    });
-}
-
-/* =========================================================
-   LOGOUT MODAL
+   LOGOUT
 ========================================================= */
 
 function openLogoutModal() {
@@ -3889,47 +3570,33 @@ function openLogoutModal() {
     if (logoutModal) {
         logoutModal.classList.add("show");
         document.body.style.overflow = "hidden";
-    } else {
-        if (window.confirm("Are you sure you want to logout?")) {
-            performLogout();
-        }
+
+    } else if (confirm("Are you sure you want to logout?")) {
+        performLogout();
     }
 }
 
 function closeLogoutModal() {
-    if (logoutModal) {
-        logoutModal.classList.remove("show");
-    }
+    logoutModal?.classList.remove("show");
 
     if (!paymentModal?.classList.contains("show")) {
         document.body.style.overflow = "";
     }
 }
 
-if (logoutBtn) {
-    logoutBtn.addEventListener("click", openLogoutModal);
-}
+logoutBtn?.addEventListener("click", openLogoutModal);
+logoutCancel?.addEventListener("click", closeLogoutModal);
 
-if (logoutCancel) {
-    logoutCancel.addEventListener("click", closeLogoutModal);
-}
+logoutModal?.addEventListener("click", event => {
+    if (event.target === logoutModal) {
+        closeLogoutModal();
+    }
+});
 
-if (logoutModal) {
-    logoutModal.addEventListener("click", function(event) {
-        if (event.target === logoutModal) {
-            closeLogoutModal();
-        }
-    });
-}
-
-/* =========================================================
-   PERFORM LOGOUT
-========================================================= */
+logoutConfirm?.addEventListener("click", performLogout);
 
 async function performLogout() {
-    if (isSigningOut) {
-        return;
-    }
+    if (isSigningOut) return;
 
     isSigningOut = true;
 
@@ -3939,15 +3606,14 @@ async function performLogout() {
     }
 
     try {
-        const { error } = await supabaseClient.auth.signOut();
-
-        if (error) {
-            throw error;
-        }
-
         stopPaymentsRealtime();
 
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) throw error;
+
         window.location.replace("owner-login.html");
+
     } catch (error) {
         console.error("Logout error:", error);
 
@@ -3958,60 +3624,42 @@ async function performLogout() {
             logoutConfirm.textContent = "Logout";
         }
 
-        alert(
-            "Logout failed.\n\n" +
-            (error?.message || "Please try again.")
-        );
+        alert(error.message || "Logout failed. Please try again.");
     }
-}
-
-if (logoutConfirm) {
-    logoutConfirm.addEventListener("click", performLogout);
 }
 
 /* =========================================================
-   REALTIME SUBSCRIPTION
+   REALTIME
 ========================================================= */
 
 function stopPaymentsRealtime() {
-    if (!paymentsRealtimeChannel) {
-        return;
-    }
+    if (!paymentsRealtimeChannel) return;
 
     const channel = paymentsRealtimeChannel;
     paymentsRealtimeChannel = null;
 
-    supabaseClient.removeChannel(channel).catch(error => {
-        console.warn("Realtime cleanup warning:", error);
-    });
+    supabaseClient.removeChannel(channel).catch(console.warn);
 }
 
 function startPaymentsRealtime() {
     stopPaymentsRealtime();
 
-    try {
-        paymentsRealtimeChannel = supabaseClient
-            .channel("owner-payments-realtime")
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: PAYMENT_TABLE
-                },
-                function() {
-                    loadPayments();
-                }
-            )
-            .subscribe(function(status) {
-                console.log(
-                    "EGC Owner payments realtime:",
-                    status
-                );
-            });
-    } catch (error) {
-        console.warn("Payment realtime error:", error);
-    }
+    paymentsRealtimeChannel = supabaseClient
+        .channel("owner-payments-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: PAYMENT_TABLE
+            },
+            () => {
+                loadPayments();
+            }
+        )
+        .subscribe(status => {
+            console.log("EGC Owner payment updates:", status);
+        });
 }
 
 /* =========================================================
@@ -4019,48 +3667,33 @@ function startPaymentsRealtime() {
 ========================================================= */
 
 const { data: authListener } =
-    supabaseClient.auth.onAuthStateChange(
-        function(event, session) {
-            if (event === "SIGNED_OUT" && !isSigningOut) {
-                stopPaymentsRealtime();
-                window.location.replace("owner-login.html");
-                return;
-            }
-
-            if (
-                event === "SIGNED_IN" ||
-                event === "TOKEN_REFRESHED"
-            ) {
-                if (session) {
-                    console.log(
-                        "EGC Owner session active:",
-                        session.user.id
-                    );
-                }
-            }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT" && !isSigningOut) {
+            stopPaymentsRealtime();
+            window.location.replace("owner-login.html");
         }
-    );
+
+        if (event === "SIGNED_IN" && session?.user) {
+            console.log("Owner session active.");
+        }
+    });
 
 /* =========================================================
    ESCAPE KEY
 ========================================================= */
 
-document.addEventListener("keydown", function(event) {
-    if (event.key !== "Escape") {
-        return;
-    }
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        if (paymentModal?.classList.contains("show")) {
+            closePaymentModal();
 
-    if (paymentModal?.classList.contains("show")) {
-        closePaymentModal();
-        return;
-    }
+        } else if (logoutModal?.classList.contains("show")) {
+            closeLogoutModal();
 
-    if (logoutModal?.classList.contains("show")) {
-        closeLogoutModal();
-        return;
+        } else {
+            closeMobileMenu();
+        }
     }
-
-    closeMobileMenu();
 });
 
 /* =========================================================
@@ -4068,22 +3701,12 @@ document.addEventListener("keydown", function(event) {
 ========================================================= */
 
 async function initOwnerSlips() {
-    try {
-        const sessionOK = await checkOwnerSession();
+    const sessionOK = await checkOwnerSession();
 
-        if (!sessionOK) {
-            return;
-        }
+    if (!sessionOK) return;
 
-        await loadPayments();
-
-        startPaymentsRealtime();
-    } catch (error) {
-        console.error(
-            "Owner slips initialization error:",
-            error
-        );
-    }
+    await loadPayments();
+    startPaymentsRealtime();
 }
 
 initOwnerSlips();
@@ -4092,11 +3715,15 @@ initOwnerSlips();
    CLEANUP
 ========================================================= */
 
-window.addEventListener("pagehide", function() {
+window.addEventListener("pagehide", () => {
     stopPaymentsRealtime();
 
-    if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
+    authListener?.subscription?.unsubscribe();
+
+    if (activePrintWindow && !activePrintWindow.closed) {
+        try {
+            activePrintWindow.close();
+        } catch {}
     }
 });
 </script>

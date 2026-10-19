@@ -251,16 +251,21 @@ button:disabled{cursor:not-allowed;opacity:.65}
     </div>
   </div>
 </div>
-
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 let supabaseClient = null;
+
 if (window.supabase && typeof window.supabase.createClient === "function") {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 }
 
 let currentUser = null;
@@ -273,569 +278,1302 @@ let toastTimer = null;
 let isLoggingOut = false;
 let isLoadingRequests = false;
 
-function $(id){return document.getElementById(id)}
+function $(id) {
+  return document.getElementById(id);
+}
 
-function escapeHtml(value){
+function escapeHtml(value) {
   return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function formatMoney(value){
-  return (Number(value)||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+function formatMoney(value) {
+  return (Number(value) || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
-function formatDate(value){
-  if(!value)return "—";
-  const date=new Date(value);
-  if(Number.isNaN(date.getTime()))return "—";
-  return date.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});
+function formatDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
 }
 
-function formatDateTime(value){
-  if(!value)return "—";
-  const date=new Date(value);
-  if(Number.isNaN(date.getTime()))return "—";
-  return date.toLocaleString("en-IN",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+function formatDateTime(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
-function showError(message){
-  const box=$("errorBox");
-  if(!box)return;
-  box.textContent=message||"Something went wrong.";
-  box.style.display="block";
+function showError(message) {
+  const box = $("errorBox");
+  if (!box) return;
+
+  box.textContent = message || "Something went wrong.";
+  box.style.display = "block";
 }
 
-function clearError(){
-  const box=$("errorBox");
-  if(!box)return;
-  box.style.display="none";
-  box.textContent="";
+function clearError() {
+  const box = $("errorBox");
+  if (!box) return;
+
+  box.style.display = "none";
+  box.textContent = "";
 }
 
-function showInfo(message){
-  const box=$("infoBox");
-  if(!box)return;
-  box.textContent=message||"";
-  box.classList.toggle("show",Boolean(message));
+function showInfo(message) {
+  const box = $("infoBox");
+  if (!box) return;
+
+  box.textContent = message || "";
+  box.classList.toggle("show", Boolean(message));
 }
 
-function toast(message){
-  const element=$("toast");
-  if(!element)return;
-  element.textContent=message||"";
+function toast(message) {
+  const element = $("toast");
+  if (!element) return;
+
+  element.textContent = message || "";
   element.classList.add("show");
+
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>element.classList.remove("show"),3000);
+
+  toastTimer = setTimeout(() => {
+    element.classList.remove("show");
+  }, 3000);
 }
 
-function getValue(item,fields,fallback=""){
-  for(const field of fields){
-    if(item && Object.prototype.hasOwnProperty.call(item,field) &&
-      item[field]!==null && item[field]!==undefined && item[field]!==""){
+function getValue(item, fields, fallback = "") {
+  for (const field of fields) {
+    if (
+      item &&
+      Object.prototype.hasOwnProperty.call(item, field) &&
+      item[field] !== null &&
+      item[field] !== undefined &&
+      item[field] !== ""
+    ) {
       return item[field];
     }
   }
+
   return fallback;
 }
 
-function normalizeStatus(value){
-  return String(value||"").trim().toLowerCase().replace(/[\s-]+/g,"_");
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 }
 
-function isApproved(value){
-  return ["approved","approve"].includes(normalizeStatus(value));
+function isApproved(value) {
+  return ["approved", "approve"].includes(normalizeStatus(value));
 }
 
-function isRejectedValue(value){
-  return ["rejected","cancelled","canceled","failed"].includes(normalizeStatus(value));
+function isRejectedValue(value) {
+  return [
+    "rejected",
+    "cancelled",
+    "canceled",
+    "failed"
+  ].includes(normalizeStatus(value));
 }
 
-function getRequestStatus(item){
-  return normalizeStatus(getValue(item,["user_status","request_status","status"],"pending"));
+function getRequestStatus(item) {
+  return normalizeStatus(
+    getValue(item, ["user_status", "request_status", "status"], "pending")
+  );
 }
 
-function getOwnerApproval(item){
-  const explicit=normalizeStatus(getValue(item,["owner_approval","owner_status","approval_status"],""));
-  if(explicit)return explicit;
+function getOwnerApproval(item) {
+  const explicit = normalizeStatus(
+    getValue(item, [
+      "owner_approval",
+      "owner_status",
+      "approval_status"
+    ], "")
+  );
 
-  const requestStatus=getRequestStatus(item);
-  if(["approved","approve"].includes(requestStatus))return "approved";
-  if(["rejected","cancelled","canceled"].includes(requestStatus))return requestStatus;
+  if (explicit) return explicit;
+
+  const status = getRequestStatus(item);
+
+  if (["approved", "approve"].includes(status)) return "approved";
+
+  if (["rejected", "cancelled", "canceled"].includes(status)) {
+    return status;
+  }
+
   return "pending";
 }
 
-function getAgencyStatus(item){
-  return normalizeStatus(getValue(item,["agency_status","agency_processing_status"],""));
+function getSubmittedRequestApproval(item) {
+  return normalizeStatus(
+    getValue(item, [
+      "submitted_request_approval",
+      "request_submission_approval",
+      "final_request_approval",
+      "submitted_approval_status"
+    ], "")
+  );
 }
 
-function getDeliveryStatus(item){
-  return normalizeStatus(getValue(item,["delivery_status"],""));
+function getAgencyStatus(item) {
+  return normalizeStatus(
+    getValue(item, ["agency_status", "agency_processing_status"], "")
+  );
 }
 
-function getRepaymentStatus(item){
-  return normalizeStatus(getValue(item,["repayment_status","repayment_approval_status"],""));
+function getDeliveryStatus(item) {
+  return normalizeStatus(getValue(item, ["delivery_status"], ""));
 }
 
-function getPaymentsForRequest(requestId){
+function getRepaymentStatus(item) {
+  return normalizeStatus(
+    getValue(item, ["repayment_status", "repayment_approval_status"], "")
+  );
+}
+
+/* PAYMENT RECORDS */
+
+function getPaymentsForRequest(requestId) {
   return currentPayments
-    .filter(payment=>String(payment.request_id)===String(requestId))
-    .sort((a,b)=>{
-      const dateA=new Date(a.created_at||a.payment_date||a.verified_at||0).getTime();
-      const dateB=new Date(b.created_at||b.payment_date||b.verified_at||0).getTime();
-      return dateB-dateA;
+    .filter(payment =>
+      String(payment.request_id) === String(requestId)
+    )
+    .sort((a, b) => {
+      const dateA = new Date(
+        a.created_at || a.payment_date || a.verified_at || 0
+      ).getTime();
+
+      const dateB = new Date(
+        b.created_at || b.payment_date || b.verified_at || 0
+      ).getTime();
+
+      return dateB - dateA;
     });
 }
 
-function getLatestPayment(item){
-  return getPaymentsForRequest(item.id)[0]||null;
+/*
+  IMPORTANT:
+  Repayment records are identified using payment_type/type/payment_for/
+  transaction_type if those fields exist in your payments table.
+  If your table does not have any of these fields, repayments cannot
+  reliably be distinguished from the initial payment using this script.
+*/
+
+function getPaymentType(payment) {
+  return normalizeStatus(
+    getValue(payment, [
+      "payment_type",
+      "type",
+      "payment_for",
+      "transaction_type"
+    ], "initial")
+  );
 }
 
-function getPaymentData(item){
-  const payment=getLatestPayment(item);
+function isRepaymentRecord(payment) {
+  return [
+    "repayment",
+    "repay",
+    "balance_payment",
+    "remaining_payment",
+    "installment"
+  ].includes(getPaymentType(payment));
+}
 
-  if(payment){
+function getInitialPayment(item) {
+  return getPaymentsForRequest(item.id).find(
+    payment => !isRepaymentRecord(payment)
+  ) || null;
+}
+
+function getRepaymentRecords(item) {
+  return getPaymentsForRequest(item.id)
+    .filter(payment => isRepaymentRecord(payment))
+    .sort((a, b) => {
+      const dateA = new Date(
+        a.created_at || a.payment_date || 0
+      ).getTime();
+
+      const dateB = new Date(
+        b.created_at || b.payment_date || 0
+      ).getTime();
+
+      return dateA - dateB;
+    });
+}
+
+function getLatestPayment(item) {
+  return getPaymentsForRequest(item.id)[0] || null;
+}
+
+function isVerifiedPaymentRecord(payment) {
+  const status = normalizeStatus(payment.payment_status);
+  const verification = normalizeStatus(payment.verification_status);
+
+  return (
+    ["paid", "approved", "completed"].includes(status) &&
+    ["approved", "verified"].includes(verification)
+  );
+}
+
+function getPaymentData(item) {
+  const payment = getInitialPayment(item);
+
+  if (payment) {
     return {
-      record:payment,
-      status:normalizeStatus(payment.payment_status),
-      verification:normalizeStatus(payment.verification_status),
-      amount:Number(payment.payment_amount)||0,
-      transactionId:payment.transaction_id||payment.payment_reference||"",
-      method:payment.payment_method||"",
-      rejectionReason:payment.owner_rejection_reason||""
+      record: payment,
+      status: normalizeStatus(payment.payment_status),
+      verification: normalizeStatus(payment.verification_status),
+      amount: Number(payment.payment_amount) || 0,
+      transactionId:
+        payment.transaction_id ||
+        payment.payment_reference ||
+        "",
+      method: payment.payment_method || "",
+      rejectionReason: payment.owner_rejection_reason || ""
     };
   }
 
   return {
-    record:null,
-    status:normalizeStatus(getValue(item,["payment_status"],"")),
-    verification:normalizeStatus(getValue(item,["payment_verification_status"],"")),
-    amount:0,
-    transactionId:item.payment_transaction_id||item.payment_reference||"",
-    method:item.payment_method||"",
-    rejectionReason:item.owner_rejection_reason||""
+    record: null,
+    status: normalizeStatus(getValue(item, ["payment_status"], "")),
+    verification: normalizeStatus(
+      getValue(item, ["payment_verification_status"], "")
+    ),
+    amount: 0,
+    transactionId:
+      item.payment_transaction_id ||
+      item.payment_reference ||
+      "",
+    method: item.payment_method || "",
+    rejectionReason: item.owner_rejection_reason || ""
   };
 }
 
-function isPaymentRejected(item){
-  const payment=getPaymentData(item);
-  return isRejectedValue(payment.status)||isRejectedValue(payment.verification);
+function isPaymentRejected(item) {
+  const payment = getPaymentData(item);
+
+  return (
+    isRejectedValue(payment.status) ||
+    isRejectedValue(payment.verification)
+  );
 }
 
-function isPaymentVerified(item){
-  const payment=getPaymentData(item);
-  return payment.status==="paid" && payment.verification==="approved";
+function isPaymentVerified(item) {
+  const payment = getPaymentData(item);
+
+  return (
+    ["paid", "approved", "completed"].includes(payment.status) &&
+    ["approved", "verified"].includes(payment.verification)
+  );
 }
 
-function isRepaymentVerified(item){
-  return ["approved","paid","completed"].includes(getRepaymentStatus(item));
+function isRepaymentVerified(item) {
+  const repayments = getRepaymentRecords(item);
+
+  return (
+    repayments.length > 0 &&
+    repayments.every(isVerifiedPaymentRecord)
+  );
 }
 
-function getRequestAmount(item){
-  return Math.max(0,Number(getValue(item,["total_amount","cylinder_amount","request_amount","finance_amount"],0))||0);
+function isRepaymentPending(item) {
+  const repayments = getRepaymentRecords(item);
+
+  return repayments.some(payment => {
+    const status = normalizeStatus(payment.payment_status);
+    const verification = normalizeStatus(payment.verification_status);
+
+    return (
+      [
+        "submitted",
+        "pending",
+        "pending_verification",
+        "verification_pending",
+        "under_review",
+        "processing",
+        "paid"
+      ].includes(status) &&
+      !["approved", "verified"].includes(verification)
+    );
+  });
+}
+
+/* AMOUNT CALCULATION */
+
+function getRequestAmount(item) {
+  return Math.max(
+    0,
+    Number(
+      getValue(item, [
+        "total_amount",
+        "cylinder_amount",
+        "request_amount",
+        "finance_amount"
+      ], 0)
+    ) || 0
+  );
+}
+
+function getVerifiedInitialPaymentTotal(item) {
+  return getPaymentsForRequest(item.id)
+    .filter(payment =>
+      !isRepaymentRecord(payment) &&
+      isVerifiedPaymentRecord(payment)
+    )
+    .reduce((sum, payment) => {
+      return sum + Math.max(0, Number(payment.payment_amount) || 0);
+    }, 0);
+}
+
+function getApprovedRepaymentTotal(item) {
+  return getRepaymentRecords(item)
+    .filter(isVerifiedPaymentRecord)
+    .reduce((sum, payment) => {
+      return sum + Math.max(0, Number(payment.payment_amount) || 0);
+    }, 0);
 }
 
 /*
- * FIX:
- * Owner approval pending means no payable balance should be
- * presented to the customer yet. Once approved, use database
- * remaining_amount when available, otherwise calculate using
- * verified payments only.
- */
-function getRemainingAmount(item){
-  if(!isApproved(getOwnerApproval(item)))return 0;
+  Extra charge slabs:
+  Days 1-10  = ₹35
+  Days 11-15 = ₹40
+  Days 16-30 = ₹50
+  Days 31-45 = ₹50
+  Days 46+   = ₹100
 
-  const direct=getValue(item,["remaining_amount","remaining_payable","balance_amount"],null);
-  if(direct!==null && direct!=="")return Math.max(0,Number(direct)||0);
+  This applies one charge according to the current day slab.
+  The delivery date is treated as Day 1.
+*/
 
-  const total=getRequestAmount(item);
-  if(!total)return 0;
+function getDaysSinceDelivery(item) {
+  if (!item.delivered_at) return 0;
 
-  const storedPaid=Math.max(0,Number(getValue(item,["total_paid","paid_amount","amount_paid"],0))||0);
-  const verifiedPaymentTotal=getPaymentsForRequest(item.id)
-    .filter(payment=>
-      normalizeStatus(payment.payment_status)==="paid" &&
-      normalizeStatus(payment.verification_status)==="approved"
-    )
-    .reduce((sum,payment)=>sum+(Number(payment.payment_amount)||0),0);
+  const deliveredDate = new Date(item.delivered_at);
 
-  return Math.max(0,total-Math.max(storedPaid,verifiedPaymentTotal));
+  if (Number.isNaN(deliveredDate.getTime())) return 0;
+
+  const now = new Date();
+
+  const deliveryDay = Date.UTC(
+    deliveredDate.getFullYear(),
+    deliveredDate.getMonth(),
+    deliveredDate.getDate()
+  );
+
+  const today = Date.UTC(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  const difference = Math.floor((today - deliveryDay) / 86400000);
+
+  if (difference < 0) return 0;
+
+  return difference + 1;
 }
 
-function isFullyCompleted(item){
-  const requestStatus=getRequestStatus(item);
-  const deliveryStatus=getDeliveryStatus(item);
-  const remaining=getRemainingAmount(item);
-  const repaymentStatus=getRepaymentStatus(item);
+function getCalculatedExtraCharge(item) {
+  // Delivery nahi hui to extra charge nahi lagega.
+  if (
+    getDeliveryStatus(item) !== "delivered" ||
+    !item.delivered_at
+  ) {
+    return 0;
+  }
 
-  if(requestStatus==="completed")return true;
+  // Cylinder/request amount aur verified payments calculate karein.
+  const requestAmount = getRequestAmount(item);
+  const paidAmount = getVerifiedPaidTotal(item);
 
-  return deliveryStatus==="delivered" && remaining<=0 && isRepaymentVerified(item);
+  // Agar request amount hi clear nahi hua,
+  // to current delivery-day slab ka charge dikhayein.
+  const remainingAmount = Math.max(
+    0,
+    requestAmount - paidAmount
+  );
+
+  if (remainingAmount > 0) {
+    const days = getDaysSinceDelivery(item);
+
+    if (days <= 0) return 0;
+    if (days <= 10) return 35;
+    if (days <= 15) return 40;
+    if (days <= 45) return 50;
+
+    return 100;
+  }
+
+  // Request amount se zyada ya barabar payment hone par
+  // extra charge ko automatically zero na karein.
+  // Extra charge clear hai ya nahi, ise total payable
+  // aur approved payments ke saath verify karna zaroori hai.
+  return 0;
 }
 
-function isRejected(item){
-  return isRejectedValue(getRequestStatus(item))||
-    isRejectedValue(getOwnerApproval(item))||
-    isPaymentRejected(item)||
-    isRejectedValue(getRepaymentStatus(item));
+function getVerifiedPaidTotal(item) {
+  return getVerifiedInitialPaymentTotal(item) +
+    getApprovedRepaymentTotal(item);
 }
 
-function getActiveRequest(){
-  return currentRequests.find(item=>!isRejected(item)&&!isFullyCompleted(item))||null;
+/*
+  Remaining Amount:
+  Cylinder/request amount minus verified payments.
+
+  Extra Charge:
+  Current charge based on delivery date.
+
+  Total Payable:
+  Remaining Amount + Extra Charge.
+
+  The old stored remaining_amount is intentionally not used as the
+  displayed balance because it may be stale.
+*/
+
+function getRemainingBeforeExtra(item) {
+  if (!isApproved(getOwnerApproval(item))) return 0;
+
+  const total = getRequestAmount(item);
+  if (total <= 0) return 0;
+
+  const paid = getVerifiedPaidTotal(item);
+
+  return Math.max(0, total - paid);
 }
 
-function getOverallState(item){
-  const requestStatus=getRequestStatus(item);
-  const ownerApproval=getOwnerApproval(item);
-  const payment=getPaymentData(item);
-  const deliveryStatus=getDeliveryStatus(item);
-  const agencyStatus=getAgencyStatus(item);
-  const repaymentStatus=getRepaymentStatus(item);
-  const remaining=getRemainingAmount(item);
+function getRemainingAmount(item) {
+  return getRemainingBeforeExtra(item);
+}
 
-  if(isRejectedValue(requestStatus)||isRejectedValue(ownerApproval)){
-    return {key:"rejected",label:"Request Rejected",message:"This request was rejected or cancelled. Please contact support if you need help.",progress:0};
+function getTotalPayable(item) {
+  const remainingAmount = getRemainingAmount(item);
+  const extraCharge = getCalculatedExtraCharge(item);
+
+  return Math.max(0, remainingAmount + extraCharge);
+}
+
+function isFullyCompleted(item) {
+  if (getRequestStatus(item) === "completed") {
+    return true;
   }
 
-  if(isFullyCompleted(item)){
-    return {key:"completed",label:"Completed",message:"Your cylinder request and repayment cycle have been completed.",progress:100};
+  return (
+    getDeliveryStatus(item) === "delivered" &&
+    getRemainingAmount(item) <= 0 &&
+    getCalculatedExtraCharge(item) <= 0
+  );
+}
+
+function isRejected(item) {
+  return (
+    isRejectedValue(getRequestStatus(item)) ||
+    isRejectedValue(getOwnerApproval(item)) ||
+    isPaymentRejected(item)
+  );
+}
+
+function getActiveRequest() {
+  return currentRequests.find(item =>
+    !isRejected(item) && !isFullyCompleted(item)
+  ) || null;
+}
+
+/* OVERALL STATUS */
+
+function getOverallState(item) {
+  const requestStatus = getRequestStatus(item);
+  const ownerApproval = getOwnerApproval(item);
+  const submittedApproval = getSubmittedRequestApproval(item);
+  const payment = getPaymentData(item);
+  const deliveryStatus = getDeliveryStatus(item);
+  const agencyStatus = getAgencyStatus(item);
+  const remaining = getTotalPayable(item);
+
+  if (
+    isRejectedValue(requestStatus) ||
+    isRejectedValue(ownerApproval)
+  ) {
+    return {
+      key: "rejected",
+      label: "Request Rejected",
+      message: "This request was rejected or cancelled. Please contact support if you need help.",
+      progress: 0
+    };
   }
 
-  if(!isApproved(ownerApproval)){
-    return {key:"owner_pending",label:"Pending Owner Approval",message:"Your request has been submitted and is waiting for Owner approval.",progress:20};
+  if (isFullyCompleted(item)) {
+    return {
+      key: "completed",
+      label: "Completed",
+      message: "Your cylinder request has been completed.",
+      progress: 100
+    };
   }
 
-  if(isPaymentRejected(item)){
-    return {key:"payment_rejected",label:"Payment Rejected",message:payment.rejectionReason?"Your payment was rejected: "+payment.rejectionReason:"Your payment was rejected. Please check the Payments page.",progress:35};
+  if (!isApproved(ownerApproval)) {
+    return {
+      key: "owner_pending",
+      label: "Request Pending",
+      message: "Your cylinder request is waiting for Owner approval.",
+      progress: 15
+    };
   }
 
-  const submittedStatuses=["submitted","pending","pending_verification","verification_pending","under_review","processing"];
-  const hasPaymentSubmission=Boolean(payment.record)||
-    payment.status==="paid"||
-    submittedStatuses.includes(payment.status)||
-    submittedStatuses.includes(payment.verification);
+  if (
+    submittedApproval &&
+    !isApproved(submittedApproval) &&
+    [
+      "submitted",
+      "pending",
+      "pending_verification",
+      "verification_pending"
+    ].includes(requestStatus)
+  ) {
+    return {
+      key: "request_submitted",
+      label: "Request Submitted",
+      message: "Your request has been submitted and is waiting for final Owner approval.",
+      progress: 30
+    };
+  }
 
-  if(!isPaymentVerified(item)){
-    if(hasPaymentSubmission){
-      return {key:"payment_pending",label:"Payment Verification Pending",message:"Your payment has been submitted and is waiting for Owner verification.",progress:45};
+  if (isPaymentRejected(item)) {
+    return {
+      key: "payment_rejected",
+      label: "Payment Rejected",
+      message: payment.rejectionReason
+        ? "Your payment was rejected: " + payment.rejectionReason
+        : "Your payment was rejected. Please check the Payments page.",
+      progress: 35
+    };
+  }
+
+if (deliveryStatus === "delivered") {
+  if (isRepaymentPending(item)) {
+    return {
+      key: "repayment_pending",
+      label: "Waiting for Owner",
+      message:
+        "Your repayment has been submitted and is waiting for Owner verification.",
+      progress: 95
+    };
+  }
+
+  const remainingAmount = getRemainingAmount(item);
+  const extraCharge = getCalculatedExtraCharge(item);
+  const totalPayable = remainingAmount + extraCharge;
+
+  if (totalPayable > 0) {
+    return {
+      key: "repayment_due",
+      label: "Repayment Due",
+      message:
+        "Your cylinder has been delivered. Remaining Amount: ₹" +
+        formatMoney(remainingAmount) +
+        ", Extra Charge: ₹" +
+        formatMoney(extraCharge) +
+        ", Total Payable: ₹" +
+        formatMoney(totalPayable),
+      progress: 90
+    };
+  }
+
+  return {
+    key: "completed",
+    label: "Completed",
+    message:
+      "Your cylinder has been delivered and all payments have been completed.",
+    progress: 100
+  };
+}
+
+  const pendingStatuses = [
+    "submitted",
+    "pending",
+    "pending_verification",
+    "verification_pending",
+    "under_review",
+    "processing"
+  ];
+
+  const hasInitialPaymentSubmission =
+    Boolean(payment.record) ||
+    payment.status === "paid" ||
+    pendingStatuses.includes(payment.status) ||
+    pendingStatuses.includes(payment.verification);
+
+  if (!isPaymentVerified(item)) {
+    if (hasInitialPaymentSubmission) {
+      return {
+        key: "payment_pending",
+        label: "Waiting for Owner",
+        message: "Your initial payment has been submitted and is waiting for Owner verification.",
+        progress: 45
+      };
     }
-    return {key:"payment_required",label:"Payment Required",message:"Your request has been approved. Please open Payments to submit the required initial payment.",progress:35};
+
+    return {
+      key: "payment_required",
+      label: "Initial Payment Required",
+      message: "Your request has been approved. Please open Payments to submit the required initial payment.",
+      progress: 35
+    };
   }
 
-  if(deliveryStatus==="delivered"){
-    if(["submitted","pending","pending_verification","verification_pending","under_review"].includes(repaymentStatus)){
-      return {key:"repayment_pending",label:"Repayment Verification Pending",message:"Your repayment has been submitted and is waiting for Owner verification.",progress:95};
-    }
-    if(remaining>0){
-      return {key:"repayment_due",label:"Repayment Due",message:"Your cylinder has been delivered. The remaining amount and applicable charges are due.",progress:90};
-    }
-    if(isRepaymentVerified(item)){
-      return {key:"completed",label:"Completed",message:"Your cylinder request and complete repayment have been verified.",progress:100};
-    }
-    return {key:"repayment_due",label:"Repayment Due",message:"Your cylinder has been delivered. Please check Payments for your remaining balance.",progress:90};
+  if (deliveryStatus === "out_for_delivery") {
+    return {
+      key: "out_for_delivery",
+      label: "Out for Delivery",
+      message: "Your initial payment is verified and your cylinder is out for delivery.",
+      progress: 85
+    };
   }
 
-  if(deliveryStatus==="out_for_delivery"){
-    return {key:"out_for_delivery",label:"Out for Delivery",message:"Your initial payment is verified and your cylinder is out for delivery.",progress:85};
+  if (["processing", "assigned", "ready"].includes(agencyStatus)) {
+    return {
+      key: "agency_processing",
+      label: "Agency Approved",
+      message: "Your payment is verified and the agency is processing your cylinder.",
+      progress: 70
+    };
   }
 
-  if(["processing","assigned","ready"].includes(agencyStatus)||
-    ["processing","assigned","ready"].includes(deliveryStatus)){
-    return {key:"agency_processing",label:"Agency Processing",message:"Your initial payment is verified. The selected agency is processing your cylinder.",progress:70};
+  if (["processing", "assigned", "ready"].includes(deliveryStatus)) {
+    return {
+      key: "agency_processing",
+      label: "Agency Approved",
+      message: "Your cylinder has been assigned to the agency and is being processed.",
+      progress: 70
+    };
   }
 
-  return {key:"agency_processing",label:"Payment Approved",message:"Your initial payment has been verified by the Owner. Your cylinder is awaiting agency processing.",progress:60};
+  return {
+    key: "agency_processing",
+    label: "Payment Approved",
+    message: "Your initial payment has been verified by the Owner. Your cylinder is awaiting agency processing.",
+    progress: 60
+  };
 }
 
-async function loadProfile(){
-  if(!currentUser?.id)return;
+/* PROFILE */
 
-  const {data,error}=await supabaseClient.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
-  if(error)console.warn("Profile load error:",error);
+async function loadProfile() {
+  if (!currentUser?.id) return;
 
-  currentProfile=data||null;
-  const name=data?.full_name||currentUser.user_metadata?.full_name||"EGC Customer";
-  const email=data?.email||currentUser.email||"";
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
-  if($("topName"))$("topName").textContent=name;
-  if($("topEmail"))$("topEmail").textContent=email;
+  if (error) {
+    console.warn("Profile load error:", error);
+  }
 
-  if($("topPhoto")){
-    $("topPhoto").src=data?.profile_photo||
-      "https://ui-avatars.com/api/?name="+encodeURIComponent(name)+"&background=eaf5fc&color=0754a9";
+  currentProfile = data || null;
 
-    $("topPhoto").onerror=function(){
-      this.onerror=null;
-      this.src="https://ui-avatars.com/api/?name=EGC&background=eaf5fc&color=0754a9";
+  const name =
+    data?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    "EGC Customer";
+
+  const email = data?.email || currentUser.email || "";
+
+  if ($("topName")) $("topName").textContent = name;
+  if ($("topEmail")) $("topEmail").textContent = email;
+
+  if ($("topPhoto")) {
+    $("topPhoto").src =
+      data?.profile_photo ||
+      "https://ui-avatars.com/api/?name=" +
+        encodeURIComponent(name) +
+        "&background=eaf5fc&color=0754a9";
+
+    $("topPhoto").onerror = function () {
+      this.onerror = null;
+      this.src =
+        "https://ui-avatars.com/api/?name=EGC&background=eaf5fc&color=0754a9";
     };
   }
 }
 
-async function loadRequests(){
-  if(!currentUser?.id||!supabaseClient||isLoadingRequests)return;
-  isLoadingRequests=true;
-  const area=$("requestsArea");
+/* LOAD REQUESTS AND PAYMENTS */
 
-  try{
-    const {data:requests,error:requestError}=await supabaseClient
+async function loadRequests() {
+  if (!currentUser?.id || !supabaseClient || isLoadingRequests) {
+    return;
+  }
+
+  isLoadingRequests = true;
+  const area = $("requestsArea");
+
+  try {
+    const { data: requests, error: requestError } = await supabaseClient
       .from("cylinder_requests")
       .select("*")
-      .eq("user_id",currentUser.id)
-      .order("created_at",{ascending:false});
+      .eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false });
 
-    if(requestError)throw requestError;
+    if (requestError) throw requestError;
 
-    const newRequests=requests||[];
-    let newPayments=[];
+    const newRequests = requests || [];
+    let newPayments = [];
 
-    if(newRequests.length){
-      const requestIds=newRequests.map(request=>request.id).filter(Boolean);
+    if (newRequests.length) {
+      const requestIds = newRequests
+        .map(request => request.id)
+        .filter(Boolean);
 
-      if(requestIds.length){
-        const {data:payments,error:paymentError}=await supabaseClient
+      if (requestIds.length) {
+        const { data: payments, error: paymentError } = await supabaseClient
           .from("payments")
           .select("*")
-          .in("request_id",requestIds)
-          .eq("user_id",currentUser.id)
-          .order("created_at",{ascending:false});
+          .in("request_id", requestIds)
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false });
 
-        if(paymentError){
-          throw new Error("Requests loaded, but payment statuses could not be loaded: "+paymentError.message);
+        if (paymentError) {
+          throw new Error(
+            "Requests loaded, but payment statuses could not be loaded: " +
+            paymentError.message
+          );
         }
-        newPayments=payments||[];
+
+        newPayments = payments || [];
       }
     }
 
-    currentRequests=newRequests;
-    currentPayments=newPayments;
+    currentRequests = newRequests;
+    currentPayments = newPayments;
+
     clearError();
     updateCounters();
     updateRequestButton();
     renderRequests();
-  }catch(error){
-    console.error("My Requests load error:",error);
-    if(area){
-      area.innerHTML=`
+
+  } catch (error) {
+    console.error("My Requests load error:", error);
+
+    if (area) {
+      area.innerHTML = `
         <div class="empty">
           <div class="empty-icon">⚠️</div>
           <div class="empty-title">Unable to load requests</div>
-          <div class="empty-text">${escapeHtml(error.message||"Please try again.")}</div>
+          <div class="empty-text">${escapeHtml(
+            error.message || "Please try again."
+          )}</div>
         </div>`;
     }
-    showError("Unable to load your requests: "+(error.message||"Please try again."));
+
+    showError(
+      "Unable to load your requests: " +
+      (error.message || "Please try again.")
+    );
+
     throw error;
-  }finally{
-    isLoadingRequests=false;
+
+  } finally {
+    isLoadingRequests = false;
   }
 }
 
-function updateCounters(){
-  $("totalRequests").textContent=currentRequests.length;
+/* COUNTERS */
 
-  $("pendingRequests").textContent=currentRequests.filter(item=>
-    ["owner_pending","pending","payment_required","payment_pending","payment_rejected","repayment_due","repayment_pending"].includes(getOverallState(item).key)
+function updateCounters() {
+  const total = currentRequests.length;
+
+  const completed = currentRequests.filter(item =>
+    isFullyCompleted(item)
   ).length;
 
-  $("approvedRequests").textContent=currentRequests.filter(item=>
-    isApproved(getOwnerApproval(item))&&!isRejectedValue(getRequestStatus(item))
+  const rejected = currentRequests.filter(item =>
+    isRejected(item)
   ).length;
 
-  $("completedRequests").textContent=currentRequests.filter(item=>isFullyCompleted(item)).length;
+  const pending = currentRequests.filter(item =>
+    !isFullyCompleted(item) &&
+    !isRejected(item) &&
+    !isApproved(getOwnerApproval(item))
+  ).length;
+
+  const approved = currentRequests.filter(item =>
+    !isFullyCompleted(item) &&
+    !isRejected(item) &&
+    isApproved(getOwnerApproval(item))
+  ).length;
+
+  if ($("totalRequests")) $("totalRequests").textContent = total;
+  if ($("pendingRequests")) $("pendingRequests").textContent = pending;
+  if ($("approvedRequests")) $("approvedRequests").textContent = approved;
+  if ($("completedRequests")) $("completedRequests").textContent = completed;
 }
 
-function updateRequestButton(){
-  const active=getActiveRequest();
-  const button=$("requestCylinderBtn");
-  const sidebarButton=$("sidebarRequestBtn");
+/* REQUEST BUTTON */
 
-  if(active){
-    if(button){
+function updateRequestButton() {
+  const active = getActiveRequest();
+  const button = $("requestCylinderBtn");
+  const sidebarButton = $("sidebarRequestBtn");
+
+  if (active) {
+    if (button) {
       button.classList.add("blocked");
-      button.textContent="⏳ Request in Progress";
+      button.textContent = "⏳ Request in Progress";
     }
-    if(sidebarButton){
+
+    if (sidebarButton) {
       sidebarButton.classList.add("blocked");
-      sidebarButton.textContent="⏳ Request in Progress";
+      sidebarButton.textContent = "⏳ Request in Progress";
     }
+
     showInfo(getOverallState(active).message);
-  }else{
-    if(button){
+
+  } else {
+    if (button) {
       button.classList.remove("blocked");
-      button.textContent="+ Request Cylinder";
+      button.textContent = "+ Request Cylinder";
     }
-    if(sidebarButton){
+
+    if (sidebarButton) {
       sidebarButton.classList.remove("blocked");
-      sidebarButton.textContent="🛢️ Request Cylinder";
+      sidebarButton.textContent = "🛢️ Request Cylinder";
     }
+
     showInfo("");
   }
 }
 
-function getDeliveryText(item){
-  const status=getDeliveryStatus(item);
-  if(status==="delivered")return "Cylinder Delivered";
-  if(status==="out_for_delivery")return "Out for Delivery";
-  if(status==="processing")return "Processing";
-  if(status==="assigned")return "Delivery Assigned";
-  if(status==="ready")return "Cylinder Ready";
+/* DELIVERY LABEL */
 
-  const state=getOverallState(item);
-  if(state.key==="owner_pending")return "Delivery Pending";
-  if(state.key==="payment_required")return "Payment Required";
-  if(state.key==="payment_pending")return "Delivery Pending";
-  if(state.key==="payment_rejected")return "Payment Rejected";
-  if(state.key==="agency_processing")return "Agency Processing";
-  if(state.key==="repayment_due")return "Repayment Due";
-  if(state.key==="repayment_pending")return "Repayment Verification Pending";
-  if(state.key==="completed")return "Completed";
-  if(state.key==="rejected")return "Request Cancelled";
+function getDeliveryText(item) {
+  const status = getDeliveryStatus(item);
+
+  if (status === "delivered") return "Cylinder Delivered";
+  if (status === "out_for_delivery") return "Out for Delivery";
+  if (status === "processing") return "Processing";
+  if (status === "assigned") return "Delivery Assigned";
+  if (status === "ready") return "Cylinder Ready";
+
+  const state = getOverallState(item);
+
+  if (state.key === "owner_pending") return "Request Pending";
+  if (state.key === "request_submitted") return "Request Submitted";
+  if (state.key === "payment_required") return "Payment Required";
+  if (state.key === "payment_pending") return "Waiting for Owner";
+  if (state.key === "payment_rejected") return "Payment Rejected";
+  if (state.key === "agency_processing") return "Agency Processing";
+  if (state.key === "repayment_due") return "Repayment Due";
+  if (state.key === "repayment_pending") return "Waiting for Owner";
+  if (state.key === "completed") return "Completed";
+  if (state.key === "rejected") return "Request Cancelled";
+
   return "Delivery Pending";
 }
 
-function getWorkflowClass(item,step){
-  const state=getOverallState(item);
+/* WORKFLOW */
 
-  if(state.key==="rejected")return step==="request"?"failed":"";
-  if(state.key==="payment_rejected"){
-    if(step==="request")return "done";
-    if(step==="payment")return "failed";
+function getWorkflowClass(item, step) {
+  const state = getOverallState(item);
+
+  if (state.key === "rejected") {
+    return step === "request" ? "failed" : "";
+  }
+
+  if (state.key === "payment_rejected") {
+    if (step === "request") return "done";
+    if (step === "payment") return "failed";
     return "";
   }
 
-  if(step==="request")return state.progress>=20?"done":"";
+  if (step === "request") {
+    return state.progress >= 20 ? "done" : "current";
+  }
 
-  if(step==="payment"){
-    if(isPaymentVerified(item))return "done";
-    if(["payment_required","payment_pending"].includes(state.key))return "current";
+  if (step === "payment") {
+    if (isPaymentVerified(item)) return "done";
+
+    if (["payment_required", "payment_pending"].includes(state.key)) {
+      return "current";
+    }
+
     return "";
   }
 
-  if(step==="agency"){
-    if(["out_for_delivery","repayment_due","repayment_pending","completed"].includes(state.key))return "done";
-    if(state.key==="agency_processing")return "current";
+  if (step === "agency") {
+    if ([
+      "out_for_delivery",
+      "repayment_due",
+      "repayment_pending",
+      "completed"
+    ].includes(state.key)) {
+      return "done";
+    }
+
+    if (state.key === "agency_processing") return "current";
+
     return "";
   }
 
-  if(step==="delivery"){
-    if(getDeliveryStatus(item)==="delivered")return "done";
-    if(state.key==="out_for_delivery")return "current";
+  if (step === "delivery") {
+    if (getDeliveryStatus(item) === "delivered") return "done";
+    if (state.key === "out_for_delivery") return "current";
     return "";
   }
 
-  if(step==="repayment"){
-    if(state.key==="completed")return "done";
-    if(["repayment_due","repayment_pending"].includes(state.key))return "current";
+  if (step === "repayment") {
+    if (state.key === "completed") return "done";
+
+    if (["repayment_due", "repayment_pending"].includes(state.key)) {
+      return "current";
+    }
+
     return "";
   }
 
   return "";
 }
 
-function renderRequests(){
-  const area=$("requestsArea");
-  if(!area)return;
+/* PAYMENT + REPAYMENT STATUS DISPLAY */
 
-  if(!currentRequests.length){
-    area.innerHTML=`
+function renderPaymentSummary(item) {
+  const initial = getPaymentData(item);
+  const repayments = getRepaymentRecords(item);
+
+  let html = "";
+
+  if (isApproved(getOwnerApproval(item)) && !isRejected(item)) {
+    if (isPaymentVerified(item)) {
+      html += `
+        <div class="payment-status-note payment-approved">
+          ✅ Initial Payment Approved
+          ${initial.amount > 0
+            ? " · ₹" + formatMoney(initial.amount)
+            : ""}
+        </div>`;
+    } else if (isPaymentRejected(item)) {
+      html += `
+        <div class="payment-status-note payment-rejected">
+          ❌ Initial Payment Rejected
+        </div>`;
+    } else if (
+      initial.record ||
+      initial.status ||
+      initial.verification
+    ) {
+      html += `
+        <div class="payment-status-note payment-pending">
+          🕒 Initial Payment Waiting for Owner
+          ${initial.amount > 0
+            ? " · ₹" + formatMoney(initial.amount)
+            : ""}
+        </div>`;
+    } else {
+      html += `
+        <div class="payment-status-note payment-pending">
+          💳 Initial Payment Required
+        </div>`;
+    }
+  }
+
+  if (repayments.length) {
+    html += `
+      <div class="payment-status-note payment-pending" style="margin-top:12px;">
+        <strong>Repayment History</strong>`;
+
+    html += repayments.map((payment, index) => {
+      const approved = isVerifiedPaymentRecord(payment);
+      const status = normalizeStatus(payment.payment_status);
+      const verification = normalizeStatus(payment.verification_status);
+
+      const rejected =
+        isRejectedValue(status) ||
+        isRejectedValue(verification);
+
+      const waiting =
+        !approved &&
+        !rejected &&
+        [
+          "submitted",
+          "pending",
+          "pending_verification",
+          "verification_pending",
+          "under_review",
+          "processing",
+          "paid"
+        ].includes(status);
+
+      const label = approved
+        ? "✅ Repayment Approved"
+        : rejected
+          ? "❌ Repayment Rejected"
+          : waiting
+            ? "🕒 Waiting for Owner"
+            : "⏳ Repayment Pending";
+
+      html += `
+        <div style="margin-top:8px;padding:10px;border-top:1px solid #dce7ef;">
+          <div><strong>Repayment #${index + 1}</strong></div>
+          <div>${label}</div>
+          <div>Amount: ₹${formatMoney(payment.payment_amount)}</div>
+          <div>Date: ${escapeHtml(
+            formatDateTime(payment.created_at || payment.payment_date)
+          )}</div>
+          ${
+            payment.transaction_id || payment.payment_reference
+              ? `<div>Transaction ID: ${escapeHtml(
+                  payment.transaction_id || payment.payment_reference
+                )}</div>`
+              : ""
+          }
+        </div>`;
+    }).join("");
+
+    const approvedRepaymentTotal = getApprovedRepaymentTotal(item);
+
+    if (approvedRepaymentTotal > 0) {
+      html += `
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #dce7ef;">
+          <strong>Approved Repayment Total: ₹${formatMoney(
+            approvedRepaymentTotal
+          )}</strong>
+        </div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+/* AMOUNT SUMMARY DISPLAY */
+
+function renderAmountSummary(item) {
+  const remaining = getRemainingAmount(item);
+  const extraCharge = getCalculatedExtraCharge(item);
+  const totalPayable = getTotalPayable(item);
+
+  return `
+    <div class="payment-status-note payment-pending" style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
+        <span>Remaining Amount</span>
+        <strong>₹${formatMoney(remaining)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
+        <span>Extra Charge</span>
+        <strong>₹${formatMoney(extraCharge)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid #dce7ef;">
+        <span><strong>Total Payable</strong></span>
+        <strong>₹${formatMoney(totalPayable)}</strong>
+      </div>
+    </div>`;
+}
+
+/* RENDER REQUEST CARDS */
+
+function renderRequests() {
+  const area = $("requestsArea");
+  if (!area) return;
+
+  if (!currentRequests.length) {
+    area.innerHTML = `
       <div class="empty">
         <div class="empty-icon">🛢️</div>
         <div class="empty-title">No cylinder requests yet</div>
-        <div class="empty-text">You have not submitted any cylinder request. Your requests will appear here.</div>
-        <button class="empty-action" onclick="requestCylinder()">+ Request Cylinder</button>
+        <div class="empty-text">
+          You have not submitted any cylinder request.
+          Your requests will appear here.
+        </div>
+        <button class="empty-action" onclick="requestCylinder()">
+          + Request Cylinder
+        </button>
       </div>`;
     return;
   }
 
-  area.innerHTML=currentRequests.map(item=>{
-    const state=getOverallState(item);
-    const progress=state.progress;
-    const quantity=Math.max(1,Number(getValue(item,["quantity","cylinder_quantity"],1))||1);
-    const amount=getRequestAmount(item);
-    const remaining=getRemainingAmount(item);
-    const payment=getPaymentData(item);
-    const requestNumber=getValue(item,["request_number","request_no"],"EGC REQUEST");
-    const requestDate=getValue(item,["created_at","request_date","submitted_at"],"");
-    const deliveryDate=getValue(item,["delivery_date","delivered_at"],"");
-    const activeRequest=getActiveRequest();
-    const active=activeRequest&&String(activeRequest.id)===String(item.id);
+  area.innerHTML = currentRequests.map(item => {
+    const state = getOverallState(item);
+    const progress = state.progress;
 
-    const cardClass=[
-      active?"active-request":"",
-      isFullyCompleted(item)?"completed-request":"",
-      isRejected(item)?"rejected-request":""
+    const quantity = Math.max(
+      1,
+      Number(getValue(item, ["quantity", "cylinder_quantity"], 1)) || 1
+    );
+
+    const amount = getRequestAmount(item);
+    const remaining = getRemainingAmount(item);
+    const extraCharge = getCalculatedExtraCharge(item);
+    const totalPayable = getTotalPayable(item);
+
+    const requestNumber = getValue(
+      item,
+      ["request_number", "request_no"],
+      "EGC REQUEST"
+    );
+
+    const requestDate = getValue(
+      item,
+      ["created_at", "request_date", "submitted_at"],
+      ""
+    );
+
+    const deliveryDate = getValue(
+      item,
+      ["delivery_date", "delivered_at"],
+      ""
+    );
+
+    const activeRequest = getActiveRequest();
+    const active =
+      activeRequest &&
+      String(activeRequest.id) === String(item.id);
+
+    const cardClass = [
+      active ? "active-request" : "",
+      isFullyCompleted(item) ? "completed-request" : "",
+      isRejected(item) ? "rejected-request" : ""
     ].filter(Boolean).join(" ");
 
-    let actionButton="";
-    if(state.key==="payment_required"){
-      actionButton=`<button class="payment-btn" onclick="openPaymentPage('${escapeHtml(item.id)}')">Make Payment</button>`;
-    }else if(state.key==="repayment_due"){
-      actionButton=`<button class="repayment-btn" onclick="openPaymentPage('${escapeHtml(item.id)}',true)">Pay Remaining</button>`;
-    }else if(["payment_pending","payment_rejected","repayment_pending"].includes(state.key)){
-      actionButton=`<button class="payment-btn" onclick="openPaymentPage('${escapeHtml(item.id)}',${state.key==="repayment_pending"})">View Payment</button>`;
+    let actionButton = "";
+
+    if (state.key === "payment_required") {
+      actionButton = `
+        <button class="payment-btn"
+          onclick="openPaymentPage('${escapeHtml(item.id)}')">
+          Make Payment
+        </button>`;
+    } else if (state.key === "repayment_due") {
+      actionButton = `
+        <button class="repayment-btn"
+          onclick="openPaymentPage('${escapeHtml(item.id)}', true)">
+          Pay Remaining
+        </button>`;
+    } else if ([
+      "payment_pending",
+      "payment_rejected",
+      "repayment_pending"
+    ].includes(state.key)) {
+      const repayment = state.key === "repayment_pending";
+
+      actionButton = `
+        <button class="payment-btn"
+          onclick="openPaymentPage('${escapeHtml(item.id)}', ${repayment})">
+          View Payment
+        </button>`;
     }
 
-    const progressClass=progress>=100?"complete":state.key==="repayment_due"?"warning":"";
-    const ownerApprovalText=getOwnerApproval(item)||"pending";
+    const progressClass =
+      progress >= 100
+        ? "complete"
+        : state.key === "repayment_due"
+          ? "warning"
+          : "";
 
-    let paymentLabel="";
-    let paymentColorClass="payment-pending";
-    let paymentIcon="⏳";
-    const ownerApproved=isApproved(getOwnerApproval(item));
-
-    if(ownerApproved&&state.key!=="rejected"){
-      if(isPaymentVerified(item)){
-        paymentLabel="Payment Approved";
-        paymentColorClass="payment-approved";
-        paymentIcon="✅";
-      }else if(isPaymentRejected(item)){
-        paymentLabel="Payment Rejected";
-        paymentColorClass="payment-rejected";
-        paymentIcon="❌";
-      }else if(payment.record||payment.status||payment.verification){
-        paymentLabel="Payment Verification Pending";
-        paymentColorClass="payment-pending";
-        paymentIcon="⏳";
-      }else if(state.key==="payment_required"){
-        paymentLabel="Initial Payment Required";
-        paymentColorClass="payment-pending";
-        paymentIcon="💳";
-      }
-    }
+    const ownerApprovalText = getOwnerApproval(item) || "pending";
 
     return `
       <div class="request-card ${cardClass}">
+
         <div class="request-head">
           <div>
             <div class="request-id">${escapeHtml(requestNumber)}</div>
-            <div class="request-date">Requested on ${escapeHtml(formatDateTime(requestDate))}</div>
+            <div class="request-date">
+              Requested on ${escapeHtml(formatDateTime(requestDate))}
+            </div>
           </div>
-          <div class="status ${escapeHtml(state.key)}">${escapeHtml(state.label)}</div>
+
+          <div class="status ${escapeHtml(state.key)}">
+            ${escapeHtml(state.label)}
+          </div>
         </div>
 
-        ${paymentLabel?`
-          <div class="payment-status-note ${paymentColorClass}">
-            ${paymentIcon} ${escapeHtml(paymentLabel)}
-            ${payment.amount>0?" · ₹"+formatMoney(payment.amount):""}
-          </div>`:""}
+        ${renderPaymentSummary(item)}
 
         <div class="request-details">
-          <div class="detail"><div class="detail-label">Quantity</div><div class="detail-value">${quantity}</div></div>
-          <div class="detail"><div class="detail-label">Request Amount</div><div class="detail-value">₹${formatMoney(amount)}</div></div>
-          <div class="detail"><div class="detail-label">Request ID</div><div class="detail-value">${escapeHtml(String(item.id||"").substring(0,8))}</div></div>
-          <div class="detail"><div class="detail-label">Owner Approval</div><div class="detail-value">${escapeHtml(ownerApprovalText)}</div></div>
+          <div class="detail">
+            <div class="detail-label">Quantity</div>
+            <div class="detail-value">${quantity}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail-label">Request Amount</div>
+            <div class="detail-value">₹${formatMoney(amount)}</div>
+          </div>
+
+          <div class="detail">
+            <div class="detail-label">Request ID</div>
+            <div class="detail-value">
+              ${escapeHtml(String(item.id || "").substring(0, 8))}
+            </div>
+          </div>
+
+          <div class="detail">
+            <div class="detail-label">Owner Approval</div>
+            <div class="detail-value">
+              ${escapeHtml(ownerApprovalText)}
+            </div>
+          </div>
         </div>
+
+        ${
+          getDeliveryStatus(item) === "delivered"
+            ? renderAmountSummary(item)
+            : ""
+        }
 
         <div class="workflow-box">
           <div class="workflow-title">Request Progress</div>
+
           <div class="workflow">
-            <div class="workflow-step ${getWorkflowClass(item,"request")}"><div class="workflow-dot">1</div><div class="workflow-label">Request</div></div>
-            <div class="workflow-step ${getWorkflowClass(item,"payment")}"><div class="workflow-dot">2</div><div class="workflow-label">Payment</div></div>
-            <div class="workflow-step ${getWorkflowClass(item,"agency")}"><div class="workflow-dot">3</div><div class="workflow-label">Agency</div></div>
-            <div class="workflow-step ${getWorkflowClass(item,"delivery")}"><div class="workflow-dot">4</div><div class="workflow-label">Delivery</div></div>
-            <div class="workflow-step ${getWorkflowClass(item,"repayment")}"><div class="workflow-dot">5</div><div class="workflow-label">Repayment</div></div>
+            <div class="workflow-step ${getWorkflowClass(item, "request")}">
+              <div class="workflow-dot">1</div>
+              <div class="workflow-label">Request</div>
+            </div>
+
+            <div class="workflow-step ${getWorkflowClass(item, "payment")}">
+              <div class="workflow-dot">2</div>
+              <div class="workflow-label">Payment</div>
+            </div>
+
+            <div class="workflow-step ${getWorkflowClass(item, "agency")}">
+              <div class="workflow-dot">3</div>
+              <div class="workflow-label">Agency</div>
+            </div>
+
+            <div class="workflow-step ${getWorkflowClass(item, "delivery")}">
+              <div class="workflow-dot">4</div>
+              <div class="workflow-label">Delivery</div>
+            </div>
+
+            <div class="workflow-step ${getWorkflowClass(item, "repayment")}">
+              <div class="workflow-dot">5</div>
+              <div class="workflow-label">Repayment</div>
+            </div>
           </div>
         </div>
 
@@ -844,9 +1582,16 @@ function renderRequests(){
             <div class="delivery-label">Current Status</div>
             <div class="delivery-value">${escapeHtml(state.message)}</div>
           </div>
+
           <div>
             <div class="delivery-label">Delivery</div>
-            <div class="delivery-value">${escapeHtml(deliveryDate?formatDate(deliveryDate):getDeliveryText(item))}</div>
+            <div class="delivery-value">
+              ${
+                deliveryDate
+                  ? escapeHtml(formatDate(deliveryDate))
+                  : escapeHtml(getDeliveryText(item))
+              }
+            </div>
           </div>
         </div>
 
@@ -855,188 +1600,379 @@ function renderRequests(){
             <div class="progress-label">Request Progress</div>
             <div class="progress-percent">${progress}%</div>
           </div>
-          <div class="progress"><div class="progress-bar ${progressClass}" style="width:${progress}%"></div></div>
+
+          <div class="progress">
+            <div
+              class="progress-bar ${progressClass}"
+              style="width:${progress}%">
+            </div>
+          </div>
         </div>
 
         <div class="request-footer">
-          <div class="amount"><span>Remaining</span> ₹${formatMoney(remaining)}</div>
+          <div class="amount">
+            <span>Remaining Amount</span>
+            ₹${formatMoney(remaining)}
+          </div>
+
           <div>
             ${actionButton}
-            <button class="view-btn" onclick="viewRequest('${escapeHtml(item.id)}')">View Details</button>
+
+            <button class="view-btn"
+              onclick="viewRequest('${escapeHtml(item.id)}')">
+              View Details
+            </button>
           </div>
         </div>
       </div>`;
   }).join("");
 }
 
-function openPaymentPage(id,repayment=false){
-  if(!id){toast("Request details not found.");return;}
-  const params=new URLSearchParams();
-  params.set("request_id",id);
-  if(repayment)params.set("type","repayment");
-  window.location.href="payments.html?"+params.toString();
-}
+/* NAVIGATION */
 
-function viewRequest(id){
-  const request=currentRequests.find(item=>String(item.id)===String(id));
-  if(!request){toast("Request details not found.");return;}
-  const state=getOverallState(request);
-  const number=getValue(request,["request_number","request_no"],"EGC REQUEST");
-  toast(number+" • "+state.label+" • Remaining ₹"+formatMoney(getRemainingAmount(request)));
-}
-
-function requestCylinder(){
-  const activeRequest=getActiveRequest();
-  if(!activeRequest){
-    window.location.href="request-cylinder.html";
+function openPaymentPage(id, repayment = false) {
+  if (!id) {
+    toast("Request details not found.");
     return;
   }
 
-  const state=getOverallState(activeRequest);
-  if(state.key==="payment_required"){
+  const params = new URLSearchParams();
+  params.set("request_id", id);
+
+  if (repayment) {
+    params.set("type", "repayment");
+  }
+
+  window.location.href = "payments.html?" + params.toString();
+}
+
+function viewRequest(id) {
+  const request = currentRequests.find(
+    item => String(item.id) === String(id)
+  );
+
+  if (!request) {
+    toast("Request details not found.");
+    return;
+  }
+
+  const state = getOverallState(request);
+  const remaining = getRemainingAmount(request);
+  const extraCharge = getCalculatedExtraCharge(request);
+  const totalPayable = getTotalPayable(request);
+
+  let message =
+    getValue(request, ["request_number", "request_no"], "EGC REQUEST") +
+    " • " +
+    state.label;
+
+  if (getDeliveryStatus(request) === "delivered") {
+    message +=
+      " • Remaining ₹" + formatMoney(remaining) +
+      " • Extra Charge ₹" + formatMoney(extraCharge) +
+      " • Total Payable ₹" + formatMoney(totalPayable);
+  } else {
+    message += " • Remaining ₹" + formatMoney(remaining);
+  }
+
+  toast(message);
+}
+
+function requestCylinder() {
+  const activeRequest = getActiveRequest();
+
+  if (!activeRequest) {
+    window.location.href = "request-cylinder.html";
+    return;
+  }
+
+  const state = getOverallState(activeRequest);
+
+  if (state.key === "payment_required") {
     openPaymentPage(activeRequest.id);
     return;
   }
-  if(state.key==="repayment_due"||state.key==="repayment_pending"){
-    openPaymentPage(activeRequest.id,true);
+
+  if (["repayment_due", "repayment_pending"].includes(state.key)) {
+    openPaymentPage(activeRequest.id, true);
     return;
   }
 
-  toast("Your request "+getValue(activeRequest,["request_number","request_no"],"")+" is still in progress.");
+  toast(
+    "Your request " +
+    getValue(activeRequest, ["request_number", "request_no"], "") +
+    " is still in progress."
+  );
+
   showInfo(state.message);
 
-  const card=document.querySelector(".active-request");
-  if(card)card.scrollIntoView({behavior:"smooth",block:"center"});
+  const card = document.querySelector(".active-request");
+
+  if (card) {
+    card.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
 }
 
-async function refreshRequests(){
-  const button=$("refreshBtn");
-  if(button){button.disabled=true;button.textContent="↻ Refreshing...";}
-  try{
+async function refreshRequests() {
+  const button = $("refreshBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "↻ Refreshing...";
+  }
+
+  try {
     clearError();
     await loadRequests();
-    if($("errorBox")?.style.display==="none")toast("Requests and payment statuses updated.");
-  }catch(error){
-    showError(error.message||"Unable to refresh requests.");
-  }finally{
-    if(button){button.disabled=false;button.textContent="↻ Refresh";}
+
+    if ($("errorBox")?.style.display === "none") {
+      toast("Requests and payment statuses updated.");
+    }
+  } catch (error) {
+    showError(error.message || "Unable to refresh requests.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "↻ Refresh";
+    }
   }
 }
 
-function subscribeRealtime(){
-  if(!currentUser?.id||!supabaseClient)return;
+/* REALTIME */
 
-  if(realtimeChannel){supabaseClient.removeChannel(realtimeChannel);realtimeChannel=null;}
-  if(paymentRealtimeChannel){supabaseClient.removeChannel(paymentRealtimeChannel);paymentRealtimeChannel=null;}
+function subscribeRealtime() {
+  if (!currentUser?.id || !supabaseClient) return;
 
-  realtimeChannel=supabaseClient
-    .channel("my-requests-"+currentUser.id)
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"cylinder_requests",filter:"user_id=eq."+currentUser.id
-    },async payload=>{
-      try{await loadRequests();}catch(error){console.error(error);}
-      if(payload.eventType==="INSERT")toast("New cylinder request added.");
-      else if(payload.eventType==="UPDATE"&&payload.new){
-        const updatedRequest=currentRequests.find(item=>String(item.id)===String(payload.new.id));
-        if(updatedRequest)toast(getOverallState(updatedRequest).message);
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  if (paymentRealtimeChannel) {
+    supabaseClient.removeChannel(paymentRealtimeChannel);
+    paymentRealtimeChannel = null;
+  }
+
+  realtimeChannel = supabaseClient
+    .channel("my-requests-" + currentUser.id)
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "cylinder_requests",
+      filter: "user_id=eq." + currentUser.id
+    }, async payload => {
+      try {
+        await loadRequests();
+      } catch (error) {
+        console.error(error);
       }
-    }).subscribe(status=>console.log("My Requests realtime:",status));
 
-  paymentRealtimeChannel=supabaseClient
-    .channel("my-payments-"+currentUser.id)
-    .on("postgres_changes",{
-      event:"*",schema:"public",table:"payments",filter:"user_id=eq."+currentUser.id
-    },async payload=>{
-      try{await loadRequests();}catch(error){console.error(error);}
-      if(payload.eventType==="UPDATE"||payload.eventType==="INSERT")toast("Payment status updated.");
-    }).subscribe(status=>console.log("My Payments realtime:",status));
+      if (payload.eventType === "INSERT") {
+        toast("New cylinder request added.");
+      } else if (payload.eventType === "UPDATE" && payload.new) {
+        const updatedRequest = currentRequests.find(
+          item => String(item.id) === String(payload.new.id)
+        );
+
+        if (updatedRequest) {
+          toast(getOverallState(updatedRequest).message);
+        }
+      }
+    })
+    .subscribe(status => {
+      console.log("My Requests realtime:", status);
+    });
+
+  paymentRealtimeChannel = supabaseClient
+    .channel("my-payments-" + currentUser.id)
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "payments",
+      filter: "user_id=eq." + currentUser.id
+    }, async payload => {
+      try {
+        await loadRequests();
+      } catch (error) {
+        console.error(error);
+      }
+
+      if (["UPDATE", "INSERT"].includes(payload.eventType)) {
+        toast("Payment status updated.");
+      }
+    })
+    .subscribe(status => {
+      console.log("My Payments realtime:", status);
+    });
 }
 
-function goDashboard(){window.location.href="dashboard.html";}
-function goRequests(){window.location.href="my-requests.html";}
-function goPayments(){window.location.href="payments.html";}
-function goNotifications(){window.location.href="notifications.html";}
-function goProfile(){window.location.href="profile.html";}
-function goSettings(){window.location.href="setting.html";}
-function goHelp(){window.location.href="help-support.html";}
+/* SIDEBAR NAVIGATION */
 
-function openLogoutPopup(){
-  if($("logoutOverlay")){
+function goDashboard() {
+  window.location.href = "dashboard.html";
+}
+
+function goRequests() {
+  window.location.href = "my-requests.html";
+}
+
+function goPayments() {
+  window.location.href = "payments.html";
+}
+
+function goNotifications() {
+  window.location.href = "notifications.html";
+}
+
+function goProfile() {
+  window.location.href = "profile.html";
+}
+
+function goSettings() {
+  window.location.href = "setting.html";
+}
+
+function goHelp() {
+  window.location.href = "help-support.html";
+}
+
+/* LOGOUT */
+
+function openLogoutPopup() {
+  if ($("logoutOverlay")) {
     $("logoutOverlay").classList.add("show");
-    document.body.style.overflow="hidden";
+    document.body.style.overflow = "hidden";
   }
 }
 
-function closeLogoutPopup(event){
-  if(event&&event.target&&event.target.id!=="logoutOverlay")return;
-  if($("logoutOverlay"))$("logoutOverlay").classList.remove("show");
-  document.body.style.overflow="";
+function closeLogoutPopup(event) {
+  if (
+    event &&
+    event.target &&
+    event.target.id !== "logoutOverlay"
+  ) {
+    return;
+  }
+
+  if ($("logoutOverlay")) {
+    $("logoutOverlay").classList.remove("show");
+  }
+
+  document.body.style.overflow = "";
 }
 
-async function confirmLogout(){
-  if(isLoggingOut)return;
-  isLoggingOut=true;
-  const button=$("confirmLogoutBtn");
-  if(button){button.disabled=true;button.textContent="Logging out...";}
+async function confirmLogout() {
+  if (isLoggingOut) return;
 
-  try{
-    if(!supabaseClient)throw new Error("Supabase is not available.");
-    const {error}=await supabaseClient.auth.signOut();
-    if(error)throw error;
+  isLoggingOut = true;
 
-    if(realtimeChannel){await supabaseClient.removeChannel(realtimeChannel);realtimeChannel=null;}
-    if(paymentRealtimeChannel){await supabaseClient.removeChannel(paymentRealtimeChannel);paymentRealtimeChannel=null;}
+  const button = $("confirmLogoutBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Logging out...";
+  }
+
+  try {
+    if (!supabaseClient) {
+      throw new Error("Supabase is not available.");
+    }
+
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) throw error;
+
+    if (realtimeChannel) {
+      await supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    if (paymentRealtimeChannel) {
+      await supabaseClient.removeChannel(paymentRealtimeChannel);
+      paymentRealtimeChannel = null;
+    }
+
     window.location.replace("login.html");
-  }catch(error){
-    isLoggingOut=false;
-    if(button){button.disabled=false;button.textContent="Logout";}
-    toast(error.message||"Logout failed.");
+
+  } catch (error) {
+    isLoggingOut = false;
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Logout";
+    }
+
+    toast(error.message || "Logout failed.");
   }
 }
 
-document.addEventListener("keydown",event=>{
-  if(event.key==="Escape")closeLogoutPopup();
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeLogoutPopup();
+  }
 });
 
-if(supabaseClient){
-  supabaseClient.auth.onAuthStateChange(event=>{
-    if(event==="SIGNED_OUT"&&!isLoggingOut){
-      if(realtimeChannel){supabaseClient.removeChannel(realtimeChannel);realtimeChannel=null;}
-      if(paymentRealtimeChannel){supabaseClient.removeChannel(paymentRealtimeChannel);paymentRealtimeChannel=null;}
+/* AUTH STATE */
+
+if (supabaseClient) {
+  supabaseClient.auth.onAuthStateChange(event => {
+    if (event === "SIGNED_OUT" && !isLoggingOut) {
+      if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
+
+      if (paymentRealtimeChannel) {
+        supabaseClient.removeChannel(paymentRealtimeChannel);
+        paymentRealtimeChannel = null;
+      }
+
       window.location.replace("login.html");
     }
   });
 }
 
-async function initializePage(){
-  try{
+/* INITIALIZE */
+
+async function initializePage() {
+  try {
     clearError();
-    if(!supabaseClient){
-      showError("Supabase client was not loaded. Check the Supabase JS script URL and refresh the page.");
+
+    if (!supabaseClient) {
+      showError(
+        "Supabase client was not loaded. Check the Supabase JS script URL and refresh the page."
+      );
       return;
     }
 
-    const {data,error}=await supabaseClient.auth.getUser();
-    if(error||!data?.user){
+    const { data, error } = await supabaseClient.auth.getUser();
+
+    if (error || !data?.user) {
       window.location.replace("login.html");
       return;
     }
 
-    currentUser=data.user;
+    currentUser = data.user;
+
     await loadProfile();
     await loadRequests();
     subscribeRealtime();
-  }catch(error){
-    console.error("My Requests initialization error:",error);
-    showError(error.message||"Unable to load My Requests.");
+
+  } catch (error) {
+    console.error("My Requests initialization error:", error);
+    showError(error.message || "Unable to load My Requests.");
   }
 }
 
-if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded",initializePage);
-}else{
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializePage);
+} else {
   initializePage();
 }
 </script>
+
 </body>
 </html>
