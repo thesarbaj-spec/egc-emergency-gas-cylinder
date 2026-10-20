@@ -55,6 +55,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .welcome h1{font-size:28px;color:#06477f;font-weight:800;margin-bottom:6px}
 .welcome p{color:#7890a3;font-size:14px;line-height:1.6}
 
+/* Approval queue introduction */
+.queue-intro{display:flex;align-items:flex-start;gap:12px;padding:15px 17px;margin-bottom:20px;border:1px solid #dceaf5;border-radius:14px;background:linear-gradient(135deg,#f1f9ff,#fff8f8)}
+.queue-intro-icon{width:42px;height:42px;flex-shrink:0;border:1px solid #e0eaf2;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px}
+.queue-intro h2{font-size:14px;color:#06477f;margin-bottom:5px}
+.queue-intro p{font-size:12px;color:#7890a3;line-height:1.7}
+.queue-intro strong{color:#315671}
+.queue-label{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;margin-top:8px;border-radius:20px;background:#fff7df;color:#986500;font-size:10px;font-weight:800}
+.queue-label-dot{width:7px;height:7px;background:#e4a323;border-radius:50%}
+
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}
 .stat-card{background:rgba(255,255,255,.95);border:1px solid #dce6ef;border-radius:17px;padding:18px;box-shadow:0 8px 28px rgba(50,80,110,.07)}
 .stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -214,8 +223,14 @@ tbody tr:hover{background:#fbfdff}
 .payment-proof a{display:block;padding:9px;font-size:11px;font-weight:800;overflow-wrap:anywhere}
 .inline-status{font-size:12px;color:#71889a;line-height:1.6;margin-top:12px}
 
-@media(max-width:1100px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.history-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:900px){.sidebar{width:235px}.main{padding:25px}}
+@media(max-width:1100px){
+.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.history-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){
+.sidebar{width:235px}
+.main{padding:25px}
+}
 @media(max-width:760px){
 .header{height:70px;padding:0 14px}
 .menu-btn{display:flex}
@@ -247,6 +262,7 @@ tbody tr:hover{background:#fbfdff}
 .user-profile-view{align-items:flex-start}
 .payment-proof-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .history-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.queue-intro{padding:13px}
 }
 @media(max-width:520px){
 .main{padding-left:10px;padding-right:10px}
@@ -257,6 +273,7 @@ tbody tr:hover{background:#fbfdff}
 .payment-summary,.payment-proof-grid,.history-summary-grid{grid-template-columns:1fr}
 .history-section-head{align-items:flex-start}
 .history-intro{padding:12px}
+.queue-intro-icon{width:36px;height:36px;font-size:18px}
 }
 @media(max-height:700px) and (min-width:761px){
 .sidebar{padding-top:15px;padding-bottom:15px}
@@ -330,6 +347,16 @@ tbody tr:hover{background:#fbfdff}
         <p>Request approval and payment verification are managed independently. Approving one will not automatically approve the other.</p>
     </div>
 
+    <!-- New request approval queue introduction -->
+    <section class="queue-intro" aria-label="Request approval queue information">
+        <div class="queue-intro-icon" aria-hidden="true">⏳</div>
+        <div>
+            <h2>New Requests — Approval Queue</h2>
+            <p>Review newly submitted cylinder requests, check customer details and documents, then approve or reject each request. <strong>Request approval and payment verification remain separate actions.</strong></p>
+            <span class="queue-label"><span class="queue-label-dot"></span>Owner review required</span>
+        </div>
+    </section>
+
     <section class="stats">
         <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Total Requests</div><div class="stat-number" id="totalRequests">0</div></div><div class="stat-icon">🛢️</div></div></div>
         <div class="stat-card"><div class="stat-top"><div><div class="stat-name">Pending Requests</div><div class="stat-number" id="pendingRequests">0</div></div><div class="stat-icon">⏳</div></div></div>
@@ -391,8 +418,7 @@ tbody tr:hover{background:#fbfdff}
         </div>
     </section>
 
-    <!-- Payment and repayment history UI template.
-         Script will populate this panel with the selected request's actual history. -->
+    <!-- Existing Payment and Repayment History section retained -->
     <section class="panel" id="paymentHistoryPanel" aria-labelledby="paymentHistoryTitle">
         <div class="panel-header">
             <div>
@@ -562,7 +588,9 @@ tbody tr:hover{background:#fbfdff}
     <div class="toast-text" id="toastText"></div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 "use strict";
 
@@ -575,7 +603,9 @@ const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 const OWNER_STORAGE_KEY = "egc-owner-auth";
 
-const EGC_DOCUMENT_BUCKET = "users-documents";
+// EGC Storage Configuration
+const EGC_STORAGE_BUCKET = "users-documents";
+const EGC_PAYMENT_BUCKET = "payment-screenshots";
 const EGC_SIGNED_URL_TTL = 3600;
 
 if (!window.supabase) {
@@ -892,114 +922,209 @@ function getPaymentAmount(request) {
    PRIVATE STORAGE AND SIGNED URLS
    ========================================================= */
 
-function parseStorageReference(reference) {
-    if (typeof reference !== "string") return null;
-
-    const value = reference.trim();
-    if (!value) return null;
-
-    if (/^data:image\//i.test(value)) {
-        return { type: "data", url: value };
+function parseStorageReference(reference, defaultBucket = EGC_STORAGE_BUCKET) {
+    if (typeof reference !== "string" || !reference.trim()) {
+        return null;
     }
 
+    let value = reference.trim();
+
+    if (/^data:/i.test(value)) {
+        return {
+            type: "direct",
+            url: value
+        };
+    }
+
+    value = value.replace(/&amp;/g, "&");
+
+    // Handle full Supabase Storage URLs
     if (/^https?:\/\//i.test(value)) {
         let url;
 
         try {
             url = new URL(value);
-        } catch {
+        } catch (_) {
+            return {
+                type: "direct",
+                url: value
+            };
+        }
+
+        const marker = "/storage/v1/object/";
+        const index = url.pathname.indexOf(marker);
+
+        if (index === -1) {
+            return {
+                type: "direct",
+                url: value
+            };
+        }
+
+        const parts = url.pathname
+            .slice(index + marker.length)
+            .split("/");
+
+        const accessType = parts.shift();
+        const bucket = parts.shift();
+
+        let path = parts.join("/");
+
+        try {
+            path = decodeURIComponent(path);
+        } catch (_) {}
+
+        if (!bucket || !path) {
             return null;
         }
 
-        const match = url.pathname.match(
-            /\/storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)/
-        );
-
-        if (!match) {
-            return { type: "external", url: value };
+        if (accessType === "public") {
+            return {
+                type: "public",
+                bucket,
+                path,
+                url: value
+            };
         }
 
+        if (
+            accessType === "sign" ||
+            accessType === "authenticated"
+        ) {
+            return {
+                type: "storage",
+                bucket,
+                path: path.split("?")[0]
+            };
+        }
+
+        return null;
+    }
+
+    // Normalize a relative storage path
+    let path = value.replace(/^\/+/, "");
+
+    // Explicit bucket prefix takes priority
+    for (const bucket of [
+        "payment-screenshots",
+        "users-documents"
+    ]) {
+        if (path.startsWith(bucket + "/")) {
+            return {
+                type: "storage",
+                bucket,
+                path: path.slice(bucket.length + 1)
+            };
+        }
+    }
+
+    // Payment screenshot paths contain a payment ID folder:
+    // user_id/payment_id/filename
+    const pathParts = path.split("/").filter(Boolean);
+
+    if (
+        pathParts.length >= 3 &&
+        /^\d{13,}\.(png|jpe?g|webp|gif)$/i.test(
+            pathParts[pathParts.length - 1]
+        )
+    ) {
         return {
-            type: match[1] === "public" ? "public-storage" : "private-storage",
-            url: value,
-            bucket: decodeURIComponent(match[2]),
-            path: decodeURIComponent(match[3]).split("?")[0]
+            type: "storage",
+            bucket: "payment-screenshots",
+            path
         };
     }
 
-    let path = value.replace(/^\/+/, "");
-    let bucket = EGC_DOCUMENT_BUCKET;
-
-    if (path.startsWith("storage/v1/object/")) {
-        const match = path.match(
-            /^storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)$/
-        );
-
-        if (match) {
-            bucket = decodeURIComponent(match[2]);
-            path = decodeURIComponent(match[3]);
-        }
-    } else if (path.startsWith(bucket + "/")) {
-        path = path.slice(bucket.length + 1);
-    }
-
+    // Other relative paths use the supplied default bucket
     return {
-        type: "storage-path",
-        bucket,
-        path: path.split("?")[0]
+        type: "storage",
+        bucket: defaultBucket,
+        path
     };
 }
 
-async function resolveStorageUrl(reference) {
-    const parsed = parseStorageReference(reference);
+async function resolveStorageUrl(
+    reference,
+    defaultBucket = EGC_STORAGE_BUCKET
+) {
+    // Parse the storage reference using the correct bucket
+    const parsed = parseStorageReference(
+        reference,
+        defaultBucket
+    );
+
     if (!parsed) return null;
 
-    if (parsed.type === "data" || parsed.type === "external") {
+    // Direct URLs do not need a signed URL
+    if (
+        parsed.type === "direct" ||
+        parsed.type === "public"
+    ) {
         return parsed.url;
     }
 
-    if (parsed.type === "public-storage") {
-        return parsed.url;
-    }
-
-    const bucket = parsed.bucket || EGC_DOCUMENT_BUCKET;
-    const path = parsed.path;
-
-    if (!path) return null;
-
-    const cacheKey = `${bucket}:${path}`;
+    const cacheKey = `${parsed.bucket}:${parsed.path}`;
     const cached = signedUrlCache.get(cacheKey);
 
-    if (cached && cached.expiresAt > Date.now() + 60000) {
-        return cached.url;
+    if (
+        cached &&
+        (
+            typeof cached === "string" ||
+            cached.expiresAt > Date.now() + 30000
+        )
+    ) {
+        return typeof cached === "string"
+            ? cached
+            : cached.url;
     }
 
     try {
-        const cleanPath = path.replace(/^\/+/, "").replace(/\/+/g, "/");
-
-        const { data, error } = await supabaseClient.storage
-            .from(bucket)
-            .createSignedUrl(cleanPath, EGC_SIGNED_URL_TTL);
+        const { data, error } = await supabaseClient
+            .storage
+            .from(parsed.bucket)
+            .createSignedUrl(
+                parsed.path,
+                EGC_SIGNED_URL_TTL
+            );
 
         if (error) {
-            console.warn("Could not create signed URL:", {
-                bucket,
-                path,
+            console.error("EGC Storage URL failed:", {
+                bucket: parsed.bucket,
+                path: parsed.path,
                 message: error.message
             });
+
+            signedUrlCache.delete(cacheKey);
             return null;
         }
 
-        if (!data?.signedUrl) return null;
+        if (!data?.signedUrl) {
+            console.error(
+                "EGC Storage: signed URL was not returned",
+                {
+                    bucket: parsed.bucket,
+                    path: parsed.path
+                }
+            );
+
+            return null;
+        }
 
         signedUrlCache.set(cacheKey, {
             url: data.signedUrl,
-            expiresAt: Date.now() + EGC_SIGNED_URL_TTL * 1000
+            expiresAt:
+                Date.now() + EGC_SIGNED_URL_TTL * 1000
         });
 
         return data.signedUrl;
+
     } catch (error) {
-        console.error("Storage URL resolution failed:", error);
+        console.error("Unexpected Storage error:", {
+            bucket: parsed.bucket,
+            path: parsed.path,
+            message: error?.message || String(error)
+        });
+
         return null;
     }
 }
@@ -1016,17 +1141,53 @@ async function resolveFirstDocumentValue(values) {
 }
 
 function getUserPhotoReference(request) {
-    return [
+    const profile = request.profile || {};
+
+    const references = [
         request.profile_photo,
-        request.profile?.profile_photo,
-        request.profile?.photo_url,
-        request.profile?.avatar_url,
+        profile.profile_photo,
+        profile.photo_url,
+        profile.avatar_url,
         request.customer_photo
     ];
+
+    // UUID find karo taaki actual profile.jpg ka fallback path ban sake.
+    const userId =
+        request.user_id ||
+        request.profile_id ||
+        profile.id;
+
+    if (
+        typeof userId === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+    ) {
+        references.push(`${userId}/profile.jpg`);
+    }
+
+    // Duplicate paths remove karo.
+    return [...new Set(
+        references.filter(value =>
+            typeof value === "string" && value.trim()
+        ).map(value => value.trim())
+    )];
 }
 
 async function getResolvedUserPhoto(request) {
-    return resolveFirstDocumentValue(getUserPhotoReference(request));
+    const references = getUserPhotoReference(request);
+
+    for (const reference of references) {
+        // Pehle saved path try karo, phir fallback profile.jpg.
+        const resolved = await resolveStorageUrl(reference);
+
+        if (resolved) {
+            return {
+                original: reference,
+                url: resolved.url || resolved
+            };
+        }
+    }
+
+    return null;
 }
 
 /* =========================================================
@@ -1311,6 +1472,13 @@ async function loadRequests() {
         if (error) throw error;
 
         requests = data || [];
+        console.log("EGC DATABASE DOCUMENT CHECK:", (data || []).map(request => ({
+    id: request.id,
+    aadhaar_front_photo: request.aadhaar_front_photo,
+    aadhaar_back_photo: request.aadhaar_back_photo,
+    pan_photo: request.pan_photo,
+    gas_passbook_photo: request.gas_passbook_photo
+})));
         await attachRelatedData();
 
         updateCounters();
@@ -2985,23 +3153,159 @@ function openHistoryPaymentDetails(payment) {
    PAYMENT PROOFS AND DOCUMENTS
    ========================================================= */
 
+/* =========================================================
+   EGC PAYMENT PROOF REFERENCES
+   ========================================================= */
+
 function uniqueDocumentReferences(fields) {
     const result = [];
     const seen = new Set();
 
     for (const [label, value] of fields) {
-        if (typeof value !== "string" || !value.trim()) continue;
+        if (typeof value !== "string" || !value.trim()) {
+            continue;
+        }
 
         const reference = value.trim();
-        const key = `${label}:${reference}`;
 
-        if (seen.has(key)) continue;
+        // Deduplicate identical references, even if labels differ.
+        const key = reference;
+
+        if (seen.has(key)) {
+            continue;
+        }
 
         seen.add(key);
-        result.push({ label, reference });
+
+        result.push({
+            label,
+            reference
+        });
     }
 
     return result;
+}
+
+
+function collectPaymentProofReferences(
+    request,
+    paymentOverride = null
+) {
+    const payment = paymentOverride ||
+        request.latest_payment ||
+        {};
+
+    const fields = [
+        ["Payment Screenshot", payment.screenshot_path],
+        ["Payment Screenshot", payment.payment_screenshot],
+        ["Payment Screenshot", payment.screenshot_url],
+        ["Payment Screenshot", payment.payment_screenshot_url],
+        ["Payment Screenshot", payment.payment_proof],
+        ["Payment Screenshot", payment.payment_proof_url],
+        ["Payment Reference", payment.payment_reference],
+
+        ["Payment Screenshot", request.payment_screenshot],
+        ["Payment Screenshot", request.payment_screenshot_path],
+        ["Payment Screenshot", request.payment_screenshot_url],
+        ["Payment Screenshot", request.payment_screenshot_1],
+        ["Payment Screenshot", request.payment_screenshot_2],
+        ["Payment Screenshot", request.payment_screenshot_3],
+        ["Payment Proof", request.payment_proof],
+        ["Payment Proof", request.payment_proof_url]
+    ];
+
+    return uniqueDocumentReferences(fields);
+}
+
+function collectDocumentReferences(request) {
+    const fields = [];
+    const profile = request.profile || {};
+    const payment = request.latest_payment || {};
+
+    // 1. PROFILE PHOTO
+    fields.push(
+        ["Profile Photo", request.profile_photo],
+        ["Profile Photo", profile.profile_photo]
+    );
+
+    // Fallback: actual profile.jpg path
+    const userId =
+        request.user_id ||
+        request.profile_id ||
+        profile.id;
+
+    if (
+        typeof userId === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+    ) {
+        fields.push([
+            "Profile Photo",
+            `${userId}/profile.jpg`
+        ]);
+    }
+
+    // Fallback for timestamped profile filenames
+    const profilePhotoReferences = [
+        request.profile_photo,
+        profile.profile_photo
+    ];
+
+    for (const reference of profilePhotoReferences) {
+        if (
+            typeof reference === "string" &&
+            reference.trim()
+        ) {
+            const match = reference.trim().match(
+                /^([0-9a-f-]{36})\/profile(?:-\d+)?\.(jpg|jpeg|png|webp)$/i
+            );
+
+            if (match) {
+                fields.push([
+                    "Profile Photo",
+                    `${match[1]}/profile.jpg`
+                ]);
+            }
+        }
+    }
+
+    // 2. AADHAAR FRONT
+    fields.push(
+        ["Aadhaar Front", request.aadhaar_front_photo],
+        ["Aadhaar Front", profile.aadhaar_front_photo]
+    );
+
+    // 3. AADHAAR BACK
+    fields.push(
+        ["Aadhaar Back", request.aadhaar_back_photo],
+        ["Aadhaar Back", profile.aadhaar_back_photo]
+    );
+
+    // 4. PAN CARD
+    fields.push(
+        ["PAN Card", request.pan_photo],
+        ["PAN Card", profile.pan_photo]
+    );
+
+    // 5. GAS PASSBOOK
+    fields.push(
+        ["Gas Passbook", request.gas_passbook_photo],
+        ["Gas Passbook", profile.gas_passbook_photo]
+    );
+
+    // 6. PAYMENT SCREENSHOTS / PROOFS
+    fields.push(
+        ["Payment Screenshot", payment.screenshot_path],
+        ["Payment Screenshot", payment.payment_screenshot],
+        ["Payment Screenshot", payment.screenshot_url],
+        ["Payment Screenshot 1", request.payment_screenshot_1],
+        ["Payment Screenshot 2", request.payment_screenshot_2],
+        ["Payment Screenshot 3", request.payment_screenshot_3],
+        ["Payment Proof URL", request.payment_screenshot_url],
+        ["Payment Proof", request.payment_proof_url]
+    );
+
+    // 7. REMOVE DUPLICATE REFERENCES
+    return uniqueDocumentReferences(fields);
 }
 
 function collectPaymentProofReferences(request, paymentOverride = null) {
@@ -3023,52 +3327,131 @@ function collectPaymentProofReferences(request, paymentOverride = null) {
 
     return uniqueDocumentReferences(fields);
 }
-
 async function resolveDocumentList(references) {
-    return Promise.all(references.map(async item => ({
-        label: item.label,
-        reference: item.reference,
-        url: await resolveStorageUrl(item.reference)
-    })));
+    return Promise.all(
+        references.map(async item => {
+            const isPaymentProof =
+                /payment|repayment|transaction/i.test(
+                    item.label || ""
+                );
+
+            const bucket = isPaymentProof
+                ? "payment-screenshots"
+                : EGC_STORAGE_BUCKET;
+
+            let url = await resolveStorageUrl(
+                item.reference,
+                bucket
+            );
+
+            // Fallback: timestamped profile filename ke badle
+            // actual profile.jpg ko try karo.
+            if (
+                !url &&
+                !isPaymentProof &&
+                typeof item.reference === "string"
+            ) {
+                const match = item.reference.match(
+                    /^([0-9a-f-]{36})\/profile(?:-\d+)?\.(jpg|jpeg|png|webp)$/i
+                );
+
+                if (match) {
+                    const fallbackPath =
+                        `${match[1]}/profile.jpg`;
+
+                    url = await resolveStorageUrl(
+                        fallbackPath,
+                        EGC_STORAGE_BUCKET
+                    );
+
+                    if (url) {
+                        item.reference = fallbackPath;
+                    }
+                }
+            }
+
+            return {
+                label: item.label,
+                reference: item.reference,
+                url: url
+                    ? (url.url || url)
+                    : null
+            };
+        })
+    );
 }
+
 
 function renderDocumentCards(documents, emptyMessage) {
     const valid = documents.filter(item => item.url);
 
     if (!valid.length) {
-        return `<div class="modal-note">${escapeHtml(emptyMessage)}</div>`;
+        return `
+            <div class="modal-note">
+                ${escapeHtml(emptyMessage)}
+            </div>
+        `;
     }
 
     return `
         <div class="document-grid">
             ${valid.map(document => {
                 const isPdf =
-                    /\.pdf(?:$|\?)/i.test(document.reference) ||
-                    /\.pdf(?:$|\?)/i.test(document.url);
+                    /\.pdf(?:$|\?)/i.test(
+                        document.reference || ""
+                    ) ||
+                    /\.pdf(?:$|\?)/i.test(
+                        document.url || ""
+                    );
 
                 return `
                     <div class="document-card">
                         ${
                             isPdf
-                                ? `<div class="document-file-icon">📄</div>`
-                                : `<img src="${escapeHtml(document.url)}"
+                                ? `
+                                    <div class="document-file-icon">
+                                        📄
+                                    </div>
+                                `
+                                : `
+                                    <img
+                                        src="${escapeHtml(document.url)}"
                                         alt="${escapeHtml(document.label)}"
                                         data-preview="${escapeHtml(document.url)}"
                                         loading="lazy"
-                                        onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
-                                   <div class="document-load-error" style="display:none">Preview unavailable</div>`
+                                        onerror="
+                                            this.style.display='none';
+                                            this.nextElementSibling.style.display='block';
+                                        "
+                                    >
+
+                                    <div
+                                        class="document-load-error"
+                                        style="display:none"
+                                    >
+                                        Preview unavailable
+                                    </div>
+                                `
                         }
-                        <div class="document-caption">${escapeHtml(document.label)}</div>
-                        <a class="document-link"
-                           href="${escapeHtml(document.url)}"
-                           target="_blank" rel="noopener noreferrer">
+
+                        <div class="document-caption">
+                            ${escapeHtml(document.label)}
+                        </div>
+
+                        <a
+                            class="document-link"
+                            href="${escapeHtml(document.url)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             ${isPdf ? "Open PDF ↗" : "Open document ↗"}
                         </a>
-                    </div>`;
+                    </div>
+                `;
             }).join("")}
-        </div>`;
+        </div>
+    `;
 }
-
 /* =========================================================
    PAYMENT APPROVAL — SUPPORTS SELECTED HISTORY RECORD
    ========================================================= */
@@ -3280,39 +3663,48 @@ async function savePaymentApproval(request, decision, paymentOverride = null) {
    ========================================================= */
 
 function collectDocumentReferences(request) {
-    const payment = request.latest_payment || {};
     const fields = [];
+    const profile = request.profile || {};
+    const payment = request.latest_payment || {};
 
+    // Profile photo
     fields.push(
-        ...getUserPhotoReference(request).map(value => ["Profile Photo", value])
+        ["Profile Photo", request.profile_photo],
+        ["Profile Photo", profile.profile_photo]
     );
 
+    // Aadhaar Front
     fields.push(
         ["Aadhaar Front", request.aadhaar_front_photo],
-        ["Aadhaar Front", request.aadhaar_front],
-        ["Aadhaar Front", request.aadhaar_front_path],
-        ["Aadhaar Front", request.aadhaar_front_url],
+        ["Aadhaar Front", profile.aadhaar_front_photo]
+    );
 
+    // Aadhaar Back
+    fields.push(
         ["Aadhaar Back", request.aadhaar_back_photo],
-        ["Aadhaar Back", request.aadhaar_back],
-        ["Aadhaar Back", request.aadhaar_back_path],
-        ["Aadhaar Back", request.aadhaar_back_url],
+        ["Aadhaar Back", profile.aadhaar_back_photo]
+    );
 
-        ["PAN Photo", request.pan_photo],
-        ["PAN Photo", request.pan_card_photo],
-        ["PAN Document", request.pan_path],
-        ["PAN Document", request.pan_url],
+    // PAN Card
+    fields.push(
+        ["PAN Card", request.pan_photo],
+        ["PAN Card", profile.pan_photo]
+    );
 
+    // Gas Passbook
+    fields.push(
         ["Gas Passbook", request.gas_passbook_photo],
-        ["Gas Passbook", request.gas_passbook],
-        ["Gas Passbook", request.gas_passbook_path],
+        ["Gas Passbook", profile.gas_passbook_photo]
+    );
 
+    // Payment screenshots
+    fields.push(
         ["Payment Screenshot", payment.screenshot_path],
         ["Payment Screenshot", payment.payment_screenshot],
         ["Payment Screenshot", payment.screenshot_url],
         ["Payment Screenshot 1", request.payment_screenshot_1],
         ["Payment Screenshot 2", request.payment_screenshot_2],
-        ["Payment Screenshot 3", request.payment_screenshot],
+        ["Payment Screenshot 3", request.payment_screenshot_3],
         ["Payment Proof URL", request.payment_screenshot_url],
         ["Payment Proof", request.payment_proof_url]
     );
@@ -3372,6 +3764,17 @@ async function openDocumentsModal(request) {
     const documents = await resolveDocumentList(
         collectDocumentReferences(request)
     );
+
+    console.log("EGC DOCUMENT REFERENCES:", collectDocumentReferences(request));
+
+console.log("EGC DOCUMENT URL RESULTS:", documents);
+
+console.log("EGC REQUEST DOCUMENT FIELDS:", {
+    aadhaar_front_photo: request.aadhaar_front_photo,
+    aadhaar_back_photo: request.aadhaar_back_photo,
+    pan_photo: request.pan_photo,
+    gas_passbook_photo: request.gas_passbook_photo
+});
 
     if (
         !$("appModal")?.classList.contains("show") ||

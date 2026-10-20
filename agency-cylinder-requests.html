@@ -111,6 +111,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .doc-preview img{width:100%;height:100px;object-fit:cover;border-radius:7px;background:#eef4f8}
 .doc-preview strong{font-size:10px;overflow-wrap:anywhere}
 .doc-preview a{font-size:10px;color:#0871c3;text-decoration:none;font-weight:800}
+.image-error{display:none;color:#b42318;font-size:10px;overflow-wrap:anywhere}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .field label{display:block;font-size:10px;font-weight:800;color:#527087;margin-bottom:6px}
 .field textarea{min-height:75px;resize:vertical}
@@ -300,19 +301,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
 
 <div class="toast" id="toast" role="status" aria-live="polite"><div class="toast-title" id="toastTitle">Notification</div><div class="toast-text" id="toastText"></div></div>
 
-<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 "use strict";
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-
-const $ = id => document.getElementById(id);
-
 const EGC_DOCUMENT_BUCKET = "users-documents";
 const SIGNED_URL_TTL = 3600;
+const $ = id => document.getElementById(id);
 
 if (!window.supabase) {
   $("requestTableBody").innerHTML =
@@ -337,14 +334,12 @@ const supabaseClient = window.supabase.createClient(
 let currentUser = null;
 let currentProfile = null;
 let agencyId = null;
-
 let requests = [];
 let allAssignedRequests = [];
 let customers = [];
 let payments = [];
 let notifications = [];
 let agencies = [];
-
 let loadingRequests = false;
 let signingOut = false;
 
@@ -352,19 +347,12 @@ const signedUrlCache = new Map();
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[ch]));
 }
 
 function normal(value) {
-  return String(value ?? "")
-    .toLowerCase()
-    .trim()
-    .replace(/[\s-]+/g, "_");
+  return String(value ?? "").toLowerCase().trim().replace(/[\s-]+/g, "_");
 }
 
 function money(value) {
@@ -381,73 +369,39 @@ function fmtMoney(value) {
 
 function fmtDate(value) {
   if (!value) return "—";
-
   const date = new Date(value);
-
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
 }
 
 function firstValue(...values) {
   for (const value of values) {
-    if (
-      value !== null &&
-      value !== undefined &&
-      String(value).trim() !== ""
-    ) {
-      return value;
-    }
+    if (value !== null && value !== undefined && String(value).trim() !== "") return value;
   }
-
   return "";
 }
 
 function badgeClass(value) {
   const s = normal(value);
-
-  if ([
-    "paid", "verified", "completed", "delivered",
-    "approved", "active"
-  ].includes(s)) return "badge-green";
-
-  if ([
-    "pending", "waiting", "on_hold"
-  ].includes(s)) return "badge-yellow";
-
-  if ([
-    "processing", "out_for_delivery", "assigned", "ready"
-  ].includes(s)) return "badge-blue";
-
-  if ([
-    "failed", "cancelled", "rejected", "inactive"
-  ].includes(s)) return "badge-red";
-
+  if (["paid","verified","completed","delivered","approved","active"].includes(s)) return "badge-green";
+  if (["pending","waiting","on_hold"].includes(s)) return "badge-yellow";
+  if (["processing","out_for_delivery","assigned","ready"].includes(s)) return "badge-blue";
+  if (["failed","cancelled","rejected","inactive"].includes(s)) return "badge-red";
   return "badge-gray";
 }
 
 function badge(value) {
-  return `<span class="badge ${badgeClass(value)}">${esc(
-    String(value || "Not Set").replace(/_/g, " ")
-  )}</span>`;
+  return `<span class="badge ${badgeClass(value)}">${esc(String(value || "Not Set").replace(/_/g, " "))}</span>`;
 }
 
 function toast(title, text) {
   $("toastTitle").textContent = title || "Notification";
   $("toastText").textContent = text || "";
   $("toast").classList.add("show");
-
   clearTimeout(window.egcToast);
-
-  window.egcToast = setTimeout(() => {
-    $("toast").classList.remove("show");
-  }, 5000);
+  window.egcToast = setTimeout(() => $("toast").classList.remove("show"), 5000);
 }
 
 function tableMessage(message, type = "empty") {
@@ -455,43 +409,24 @@ function tableMessage(message, type = "empty") {
     `<tr><td colspan="18" class="${esc(type)}">${esc(message)}</td></tr>`;
 }
 
-/* =========================================================
-   AUTHENTICATION
-========================================================= */
-
 async function session() {
   const { data, error } = await supabaseClient.auth.getUser();
-
   if (error || !data?.user) {
     location.replace("agency-login.html");
     return false;
   }
-
   currentUser = data.user;
   return true;
 }
 
 async function profile() {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.from("profiles")
+    .select("*").eq("id", currentUser.id).maybeSingle();
 
   if (error || !data) {
     console.error("Agency profile error:", error);
-
-    tableMessage(
-      "Agency profile load नहीं हुआ: " +
-      (error?.message || "Profile not found"),
-      "empty error-message"
-    );
-
-    toast(
-      "Profile Error",
-      error?.message || "Agency profile not found."
-    );
-
+    tableMessage("Agency profile load नहीं हुआ: " + (error?.message || "Profile not found"), "empty error-message");
+    toast("Profile Error", error?.message || "Agency profile not found.");
     return false;
   }
 
@@ -499,127 +434,54 @@ async function profile() {
   agencyId = data.agency_id;
 
   if (normal(data.role) !== "agency" || !agencyId) {
-    tableMessage(
-      "इस account का role agency नहीं है या agency_id खाली है।",
-      "empty error-message"
-    );
-
-    toast(
-      "Access Denied",
-      "This account is not linked to an LPG agency."
-    );
-
+    tableMessage("इस account का role agency नहीं है या agency_id खाली है।", "empty error-message");
+    toast("Access Denied", "This account is not linked to an LPG agency.");
     return false;
   }
-
   return true;
 }
 
 async function loadAgencyInfo() {
-  const { data, error } = await supabaseClient
-    .from("agencies")
-    .select("*")
-    .eq("id", agencyId)
-    .maybeSingle();
+  const { data, error } = await supabaseClient.from("agencies")
+    .select("*").eq("id", agencyId).maybeSingle();
 
-  if (error) {
-    console.warn("Agency info could not load:", error);
-  }
+  if (error) console.warn("Agency info could not load:", error);
 
   if (data) {
     agencies = [data];
-
-    $("headerAgencyName").textContent = firstValue(
-      data.agency_name,
-      data.name,
-      currentProfile?.agency_name,
-      "LPG Agency"
-    );
+    $("headerAgencyName").textContent = firstValue(data.agency_name, data.name, currentProfile?.agency_name, "LPG Agency");
   } else {
-    $("headerAgencyName").textContent = firstValue(
-      currentProfile?.agency_name,
-      currentProfile?.name,
-      "LPG Agency"
-    );
+    $("headerAgencyName").textContent = firstValue(currentProfile?.agency_name, currentProfile?.name, "LPG Agency");
   }
 }
 
-/* =========================================================
-   CUSTOMER AND REQUEST HELPERS
-========================================================= */
-
 function requestUserId(req) {
-  return String(firstValue(
-    req?.user_id,
-    req?.customer_id,
-    req?.profile_id,
-    req?.created_by
-  )).trim();
+  return String(firstValue(req?.user_id, req?.customer_id, req?.profile_id, req?.created_by)).trim();
 }
 
 function customerFor(req) {
   const id = requestUserId(req);
-
   if (!id) return null;
-
-  return customers.find(c =>
-    String(c.id || "") === id ||
-    String(c.user_id || "") === id
-  ) || null;
+  return customers.find(c => String(c.id || "") === id || String(c.user_id || "") === id) || null;
 }
 
 function paymentsFor(req) {
   const requestId = String(req?.id || "").trim();
   const requestNumber = String(req?.request_number || "").trim();
 
-  return (payments || [])
-    .filter(p => {
-      const paymentRequestId = String(firstValue(
-        p.request_id,
-        p.cylinder_request_id,
-        ""
-      )).trim();
-
-      if (requestId && paymentRequestId) {
-        return paymentRequestId === requestId;
-      }
-
-      const paymentRequestNumber =
-        String(p.request_number || "").trim();
-
-      if (requestNumber && paymentRequestNumber) {
-        return paymentRequestNumber === requestNumber;
-      }
-
-      return false;
-    })
-    .sort((a, b) => {
-      const da = new Date(
-        a.created_at || a.payment_date || 0
-      ).getTime();
-
-      const db = new Date(
-        b.created_at || b.payment_date || 0
-      ).getTime();
-
-      return db - da;
-    });
+  return payments.filter(p => {
+    const paymentRequestId = String(firstValue(p.request_id, p.cylinder_request_id, "")).trim();
+    if (requestId && paymentRequestId) return paymentRequestId === requestId;
+    const paymentRequestNumber = String(p.request_number || "").trim();
+    return !!(requestNumber && paymentRequestNumber && paymentRequestNumber === requestNumber);
+  }).sort((a, b) => new Date(b.created_at || b.payment_date || 0) - new Date(a.created_at || a.payment_date || 0));
 }
 
 function paymentApproved(payment) {
   if (!payment) return false;
-
   const status = normal(payment.payment_status);
-
-  const approval = normal(firstValue(
-    payment.verification_status,
-    payment.owner_approval,
-    payment.approval_status,
-    ""
-  ));
-
-  return ["paid", "completed"].includes(status) &&
-    ["approved", "verified"].includes(approval);
+  const approval = normal(firstValue(payment.verification_status, payment.owner_approval, payment.approval_status, ""));
+  return ["paid", "completed"].includes(status) && ["approved", "verified"].includes(approval);
 }
 
 function paymentFor(req) {
@@ -632,284 +494,99 @@ function paymentStatus(payment) {
 }
 
 function paymentApprovalStatus(payment) {
-  return firstValue(
-    payment?.verification_status,
-    payment?.owner_approval,
-    payment?.approval_status,
-    "pending"
-  );
+  return firstValue(payment?.verification_status, payment?.owner_approval, payment?.approval_status, "pending");
 }
 
 function customerName(req, customer) {
-  return String(firstValue(
-    req?.customer_name,
-    req?.full_name,
-    customer?.full_name,
-    customer?.customer_name,
-    customer?.name,
-    "Customer"
-  ));
+  return String(firstValue(req?.customer_name, req?.full_name, customer?.full_name, customer?.customer_name, customer?.name, "Customer"));
 }
 
 function customerMobile(req, customer) {
-  return firstValue(
-    req?.customer_mobile,
-    req?.mobile,
-    req?.mobile_number,
-    req?.phone,
-    customer?.mobile,
-    customer?.mobile_number,
-    customer?.phone,
-    "—"
-  );
+  return firstValue(req?.customer_mobile, req?.mobile, req?.mobile_number, req?.phone, customer?.mobile, customer?.mobile_number, customer?.phone, "—");
 }
 
 function customerEmail(req, customer) {
-  return firstValue(
-    req?.customer_email,
-    req?.email,
-    customer?.email,
-    customer?.auth_email,
-    "—"
-  );
+  return firstValue(req?.customer_email, req?.email, customer?.email, customer?.auth_email, "—");
 }
 
 function egcUserId(req, customer) {
-  return String(firstValue(
-    req?.egc_user_code,
-    customer?.user_code,
-    "Not assigned"
-  ));
+  return String(firstValue(req?.egc_user_code, customer?.user_code, "Not assigned"));
 }
-
-/* =========================================================
-   PRIVATE SUPABASE STORAGE
-   Supports:
-   - Relative file paths
-   - Storage object URLs
-   - Signed Storage URLs
-   - External HTTP/HTTPS URLs
-========================================================= */
 
 function parseStorageReference(raw) {
   const value = String(raw || "").trim();
-
   if (!value) return null;
-
-  if (/^data:image\//i.test(value)) {
-    return {
-      type: "data",
-      url: value,
-      bucket: "",
-      path: ""
-    };
-  }
+  if (/^data:image\//i.test(value)) return { type: "data", url: value, bucket: "", path: "" };
 
   try {
     const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      const match = url.pathname.match(/\/storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)$/i);
+      if (!match) return { type: "external", url: url.href, bucket: "", path: "" };
 
-    if (
-      url.protocol === "http:" ||
-      url.protocol === "https:"
-    ) {
-      const match = url.pathname.match(
-        /\/storage\/v1\/object\/(public|sign|authenticated)\/([^/]+)\/(.+)$/i
-      );
-
-      if (!match) {
-        return {
-          type: "external",
-          url: url.href,
-          bucket: "",
-          path: ""
-        };
-      }
-
-      let path = match[3]
-        .split("/")
-        .map(part => {
-          try {
-            return decodeURIComponent(part);
-          } catch {
-            return part;
-          }
-        })
-        .join("/");
-
-      const isSigned = match[1].toLowerCase() === "sign";
+      const path = match[3].split("/").map(part => {
+        try { return decodeURIComponent(part); } catch { return part; }
+      }).join("/");
 
       return {
-        type: isSigned ? "signed-storage" : "storage",
+        type: match[1].toLowerCase() === "sign" ? "signed-storage" : "storage",
         url: url.href,
         bucket: decodeURIComponent(match[2]),
         path
       };
     }
-  } catch {
-    // Treat as a relative Storage path.
-  }
+  } catch {}
 
   let cleaned = value.replace(/^\/+/, "");
-
-  if (cleaned.startsWith(EGC_DOCUMENT_BUCKET + "/")) {
-    cleaned = cleaned.slice(EGC_DOCUMENT_BUCKET.length + 1);
-  }
-
-  return {
-    type: "storage",
-    url: "",
-    bucket: EGC_DOCUMENT_BUCKET,
-    path: cleaned
-  };
+  if (cleaned.startsWith(EGC_DOCUMENT_BUCKET + "/")) cleaned = cleaned.slice(EGC_DOCUMENT_BUCKET.length + 1);
+  return { type: "storage", url: "", bucket: EGC_DOCUMENT_BUCKET, path: cleaned };
 }
 
 async function resolveStorageUrl(rawValue) {
   const raw = String(rawValue || "").trim();
-
   if (!raw) return "";
-
   const parsed = parseStorageReference(raw);
-
   if (!parsed) return "";
-
-  if (parsed.type === "data" || parsed.type === "external") {
-    return parsed.url || "";
-  }
-
+  if (parsed.type === "data" || parsed.type === "external") return parsed.url || "";
   if (!parsed.path) return "";
-
-  /*
-   * A signed URL already contains a token.
-   * Return it unchanged while it remains usable.
-   */
-  if (parsed.type === "signed-storage" && parsed.url) {
-    return parsed.url;
-  }
+  if (parsed.type === "signed-storage" && parsed.url) return parsed.url;
 
   const bucket = parsed.bucket || EGC_DOCUMENT_BUCKET;
   const cacheKey = bucket + "/" + parsed.path;
   const cached = signedUrlCache.get(cacheKey);
-
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.url;
-  }
+  if (cached && cached.expiresAt > Date.now()) return cached.url;
 
   try {
-    const { data, error } = await supabaseClient.storage
-      .from(bucket)
-      .createSignedUrl(parsed.path, SIGNED_URL_TTL);
-
-    if (error) {
-      console.error("[EGC] Signed URL failed:", {
-        bucket,
-        path: parsed.path,
-        message: error.message,
-        statusCode: error.statusCode
-      });
-
+    const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(parsed.path, SIGNED_URL_TTL);
+    if (error || !data?.signedUrl) {
+      console.error("[EGC] Signed URL failed:", error?.message || parsed.path);
       return "";
     }
-
-    if (!data?.signedUrl) {
-      console.error(
-        "[EGC] Signed URL was not returned:",
-        parsed.path
-      );
-
-      return "";
-    }
-
     signedUrlCache.set(cacheKey, {
       url: data.signedUrl,
       expiresAt: Date.now() + (SIGNED_URL_TTL - 60) * 1000
     });
-
     return data.signedUrl;
-
   } catch (error) {
-    console.error("[EGC] Storage exception:", {
-      bucket,
-      path: parsed.path,
-      message: error?.message || String(error)
-    });
-
+    console.error("[EGC] Storage exception:", error?.message || error);
     return "";
   }
 }
 
-/* =========================================================
-   LOAD CUSTOMER PROFILES
-   Important: documents are stored in profiles as well as
-   sometimes being stored in cylinder_requests.
-========================================================= */
-
 async function loadCustomerProfiles(userIds) {
-  const ids = [...new Set(
-    (userIds || [])
-      .map(id => String(id || "").trim())
-      .filter(Boolean)
-  )];
+  const ids = [...new Set((userIds || []).map(id => String(id || "").trim()).filter(Boolean))];
+  if (!ids.length) return [];
 
-  if (!ids.length) {
-    console.warn("[EGC] No customer IDs found.");
-    return [];
-  }
-
-  // केवल वास्तविक profiles columns इस्तेमाल करें।
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .in("id", ids);
-
+  const { data, error } = await supabaseClient.from("profiles").select("*").in("id", ids);
   if (error) {
-    console.error(
-      "[EGC] Customer profiles query failed:",
-      {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        customerIds: ids
-      }
-    );
-
+    console.error("[EGC] Customer profiles query failed:", error);
     return [];
   }
-
-  const profiles = data || [];
-
-  console.info("[EGC] Customer profiles loaded:", profiles.length);
-
-  console.table(profiles.map(p => ({
-    id: p.id,
-    full_name: p.full_name,
-    mobile: p.mobile,
-    profile_photo: p.profile_photo,
-    aadhaar_front_photo: p.aadhaar_front_photo,
-    aadhaar_back_photo: p.aadhaar_back_photo,
-    pan_photo: p.pan_photo,
-    gas_passbook_photo: p.gas_passbook_photo
-  })));
-
-  return profiles;
+  return data || [];
 }
 
-/* =========================================================
-   PHOTO AND DOCUMENT REFERENCES
-========================================================= */
-
 function profilePhoto(customer, req) {
-  return firstValue(
-    req?.profile_photo,
-    req?.customer_photo_url,
-    req?.photo_url,
-    customer?.profile_photo,
-    customer?.avatar_url,
-    customer?.photo_url,
-    customer?.photo,
-    customer?.profile_image,
-    customer?.image_url
-  );
+  return firstValue(req?.profile_photo, req?.customer_photo_url, req?.photo_url, customer?.profile_photo, customer?.avatar_url, customer?.photo_url, customer?.photo, customer?.profile_image, customer?.image_url);
 }
 
 function documentCandidates(req, customer, payment) {
@@ -918,171 +595,38 @@ function documentCandidates(req, customer, payment) {
 
   function add(label, ...values) {
     for (const value of values) {
-      if (value === null || value === undefined) continue;
-
+      if (value == null) continue;
       if (Array.isArray(value)) {
-        for (const item of value) {
-          if (typeof item === "string") {
-            add(label, item);
-          } else if (item && typeof item === "object") {
-            add(
-              item.label || item.name || label,
-              item.url,
-              item.path,
-              item.file_path,
-              item.file_url
-            );
-          }
-        }
-
+        value.forEach(item => {
+          if (typeof item === "string") add(label, item);
+          else if (item && typeof item === "object") add(item.label || item.name || label, item.url, item.path, item.file_path, item.file_url);
+        });
         continue;
       }
-
       if (typeof value === "object") {
-        add(
-          value.label || value.name || label,
-          value.url,
-          value.path,
-          value.file_path,
-          value.file_url
-        );
-
+        add(value.label || value.name || label, value.url, value.path, value.file_path, value.file_url);
         continue;
       }
-
       const v = String(value).trim();
-
       if (!v) continue;
-
       const key = label + "|" + v;
-
-      if (seen.has(key)) continue;
-
-      seen.add(key);
-      docs.push({ label, value: v });
+      if (!seen.has(key)) {
+        seen.add(key);
+        docs.push({ label, value: v });
+      }
     }
   }
 
-  /* Profile photo */
-  add(
-    "Profile Photo",
-    req?.profile_photo,
-    req?.customer_photo_url,
-    req?.photo_url,
-    customer?.profile_photo,
-    customer?.avatar_url,
-    customer?.photo_url,
-    customer?.photo,
-    customer?.profile_image,
-    customer?.image_url
-  );
+  add("Profile Photo", req?.profile_photo, req?.customer_photo_url, req?.photo_url, customer?.profile_photo, customer?.avatar_url, customer?.photo_url, customer?.photo, customer?.profile_image, customer?.image_url);
+  add("Aadhaar Front", req?.aadhaar_front_photo, req?.aadhaar_front, req?.aadhaar_front_url, req?.aadhaar_front_path, customer?.aadhaar_front_photo, customer?.aadhaar_front, customer?.aadhaar_front_url, customer?.aadhaar_front_path);
+  add("Aadhaar Back", req?.aadhaar_back_photo, req?.aadhaar_back, req?.aadhaar_back_url, req?.aadhaar_back_path, customer?.aadhaar_back_photo, customer?.aadhaar_back, customer?.aadhaar_back_url, customer?.aadhaar_back_path);
+  add("PAN Document", req?.pan_photo, req?.pan_card_photo, req?.pan_card_url, req?.pan_photo_url, req?.pan_document_url, req?.pan_document_path, customer?.pan_photo, customer?.pan_card_photo, customer?.pan_card_url, customer?.pan_photo_url, customer?.pan_document_url, customer?.pan_document_path);
+  add("Gas Passbook", req?.gas_passbook_photo, req?.gas_passbook, req?.gas_passbook_url, req?.gas_passbook_path, customer?.gas_passbook_photo, customer?.gas_passbook, customer?.gas_passbook_url, customer?.gas_passbook_path);
+  add("Verification Document", req?.verification_document_url, req?.verification_document_path, req?.document_url, req?.document_path, req?.verification_file, req?.verification_file_url, req?.verification_file_path, req?.documents, req?.verification_documents, customer?.verification_document_url, customer?.verification_document_path, customer?.document_url, customer?.document_path, customer?.verification_file_url, customer?.verification_file_path, customer?.documents, customer?.verification_documents);
+  add("Customer Photo", req?.customer_photo_url, req?.customer_photo_path, req?.verification_photo_url, req?.verification_photo_path, customer?.customer_photo_url, customer?.customer_photo_path, customer?.verification_photo_url, customer?.verification_photo_path);
+  add("Payment Screenshot", payment?.screenshot_path, payment?.screenshot_url, payment?.payment_screenshot, payment?.proof_url);
 
-  /* Aadhaar front */
-  add(
-    "Aadhaar Front",
-    req?.aadhaar_front_photo,
-    req?.aadhaar_front,
-    req?.aadhaar_front_url,
-    req?.aadhaar_front_path,
-    customer?.aadhaar_front_photo,
-    customer?.aadhaar_front,
-    customer?.aadhaar_front_url,
-    customer?.aadhaar_front_path
-  );
-
-  /* Aadhaar back */
-  add(
-    "Aadhaar Back",
-    req?.aadhaar_back_photo,
-    req?.aadhaar_back,
-    req?.aadhaar_back_url,
-    req?.aadhaar_back_path,
-    customer?.aadhaar_back_photo,
-    customer?.aadhaar_back,
-    customer?.aadhaar_back_url,
-    customer?.aadhaar_back_path
-  );
-
-  /* PAN */
-  add(
-    "PAN Document",
-    req?.pan_photo,
-    req?.pan_card_photo,
-    req?.pan_card_url,
-    req?.pan_photo_url,
-    req?.pan_document_url,
-    req?.pan_document_path,
-    customer?.pan_photo,
-    customer?.pan_card_photo,
-    customer?.pan_card_url,
-    customer?.pan_photo_url,
-    customer?.pan_document_url,
-    customer?.pan_document_path
-  );
-
-  /* Gas passbook */
-  add(
-    "Gas Passbook",
-    req?.gas_passbook_photo,
-    req?.gas_passbook,
-    req?.gas_passbook_url,
-    req?.gas_passbook_path,
-    customer?.gas_passbook_photo,
-    customer?.gas_passbook,
-    customer?.gas_passbook_url,
-    customer?.gas_passbook_path
-  );
-
-  /* Other verification documents */
-  add(
-    "Verification Document",
-    req?.verification_document_url,
-    req?.verification_document_path,
-    req?.document_url,
-    req?.document_path,
-    req?.verification_file,
-    req?.verification_file_url,
-    req?.verification_file_path,
-    req?.documents,
-    req?.verification_documents,
-    customer?.verification_document_url,
-    customer?.verification_document_path,
-    customer?.document_url,
-    customer?.document_path,
-    customer?.verification_file_url,
-    customer?.verification_file_path,
-    customer?.documents,
-    customer?.verification_documents
-  );
-
-  /* Customer photo */
-  add(
-    "Customer Photo",
-    req?.customer_photo_url,
-    req?.customer_photo_path,
-    req?.verification_photo_url,
-    req?.verification_photo_path,
-    customer?.customer_photo_url,
-    customer?.customer_photo_path,
-    customer?.verification_photo_url,
-    customer?.verification_photo_path
-  );
-
-  /* Payment screenshot */
-  add(
-    "Payment Screenshot",
-    payment?.screenshot_path,
-    payment?.screenshot_url,
-    payment?.payment_screenshot,
-    payment?.proof_url
-  );
-
-  /*
-   * Owner Panel की तरह known Storage filenames को fallback
-   * के रूप में जोड़ें। पहले actual database paths try होंगे।
-   */
   const userId = requestUserId(req);
-
   if (userId) {
     add("Aadhaar Front", `${userId}/aadhaar-front.jpg`);
     add("Aadhaar Back", `${userId}/aadhaar-back.jpg`);
@@ -1090,62 +634,32 @@ function documentCandidates(req, customer, payment) {
     add("Gas Passbook", `${userId}/gas-passbook.jpg`);
     add("Profile Photo", `${userId}/profile.jpg`);
   }
-
   return docs;
 }
 
 async function docEntries(req, customer, payment) {
-  const sources = documentCandidates(req, customer, payment);
   const output = [];
   const seenUrls = new Set();
 
-  for (const item of sources) {
+  for (const item of documentCandidates(req, customer, payment)) {
     const url = await resolveStorageUrl(item.value);
-
     if (!url || seenUrls.has(url)) continue;
-
     seenUrls.add(url);
 
-    const imageByLabel =
-      /Profile Photo|Aadhaar|PAN|Passbook|Customer Photo/i.test(item.label);
+    const isPdf = /\.pdf(?:[?#]|$)/i.test(url) || /pdf/i.test(item.label);
+    const imageByLabel = /Profile Photo|Aadhaar|PAN|Passbook|Customer Photo/i.test(item.label);
+    const imageByExtension = /\.(jpg|jpeg|png|webp|gif|bmp|avif)(?:[?#]|$)/i.test(url);
 
-    const imageByExtension =
-      /\.(jpg|jpeg|png|webp|gif|bmp|avif)(?:[?#]|$)/i.test(url);
-
-    const isPdf =
-      /\.pdf(?:[?#]|$)/i.test(url) ||
-      /pdf/i.test(item.label);
-
-    output.push({
-      label: item.label,
-      url,
-      isImage: !isPdf && (imageByExtension || imageByLabel),
-      isPdf
-    });
+    output.push({ label: item.label, url, isImage: !isPdf && (imageByExtension || imageByLabel), isPdf });
   }
-
   return output;
 }
 
-/* =========================================================
-   DOCUMENT PREVIEW
-========================================================= */
-
 function renderDocumentCards(docs) {
   if (!docs.length) {
-    return `
-      <div class="no-notifications">
-        कोई accessible document link नहीं मिला।
-        <br><br>
-        जाँचें:
-        <br>1. profiles में document path मौजूद है।
-        <br>2. Storage bucket का नाम users-documents है।
-        <br>3. Agency user को संबंधित files पढ़ने की अनुमति है।
-        <br>4. Storage paths customer UUID से सही जुड़े हैं।
-        <br><br>
-        अधिक जानकारी के लिए browser Console में [EGC] errors देखें।
-      </div>
-    `;
+    return `<div class="no-notifications">
+      कोई accessible document link नहीं मिला। Profiles में document paths, users-documents bucket और Storage permissions जाँचें।
+    </div>`;
   }
 
   return docs.map(doc => {
@@ -1153,79 +667,34 @@ function renderDocumentCards(docs) {
     const url = esc(doc.url);
 
     if (doc.isImage) {
-      return `
-        <div class="doc-preview">
-          <strong>${label}</strong>
-
-          <a href="${url}" target="_blank" rel="noopener noreferrer">
-            <img
-              src="${url}"
-              alt="${label}"
-              loading="lazy"
-              onerror="
-                this.style.display='none';
-                const box=this.closest('.doc-preview');
-                if(box){
-                  const msg=box.querySelector('.image-error');
-                  if(msg) msg.style.display='block';
-                }
-              "
-            >
-          </a>
-
-          <a href="${url}" target="_blank" rel="noopener noreferrer">
-            Open / View
-          </a>
-
-          <div class="image-error" style="display:none">
-            Image load नहीं हुई। Storage permissions या file path जाँचें।
-          </div>
-        </div>
-      `;
+      return `<div class="doc-preview">
+        <strong>${label}</strong>
+        <a href="${url}" target="_blank" rel="noopener noreferrer">
+          <img src="${url}" alt="${label}" loading="lazy"
+            onerror="this.style.display='none';this.closest('.doc-preview')?.querySelector('.image-error')?.style.setProperty('display','block')">
+        </a>
+        <a href="${url}" target="_blank" rel="noopener noreferrer">Open / View</a>
+        <div class="image-error">Image load नहीं हुई। Storage permissions या file path जाँचें।</div>
+      </div>`;
     }
 
-    return `
-      <a
-        class="doc-link"
-        href="${url}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        📄 ${label} — Open / View
-      </a>
-    `;
+    return `<a class="doc-link" href="${url}" target="_blank" rel="noopener noreferrer">📄 ${label} — Open / View</a>`;
   }).join("");
 }
 
-/* =========================================================
-   LOAD AGENCY-ASSIGNED REQUESTS
-========================================================= */
-
 async function load() {
   if (loadingRequests) return;
-
   loadingRequests = true;
-
-  tableMessage(
-    "Loading owner-approved agency requests...",
-    "loading"
-  );
-
+  tableMessage("Loading owner-approved agency requests...", "loading");
   $("requestCount").textContent = "Loading...";
 
   try {
-    const { data: assigned, error: requestError } =
-      await supabaseClient
-        .from("cylinder_requests")
-        .select("*")
-        .eq("agency_id", agencyId)
-        .order("created_at", { ascending: false });
+    const { data: assigned, error: requestError } = await supabaseClient
+      .from("cylinder_requests").select("*")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false });
 
-    if (requestError) {
-      throw new Error(
-        "cylinder_requests query: " + requestError.message
-      );
-    }
+    if (requestError) throw new Error("cylinder_requests query: " + requestError.message);
 
     allAssignedRequests = assigned || [];
     requests = [];
@@ -1238,173 +707,57 @@ async function load() {
       return;
     }
 
-    const requestIds = allAssignedRequests
-      .map(r => r.id)
-      .filter(Boolean);
+    const requestIds = allAssignedRequests.map(r => r.id).filter(Boolean);
 
     if (requestIds.length) {
-      const { data: paymentRows, error: paymentError } =
-        await supabaseClient
-          .from("payments")
-          .select("*")
-          .in("request_id", requestIds)
-          .order("created_at", { ascending: false });
+      const { data: paymentRows, error: paymentError } = await supabaseClient
+        .from("payments").select("*").in("request_id", requestIds)
+        .order("created_at", { ascending: false });
 
-      if (paymentError) {
-        throw new Error(
-          "payments query: " + paymentError.message
-        );
-      }
-
+      if (paymentError) throw new Error("payments query: " + paymentError.message);
       payments = paymentRows || [];
     }
 
-    const userIds = [
-      ...new Set(
-        allAssignedRequests
-          .map(requestUserId)
-          .filter(Boolean)
-      )
-    ];
-
+    const userIds = [...new Set(allAssignedRequests.map(requestUserId).filter(Boolean))];
     customers = await loadCustomerProfiles(userIds);
 
-    /*
-     * Existing payment approval gate remains unchanged:
-     * show only requests with approved payment.
-     */
-    requests = allAssignedRequests.filter(req =>
-      paymentsFor(req).some(p => {
-        if (!paymentApproved(p)) return false;
-
-        if (
-          p.agency_id &&
-          String(p.agency_id) !== String(agencyId)
-        ) {
-          return false;
-        }
-
-        return true;
-      })
-    );
-
-    console.info("EGC Agency ID:", agencyId);
-    console.info("Assigned requests:", allAssignedRequests.length);
-    console.info("Payments loaded:", payments.length);
-    console.info("Customer profiles loaded:", customers.length);
-    console.info("Eligible requests:", requests.length);
-
-    console.table(requests.map(req => {
-      const customer = customerFor(req);
-      const payment = paymentFor(req);
-
-      return {
-        request_number: req.request_number,
-        request_id: req.id,
-        request_user_id: requestUserId(req),
-        profile_found: !!customer,
-        customer_name: customerName(req, customer),
-        egc_user_id: egcUserId(req, customer),
-        payment_id: payment?.id,
-        payment_status: payment?.payment_status,
-        verification_status: paymentApprovalStatus(payment),
-        profile_photo: !!profilePhoto(customer, req),
-        aadhaar_front: !!firstValue(
-          req.aadhaar_front_photo,
-          customer?.aadhaar_front_photo
-        ),
-        aadhaar_back: !!firstValue(
-          req.aadhaar_back_photo,
-          customer?.aadhaar_back_photo
-        ),
-        pan_photo: !!firstValue(
-          req.pan_photo,
-          customer?.pan_photo
-        ),
-        gas_passbook_photo: !!firstValue(
-          req.gas_passbook_photo,
-          customer?.gas_passbook_photo
-        )
-      };
+    // केवल Owner-verified payments वाली requests agency workflow में आएँगी।
+    requests = allAssignedRequests.filter(req => paymentsFor(req).some(p => {
+      if (!paymentApproved(p)) return false;
+      if (p.agency_id && String(p.agency_id) !== String(agencyId)) return false;
+      return true;
     }));
 
+    console.info("[EGC] Agency:", agencyId, "Assigned:", allAssignedRequests.length, "Eligible:", requests.length);
     render();
     await loadNotifications();
-
   } catch (error) {
     console.error("Request load failed:", error);
-
     $("requestCount").textContent = "Error";
-
-    tableMessage(
-      "Unable to load requests: " +
-      (error.message || "Unknown error"),
-      "empty error-message"
-    );
-
-    toast(
-      "Request Load Failed",
-      error.message || "Check connection and Supabase permissions."
-    );
-
+    tableMessage("Unable to load requests: " + (error.message || "Unknown error"), "empty error-message");
+    toast("Request Load Failed", error.message || "Check connection and Supabase permissions.");
   } finally {
     loadingRequests = false;
   }
 }
 
-/* =========================================================
-   TABLE RENDERING
-========================================================= */
-
 function lpgCompany(req) {
-  return firstValue(
-    req?.lpg_company,
-    req?.company,
-    req?.gas_company,
-    req?.lpg_provider,
-    req?.company_name,
-    "—"
-  );
+  return firstValue(req?.lpg_company, req?.company, req?.gas_company, req?.lpg_provider, req?.company_name, "—");
 }
 
 function agencyName(req) {
-  const agency = agencies.find(
-    a => String(a.id) === String(req?.agency_id)
-  );
-
-  return firstValue(
-    req?.lpg_agency_name,
-    req?.agency_name,
-    req?.lpg_agency,
-    agency?.agency_name,
-    agency?.name,
-    currentProfile?.agency_name,
-    "—"
-  );
+  const agency = agencies.find(a => String(a.id) === String(req?.agency_id));
+  return firstValue(req?.lpg_agency_name, req?.agency_name, req?.lpg_agency, agency?.agency_name, agency?.name, currentProfile?.agency_name, "—");
 }
 
 function totalPayable(req) {
-  const stored = firstValue(
-    req?.total_payable,
-    req?.total_amount
-  );
-
+  const stored = firstValue(req?.total_payable, req?.total_amount);
   if (stored !== "") return money(stored);
-
-  return money(firstValue(
-    req?.cylinder_amount,
-    req?.amount,
-    0
-  )) + money(req?.extra_charge);
+  return money(firstValue(req?.cylinder_amount, req?.amount, 0)) + money(req?.extra_charge);
 }
 
 function requestApproval(req) {
-  return firstValue(
-    req?.owner_approval,
-    req?.request_approval,
-    req?.approval_status,
-    "pending"
-  );
+  return firstValue(req?.owner_approval, req?.request_approval, req?.approval_status, "pending");
 }
 
 function agencyStatus(req) {
@@ -1412,37 +765,19 @@ function agencyStatus(req) {
 }
 
 function requestStatus(req) {
-  return firstValue(
-    req?.user_status,
-    req?.status,
-    req?.request_status,
-    "pending"
-  );
+  return firstValue(req?.user_status, req?.status, req?.request_status, "pending");
 }
 
 function deliveryStatus(req) {
-  return firstValue(
-    req?.delivery_status,
-    req?.delivery_state,
-    "pending"
-  );
+  return firstValue(req?.delivery_status, req?.delivery_state, "pending");
 }
 
 function requestCity(req) {
-  return firstValue(
-    req?.city,
-    req?.lpg_city,
-    req?.customer_city,
-    "—"
-  );
+  return firstValue(req?.city, req?.lpg_city, req?.customer_city, "—");
 }
 
 function requestQuantity(req) {
-  return firstValue(
-    req?.quantity,
-    req?.cylinder_quantity,
-    1
-  );
+  return firstValue(req?.quantity, req?.cylinder_quantity, 1);
 }
 
 function render() {
@@ -1454,21 +789,11 @@ function render() {
   const filtered = requests.filter(req => {
     const customer = customerFor(req);
     const payment = paymentFor(req);
-
     const searchText = [
-      req.request_number,
-      req.id,
-      requestUserId(req),
-      egcUserId(req, customer),
-      customerName(req, customer),
-      customerMobile(req, customer),
-      customerEmail(req, customer),
-      lpgCompany(req),
-      agencyName(req),
-      requestCity(req),
-      req.district,
-      payment?.transaction_id,
-      payment?.payment_reference
+      req.request_number, req.id, requestUserId(req), egcUserId(req, customer),
+      customerName(req, customer), customerMobile(req, customer), customerEmail(req, customer),
+      lpgCompany(req), agencyName(req), requestCity(req), req.district,
+      payment?.transaction_id, payment?.payment_reference
     ].join(" ").toLowerCase();
 
     return (!query || searchText.includes(query)) &&
@@ -1477,18 +802,16 @@ function render() {
       (!df || normal(deliveryStatus(req)) === df);
   });
 
-  $("requestCount").textContent =
-    `${filtered.length} Request${filtered.length === 1 ? "" : "s"}`;
+  $("requestCount").textContent = `${filtered.length} Request${filtered.length === 1 ? "" : "s"}`;
 
   if (!filtered.length) {
     tableMessage(
       requests.length
         ? "No requests match your search or selected filters."
         : allAssignedRequests.length
-          ? "Assigned requests मिलीं, लेकिन कोई request payment approval filter से match नहीं हुई। Console में payment status और approval fields check करें।"
+          ? "Assigned requests मिलीं, लेकिन कोई request Owner-approved payment filter से match नहीं हुई। Payments table में status और approval fields जाँचें।"
           : "इस Agency को कोई request assign नहीं हुई।"
     );
-
     return;
   }
 
@@ -1496,108 +819,60 @@ function render() {
     const customer = customerFor(req);
     const payment = paymentFor(req);
     const id = String(req.id || "");
-    const name = customerName(req, customer);
-    const userCode = egcUserId(req, customer);
 
-    return `
-      <tr data-request-row="${esc(id)}">
-        <td>
-          <div class="request-number">
-            ${esc(firstValue(req.request_number, "REQ-" + (index + 1)))}
-          </div>
-          <div class="sub">Request ID: ${esc(id || "—")}</div>
-        </td>
-
-        <td>
-          <span class="user-code">${esc(userCode)}</span>
-        </td>
-
-        <td>
-          <div class="customer-cell">
-            <span class="avatar-fallback">👤</span>
-            <div>
-              <div class="customer-name">${esc(name)}</div>
-              <div class="sub">Customer</div>
-            </div>
-          </div>
-        </td>
-
-        <td>${esc(customerMobile(req, customer))}</td>
-        <td>${esc(customerEmail(req, customer))}</td>
-        <td>${esc(lpgCompany(req))}</td>
-        <td>${esc(agencyName(req))}</td>
-        <td>${esc(requestCity(req))}</td>
-        <td>${esc(fmtDate(firstValue(req.request_date, req.created_at)))}</td>
-        <td><strong>${esc(requestQuantity(req))}</strong> cylinder(s)</td>
-        <td class="money">${fmtMoney(totalPayable(req))}</td>
-        <td>${badge(paymentStatus(payment))}</td>
-        <td>${badge(paymentApprovalStatus(payment))}</td>
-        <td>${badge(requestApproval(req))}</td>
-        <td>${badge(agencyStatus(req))}</td>
-        <td>${badge(deliveryStatus(req))}</td>
-        <td>${badge(requestStatus(req))}</td>
-
-        <td class="action-cell">
-          <div class="action-stack">
-            <button class="icon-btn" type="button"
-              data-view="${esc(id)}">👁️ View</button>
-
-            <button class="agency-request-btn" type="button"
-              data-agency-request="${esc(id)}">Agency Request</button>
-
-            <button class="delivery-btn" type="button"
-              data-delivery="${esc(id)}">Delivery</button>
-          </div>
-        </td>
-      </tr>`;
+    return `<tr data-request-row="${esc(id)}">
+      <td><div class="request-number">${esc(firstValue(req.request_number, "REQ-" + (index + 1)))}</div><div class="sub">Request ID: ${esc(id || "—")}</div></td>
+      <td><span class="user-code">${esc(egcUserId(req, customer))}</span></td>
+      <td><div class="customer-cell"><span class="avatar-fallback">👤</span><div><div class="customer-name">${esc(customerName(req, customer))}</div><div class="sub">Customer</div></div></div></td>
+      <td>${esc(customerMobile(req, customer))}</td>
+      <td>${esc(customerEmail(req, customer))}</td>
+      <td>${esc(lpgCompany(req))}</td>
+      <td>${esc(agencyName(req))}</td>
+      <td>${esc(requestCity(req))}</td>
+      <td>${esc(fmtDate(firstValue(req.request_date, req.created_at)))}</td>
+      <td><strong>${esc(requestQuantity(req))}</strong> cylinder(s)</td>
+      <td class="money">${fmtMoney(totalPayable(req))}</td>
+      <td>${badge(paymentStatus(payment))}</td>
+      <td>${badge(paymentApprovalStatus(payment))}</td>
+      <td>${badge(requestApproval(req))}</td>
+      <td>${badge(agencyStatus(req))}</td>
+      <td>${badge(deliveryStatus(req))}</td>
+      <td>${badge(requestStatus(req))}</td>
+      <td class="action-cell"><div class="action-stack">
+        <button class="icon-btn" type="button" data-view="${esc(id)}">👁️ View</button>
+        <button class="agency-request-btn" type="button" data-agency-request="${esc(id)}">Agency Request</button>
+        <button class="delivery-btn" type="button" data-delivery="${esc(id)}">Delivery</button>
+      </div></td>
+    </tr>`;
   }).join("");
 
-$("requestTableBody").querySelectorAll("[data-view]").forEach(btn => {
+  $("requestTableBody").querySelectorAll("[data-view]").forEach(btn => {
     btn.addEventListener("click", () => {
-        const id = btn.dataset.view;
-
-        if (!id) {
-            showToast("Request Missing", "Request ID nahi mila.");
-            return;
-        }
-
-        window.location.href =
-            "agency-request-details.html?request_id=" +
-            encodeURIComponent(id);
+      const id = btn.dataset.view;
+      if (!id) return toast("Request Missing", "Request ID nahi mila.");
+      location.href = "agency-request-details.html?request_id=" + encodeURIComponent(id);
     });
-});
+  });
 
   $("requestTableBody").querySelectorAll("[data-agency-request]").forEach(btn => {
-    btn.addEventListener("click", () =>
-      openAgencyRequest(btn.dataset.agencyRequest)
-    );
+    btn.addEventListener("click", () => openAgencyRequest(btn.dataset.agencyRequest));
   });
 
   $("requestTableBody").querySelectorAll("[data-delivery]").forEach(btn => {
-    btn.addEventListener("click", () =>
-      openDelivery(btn.dataset.delivery)
-    );
+    btn.addEventListener("click", () => openDelivery(btn.dataset.delivery));
   });
 
-  /*
-   * Load each customer's photo from profiles or request fields.
-   */
   filtered.forEach(async req => {
     const customer = customerFor(req);
     const photoValue = profilePhoto(customer, req);
-
     if (!photoValue) return;
 
     const photoUrl = await resolveStorageUrl(photoValue);
-
     if (!photoUrl) return;
 
-    const row = [
-      ...$("requestTableBody").querySelectorAll("[data-request-row]")
-    ].find(el => el.dataset.requestRow === String(req.id));
-
+    const row = [...$("requestTableBody").querySelectorAll("[data-request-row]")]
+      .find(el => el.dataset.requestRow === String(req.id));
     const fallback = row?.querySelector(".avatar-fallback");
-
     if (!fallback) return;
 
     const img = document.createElement("img");
@@ -1605,47 +880,14 @@ $("requestTableBody").querySelectorAll("[data-view]").forEach(btn => {
     img.alt = "Customer photo";
     img.loading = "lazy";
     img.src = photoUrl;
-
-    img.onerror = () => {
-      img.remove();
-    };
-
+    img.onerror = () => img.remove();
     fallback.replaceWith(img);
   });
 }
 
-/* =========================================================
-   REQUEST DETAILS AND DOCUMENTS
-========================================================= */
-
-function openDetails(id) {
-    if (!id) {
-        toast("Request Not Selected", "Request ID nahi mili.");
-        return;
-    }
-
-    const request = requests.find(
-        item => String(item.id) === String(id)
-    );
-
-    if (!request) {
-        toast("Request Not Found", "Yeh request agency list mein nahi mili.");
-        return;
-    }
-
-    window.location.href =
-        "agency-request-details.html?id=" +
-        encodeURIComponent(request.id);
-}
-
-/* =========================================================
-   AGENCY REQUEST STATUS
-========================================================= */
-
 function openAgencyRequest(id) {
   const req = requests.find(r => String(r.id) === String(id));
-
-  if (!req) return;
+  if (!req) return toast("Request Not Found", "यह request agency list में नहीं मिली।");
 
   $("agencyRequestId").value = req.id;
   $("agencyRequestStatus").value = normal(agencyStatus(req));
@@ -1660,31 +902,15 @@ async function saveAgencyRequest(event) {
   const btn = $("saveAgencyRequestBtn");
 
   if (!id || !agencyId || !currentUser) {
-    toast(
-      "Update Failed",
-      "Request ID, Agency ID या login session उपलब्ध नहीं है।"
-    );
+    toast("Update Failed", "Request ID, Agency ID या login session उपलब्ध नहीं है।");
     return;
   }
 
-  const selectedStatus = normal(
-    $("agencyRequestStatus").value
-  );
-
-  const allowedStatuses = [
-    "waiting",
-    "approved",
-    "processing",
-    "assigned",
-    "ready",
-    "rejected"
-  ];
+  const selectedStatus = normal($("agencyRequestStatus").value);
+  const allowedStatuses = ["waiting", "pending", "approved", "processing", "assigned", "ready", "rejected", "on_hold"];
 
   if (!allowedStatuses.includes(selectedStatus)) {
-    toast(
-      "Invalid Status",
-      "कृपया उपलब्ध विकल्पों में से सही Agency Status चुनें।"
-    );
+    toast("Invalid Status", "कृपया उपलब्ध विकल्पों में से सही Agency Status चुनें।");
     return;
   }
 
@@ -1692,260 +918,134 @@ async function saveAgencyRequest(event) {
   btn.textContent = "Saving...";
 
   try {
-    // Request पहले से इस Agency को assign है या नहीं जाँचें।
-    const { data: existing, error: checkError } =
-      await supabaseClient
-        .from("cylinder_requests")
-        .select("id, agency_id, agency_status")
-        .eq("id", id)
-        .eq("agency_id", agencyId)
-        .maybeSingle();
+    const { data: existing, error: checkError } = await supabaseClient
+      .from("cylinder_requests").select("id,agency_id")
+      .eq("id", id).eq("agency_id", agencyId).maybeSingle();
 
-    if (checkError) {
-      throw new Error(
-        "Request check failed: " + checkError.message
-      );
-    }
-
-    if (!existing) {
-      throw new Error(
-        "यह request इस Agency को assign नहीं है, " +
-        "या Supabase SELECT policy इसे पढ़ने नहीं दे रही है।"
-      );
-    }
+    if (checkError) throw new Error("Request check failed: " + checkError.message);
+    if (!existing) throw new Error("यह request इस Agency को assign नहीं है या SELECT policy अनुमति नहीं देती।");
 
     const changes = {
       agency_status: selectedStatus,
       agency_updated_at: new Date().toISOString(),
-      agency_note:
-        $("agencyRequestNote").value.trim() || null
+      agency_note: $("agencyRequestNote").value.trim() || null
     };
 
-    const { data, error: updateError } =
-      await supabaseClient
-        .from("cylinder_requests")
-        .update(changes)
-        .eq("id", id)
-        .eq("agency_id", agencyId)
-        .select("id, agency_id, agency_status");
+    const { data, error } = await supabaseClient
+      .from("cylinder_requests").update(changes)
+      .eq("id", id).eq("agency_id", agencyId)
+      .select("id,agency_id,agency_status");
 
-    if (updateError) {
-      throw new Error(
-        "Supabase UPDATE failed: " + updateError.message
-      );
-    }
-
-    if (!data || data.length === 0) {
-      throw new Error(
-        "Update नहीं हुआ। Supabase की RLS UPDATE policy, " +
-        "Agency assignment और WITH CHECK condition जाँचें।"
-      );
-    }
-
-    const saved = data[0];
-
-    if (normal(saved.agency_status) !== selectedStatus) {
-      throw new Error(
-        "Status save होने के बाद अपेक्षित value वापस नहीं मिली।"
-      );
-    }
+    if (error) throw new Error("Supabase UPDATE failed: " + error.message);
+    if (!data?.length) throw new Error("Update नहीं हुआ। Supabase RLS UPDATE policy जाँचें।");
 
     $("agencyRequestModal").classList.remove("show");
-
-    toast(
-      "Agency Status Updated",
-      "Status सफलतापूर्वक save हो गया। Owner और User panel " +
-      "में दिखने के लिए उन्हें यही request record पढ़ना होगा।"
-    );
-
+    toast("Agency Status Updated", "Agency status सफलतापूर्वक save हो गया।");
     await load();
-
   } catch (error) {
-    console.error(
-      "[EGC] Agency status update failed:",
-      error
-    );
-
-    toast(
-      "Update Failed",
-      error.message || "Agency Status save नहीं हो सका।"
-    );
-
+    console.error("[EGC] Agency status update failed:", error);
+    toast("Update Failed", error.message || "Agency Status save नहीं हो सका।");
   } finally {
     btn.disabled = false;
     btn.textContent = "Save Agency Status";
   }
 }
 
-/* =========================================================
-   DELIVERY STATUS
-========================================================= */
-
 function openDelivery(id) {
   const req = requests.find(r => String(r.id) === String(id));
-
-  if (!req) return;
+  if (!req) return toast("Request Not Found", "यह request agency list में नहीं मिली।");
 
   $("deliveryRequestId").value = req.id;
   $("deliveryStatusSelect").value = normal(deliveryStatus(req));
-  $("deliveryNote").value = firstValue(req.agency_note, "");
+  $("deliveryNote").value = firstValue(req.delivery_note, req.agency_note, "");
   $("deliveryModal").classList.add("show");
 }
 
 async function saveDelivery(event) {
   event.preventDefault();
 
-  const id = $("deliveryRequestId").value;
+  const id = $("deliveryRequestId").value.trim();
   const req = requests.find(r => String(r.id) === String(id));
-
-  if (!req) return;
+  if (!req || !agencyId) return toast("Request Not Found", "Request या Agency ID नहीं मिली।");
 
   const btn = $("saveDeliveryBtn");
-
   btn.disabled = true;
   btn.textContent = "Saving...";
 
   try {
     const selected = normal($("deliveryStatusSelect").value);
-    const note = $("deliveryNote").value.trim();
+    const allowed = ["pending", "processing", "out_for_delivery", "delivered", "cancelled"];
+    if (!allowed.includes(selected)) throw new Error("Invalid delivery status.");
 
     const changes = {
       delivery_status: selected,
-      agency_updated_at: new Date().toISOString()
+      agency_updated_at: new Date().toISOString(),
+      delivery_note: $("deliveryNote").value.trim() || null
     };
-
-    if (note) changes.agency_note = note;
 
     if (selected === "delivered" && !req.delivered_at) {
       changes.delivered_at = new Date().toISOString();
     }
 
     const { data, error } = await supabaseClient
-      .from("cylinder_requests")
-      .update(changes)
-      .eq("id", id)
-      .eq("agency_id", agencyId)
-      .select("id");
+      .from("cylinder_requests").update(changes)
+      .eq("id", id).eq("agency_id", agencyId).select("id");
 
     if (error) throw error;
-
-    if (!data?.length) {
-      throw new Error(
-        "No row updated. Agency ID या Supabase RLS UPDATE policy check करें।"
-      );
-    }
+    if (!data?.length) throw new Error("No row updated. Agency ID या Supabase RLS UPDATE policy जाँचें।");
 
     $("deliveryModal").classList.remove("show");
-
-    toast(
-      "Delivery Updated",
-      "Delivery status has been saved."
-    );
-
+    toast("Delivery Updated", "Delivery status save हो गया।");
     await load();
-
   } catch (error) {
     console.error("Delivery update failed:", error);
-
-    toast(
-      "Delivery Update Failed",
-      error.message || "Could not save delivery status."
-    );
-
+    toast("Delivery Update Failed", error.message || "Could not save delivery status.");
   } finally {
     btn.disabled = false;
     btn.textContent = "Save Delivery Status";
   }
 }
 
-/* =========================================================
-   NOTIFICATIONS
-========================================================= */
-
 async function loadNotifications() {
   if (!currentUser) return;
 
   try {
-    const { data, error } = await supabaseClient
-      .from("notifications")
-      .select("*")
-      .eq("user_id", currentUser.id)
-      .order("created_at", { ascending: false })
-      .limit(30);
+    const { data, error } = await supabaseClient.from("notifications")
+      .select("*").eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false }).limit(30);
 
     if (error) throw error;
 
     notifications = data || [];
-
-    const unread = notifications.filter(
-      n => !n.is_read && !n.read_at
-    ).length;
-
-    $("notificationCount").textContent =
-      unread > 99 ? "99+" : String(unread);
-
+    const unread = notifications.filter(n => !n.is_read && !n.read_at).length;
+    $("notificationCount").textContent = unread > 99 ? "99+" : String(unread);
     $("notificationCount").classList.toggle("show", unread > 0);
 
     $("notificationList").innerHTML = notifications.length
-      ? notifications.map(n => `
-          <div class="notification-item ${
-            n.is_read || n.read_at ? "" : "unread"
-          }">
-            <strong>${esc(n.title || "Notification")}</strong>
-            <div style="margin-top:4px">
-              ${esc(n.message || n.body || n.description || "")}
-            </div>
-            <div class="notification-time">
-              ${esc(fmtDate(n.created_at))}
-            </div>
-          </div>
-        `).join("")
+      ? notifications.map(n => `<div class="notification-item ${n.is_read || n.read_at ? "" : "unread"}">
+          <strong>${esc(n.title || "Notification")}</strong>
+          <div style="margin-top:4px">${esc(n.message || n.body || n.description || "")}</div>
+          <div class="notification-time">${esc(fmtDate(n.created_at))}</div>
+        </div>`).join("")
       : '<div class="no-notifications">No notifications.</div>';
-
   } catch (error) {
     console.warn("Notifications unavailable:", error);
-
-    $("notificationList").innerHTML =
-      `<div class="no-notifications">Notifications unavailable: ${esc(error.message || "")}</div>`;
-
+    $("notificationList").innerHTML = `<div class="no-notifications">Notifications unavailable: ${esc(error.message || "")}</div>`;
     $("notificationCount").classList.remove("show");
   }
 }
 
 async function markAllRead() {
-  const ids = notifications
-    .filter(n => !n.is_read && !n.read_at)
-    .map(n => n.id)
-    .filter(Boolean);
+  const ids = notifications.filter(n => !n.is_read && !n.read_at).map(n => n.id).filter(Boolean);
+  if (!ids.length) return toast("Notifications", "All notifications are already read.");
 
-  if (!ids.length) {
-    return toast(
-      "Notifications",
-      "All notifications are already read."
-    );
-  }
+  const { error } = await supabaseClient.from("notifications")
+    .update({ is_read: true }).in("id", ids).eq("user_id", currentUser.id);
 
-  const { error } = await supabaseClient
-    .from("notifications")
-    .update({ is_read: true })
-    .in("id", ids)
-    .eq("user_id", currentUser.id);
-
-  if (error) {
-    return toast("Could Not Mark Read", error.message);
-  }
-
+  if (error) return toast("Could Not Mark Read", error.message);
   await loadNotifications();
-
-  toast(
-    "Notifications",
-    "All notifications marked as read."
-  );
+  toast("Notifications", "All notifications marked as read.");
 }
-
-/* =========================================================
-   NAVIGATION AND EVENT LISTENERS
-========================================================= */
 
 function closeMobileMenu() {
   $("sidebar").classList.remove("open");
@@ -1962,7 +1062,6 @@ $("overlay").addEventListener("click", closeMobileMenu);
 document.querySelectorAll(".nav-btn[data-page]").forEach(button => {
   button.addEventListener("click", () => {
     closeMobileMenu();
-
     if (button.dataset.page !== location.pathname.split("/").pop()) {
       location.href = button.dataset.page;
     }
@@ -1974,40 +1073,23 @@ $("notificationBtn").addEventListener("click", event => {
   $("notificationPanel").classList.toggle("show");
 });
 
-$("notificationPanel").addEventListener("click", event => {
-  event.stopPropagation();
-});
+$("notificationPanel").addEventListener("click", event => event.stopPropagation());
 
 document.addEventListener("click", event => {
-  if (!event.target.closest(".notification-wrap")) {
-    $("notificationPanel").classList.remove("show");
-  }
+  if (!event.target.closest(".notification-wrap")) $("notificationPanel").classList.remove("show");
 });
 
 $("markAllRead").addEventListener("click", markAllRead);
-
-$("agencyRequestForm").addEventListener(
-  "submit",
-  saveAgencyRequest
-);
-
+$("agencyRequestForm").addEventListener("submit", saveAgencyRequest);
 $("deliveryForm").addEventListener("submit", saveDelivery);
 
 document.querySelectorAll("[data-close]").forEach(button => {
-  button.addEventListener("click", () => {
-    $(button.dataset.close)?.classList.remove("show");
-  });
+  button.addEventListener("click", () => $(button.dataset.close)?.classList.remove("show"));
 });
 
-[
-  "requestModal",
-  "agencyRequestModal",
-  "deliveryModal"
-].forEach(id => {
+["requestModal", "agencyRequestModal", "deliveryModal"].forEach(id => {
   $(id).addEventListener("click", event => {
-    if (event.target === $(id)) {
-      $(id).classList.remove("show");
-    }
+    if (event.target === $(id)) $(id).classList.remove("show");
   });
 });
 
@@ -2016,26 +1098,18 @@ $("logoutBtn").addEventListener("click", () => {
   closeMobileMenu();
 });
 
-$("logoutCancel").addEventListener("click", () => {
-  $("logoutModal").classList.remove("show");
-});
+$("logoutCancel").addEventListener("click", () => $("logoutModal").classList.remove("show"));
 
 $("logoutModal").addEventListener("click", event => {
-  if (event.target === $("logoutModal")) {
-    $("logoutModal").classList.remove("show");
-  }
+  if (event.target === $("logoutModal")) $("logoutModal").classList.remove("show");
 });
 
 $("logoutConfirm").addEventListener("click", async () => {
   if (signingOut) return;
-
   signingOut = true;
-
   const btn = $("logoutConfirm");
-
   btn.disabled = true;
   btn.textContent = "Logging out...";
-
   try {
     await supabaseClient.auth.signOut();
   } finally {
@@ -2043,70 +1117,35 @@ $("logoutConfirm").addEventListener("click", async () => {
   }
 });
 
-[
-  "searchInput",
-  "statusFilter",
-  "paymentFilter",
-  "deliveryFilter"
-].forEach(id => {
-  $(id).addEventListener(
-    id === "searchInput" ? "input" : "change",
-    render
-  );
+["searchInput", "statusFilter", "paymentFilter", "deliveryFilter"].forEach(id => {
+  $(id).addEventListener(id === "searchInput" ? "input" : "change", render);
 });
 
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
-
-  [
-    "requestModal",
-    "agencyRequestModal",
-    "deliveryModal",
-    "logoutModal"
-  ].forEach(id => {
-    $(id).classList.remove("show");
-  });
-
+  ["requestModal", "agencyRequestModal", "deliveryModal", "logoutModal"].forEach(id => $(id).classList.remove("show"));
   closeMobileMenu();
   $("notificationPanel").classList.remove("show");
 });
 
 supabaseClient.auth.onAuthStateChange(event => {
-  if (event === "SIGNED_OUT" && !signingOut) {
-    location.replace("agency-login.html");
-  }
+  if (event === "SIGNED_OUT" && !signingOut) location.replace("agency-login.html");
 });
-
-/* =========================================================
-   INITIALIZATION
-========================================================= */
 
 async function init() {
   try {
     if (!(await session())) return;
     if (!(await profile())) return;
-
     await loadAgencyInfo();
     await load();
-
   } catch (error) {
-    console.error(
-      "Agency panel initialization failed:",
-      error
-    );
-
+    console.error("Agency panel initialization failed:", error);
     $("requestCount").textContent = "Error";
-
-    tableMessage(
-      "Could not initialize Agency Panel: " +
-      (error.message || "Unknown error"),
-      "empty error-message"
-    );
+    tableMessage("Could not initialize Agency Panel: " + (error.message || "Unknown error"), "empty error-message");
   }
 }
 
 init();
 </script>
-
 </body>
 </html>

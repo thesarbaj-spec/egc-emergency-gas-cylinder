@@ -253,13 +253,24 @@ button{cursor:pointer}
 <div id="toast" class="toast"></div>
 
 <script>
+"use strict";
+
 /* =========================================================
-   SUPABASE
+   EGC PROFILE — SUPABASE CONFIGURATION
 ========================================================= */
 
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const SUPABASE_ANON_KEY =
+  "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
 const PHOTO_BUCKET = "profile-photos";
+
+if (!window.supabase) {
+  throw new Error(
+    "Supabase JS library is not loaded. Load the Supabase CDN before this script."
+  );
+}
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -267,7 +278,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 /* =========================================================
-   GLOBAL
+   GLOBAL VARIABLES
 ========================================================= */
 
 let currentUser = null;
@@ -275,6 +286,7 @@ let currentProfile = null;
 let toastTimer = null;
 let cameraStream = null;
 let currentCameraFacing = "user";
+let isLoggingOut = false;
 
 /* =========================================================
    HELPERS
@@ -284,10 +296,20 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatDate(value) {
   if (!value) return "—";
 
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "—";
 
   return date.toLocaleDateString("en-IN", {
@@ -299,51 +321,93 @@ function formatDate(value) {
 
 function showMessage(message, type = "success") {
   const element = $("message");
+  if (!element) return;
+
   element.textContent = message || "";
   element.className = "message " + type;
 }
 
 function clearMessage() {
-  $("message").className = "message";
-  $("message").textContent = "";
+  const element = $("message");
+  if (!element) return;
+
+  element.className = "message";
+  element.textContent = "";
 }
 
 function toast(message) {
   const element = $("toast");
+
+  if (!element) {
+    console.log(message);
+    return;
+  }
+
   element.textContent = message || "";
   element.classList.add("show");
 
   clearTimeout(toastTimer);
+
   toastTimer = setTimeout(() => {
     element.classList.remove("show");
   }, 3500);
 }
 
 function avatarUrl(name) {
-  return "https://ui-avatars.com/api/?name=" +
+  return (
+    "https://ui-avatars.com/api/?name=" +
     encodeURIComponent(name || "EGC Customer") +
-    "&background=eaf5fc&color=0754a9&size=256";
+    "&background=eaf5fc&color=0754a9&size=256"
+  );
 }
 
-/*
-  profile_photo database value can be:
-  1. A full public URL from an older upload
-  2. A Storage object path, e.g. user-id/profile.jpg
-  3. A signed URL (temporary)
+/* =========================================================
+   EGC USER ID
 
-  This helper supports old URLs and the recommended stored path.
-*/
+   The EGC User ID is a separate profile field.
+   Never replace Supabase Auth's UUID.
+
+   Supported profile fields:
+   egc_user_id, egc_id, user_code
+
+   If no EGC ID exists in the database, show "Not assigned"
+   instead of displaying a misleading UUID as the EGC ID.
+========================================================= */
+
+function getEGCUserId(profile) {
+  if (!profile) return "Not assigned";
+
+  return (
+    profile.egc_user_id ||
+    profile.egc_id ||
+    profile.user_code ||
+    "Not assigned"
+  );
+}
+
+function displayEGCUserId() {
+  const element = $("accountId");
+  if (!element) return;
+
+  element.textContent = getEGCUserId(currentProfile);
+}
+
+/* =========================================================
+   PROFILE PHOTO URL
+
+   Supports:
+   1. Existing full image URL
+   2. Supabase Storage object path
+========================================================= */
+
 async function resolvePhotoUrl(photoValue) {
   if (!photoValue) return "";
 
   const value = String(photoValue).trim();
+
   if (!value) return "";
 
   if (/^https?:\/\//i.test(value)) {
-    /*
-      Preserve existing full URLs. If an old public URL is stored,
-      it will continue to work when the bucket is public.
-    */
     return value;
   }
 
@@ -354,7 +418,7 @@ async function resolvePhotoUrl(photoValue) {
     .createSignedUrl(cleanPath, 60 * 60 * 24 * 7);
 
   if (error) {
-    console.error("Signed photo URL error:", error);
+    console.error("Signed photo URL error:", error.message);
     return "";
   }
 
@@ -400,14 +464,22 @@ async function loadProfile() {
 
   if (result.error) {
     console.error("Profile load error:", result.error);
+
     showMessage(
       "Unable to load profile: " + result.error.message,
       "error"
     );
+
     return;
   }
 
   currentProfile = result.data || null;
+
+  /*
+    Create a profile row if one does not exist.
+    This assumes the profiles table permits authenticated
+    users to insert their own row through its RLS policies.
+  */
 
   if (!currentProfile) {
     const newProfile = {
@@ -426,13 +498,11 @@ async function loadProfile() {
     if (insertResult.error) {
       console.error("Profile create error:", insertResult.error);
 
-      /*
-        Do not silently claim a database row was created.
-        The UI can still display auth metadata while reporting the issue.
-      */
       currentProfile = newProfile;
+
       showMessage(
-        "Profile row could not be created: " + insertResult.error.message,
+        "Profile could not be created in the database: " +
+        insertResult.error.message,
         "error"
       );
     } else {
@@ -455,24 +525,61 @@ async function loadProfile() {
     currentUser.user_metadata?.mobile ||
     "";
 
-  $("fullName").value = name === "EGC Customer" ? "" : name;
-  $("mobile").value = mobile;
-  $("email").value = email;
+  if ($("fullName")) {
+    $("fullName").value =
+      name === "EGC Customer" ? "" : name;
+  }
 
-  $("profileNameLarge").textContent = name;
-  $("profileEmailLarge").textContent = email || "No email available";
-  $("topName").textContent = name;
-  $("topEmail").textContent = email || "No email available";
+  if ($("mobile")) {
+    $("mobile").value = mobile;
+  }
 
-  $("accountId").textContent = currentUser.id
-    ? currentUser.id.substring(0, 8) + "..."
-    : "—";
+  if ($("email")) {
+    $("email").value = email;
+  }
 
-  $("accountCreated").textContent = formatDate(
-    currentUser.created_at || currentProfile?.created_at
-  );
+  if ($("profileNameLarge")) {
+    $("profileNameLarge").textContent = name;
+  }
 
-  $("accountEmail").textContent = email || "—";
+  if ($("profileEmailLarge")) {
+    $("profileEmailLarge").textContent =
+      email || "No email available";
+  }
+
+  if ($("topName")) {
+    $("topName").textContent = name;
+  }
+
+  if ($("topEmail")) {
+    $("topEmail").textContent =
+      email || "No email available";
+  }
+
+  displayEGCUserId();
+
+  if ($("accountCreated")) {
+    $("accountCreated").textContent = formatDate(
+      currentUser.created_at || currentProfile?.created_at
+    );
+  }
+
+  if ($("accountEmail")) {
+    $("accountEmail").textContent = email || "—";
+  }
+
+  /*
+    Optional element:
+    If the HTML has an element with id="authReference",
+    show the shortened Auth UUID separately from the EGC User ID.
+  */
+
+  if ($("authReference")) {
+    $("authReference").textContent =
+      currentUser.id
+        ? currentUser.id.substring(0, 8) + "..."
+        : "—";
+  }
 
   await refreshProfilePhotos();
 }
@@ -490,12 +597,20 @@ async function saveProfile() {
   clearMessage();
 
   const button = $("saveBtn");
-  const fullName = $("fullName").value.trim();
-  const mobile = $("mobile").value.trim();
+  const nameInput = $("fullName");
+  const mobileInput = $("mobile");
+
+  if (!nameInput || !mobileInput) {
+    showMessage("Profile form fields are missing from the page.", "error");
+    return;
+  }
+
+  const fullName = nameInput.value.trim();
+  const mobile = mobileInput.value.trim();
 
   if (!fullName) {
     showMessage("Please enter your full name.", "error");
-    $("fullName").focus();
+    nameInput.focus();
     return;
   }
 
@@ -504,13 +619,15 @@ async function saveProfile() {
 
     if (cleanMobile.length < 10 || cleanMobile.length > 15) {
       showMessage("Please enter a valid mobile number.", "error");
-      $("mobile").focus();
+      mobileInput.focus();
       return;
     }
   }
 
-  button.disabled = true;
-  button.textContent = "SAVING...";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "SAVING...";
+  }
 
   try {
     const updateData = {
@@ -528,18 +645,21 @@ async function saveProfile() {
 
     if (result.error) {
       console.error("Profile update error:", result.error);
+
       showMessage(
         "Unable to update profile: " + result.error.message,
         "error"
       );
+
       return;
     }
 
     if (!result.data) {
       showMessage(
-        "No profile row was updated. Check your profiles table and Row Level Security policies.",
+        "No profile row was updated. Check your profiles table and RLS policies.",
         "error"
       );
+
       return;
     }
 
@@ -548,19 +668,34 @@ async function saveProfile() {
       ...result.data
     };
 
-    $("profileNameLarge").textContent = fullName;
-    $("topName").textContent = fullName;
+    if ($("profileNameLarge")) {
+      $("profileNameLarge").textContent = fullName;
+    }
+
+    if ($("topName")) {
+      $("topName").textContent = fullName;
+    }
+
+    displayEGCUserId();
 
     await refreshProfilePhotos();
 
     showMessage("✓ Profile updated successfully.", "success");
     toast("Profile updated successfully.");
+
   } catch (error) {
     console.error("Save profile exception:", error);
-    showMessage(error.message || "Unable to update profile.", "error");
+
+    showMessage(
+      error.message || "Unable to update profile.",
+      "error"
+    );
+
   } finally {
-    button.disabled = false;
-    button.textContent = "SAVE PROFILE";
+    if (button) {
+      button.disabled = false;
+      button.textContent = "SAVE PROFILE";
+    }
   }
 }
 
@@ -569,28 +704,41 @@ async function saveProfile() {
 ========================================================= */
 
 function choosePhoto() {
-  $("photoInput").click();
+  const input = $("photoInput");
+
+  if (input) {
+    input.click();
+  }
 }
 
-$("photoInput").addEventListener("change", async function (event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
+const photoInput = $("photoInput");
 
-  if (!file.type.startsWith("image/")) {
-    showMessage("Please select an image file.", "error");
+if (photoInput) {
+  photoInput.addEventListener("change", async function (event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showMessage("Please select an image file.", "error");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage(
+        "Profile photo must be smaller than 5 MB.",
+        "error"
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    await uploadProfilePhoto(file);
     event.target.value = "";
-    return;
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    showMessage("Profile photo must be smaller than 5 MB.", "error");
-    event.target.value = "";
-    return;
-  }
-
-  await uploadProfilePhoto(file);
-  event.target.value = "";
-});
+  });
+}
 
 /* =========================================================
    UPLOAD PROFILE PHOTO
@@ -598,21 +746,35 @@ $("photoInput").addEventListener("change", async function (event) {
 
 async function uploadProfilePhoto(file) {
   if (!currentUser?.id) {
-    showMessage("Please sign in again before uploading a photo.", "error");
+    showMessage(
+      "Please sign in again before uploading a photo.",
+      "error"
+    );
+
     return;
   }
 
   clearMessage();
   toast("Uploading profile photo...");
 
+  let uploadedFilePath = null;
+
   try {
-    const extensionFromName = file.name?.split(".").pop()?.toLowerCase();
-    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
+    const extensionFromName =
+      file.name?.split(".").pop()?.toLowerCase();
+
+    const allowedExtensions = [
+      "jpg", "jpeg", "png", "webp", "gif"
+    ];
+
     const extension = allowedExtensions.includes(extensionFromName)
       ? extensionFromName
-      : (file.type === "image/png" ? "png" :
-         file.type === "image/webp" ? "webp" :
-         file.type === "image/gif" ? "gif" : "jpg");
+      : (
+          file.type === "image/png" ? "png" :
+          file.type === "image/webp" ? "webp" :
+          file.type === "image/gif" ? "gif" :
+          "jpg"
+        );
 
     const filePath =
       currentUser.id +
@@ -621,10 +783,6 @@ async function uploadProfilePhoto(file) {
       "." +
       extension;
 
-    /*
-      Save the file into the actual bucket name shown in Supabase.
-      A unique path is used for each upload.
-    */
     const uploadResult = await supabaseClient.storage
       .from(PHOTO_BUCKET)
       .upload(filePath, file, {
@@ -635,17 +793,17 @@ async function uploadProfilePhoto(file) {
 
     if (uploadResult.error) {
       console.error("Photo upload error:", uploadResult.error);
+
       showMessage(
         "Photo upload failed: " + uploadResult.error.message,
         "error"
       );
+
       return;
     }
 
-    /*
-      For a private bucket, store the object path, not a temporary
-      signed URL. A fresh signed URL is generated when the page loads.
-    */
+    uploadedFilePath = filePath;
+
     const updateResult = await supabaseClient
       .from("profiles")
       .update({
@@ -657,25 +815,26 @@ async function uploadProfilePhoto(file) {
       .maybeSingle();
 
     if (updateResult.error) {
-      console.error("Photo profile update error:", updateResult.error);
+      console.error(
+        "Photo profile update error:",
+        updateResult.error
+      );
 
-      /*
-        The file has already uploaded. Tell the user the database
-        update failed rather than falsely reporting full success.
-      */
       showMessage(
         "Photo uploaded, but the profile database could not be updated: " +
         updateResult.error.message,
         "error"
       );
+
       return;
     }
 
     if (!updateResult.data) {
       showMessage(
-        "Photo uploaded, but no profile row was updated. Check profiles table RLS policies.",
+        "Photo uploaded, but no profile row was updated. Check profiles RLS policies.",
         "error"
       );
+
       return;
     }
 
@@ -687,11 +846,20 @@ async function uploadProfilePhoto(file) {
 
     await refreshProfilePhotos();
 
-    showMessage("✓ Profile photo uploaded and saved successfully.", "success");
+    showMessage(
+      "✓ Profile photo uploaded and saved successfully.",
+      "success"
+    );
+
     toast("Profile photo updated.");
+
   } catch (error) {
     console.error("Photo upload exception:", error);
-    showMessage(error.message || "Unable to upload profile photo.", "error");
+
+    showMessage(
+      error.message || "Unable to upload profile photo.",
+      "error"
+    );
   }
 }
 
@@ -702,9 +870,10 @@ async function uploadProfilePhoto(file) {
 async function openCamera() {
   if (!navigator.mediaDevices?.getUserMedia) {
     showMessage(
-      "Camera is not supported in this browser. Try HTTPS or localhost.",
+      "Camera is not supported. Try HTTPS or localhost.",
       "error"
     );
+
     return;
   }
 
@@ -718,18 +887,26 @@ async function startCamera() {
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { ideal: currentCameraFacing },
-        width: { ideal: 1280 },
-        height: { ideal: 1280 }
+        facingMode: {
+          ideal: currentCameraFacing
+        },
+        width: {
+          ideal: 1280
+        },
+        height: {
+          ideal: 1280
+        }
       },
       audio: false
     });
 
     createCameraModal();
+
   } catch (error) {
     console.error("Camera error:", error);
+
     showMessage(
-      "Camera permission was denied or camera could not be opened.",
+      "Camera permission was denied or the camera could not be opened.",
       "error"
     );
   }
@@ -761,14 +938,12 @@ function createCameraModal() {
   cancel.type = "button";
   cancel.className = "camera-action camera-cancel";
   cancel.textContent = "Cancel";
-  cancel.onclick = () => closeCamera();
+  cancel.addEventListener("click", closeCamera);
 
   const capture = document.createElement("button");
   capture.type = "button";
   capture.className = "camera-action camera-capture";
   capture.textContent = "📷 Capture";
-
-  controls.append(cancel, capture);
 
   const switchCamera = document.createElement("button");
   switchCamera.type = "button";
@@ -777,25 +952,37 @@ function createCameraModal() {
 
   const hint = document.createElement("div");
   hint.className = "camera-hint";
-  hint.textContent = currentCameraFacing === "user" ? "Front camera" : "Back camera";
+  hint.textContent =
+    currentCameraFacing === "user"
+      ? "Front camera"
+      : "Back camera";
 
+  controls.append(cancel, capture);
   card.append(title, video, controls, switchCamera, hint);
   modal.appendChild(card);
   document.body.appendChild(modal);
 
-  switchCamera.onclick = async () => {
-    currentCameraFacing = currentCameraFacing === "user" ? "environment" : "user";
-    await startCamera();
-  };
+  switchCamera.addEventListener("click", async () => {
+    currentCameraFacing =
+      currentCameraFacing === "user"
+        ? "environment"
+        : "user";
 
-  capture.onclick = async () => {
+    await startCamera();
+  });
+
+  capture.addEventListener("click", async () => {
     if (!video.videoWidth || !video.videoHeight) {
       toast("Camera is still starting...");
       return;
     }
 
+    capture.disabled = true;
+    capture.textContent = "Capturing...";
+
     const canvas = document.createElement("canvas");
     const maxSize = 1200;
+
     let width = video.videoWidth;
     let height = video.videoHeight;
 
@@ -809,6 +996,13 @@ function createCameraModal() {
 
     const context = canvas.getContext("2d");
 
+    if (!context) {
+      capture.disabled = false;
+      capture.textContent = "📷 Capture";
+      toast("Unable to capture photo.");
+      return;
+    }
+
     if (currentCameraFacing === "user") {
       context.translate(width, 0);
       context.scale(-1, 1);
@@ -818,19 +1012,24 @@ function createCameraModal() {
 
     canvas.toBlob(async blob => {
       if (!blob) {
+        capture.disabled = false;
+        capture.textContent = "📷 Capture";
         toast("Unable to capture photo.");
         return;
       }
 
       closeCamera();
 
-      const file = new File([blob], "profile-camera.jpg", {
-        type: "image/jpeg"
-      });
+      const file = new File(
+        [blob],
+        "profile-camera.jpg",
+        { type: "image/jpeg" }
+      );
 
       await uploadProfilePhoto(file);
+
     }, "image/jpeg", 0.9);
-  };
+  });
 }
 
 function closeCamera() {
@@ -840,20 +1039,19 @@ function closeCamera() {
   }
 
   const modal = $("cameraModal");
-  if (modal) modal.remove();
-}
 
-/* =========================================================
-   CHANGE MPIN
-========================================================= */
-
-function changeMPIN() {
-  window.location.href = "forgot-mpin.html";
+  if (modal) {
+    modal.remove();
+  }
 }
 
 /* =========================================================
    NAVIGATION
 ========================================================= */
+
+function changeMPIN() {
+  window.location.href = "forgot-mpin.html";
+}
 
 function goDashboard() {
   window.location.href = "dashboard.html";
@@ -876,7 +1074,7 @@ function requestCylinder() {
 }
 
 function showComingSoon(page) {
-  window.location.href = "setting.html";
+  window.location.href = page || "settings.html";
 }
 
 /* =========================================================
@@ -884,45 +1082,80 @@ function showComingSoon(page) {
 ========================================================= */
 
 function openLogoutPopup() {
-  $("logoutOverlay").classList.add("show");
+  const overlay = $("logoutOverlay");
+
+  if (!overlay) return;
+
+  overlay.classList.add("show");
   document.body.style.overflow = "hidden";
 }
 
 function closeLogoutPopup(event) {
-  if (event && event.target && event.target.id !== "logoutOverlay") {
+  if (
+    event &&
+    event.target &&
+    event.target.id !== "logoutOverlay"
+  ) {
     return;
   }
 
-  $("logoutOverlay").classList.remove("show");
+  const overlay = $("logoutOverlay");
+
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
+
   document.body.style.overflow = "";
 }
 
 async function confirmLogout() {
+  if (isLoggingOut) return;
+
+  isLoggingOut = true;
+
   const button = $("confirmLogoutBtn");
-  button.disabled = true;
-  button.textContent = "Logging out...";
 
-  const result = await supabaseClient.auth.signOut();
-
-  if (result.error) {
-    button.disabled = false;
-    button.textContent = "Logout";
-    toast(result.error.message || "Logout failed.");
-    return;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Logging out...";
   }
 
-  window.location.replace("login.html");
+  try {
+    closeCamera();
+
+    const result = await supabaseClient.auth.signOut();
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    window.location.replace("login.html");
+
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    isLoggingOut = false;
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Logout";
+    }
+
+    toast(error.message || "Logout failed.");
+  }
 }
 
 /* =========================================================
    AUTH STATE
 ========================================================= */
 
-supabaseClient.auth.onAuthStateChange(event => {
-  if (event === "SIGNED_OUT") {
-    window.location.replace("login.html");
-  }
-});
+const authListenerResult =
+  supabaseClient.auth.onAuthStateChange(event => {
+    if (event === "SIGNED_OUT" && !isLoggingOut) {
+      closeCamera();
+      window.location.replace("login.html");
+    }
+  });
 
 /* =========================================================
    ESC KEY
@@ -936,11 +1169,13 @@ document.addEventListener("keydown", event => {
 });
 
 /* =========================================================
-   INITIALIZE
+   INITIALIZE PROFILE
 ========================================================= */
 
 async function initializeProfile() {
   try {
+    clearMessage();
+
     const authResult = await supabaseClient.auth.getUser();
 
     if (authResult.error || !authResult.data?.user) {
@@ -949,18 +1184,52 @@ async function initializeProfile() {
     }
 
     currentUser = authResult.data.user;
+
     await loadProfile();
+
   } catch (error) {
     console.error("Profile initialization error:", error);
-    showMessage(error.message || "Unable to load profile.", "error");
+
+    showMessage(
+      error.message || "Unable to load profile.",
+      "error"
+    );
   }
 }
 
+/* =========================================================
+   EXPOSE FUNCTIONS FOR EXISTING HTML BUTTONS
+========================================================= */
+
+window.saveProfile = saveProfile;
+window.choosePhoto = choosePhoto;
+window.openCamera = openCamera;
+window.closeCamera = closeCamera;
+window.changeMPIN = changeMPIN;
+window.goDashboard = goDashboard;
+window.goRequests = goRequests;
+window.goPayments = goPayments;
+window.goNotifications = goNotifications;
+window.requestCylinder = requestCylinder;
+window.showComingSoon = showComingSoon;
+window.openLogoutPopup = openLogoutPopup;
+window.closeLogoutPopup = closeLogoutPopup;
+window.confirmLogout = confirmLogout;
+
+/* =========================================================
+   START PAGE
+========================================================= */
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeProfile, { once: true });
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializeProfile,
+    { once: true }
+  );
 } else {
   initializeProfile();
 }
 </script>
+
 </body>
 </html>
