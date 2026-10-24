@@ -2208,8 +2208,6 @@ async function savePopupStatus(nextState) {
     const pendingButton = $("statusPopupPending");
     const message = $("statusPopupMessage");
 
-    const previousMessage = message.textContent;
-
     isSavingPopupStatus = true;
     busyStatusUpdates.add(busyKey);
 
@@ -2223,25 +2221,25 @@ async function savePopupStatus(nextState) {
         const updateObject = nextState === "clear"
             ? {
                 payment_pending_clear: "clear",
-                cylinder_hold_eligible: "eligible"
+                cylinder_hold_eligible: "eligible",
+                repayment_status: "clear"
             }
             : {
                 payment_pending_clear: "pending",
-                cylinder_hold_eligible: "hold"
+                cylinder_hold_eligible: "hold",
+                repayment_status: "pending"
             };
-
-        /*
-         * Update the two dedicated columns.
-         * Do not overwrite the real payment_status column.
-         */
 
         const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .update(updateObject)
             .eq("id", requestId)
-            .select(
-                "id,payment_pending_clear,cylinder_hold_eligible"
-            );
+            .select(`
+                id,
+                payment_pending_clear,
+                cylinder_hold_eligible,
+                repayment_status
+            `);
 
         if (error) throw error;
 
@@ -2253,33 +2251,25 @@ async function savePopupStatus(nextState) {
 
         const savedRequest = data[0];
 
-        /*
-         * Update local records using the values returned by Supabase.
-         */
-
         payments = payments.map(payment => {
             const linkedRequestId =
                 payment.request?.id ||
                 payment.request_id;
 
-            if (
-                String(linkedRequestId) !==
-                String(requestId)
-            ) {
+            if (String(linkedRequestId) !== String(requestId)) {
                 return payment;
             }
 
             return {
                 ...payment,
-
                 request: {
                     ...payment.request,
-
                     payment_pending_clear:
                         savedRequest.payment_pending_clear,
-
                     cylinder_hold_eligible:
-                        savedRequest.cylinder_hold_eligible
+                        savedRequest.cylinder_hold_eligible,
+                    repayment_status:
+                        savedRequest.repayment_status
                 }
             };
         });
@@ -2290,26 +2280,17 @@ async function savePopupStatus(nextState) {
         renderPayments();
 
         $("paymentStatusPopup")?.classList.remove("show");
-
         activeStatusGroupKey = null;
 
-        if (nextState === "clear") {
-            showToast(
-                "Status Updated",
-                "Payment Clear aur Cylinder Eligible Supabase mein save ho gaye."
-            );
-        } else {
-            showToast(
-                "Status Updated",
-                "Payment Pending aur Cylinder Hold Supabase mein save ho gaye."
-            );
-        }
+        showToast(
+            "Status Updated",
+            nextState === "clear"
+                ? "Payment Clear, Cylinder Eligible aur Repayment Clear save ho gaye."
+                : "Payment Pending, Cylinder Hold aur Repayment Pending save ho gaye."
+        );
 
     } catch (error) {
-        console.error(
-            "Payment/cylinder status update error:",
-            error
-        );
+        console.error("Payment/cylinder status update error:", error);
 
         message.textContent =
             error.message ||
@@ -2322,14 +2303,8 @@ async function savePopupStatus(nextState) {
             error.message || "Status save nahi hua."
         );
 
-        /*
-         * Keep the popup open when saving fails.
-         * The user can read the error and retry.
-         */
-
     } finally {
         isSavingPopupStatus = false;
-
         busyStatusUpdates.delete(busyKey);
 
         clearButton.disabled = false;

@@ -1219,34 +1219,46 @@
                ["rejected", "cancelled", "canceled"].includes(approval);
     }
 
-    function isFullyCleared(request) {
-        const remaining = Number(request.remaining_amount);
+   function isFullyCleared(request) {
+if (!request) return false;
 
-        const paymentStatus = normalStatus(request.payment_status);
-        const repaymentStatus = normalStatus(request.repayment_status);
+const remaining = Number(request.remaining_amount);
+const repaymentStatus = normalStatus(request.repayment_status);
 
-        const completedStatuses = [
-            "completed",
-            "paid",
-            "cleared",
-            "fully_paid",
-            "fully_cleared",
-            "paid_in_full",
-            "settled"
-        ];
+const completedStatuses = [
+    "completed",
+    "complete",
+    "paid",
+    "cleared",
+    "fully_paid",
+    "fully_cleared",
+    "paid_in_full",
+    "settled",
+    "clear"
+];
 
-        return Number.isFinite(remaining) &&
-            remaining <= 0 &&
-            (
-                completedStatuses.includes(paymentStatus) ||
-                completedStatuses.includes(repaymentStatus)
-            );
-    }
+return (
+    Number.isFinite(remaining) &&
+    remaining <= 0 &&
+    completedStatuses.includes(repaymentStatus)
+);
 
-    function isActiveRequest(request) {
-        return !isRejectedOrCancelled(request) &&
-               !isFullyCleared(request);
-    }
+}
+
+function isActiveRequest(request) {
+if (!request || isRejectedOrCancelled(request)) {
+return false;
+}
+
+// A fully repaid old request must not block a new request.
+if (isFullyCleared(request)) {
+    return false;
+}
+
+// Every other non-rejected request remains active.
+return true;
+
+}
 
     // ==========================================
     // AUTHENTICATED USER AND PROFILE
@@ -1340,31 +1352,26 @@
     }
 
     async function getExistingActiveRequest(userId) {
-        const savedId = readStoredRequestId();
+const { data, error } = await supabaseClient
+.from("cylinder_requests")
+.select("*")
+.eq("user_id", userId)
+.order("created_at", { ascending: false })
+.limit(100);
 
-        if (savedId) {
-            const savedRequest = await getRequestById(savedId, userId);
+if (error) {
+    throw new Error(
+        "Unable to check your existing request: " + error.message
+    );
+}
 
-            if (savedRequest && isActiveRequest(savedRequest)) {
-                return savedRequest;
-            }
-        }
+const requests = data || [];
 
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false })
-            .limit(50);
+// An unfinished request blocks another cylinder request.
+// A fully repaid request does not block a new request.
+return requests.find(isActiveRequest) || null;
 
-        if (error) {
-            throw new Error(
-                "Unable to check your existing request: " + error.message
-            );
-        }
-
-        return (data || []).find(isActiveRequest) || null;
-    }
+}
 
     // ==========================================
     // VERIFY SELECTED AGENCY
@@ -1442,69 +1449,167 @@
     // ==========================================
 
     async function createRequest(user, profile, agency, lpgDetails, verificationData) {
-        const company =
-            lpgDetails.lpg_company ||
-            lpgDetails.lpgCompany ||
-            lpgDetails.company ||
-            profile.lpg_company ||
-            agency.lpg_company ||
-            null;
-
-        const address = getAddress(verificationData, lpgDetails);
-
-        const insertData = {
-            user_id: user.id,
-            request_number: generateRequestNumber(),
-            quantity: 1,
-            total_amount: CYLINDER_AMOUNT,
-            status: "Pending",
-            notes: "Cylinder request submitted after repayment scheme agreement.",
-            agency_id: agency.id,
-            extra_charge: 0,
-            payment_status: "pending",
-            owner_approval: "pending",
-            agency_status: "waiting",
-            delivery_status: "pending",
-            cylinder_amount: CYLINDER_AMOUNT,
-            advance_amount: FIRST_PAYMENT,
-            remaining_amount: REMAINING_AMOUNT,
-            charge_amount: 0,
-            total_payable: FIRST_PAYMENT,
-            repayment_days: null,
-            repayment_due_date: null,
-            repayment_status: "pending",
-            owner_note: null,
-            agency_note: null,
-            user_status: "pending",
-            request_date: new Date().toISOString(),
-            lpg_company: company
-        };
-
-        if (address) {
-            insertData.address = address;
-        }
-
-        if (lpgDetails.city || profile.city) {
-            insertData.city = lpgDetails.city || profile.city;
-        }
-
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .insert(insertData)
-            .select("*")
-            .single();
-
-        if (error) {
-            console.error("Request insert error:", error);
-
-            throw new Error(
-                "Request could not be saved. Database message: " + error.message
-            );
-        }
-
-        return data;
+    if (!user || !user.id) {
+        throw new Error("User login is required to create a cylinder request.");
     }
 
+    if (!agency || !agency.id) {
+        throw new Error("Please select a valid LPG agency.");
+    }
+
+    const company =
+        lpgDetails.lpg_company ||
+        lpgDetails.lpgCompany ||
+        lpgDetails.company ||
+        profile.lpg_company ||
+        agency.lpg_company ||
+        null;
+
+    const address = getAddress(verificationData, lpgDetails);
+
+    // Generate a unique request number for every new request.
+    const requestNumber = generateRequestNumber();
+
+    // Every new request starts with fresh approval and payment statuses.
+    // Never copy approval or payment status from an older request.
+    const insertData = {
+        user_id: user.id,
+        request_number: requestNumber,
+
+        quantity: 1,
+        total_amount: CYLINDER_AMOUNT,
+
+        status: "Pending",
+        notes: "Cylinder request submitted after repayment scheme agreement.",
+
+        agency_id: agency.id,
+        lpg_company: company,
+
+        // Owner must approve every new request separately.
+        owner_approval: "pending",
+        approved_by: null,
+        approved_at: null,
+        rejection_reason: null,
+        owner_note: null,
+        owner_rejected_at: null,
+
+        // Initial payment must be submitted and verified separately.
+        payment_status: "pending",
+        payment_verification_status: "pending",
+        payment_pending_clear: "pending",
+
+        payment_reference: null,
+        payment_transaction_id: null,
+        payment_method: null,
+        payment_submitted_at: null,
+        payment_verified_at: null,
+        payment_paid_at: null,
+
+        payment_screenshot_1: null,
+        payment_screenshot_2: null,
+        payment_screenshot_3: null,
+        payment_note: null,
+
+        // Agency cannot process the request before Owner approval
+        // and initial payment verification.
+        agency_status: "waiting",
+        agency_note: null,
+        agency_updated_at: null,
+
+        delivery_status: "pending",
+        delivery_note: null,
+        delivery_date: null,
+        delivered_at: null,
+
+        // Cylinder financial details.
+        cylinder_amount: CYLINDER_AMOUNT,
+        advance_amount: FIRST_PAYMENT,
+        remaining_amount: REMAINING_AMOUNT,
+        extra_charge: 0,
+        charge_amount: 0,
+
+        // This field represents the initial payment due in this workflow.
+        total_payable: FIRST_PAYMENT,
+
+        // Repayment remains separate from the initial payment.
+        repayment_days: null,
+        repayment_due_date: null,
+        repayment_status: "pending",
+
+        // Eligibility must not be granted automatically.
+        cylinder_hold_eligible: "hold",
+
+        user_status: "pending",
+        request_date: new Date().toISOString()
+    };
+
+    if (address) {
+        insertData.address = address;
+    }
+
+    if (lpgDetails.city || profile.city) {
+        insertData.city = lpgDetails.city || profile.city;
+    }
+
+    if (lpgDetails.state || profile.state) {
+        insertData.state = lpgDetails.state || profile.state;
+    }
+
+    if (lpgDetails.district || profile.district) {
+        insertData.district = lpgDetails.district || profile.district;
+    }
+
+    if (profile.full_name || profile.name) {
+        insertData.customer_name =
+            profile.full_name || profile.name;
+    }
+
+    if (profile.phone || profile.mobile || profile.mobile_number) {
+        insertData.customer_mobile =
+            profile.phone || profile.mobile || profile.mobile_number;
+    }
+
+    if (user.email || profile.email) {
+        insertData.customer_email = user.email || profile.email;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("cylinder_requests")
+        .insert(insertData)
+        .select("*")
+        .single();
+
+    if (error) {
+        console.error("Request insert error:", error);
+
+        throw new Error(
+            "Request could not be saved. Database message: " +
+            error.message
+        );
+    }
+
+    if (!data || !data.id) {
+        throw new Error(
+            "The request was submitted, but its saved record could not be confirmed. Please check your request history before trying again."
+        );
+    }
+
+    // Verify the new record's Owner approval was not automatically approved.
+    if (
+        String(data.owner_approval || "").trim().toLowerCase() !== "pending"
+    ) {
+        console.error(
+            "Unexpected Owner approval status on new request:",
+            data
+        );
+
+        throw new Error(
+            "The request was saved, but its Owner approval status is unexpected. Please contact support before submitting another request."
+        );
+    }
+
+    return data;
+}
     // ==========================================
     // SAVE REQUEST REFERENCE LOCALLY
     // Database remains the source of truth.
@@ -1566,45 +1671,58 @@
     // ==========================================
 
     async function submitRequest() {
-        const user = await getCurrentUser();
+const user = await getCurrentUser();
 
-        // Both previous steps must have saved their data.
-        const lpgDetails = getLpgDetails();
-        const verificationData = getVerificationData();
-        const profile = await getProfile(user.id);
+const lpgDetails = getLpgDetails();
+const verificationData = getVerificationData();
+const profile = await getProfile(user.id);
+const agency = await getVerifiedAgency(lpgDetails);
 
-        // Ensure the user has a valid selected agency before saving.
-        const agency = await getVerifiedAgency(lpgDetails);
+// Check the latest database records before creating a request.
+const existingRequest = await getExistingActiveRequest(user.id);
 
-        // Do not create a second active request.
-        const existingRequest = await getExistingActiveRequest(user.id);
+if (existingRequest) {
+    const remaining = Number(existingRequest.remaining_amount);
+    const repaymentStatus = normalStatus(
+        existingRequest.repayment_status || ""
+    );
 
-        if (existingRequest) {
-            // A pending/active request must not be reset or overwritten
-            // by submitting the scheme page again.
-            saveCurrentRequest(existingRequest, user, agency);
-
-            return {
-                request: existingRequest,
-                reused: true
-            };
-        }
-
-        const request = await createRequest(
-            user,
-            profile,
-            agency,
-            lpgDetails,
-            verificationData
+    if (
+        Number.isFinite(remaining) &&
+        remaining > 0
+    ) {
+        throw new Error(
+            "Aapki purani cylinder request ki ₹" +
+            remaining +
+            " repayment abhi baaki hai. Repayment poori hone ke baad hi nayi request kar sakte hain."
         );
-
-        saveCurrentRequest(request, user, agency);
-
-        return {
-            request,
-            reused: false
-        };
     }
+
+    if (!isFullyCleared(existingRequest)) {
+        throw new Error(
+            "Aapki purani cylinder request abhi active hai. Owner se repayment aur request status verify karwayein."
+        );
+    }
+}
+
+// Create a fresh database row with a new Request Number.
+// Never reuse an old request ID or Request Number.
+const request = await createRequest(
+    user,
+    profile,
+    agency,
+    lpgDetails,
+    verificationData
+);
+
+saveCurrentRequest(request, user, agency);
+
+return {
+    request,
+    reused: false
+};
+
+}
 
     // ==========================================
     // NAVIGATION

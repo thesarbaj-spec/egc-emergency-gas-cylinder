@@ -1375,6 +1375,7 @@ button:focus-visible {
 
 </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -2785,42 +2786,54 @@ function updateStatus() {
    PROGRESS
 ========================================================= */
 
+/* =========================================================
+   PROGRESS — STEP 4 GREEN, STEP 5 BASED ON REAL COMPLETION
+========================================================= */
+
 function updateProgress(overall) {
     const paymentStep = el("progressPayment");
     const completeStep = el("progressComplete");
 
+    const isComplete = overall === "COMPLETED";
+
+    /*
+      Step 4: Payment stage reached.
+      Green here means the user has reached the final
+      request-status page. It does NOT mean payment verified.
+    */
     if (paymentStep) {
-        paymentStep.classList.remove("done", "active");
+        paymentStep.classList.remove("active", "done");
+        paymentStep.classList.add("done");
 
         const circle = paymentStep.querySelector(".step-circle");
 
-        if (
-            isPaymentVerified() ||
-            isPaymentRejected()
-        ) {
-            paymentStep.classList.add("done");
-
-            if (circle) circle.textContent = "✓";
-        } else {
-            paymentStep.classList.add("active");
-
-            if (circle) circle.textContent = "4";
+        if (circle) {
+            circle.textContent = "✓";
         }
     }
 
+    /*
+      Step 5: Complete.
+      Green only when the database request/delivery status
+      confirms completion. Otherwise keep it blue.
+    */
     if (completeStep) {
-        completeStep.classList.remove("done", "active");
+        completeStep.classList.remove("active", "done");
 
         const circle = completeStep.querySelector(".step-circle");
 
-        if (overall === "COMPLETED") {
+        if (isComplete) {
             completeStep.classList.add("done");
 
-            if (circle) circle.textContent = "✓";
+            if (circle) {
+                circle.textContent = "✓";
+            }
         } else {
             completeStep.classList.add("active");
 
-            if (circle) circle.textContent = "5";
+            if (circle) {
+                circle.textContent = "5";
+            }
         }
     }
 

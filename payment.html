@@ -8,105 +8,979 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;background:#f3f8fc;color:#073f73;min-height:100vh}
-.app{min-height:100vh;background:#fff}
-.header{height:82px;background:#fff;border-bottom:1px solid #e4edf5;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:50}
-.header-left{position:absolute;left:28px}
-.back-btn{width:42px;height:42px;border:0;border-radius:12px;background:#eef7ff;color:#075ca5;font-size:29px;cursor:pointer}
-.egc-logo{height:60px;width:auto;max-width:70%;object-fit:contain}
-.main{width:100%;max-width:1200px;margin:auto;padding:38px 25px 70px}
-.page-title{text-align:center;margin-bottom:35px}
-.page-title h1{font-size:34px;font-weight:800;color:#06447c;margin-bottom:8px}
-.page-title p{font-size:17px;color:#72899e}
-.steps{width:100%;max-width:900px;margin:0 auto 42px;display:flex;align-items:flex-start}
-.step-box{flex:1;min-width:0;display:flex;align-items:center}
-.step-box:last-child{flex:0 0 auto}
-.step{min-width:88px;text-align:center}
-.step-circle{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:auto;font-size:17px;font-weight:800;background:#fff;border:3px solid #d0dfeb;color:#8ba0b1}
-.step.completed .step-circle{background:#168c50;border-color:#168c50;color:#fff}
-.step.active .step-circle{background:#0878d1;border-color:#0878d1;color:#fff}
-.step-name{margin-top:8px;font-size:13px;font-weight:700;color:#8b9baa}
-.step.completed .step-name{color:#168c50}
-.step.active .step-name{color:#0872c7}
-.step-line{flex:1;height:3px;background:#d6e2ec;margin:22px 8px 0}
-.step-line.completed{background:#168c50}
-.card{width:100%;max-width:850px;margin:0 auto 22px;background:#fff;border:1px solid #e0eaf2;border-radius:22px;padding:32px;box-shadow:0 10px 40px rgba(7,65,105,.08)}
-.card-title{font-size:27px;font-weight:800;color:#06477f;margin-bottom:7px}
-.card-subtitle{color:#71879a;font-size:15px;line-height:1.6;margin-bottom:25px}
-.summary{background:#f7fbfe;border:1px solid #dcebf5;border-radius:16px;padding:20px}
-.summary-title{font-size:18px;font-weight:800;color:#075a96;margin-bottom:16px}
-.summary-row{display:flex;justify-content:space-between;gap:20px;padding:11px 0;border-bottom:1px solid #e4edf4;font-size:15px}
-.summary-row:last-child{border-bottom:0}
-.summary-label{color:#71879a}
-.summary-value{color:#164c72;font-weight:800;text-align:right;overflow-wrap:anywhere}
-.summary-row.total{margin-top:8px;padding-top:16px;border-top:2px solid #d8e8f2;border-bottom:0}
-.summary-row.total .summary-label,.summary-row.total .summary-value{font-size:18px;color:#06477f}
-.payment-box{margin-top:22px;border-radius:18px;padding:25px;background:#eef8ff;border:1px solid #cde6f7;text-align:center}
-.payment-label{color:#688298;font-size:14px;font-weight:700;margin-bottom:7px}
-.payment-amount{font-size:42px;font-weight:900;color:#0878d1}
-.payment-note{margin-top:7px;color:#6d8497;font-size:13px}
-.qr-section{margin-top:25px;text-align:center}
-.qr-title{font-size:19px;font-weight:800;color:#06477f;margin-bottom:7px}
-.qr-subtitle{color:#71879a;font-size:13px;margin-bottom:18px;line-height:1.5}
-.qr-box{width:240px;height:240px;margin:0 auto 15px;background:#fff;border:1px solid #d8e6ef;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.qr-box img{width:100%;height:100%;object-fit:contain;display:block}
-.qr-placeholder{text-align:center;color:#8aa0b0;font-size:14px;line-height:1.6;padding:20px}
-.upi-id{display:inline-block;padding:10px 15px;background:#f4f9fc;border:1px solid #dce9f1;border-radius:10px;color:#075a96;font-weight:800;font-size:14px;word-break:break-word}
-.status-box{margin-top:25px;padding:18px;border-radius:14px;background:#fff9e8;border:1px solid #f3dfa5;color:#755817;font-size:14px;line-height:1.6}
-.status-box strong{color:#654b0e}
-.payment-form{margin-top:25px;padding:22px;background:#f8fbfd;border:1px solid #dfeaf1;border-radius:16px}
-.form-title{font-size:19px;font-weight:800;color:#06477f;margin-bottom:5px}
-.form-subtitle{color:#71879a;font-size:13px;line-height:1.5;margin-bottom:20px}
-.form-group{margin-bottom:17px}
-.form-group:last-child{margin-bottom:0}
-.form-label{display:block;margin-bottom:7px;color:#315873;font-size:14px;font-weight:800}
-.required{color:#d32f2f}
-.optional{color:#8a9aa8;font-weight:600;font-size:12px}
-.form-input{width:100%;min-height:50px;border:1px solid #cfdee8;border-radius:12px;background:#fff;color:#164c72;padding:12px 14px;font-size:15px;outline:none;transition:.2s}
-.form-input:focus{border-color:#0878d1;box-shadow:0 0 0 3px rgba(8,120,209,.10)}
-textarea.form-input{height:90px;resize:vertical}
-.file-box{width:100%;border:1px dashed #b9d0df;border-radius:12px;background:#fff;padding:15px}
-.file-input{width:100%;font-size:13px;color:#527087}
-.file-help{margin-top:7px;color:#8498a7;font-size:12px;line-height:1.4}
-.preview{display:none;margin-top:12px;text-align:center}
-.preview.show{display:block}
-.preview img{max-width:180px;max-height:180px;border-radius:12px;border:1px solid #d5e3eb;object-fit:cover}
-.auto-date{background:#f3f7fa;color:#607d91}
-.checkbox-row{display:flex;align-items:flex-start;gap:11px;cursor:pointer;margin-top:18px}
-.checkbox-row input{width:20px;height:20px;margin-top:2px;accent-color:#0878d1;flex:0 0 auto}
-.checkbox-text{font-size:14px;line-height:1.5;color:#315873;font-weight:600}
-.message{display:none;margin-top:18px;padding:14px 17px;border-radius:12px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
-.message.error,.message.success,.message.info{display:block}
-.message.error{color:#bd2828;background:#fff1f1;border:1px solid #ffc9c9}
-.message.success{color:#16833a;background:#effcf3;border:1px solid #bde8c9}
-.message.info{color:#075a96;background:#eef8ff;border:1px solid #cde6f7}
-.request-box{display:none;margin-top:18px;padding:16px;background:#f0fbf5;border:1px solid #bfe8cf;border-radius:13px}
-.request-box.show{display:block}
-.request-label{font-size:12px;color:#5e806b;font-weight:700;margin-bottom:5px}
-.request-number{font-size:18px;color:#08723d;font-weight:900;word-break:break-all}
-.action{display:flex;justify-content:space-between;gap:15px;margin-top:28px}
-.back-step-btn,.pay-btn{min-height:56px;border-radius:14px;font-size:15px;font-weight:900;cursor:pointer}
-.back-step-btn{flex:1;border:1px solid #d2e1ec;background:#fff;color:#15547d}
-.pay-btn{flex:1;border:0;background:#ffc21a;color:#063d70;box-shadow:0 7px 18px rgba(255,194,26,.24)}
-.pay-btn:disabled{opacity:.6;cursor:not-allowed}
-@media(max-width:800px){
-.header{height:70px}.header-left{left:14px}.back-btn{width:38px;height:38px;font-size:26px}
-.egc-logo{height:49px;max-width:65%}.main{padding:24px 12px 45px}
-.page-title{margin-bottom:25px}.page-title h1{font-size:27px}.page-title p{font-size:14px}
-.steps{margin-bottom:25px}.step{min-width:50px}.step-circle{width:35px;height:35px;font-size:13px}
-.step-name{font-size:9px}.step-line{margin:17px 2px 0}
-.card{padding:21px 14px;border-radius:17px}.card-title{font-size:22px}
-.card-subtitle{font-size:13px}.summary{padding:15px}.summary-row{font-size:13px;gap:10px}
-.summary-row.total .summary-label,.summary-row.total .summary-value{font-size:16px}
-.payment-box{padding:20px 14px}.payment-amount{font-size:36px}.qr-box{width:210px;height:210px}
-.payment-form{padding:17px 13px}.action{flex-direction:column;gap:12px}
-.back-step-btn,.pay-btn{width:100%;flex:none}
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
-@media(max-width:380px){
-.main{padding-left:9px;padding-right:9px}.card{padding:18px 10px}
-.summary-row{font-size:12px}.payment-amount{font-size:32px}
-.qr-box{width:190px;height:190px}.payment-form{padding:15px 10px}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f3f8fc;
+    color: #073f73;
+    min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+    font-family: inherit;
+}
+
+.app {
+    min-height: 100vh;
+    background: #fff;
+}
+
+.header {
+    height: 82px;
+    background: #fff;
+    border-bottom: 1px solid #e4edf5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.header-left {
+    position: absolute;
+    left: 28px;
+}
+
+.back-btn {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    background: #eef7ff;
+    color: #075ca5;
+    font-size: 29px;
+    cursor: pointer;
+}
+
+.egc-logo {
+    height: 60px;
+    width: auto;
+    max-width: 70%;
+    object-fit: contain;
+}
+
+.main {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 38px 25px 70px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.page-title h1 {
+    font-size: 34px;
+    font-weight: 800;
+    color: #06447c;
+    margin-bottom: 8px;
+}
+
+.page-title p {
+    font-size: 17px;
+    color: #72899e;
+    line-height: 1.5;
+}
+
+.steps {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 42px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.step-box {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.step-box:last-child {
+    flex: 0 0 auto;
+}
+
+.step {
+    min-width: 88px;
+    text-align: center;
+}
+
+.step-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    font-size: 17px;
+    font-weight: 800;
+    background: #fff;
+    border: 3px solid #d0dfeb;
+    color: #8ba0b1;
+}
+
+.step.completed .step-circle {
+    background: #168c50;
+    border-color: #168c50;
+    color: #fff;
+}
+
+.step.active .step-circle {
+    background: #0878d1;
+    border-color: #0878d1;
+    color: #fff;
+}
+
+.step-name {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #8b9baa;
+}
+
+.step.completed .step-name {
+    color: #168c50;
+}
+
+.step.active .step-name {
+    color: #0872c7;
+}
+
+.step-line {
+    flex: 1;
+    height: 3px;
+    background: #d6e2ec;
+    margin: 22px 8px 0;
+}
+
+.step-line.completed {
+    background: #168c50;
+}
+
+.card {
+    width: 100%;
+    max-width: 850px;
+    margin: 0 auto 22px;
+    background: #fff;
+    border: 1px solid #e0eaf2;
+    border-radius: 22px;
+    padding: 32px;
+    box-shadow: 0 10px 40px rgba(7,65,105,.08);
+}
+
+.card-title {
+    font-size: 27px;
+    font-weight: 800;
+    color: #06477f;
+    margin-bottom: 7px;
+}
+
+.card-subtitle {
+    color: #71879a;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.summary {
+    background: #f7fbfe;
+    border: 1px solid #dcebf5;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.summary-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #075a96;
+    margin-bottom: 16px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 11px 0;
+    border-bottom: 1px solid #e4edf4;
+    font-size: 15px;
+}
+
+.summary-row:last-child {
+    border-bottom: 0;
+}
+
+.summary-label {
+    color: #71879a;
+}
+
+.summary-value {
+    color: #164c72;
+    font-weight: 800;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.summary-row.total {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 2px solid #d8e8f2;
+    border-bottom: 0;
+}
+
+.summary-row.total .summary-label,
+.summary-row.total .summary-value {
+    font-size: 18px;
+    color: #06477f;
+}
+
+.payment-box {
+    margin-top: 22px;
+    border-radius: 18px;
+    padding: 25px;
+    background: #eef8ff;
+    border: 1px solid #cde6f7;
+    text-align: center;
+}
+
+.payment-label {
+    color: #688298;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 7px;
+}
+
+.payment-amount {
+    font-size: 42px;
+    font-weight: 900;
+    color: #0878d1;
+    overflow-wrap: anywhere;
+}
+
+.payment-note {
+    margin-top: 7px;
+    color: #6d8497;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.qr-section {
+    margin-top: 25px;
+    text-align: center;
+}
+
+.qr-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #06477f;
+    margin-bottom: 7px;
+}
+
+.qr-subtitle {
+    color: #71879a;
+    font-size: 13px;
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+.qr-box {
+    width: 240px;
+    height: 240px;
+    margin: 0 auto 15px;
+    background: #fff;
+    border: 1px solid #d8e6ef;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.qr-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.qr-placeholder {
+    text-align: center;
+    color: #8aa0b0;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+.upi-id {
+    display: inline-block;
+    padding: 10px 15px;
+    background: #f4f9fc;
+    border: 1px solid #dce9f1;
+    border-radius: 10px;
+    color: #075a96;
+    font-weight: 800;
+    font-size: 14px;
+    word-break: break-word;
+}
+
+.status-box {
+    margin-top: 25px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #fff9e8;
+    border: 1px solid #f3dfa5;
+    color: #755817;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.status-box strong {
+    color: #654b0e;
+}
+
+.payment-form {
+    margin-top: 25px;
+    padding: 22px;
+    background: #f8fbfd;
+    border: 1px solid #dfeaf1;
+    border-radius: 16px;
+}
+
+.form-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #06477f;
+    margin-bottom: 5px;
+}
+
+.form-subtitle {
+    color: #71879a;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 17px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #315873;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.required {
+    color: #d32f2f;
+}
+
+.optional {
+    color: #8a9aa8;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.form-input {
+    width: 100%;
+    min-height: 50px;
+    border: 1px solid #cfdee8;
+    border-radius: 12px;
+    background: #fff;
+    color: #164c72;
+    padding: 12px 14px;
+    font-size: 15px;
+    outline: none;
+    transition: .2s;
+}
+
+.form-input:focus {
+    border-color: #0878d1;
+    box-shadow: 0 0 0 3px rgba(8,120,209,.10);
+}
+
+textarea.form-input {
+    height: 90px;
+    resize: vertical;
+}
+
+.auto-date {
+    background: #f3f7fa;
+    color: #607d91;
+}
+
+/* Screenshot upload section */
+
+.upload-section {
+    border: 1px solid #d8e7f1;
+    background: #fff;
+    border-radius: 15px;
+    padding: 17px;
+}
+
+.upload-required-note {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #627e92;
+    margin-bottom: 14px;
+}
+
+.upload-required-note strong {
+    color: #c62828;
+}
+
+.upload-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 11px;
+}
+
+.upload-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 49px;
+    padding: 11px 13px;
+    border: 1px solid #cfe1ed;
+    border-radius: 12px;
+    background: #f2f9ff;
+    color: #075a96;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: center;
+    transition: .2s;
+}
+
+.upload-action-btn:hover {
+    background: #e3f2ff;
+    border-color: #94c7e8;
+}
+
+.upload-action-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.upload-action-btn.camera {
+    background: #0878d1;
+    color: #fff;
+    border-color: #0878d1;
+}
+
+.upload-action-btn.camera:hover {
+    background: #0667b6;
+}
+
+.file-input-hidden {
+    display: none !important;
+}
+
+.file-help {
+    margin-top: 12px;
+    color: #8498a7;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.preview {
+    display: none;
+    margin-top: 17px;
+    padding: 12px;
+    background: #f3faf6;
+    border: 1px solid #c7e8d3;
+    border-radius: 14px;
+}
+
+.preview.show {
+    display: block;
+}
+
+.preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.preview-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #16844c;
+}
+
+.preview img {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    max-height: 300px;
+    margin: 0 auto;
+    border-radius: 10px;
+    border: 1px solid #d5e3eb;
+    background: #fff;
+    object-fit: contain;
+}
+
+.file-name {
+    font-size: 12px;
+    color: #527087;
+    text-align: center;
+    margin-top: 10px;
+    overflow-wrap: anywhere;
+}
+
+.remove-image-btn {
+    border: 1px solid #f0bcbc;
+    background: #fff0f0;
+    color: #c62828;
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.remove-image-btn:hover {
+    background: #ffe1e1;
+}
+
+.upload-error {
+    display: none;
+    margin-top: 12px;
+    padding: 11px 13px;
+    background: #fff1f1;
+    border: 1px solid #ffc9c9;
+    color: #bd2828;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.upload-error.show {
+    display: block;
+}
+
+/* Camera modal */
+
+.camera-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(3, 22, 38, .78);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.camera-modal.show {
+    display: flex;
+}
+
+.camera-panel {
+    width: 100%;
+    max-width: 520px;
+    max-height: 95vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 19px;
+    padding: 18px;
+    box-shadow: 0 20px 70px rgba(0,0,0,.3);
+}
+
+.camera-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.camera-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #06477f;
+}
+
+.camera-close-btn {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 10px;
+    background: #fff0f0;
+    color: #c62828;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.camera-video-wrap {
+    width: 100%;
+    background: #071827;
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-video {
+    width: 100%;
+    max-height: 58vh;
+    display: block;
+    object-fit: contain;
+    background: #071827;
+}
+
+.camera-message {
+    margin-top: 12px;
+    color: #607d91;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.camera-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.camera-control-btn {
+    min-height: 47px;
+    padding: 10px;
+    border-radius: 11px;
+    border: 1px solid #d2e1ec;
+    background: #f4f9fc;
+    color: #15547d;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.camera-control-btn.capture {
+    background: #0878d1;
+    border-color: #0878d1;
+    color: #fff;
+}
+
+.camera-control-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.camera-error {
+    display: none;
+    padding: 12px;
+    border-radius: 10px;
+    background: #fff1f1;
+    border: 1px solid #ffc9c9;
+    color: #bd2828;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 12px;
+}
+
+.camera-error.show {
+    display: block;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    cursor: pointer;
+    margin-top: 18px;
+}
+
+.checkbox-row input {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    accent-color: #0878d1;
+    flex: 0 0 auto;
+}
+
+.checkbox-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #315873;
+    font-weight: 600;
+}
+
+.message {
+    display: none;
+    margin-top: 18px;
+    padding: 14px 17px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.message.error,
+.message.success,
+.message.info {
+    display: block;
+}
+
+.message.error {
+    color: #bd2828;
+    background: #fff1f1;
+    border: 1px solid #ffc9c9;
+}
+
+.message.success {
+    color: #16833a;
+    background: #effcf3;
+    border: 1px solid #bde8c9;
+}
+
+.message.info {
+    color: #075a96;
+    background: #eef8ff;
+    border: 1px solid #cde6f7;
+}
+
+.request-box {
+    display: none;
+    margin-top: 18px;
+    padding: 16px;
+    background: #f0fbf5;
+    border: 1px solid #bfe8cf;
+    border-radius: 13px;
+}
+
+.request-box.show {
+    display: block;
+}
+
+.request-label {
+    font-size: 12px;
+    color: #5e806b;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.request-number {
+    font-size: 18px;
+    color: #08723d;
+    font-weight: 900;
+    word-break: break-all;
+}
+
+.action {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 28px;
+}
+
+.back-step-btn,
+.pay-btn {
+    min-height: 56px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.back-step-btn {
+    flex: 1;
+    border: 1px solid #d2e1ec;
+    background: #fff;
+    color: #15547d;
+}
+
+.pay-btn {
+    flex: 1;
+    border: 0;
+    background: #ffc21a;
+    color: #063d70;
+    box-shadow: 0 7px 18px rgba(255,194,26,.24);
+}
+
+.pay-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media(max-width:800px) {
+    .header {
+        height: 70px;
+    }
+
+    .header-left {
+        left: 14px;
+    }
+
+    .back-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 26px;
+    }
+
+    .egc-logo {
+        height: 49px;
+        max-width: 65%;
+    }
+
+    .main {
+        padding: 24px 12px 45px;
+    }
+
+    .page-title {
+        margin-bottom: 25px;
+    }
+
+    .page-title h1 {
+        font-size: 27px;
+    }
+
+    .page-title p {
+        font-size: 14px;
+    }
+
+    .steps {
+        margin-bottom: 25px;
+    }
+
+    .step {
+        min-width: 50px;
+    }
+
+    .step-circle {
+        width: 35px;
+        height: 35px;
+        font-size: 13px;
+    }
+
+    .step-name {
+        font-size: 9px;
+    }
+
+    .step-line {
+        margin: 17px 2px 0;
+    }
+
+    .card {
+        padding: 21px 14px;
+        border-radius: 17px;
+    }
+
+    .card-title {
+        font-size: 22px;
+    }
+
+    .card-subtitle {
+        font-size: 13px;
+    }
+
+    .summary {
+        padding: 15px;
+    }
+
+    .summary-row {
+        font-size: 13px;
+        gap: 10px;
+    }
+
+    .summary-row.total .summary-label,
+    .summary-row.total .summary-value {
+        font-size: 16px;
+    }
+
+    .payment-box {
+        padding: 20px 14px;
+    }
+
+    .payment-amount {
+        font-size: 36px;
+    }
+
+    .qr-box {
+        width: 210px;
+        height: 210px;
+    }
+
+    .payment-form {
+        padding: 17px 13px;
+    }
+
+    .action {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .back-step-btn,
+    .pay-btn {
+        width: 100%;
+        flex: none;
+    }
+
+    .camera-panel {
+        padding: 14px;
+    }
+}
+
+@media(max-width:380px) {
+    .main {
+        padding-left: 9px;
+        padding-right: 9px;
+    }
+
+    .card {
+        padding: 18px 10px;
+    }
+
+    .summary-row {
+        font-size: 12px;
+    }
+
+    .payment-amount {
+        font-size: 32px;
+    }
+
+    .qr-box {
+        width: 190px;
+        height: 190px;
+    }
+
+    .payment-form {
+        padding: 15px 10px;
+    }
+
+    .upload-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .camera-controls {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 </style>
 </head>
@@ -128,6 +1002,7 @@ textarea.form-input{height:90px;resize:vertical}
 </header>
 
 <main class="main">
+
     <div class="page-title">
         <h1>Payment</h1>
         <p>Complete your initial payment to continue.</p>
@@ -178,7 +1053,8 @@ textarea.form-input{height:90px;resize:vertical}
         <h2 class="card-title">Cylinder Payment</h2>
 
         <p class="card-subtitle">
-            Pay ₹200 using the QR code, then submit your payment details for owner verification.
+            Pay ₹200 using the QR code, then submit your transaction ID
+            and a required screenshot for owner verification.
         </p>
 
         <div class="summary">
@@ -241,11 +1117,14 @@ textarea.form-input{height:90px;resize:vertical}
         <div class="status-box">
             <strong>Important:</strong>
             <br><br>
-            After making the ₹200 payment, enter your transaction ID below.
+            After making the ₹200 payment, enter your transaction ID and
+            upload a screenshot of your payment confirmation.
             <br><br>
-            You may also upload one payment screenshot. Screenshot is optional.
+            Screenshot is compulsory. You can take a new photo with your
+            camera or select an image from your gallery or folder.
             <br><br>
-            Your payment will be submitted to the owner for verification. Payment submission does not mean payment approval.
+            Your payment will be submitted to the owner for verification.
+            Payment submission does not mean payment approval.
         </div>
 
         <div class="payment-form">
@@ -253,6 +1132,7 @@ textarea.form-input{height:90px;resize:vertical}
 
             <div class="form-subtitle">
                 Enter the details of the payment you have just made.
+                Both transaction ID and payment screenshot are required.
             </div>
 
             <div class="form-group">
@@ -272,25 +1152,74 @@ textarea.form-input{height:90px;resize:vertical}
             </div>
 
             <div class="form-group">
-                <label class="form-label" for="paymentScreenshot">
-                    Payment Screenshot <span class="optional">(Optional)</span>
+                <label class="form-label">
+                    Payment Screenshot <span class="required">*</span>
                 </label>
 
-                <div class="file-box">
+                <div class="upload-section">
+                    <div class="upload-required-note">
+                        Upload a clear screenshot of your successful payment.
+                        <strong>This field is required.</strong>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button
+                            type="button"
+                            class="upload-action-btn camera"
+                            id="openCameraBtn"
+                        >
+                            📷 Open Camera
+                        </button>
+
+                        <button
+                            type="button"
+                            class="upload-action-btn"
+                            id="chooseImageBtn"
+                        >
+                            🖼️ Gallery / Folder
+                        </button>
+                    </div>
+
                     <input
                         type="file"
                         id="paymentScreenshot"
-                        class="file-input"
+                        class="file-input-hidden"
                         accept="image/jpeg,image/png,image/webp"
+                        required
+                    >
+
+                    <input
+                        type="file"
+                        id="cameraCaptureInput"
+                        class="file-input-hidden"
+                        accept="image/*"
+                        capture="environment"
                     >
 
                     <div class="file-help">
-                        Upload one clear screenshot of your payment confirmation. Maximum 5 MB.
+                        Supported: JPG, PNG, WEBP. Maximum size: 5 MB.
+                        You can remove the selected image and upload another one.
                     </div>
 
                     <div class="preview" id="screenshotPreview">
+                        <div class="preview-heading">
+                            <div class="preview-title">✓ Screenshot Selected</div>
+
+                            <button
+                                type="button"
+                                class="remove-image-btn"
+                                id="removeImageBtn"
+                            >
+                                ✕ Remove Image
+                            </button>
+                        </div>
+
                         <img id="previewImage" src="" alt="Payment Screenshot Preview">
+
+                        <div class="file-name" id="fileName"></div>
                     </div>
+
+                    <div class="upload-error" id="uploadError" role="alert"></div>
                 </div>
             </div>
 
@@ -316,7 +1245,9 @@ textarea.form-input{height:90px;resize:vertical}
                 <input type="checkbox" id="paymentCheck">
 
                 <span class="checkbox-text">
-                    I confirm that I have paid ₹200 and the transaction details entered above are correct.
+                    I confirm that I have paid ₹200, the transaction details
+                    entered above are correct, and the uploaded screenshot
+                    belongs to this payment.
                 </span>
             </label>
         </div>
@@ -329,11 +1260,73 @@ textarea.form-input{height:90px;resize:vertical}
         <div id="message" class="message" role="status" aria-live="polite"></div>
 
         <div class="action">
-            <button type="button" class="pay-btn" id="paidBtn">SUBMIT PAYMENT →</button>
-            <button type="button" class="back-step-btn" id="backStepBtn">← BACK</button>
+            <button type="button" class="pay-btn" id="paidBtn">
+                SUBMIT PAYMENT →
+            </button>
+
+            <button type="button" class="back-step-btn" id="backStepBtn">
+                ← BACK
+            </button>
         </div>
     </section>
 </main>
+</div>
+
+<!-- CAMERA MODAL -->
+<div
+    class="camera-modal"
+    id="cameraModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cameraTitle"
+>
+    <div class="camera-panel">
+        <div class="camera-header">
+            <div class="camera-title" id="cameraTitle">Take Payment Photo</div>
+
+            <button
+                type="button"
+                class="camera-close-btn"
+                id="closeCameraBtn"
+                aria-label="Close camera"
+            >×</button>
+        </div>
+
+        <div class="camera-video-wrap">
+            <video
+                id="cameraVideo"
+                class="camera-video"
+                autoplay
+                playsinline
+                muted
+            ></video>
+        </div>
+
+        <div class="camera-message">
+            Keep your payment confirmation clearly visible.
+            Use Switch Camera to change between front and back cameras.
+        </div>
+
+        <div class="camera-error" id="cameraError" role="alert"></div>
+
+        <div class="camera-controls">
+            <button
+                type="button"
+                class="camera-control-btn"
+                id="switchCameraBtn"
+            >
+                🔄 Switch Camera
+            </button>
+
+            <button
+                type="button"
+                class="camera-control-btn capture"
+                id="capturePhotoBtn"
+            >
+                📸 Take Photo
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -374,10 +1367,24 @@ const requestBox = document.getElementById("requestBox");
 const requestNumberElement = document.getElementById("requestNumber");
 const transactionIdInput = document.getElementById("transactionId");
 const paymentScreenshot = document.getElementById("paymentScreenshot");
+const cameraCaptureInput = document.getElementById("cameraCaptureInput");
 const screenshotPreview = document.getElementById("screenshotPreview");
 const previewImage = document.getElementById("previewImage");
+const fileNameElement = document.getElementById("fileName");
+const uploadError = document.getElementById("uploadError");
 const paymentDateTime = document.getElementById("paymentDateTime");
 const paymentNote = document.getElementById("paymentNote");
+
+const openCameraBtn = document.getElementById("openCameraBtn");
+const chooseImageBtn = document.getElementById("chooseImageBtn");
+const removeImageBtn = document.getElementById("removeImageBtn");
+
+const cameraModal = document.getElementById("cameraModal");
+const cameraVideo = document.getElementById("cameraVideo");
+const cameraError = document.getElementById("cameraError");
+const switchCameraBtn = document.getElementById("switchCameraBtn");
+const capturePhotoBtn = document.getElementById("capturePhotoBtn");
+const closeCameraBtn = document.getElementById("closeCameraBtn");
 
 let schemeData = readJSON("egc_scheme");
 let currentRequest = null;
@@ -385,6 +1392,13 @@ let currentUser = null;
 let isSubmitting = false;
 let isRequestLoading = false;
 let existingPayments = [];
+
+let selectedScreenshotFile = null;
+let previewObjectUrl = null;
+
+let cameraStream = null;
+let cameraFacingMode = "environment";
+let isCameraStarting = false;
 
 let cylinderAmount = getPositiveNumber([
     schemeData?.cylinder_amount,
@@ -395,6 +1409,7 @@ let cylinderAmount = getPositiveNumber([
 
 let initialPayment = INITIAL_PAYMENT;
 let remainingAmount = Math.max(0, cylinderAmount - initialPayment);
+
 let chargeAmount = getNonNegativeNumber([
     schemeData?.selected_charge,
     schemeData?.extra_charge,
@@ -417,6 +1432,14 @@ function readJSON(key) {
 }
 
 function getStoredRequestId() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const urlRequestId = urlParams.get("request_id");
+
+    if (urlRequestId && urlRequestId.trim()) {
+        return urlRequestId.trim();
+    }
+
     const keys = [
         "egc_current_request_id",
         "egc_request_id",
@@ -502,6 +1525,16 @@ function clearMessage() {
     message.textContent = "";
 }
 
+function showUploadError(text) {
+    uploadError.textContent = text;
+    uploadError.classList.add("show");
+}
+
+function clearUploadError() {
+    uploadError.textContent = "";
+    uploadError.classList.remove("show");
+}
+
 function setSubmitting(value, label) {
     isSubmitting = value;
     paidBtn.disabled = value;
@@ -509,6 +1542,10 @@ function setSubmitting(value, label) {
     paidBtn.textContent = label || (
         value ? "PLEASE WAIT..." : "SUBMIT PAYMENT →"
     );
+
+    openCameraBtn.disabled = value;
+    chooseImageBtn.disabled = value;
+    removeImageBtn.disabled = value;
 }
 
 function saveCurrentRequest(request) {
@@ -563,18 +1600,38 @@ function renderAmounts() {
 renderAmounts();
 
 /* =========================================================
-   SCREENSHOT VALIDATION
+   IMAGE PREVIEW AND REQUIRED SCREENSHOT
+
+   Camera captures are converted into image files.
+   Gallery images use the same validation and preview process.
 ========================================================= */
 
-function resetScreenshotPreview() {
-    screenshotPreview.classList.remove("show");
-    previewImage.removeAttribute("src");
+function clearPreviewObjectUrl() {
+    if (previewObjectUrl) {
+        URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = null;
+    }
 }
 
-function validateScreenshot() {
-    const file = paymentScreenshot.files?.[0];
+function resetScreenshotPreview() {
+    clearPreviewObjectUrl();
 
-    if (!file) return true;
+    selectedScreenshotFile = null;
+
+    paymentScreenshot.value = "";
+    cameraCaptureInput.value = "";
+
+    previewImage.removeAttribute("src");
+    fileNameElement.textContent = "";
+
+    screenshotPreview.classList.remove("show");
+}
+
+function validateImageFile(file) {
+    if (!file) {
+        showUploadError("Payment screenshot required hai. Camera se photo lein ya gallery se image select karein.");
+        return false;
+    }
 
     const allowedTypes = [
         "image/jpeg",
@@ -583,26 +1640,42 @@ function validateScreenshot() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-        showMessage(
-            "Please upload a JPG, PNG or WEBP image.",
-            "error"
-        );
-
-        paymentScreenshot.value = "";
-        resetScreenshotPreview();
+        showUploadError("Sirf JPG, PNG ya WEBP image upload karein.");
         return false;
     }
 
     if (file.size > MAX_SCREENSHOT_SIZE) {
-        showMessage(
-            "Payment screenshot must be 5 MB or smaller.",
-            "error"
-        );
+        showUploadError("Image 5 MB se chhoti ya 5 MB ke barabar honi chahiye. Image compress karke dobara select karein.");
+        return false;
+    }
 
-        paymentScreenshot.value = "";
+    if (file.size <= 0) {
+        showUploadError("Selected image empty hai. Doosri image select karein.");
+        return false;
+    }
+
+    return true;
+}
+
+function setSelectedScreenshot(file) {
+    clearUploadError();
+
+    if (!validateImageFile(file)) {
         resetScreenshotPreview();
         return false;
     }
+
+    resetScreenshotPreview();
+
+    selectedScreenshotFile = file;
+    previewObjectUrl = URL.createObjectURL(file);
+
+    previewImage.src = previewObjectUrl;
+
+    fileNameElement.textContent =
+        file.name + " · " + (file.size / 1024 / 1024).toFixed(2) + " MB";
+
+    screenshotPreview.classList.add("show");
 
     return true;
 }
@@ -613,27 +1686,268 @@ paymentScreenshot.addEventListener("change", function () {
     const file = paymentScreenshot.files?.[0];
 
     if (!file) {
-        resetScreenshotPreview();
+        if (!selectedScreenshotFile) {
+            resetScreenshotPreview();
+        }
         return;
     }
 
-    if (!validateScreenshot()) return;
+    setSelectedScreenshot(file);
+});
 
-    const reader = new FileReader();
+cameraCaptureInput.addEventListener("change", function () {
+    clearMessage();
 
-    reader.onload = function (event) {
-        previewImage.src = event.target.result;
-        screenshotPreview.classList.add("show");
-    };
+    const file = cameraCaptureInput.files?.[0];
 
-    reader.onerror = function () {
-        showMessage(
-            "Could not preview screenshot. Please select it again.",
-            "error"
+    if (!file) return;
+
+    setSelectedScreenshot(file);
+});
+
+chooseImageBtn.addEventListener("click", function () {
+    if (isSubmitting) return;
+
+    clearUploadError();
+    paymentScreenshot.click();
+});
+
+removeImageBtn.addEventListener("click", function () {
+    if (isSubmitting) return;
+
+    resetScreenshotPreview();
+    clearUploadError();
+
+    showMessage(
+        "Screenshot remove kar diya gaya hai. Payment submit karne se pehle nayi image select karein.",
+        "info"
+    );
+});
+
+/* =========================================================
+   CAMERA CONTROLS
+
+   Uses getUserMedia for live preview and front/back switching.
+========================================================= */
+
+function showCameraError(text) {
+    cameraError.textContent = text;
+    cameraError.classList.add("show");
+}
+
+function clearCameraError() {
+    cameraError.textContent = "";
+    cameraError.classList.remove("show");
+}
+
+function stopCameraStream() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(function (track) {
+            track.stop();
+        });
+
+        cameraStream = null;
+    }
+
+    cameraVideo.srcObject = null;
+}
+
+async function startCamera() {
+    if (isCameraStarting) return;
+
+    isCameraStarting = true;
+
+    clearCameraError();
+
+    capturePhotoBtn.disabled = true;
+    switchCameraBtn.disabled = true;
+
+    try {
+        if (!navigator.mediaDevices ||
+            typeof navigator.mediaDevices.getUserMedia !== "function") {
+            throw new Error(
+                "Is browser mein live camera supported nahi hai. HTTPS par page kholein ya Gallery / Folder option use karein."
+            );
+        }
+
+        stopCameraStream();
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+                facingMode: {
+                    ideal: cameraFacingMode
+                },
+                width: {
+                    ideal: 1280
+                },
+                height: {
+                    ideal: 1280
+                }
+            }
+        });
+
+        cameraVideo.srcObject = cameraStream;
+
+        await new Promise(function (resolve, reject) {
+            if (cameraVideo.readyState >= 1) {
+                resolve();
+                return;
+            }
+
+            cameraVideo.onloadedmetadata = function () {
+                resolve();
+            };
+
+            cameraVideo.onerror = function () {
+                reject(new Error("Camera preview start nahi ho paya."));
+            };
+        });
+
+        await cameraVideo.play();
+
+        capturePhotoBtn.disabled = false;
+        switchCameraBtn.disabled = false;
+
+    } catch (error) {
+        console.error("Camera start error:", error);
+
+        stopCameraStream();
+
+        showCameraError(
+            error?.name === "NotAllowedError"
+                ? "Camera permission allow karein. Browser settings mein camera access enable karke dobara try karein."
+                : error?.name === "NotFoundError"
+                    ? "Device par camera nahi mila. Gallery / Folder se screenshot upload karein."
+                    : error?.name === "NotReadableError"
+                        ? "Camera kisi doosre app mein use ho raha ho sakta hai. Doosra app band karke try karein."
+                        : (error?.message || "Camera open nahi ho paya. Gallery / Folder option use karein.")
         );
-    };
 
-    reader.readAsDataURL(file);
+    } finally {
+        isCameraStarting = false;
+    }
+}
+
+function openCamera() {
+    if (isSubmitting) return;
+
+    clearMessage();
+    clearUploadError();
+    clearCameraError();
+
+    cameraModal.classList.add("show");
+
+    cameraFacingMode = "environment";
+
+    startCamera();
+}
+
+function closeCamera() {
+    stopCameraStream();
+
+    cameraModal.classList.remove("show");
+    clearCameraError();
+}
+
+openCameraBtn.addEventListener("click", openCamera);
+closeCameraBtn.addEventListener("click", closeCamera);
+
+cameraModal.addEventListener("click", function (event) {
+    if (event.target === cameraModal) {
+        closeCamera();
+    }
+});
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && cameraModal.classList.contains("show")) {
+        closeCamera();
+    }
+});
+
+switchCameraBtn.addEventListener("click", async function () {
+    if (isCameraStarting) return;
+
+    cameraFacingMode =
+        cameraFacingMode === "environment"
+            ? "user"
+            : "environment";
+
+    await startCamera();
+});
+
+capturePhotoBtn.addEventListener("click", function () {
+    if (isSubmitting) return;
+
+    clearCameraError();
+
+    if (!cameraStream ||
+        !cameraVideo.videoWidth ||
+        !cameraVideo.videoHeight) {
+        showCameraError("Camera abhi ready nahi hai. Kuch seconds wait karke dobara try karein.");
+        return;
+    }
+
+    try {
+        const canvas = document.createElement("canvas");
+
+        canvas.width = cameraVideo.videoWidth;
+        canvas.height = cameraVideo.videoHeight;
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+            throw new Error("Photo capture nahi ho paya.");
+        }
+
+        context.drawImage(
+            cameraVideo,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        capturePhotoBtn.disabled = true;
+
+        canvas.toBlob(function (blob) {
+            capturePhotoBtn.disabled = false;
+
+            if (!blob) {
+                showCameraError("Photo process nahi ho paya. Dobara photo lein.");
+                return;
+            }
+
+            const photoFile = new File(
+                [blob],
+                "payment-screenshot-" + Date.now() + ".jpg",
+                {
+                    type: "image/jpeg",
+                    lastModified: Date.now()
+                }
+            );
+
+            const success = setSelectedScreenshot(photoFile);
+
+            if (success) {
+                closeCamera();
+
+                showMessage(
+                    "Camera photo select ho gayi hai. Preview check karke payment submit karein.",
+                    "info"
+                );
+            }
+        }, "image/jpeg", 0.88);
+
+    } catch (error) {
+        console.error("Photo capture error:", error);
+
+        capturePhotoBtn.disabled = false;
+
+        showCameraError(
+            error?.message || "Photo capture nahi ho paya."
+        );
+    }
 });
 
 /* =========================================================
@@ -695,6 +2009,7 @@ function isPaymentAlreadyApproved(request) {
 
 /* =========================================================
    LOAD EXISTING REQUEST
+
    Never create a request from payment.html.
 ========================================================= */
 
@@ -722,8 +2037,8 @@ async function loadExistingRequest(user) {
         }
 
         /*
-          If the stored request ID is unavailable, look for the
-          newest request belonging to this authenticated user.
+          If no stored request ID exists, find the newest
+          non-rejected request belonging to the logged-in user.
         */
 
         if (!currentRequest) {
@@ -755,11 +2070,6 @@ async function loadExistingRequest(user) {
             );
         }
 
-        /*
-          Only an owner-approved request may accept payment.
-          Payment submission is not the same as owner approval.
-        */
-
         if (!isRequestOwnerApproved(currentRequest)) {
             throw new Error(
                 "Aapki cylinder request abhi Owner approval ke liye pending hai. Approval ke baad payment karein."
@@ -774,14 +2084,13 @@ async function loadExistingRequest(user) {
 
         saveCurrentRequest(currentRequest);
 
-        const dbCylinderAmount = getPositiveNumber([
+        cylinderAmount = getPositiveNumber([
             currentRequest.cylinder_amount,
             currentRequest.total_amount,
             currentRequest.total_price,
             currentRequest.amount
         ], cylinderAmount);
 
-        cylinderAmount = dbCylinderAmount;
         remainingAmount = Math.max(0, cylinderAmount - INITIAL_PAYMENT);
 
         chargeAmount = getNonNegativeNumber([
@@ -807,7 +2116,7 @@ async function loadExistingRequest(user) {
 }
 
 /* =========================================================
-   LOAD PAYMENTS FOR THE CURRENT REQUEST
+   LOAD PAYMENTS FOR CURRENT REQUEST
 ========================================================= */
 
 async function loadExistingPayments(user, request) {
@@ -821,6 +2130,7 @@ async function loadExistingPayments(user, request) {
 
     if (error) {
         console.error("Payment status query failed:", error);
+
         throw new Error(
             "Existing payment status check nahi ho paya. Database permissions aur payments table check karein."
         );
@@ -866,16 +2176,19 @@ async function loadExistingPayments(user, request) {
 }
 
 /* =========================================================
-   UPLOAD PAYMENT SCREENSHOT
-   Returns private Storage path.
+   UPLOAD SCREENSHOT TO SUPABASE STORAGE
 ========================================================= */
 
 async function uploadPaymentScreenshot(userId, requestId) {
-    const file = paymentScreenshot.files?.[0];
+    const file = selectedScreenshotFile;
 
-    if (!file) return null;
+    if (!file) {
+        throw new Error(
+            "Payment screenshot required hai. Submit karne se pehle image upload karein."
+        );
+    }
 
-    if (!validateScreenshot()) {
+    if (!validateImageFile(file)) {
         throw new Error("Screenshot validation failed.");
     }
 
@@ -914,7 +2227,7 @@ async function uploadPaymentScreenshot(userId, requestId) {
         console.error("Screenshot upload error:", error);
 
         throw new Error(
-            "Screenshot upload nahi hua. Storage bucket aur Storage Policies check karein."
+            "Screenshot upload nahi hua. Supabase Storage bucket 'payment-screenshots' aur Storage Policies check karein."
         );
     }
 
@@ -939,6 +2252,7 @@ async function checkPaymentBeforeSubmit(
 
     if (error) {
         console.error("Existing payment lookup failed:", error);
+
         throw new Error(
             "Payment status check nahi ho paya. Payment submit nahi kiya gaya."
         );
@@ -1010,8 +2324,8 @@ async function checkPaymentBeforeSubmit(
 /* =========================================================
    INSERT PAYMENT RECORD
 
-   This creates a pending payment record.
-   It does not approve payment or request.
+   The payment is inserted as pending.
+   It is not marked as approved or paid.
 ========================================================= */
 
 async function insertPaymentRecord(
@@ -1032,24 +2346,13 @@ async function insertPaymentRecord(
         transaction_id: transactionId,
         payment_method: "UPI",
         screenshot_path: screenshotPath,
-        notes: note || null
+        notes: note || null,
+        created_at: submittedAt
     };
-
-    /*
-      Include agency_id only when the existing request has one.
-      This assumes the payments table contains agency_id.
-    */
 
     if (request.agency_id) {
         paymentData.agency_id = request.agency_id;
     }
-
-    /*
-      The payments table must have a compatible schema.
-      If it has no created_at default, add created_at explicitly.
-    */
-
-    paymentData.created_at = submittedAt;
 
     const { data, error } = await supabaseClient
         .from("payments")
@@ -1067,10 +2370,6 @@ async function insertPaymentRecord(
 
 /* =========================================================
    UPDATE REQUEST PAYMENT DETAILS
-
-   This happens only after a payment row has been inserted.
-   If this update fails, the payment record remains pending
-   and the user receives an explicit warning.
 ========================================================= */
 
 async function updateRequestPaymentDetails(
@@ -1125,6 +2424,7 @@ paidBtn.addEventListener("click", async function () {
     if (isSubmitting || isRequestLoading) return;
 
     clearMessage();
+    clearUploadError();
 
     const transactionId = transactionIdInput.value.trim();
     const note = paymentNote.value.trim();
@@ -1141,15 +2441,36 @@ paidBtn.addEventListener("click", async function () {
         return;
     }
 
-    if (!paymentCheck.checked) {
-        showMessage(
-            "Please confirm that you have made the ₹200 payment.",
-            "error"
+    /*
+      Screenshot is compulsory.
+      Validate it before uploading or inserting any payment record.
+    */
+
+    if (!selectedScreenshotFile) {
+        showUploadError(
+            "Payment screenshot required hai. Camera se photo lein ya Gallery / Folder se image select karein."
         );
+
+        document.querySelector(".upload-section").scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
         return;
     }
 
-    if (!validateScreenshot()) return;
+    if (!validateImageFile(selectedScreenshotFile)) {
+        return;
+    }
+
+    if (!paymentCheck.checked) {
+        showMessage(
+            "Please confirm that you have made the ₹200 payment and that the transaction details and screenshot are correct.",
+            "error"
+        );
+
+        return;
+    }
 
     setSubmitting(true, "CHECKING PAYMENT STATUS...");
 
@@ -1162,8 +2483,8 @@ paidBtn.addEventListener("click", async function () {
         currentUser = user;
 
         /*
-          Reuse the request already submitted through Scheme.
-          Never create a new cylinder request here.
+          Reuse the existing Scheme request.
+          Never create a new cylinder request on this page.
         */
 
         const request = await loadExistingRequest(user);
@@ -1180,19 +2501,18 @@ paidBtn.addEventListener("click", async function () {
 
         const submittedAt = new Date().toISOString();
 
-        if (paymentScreenshot.files?.[0]) {
-            setSubmitting(true, "UPLOADING SCREENSHOT...");
+        setSubmitting(true, "UPLOADING SCREENSHOT...");
 
-            screenshotPath = await uploadPaymentScreenshot(
-                user.id,
-                request.id
+        screenshotPath = await uploadPaymentScreenshot(
+            user.id,
+            request.id
+        );
+
+        if (!screenshotPath) {
+            throw new Error(
+                "Screenshot upload confirm nahi hua. Payment submit nahi kiya gaya."
             );
         }
-
-        /*
-          Save the payment record first so that a submitted payment
-          is not silently lost if the request update fails.
-        */
 
         setSubmitting(true, "SAVING PAYMENT...");
 
@@ -1204,10 +2524,6 @@ paidBtn.addEventListener("click", async function () {
             note,
             submittedAt
         );
-
-        /*
-          Update the request summary after the payment row exists.
-        */
 
         setSubmitting(true, "UPDATING REQUEST...");
 
@@ -1257,20 +2573,15 @@ paidBtn.addEventListener("click", async function () {
             payment_transaction_id: transactionId,
             payment_submitted_at: submittedAt,
             payment_note: note || null,
-            payment_screenshot_1: screenshotPath || null
+            payment_screenshot_1: screenshotPath
         });
 
         showMessage(
-            "₹200 payment details successfully submit ho gayi hain. Payment ab Owner verification ke liye pending hai.",
+            "₹200 payment details aur screenshot successfully submit ho gaye hain. Payment ab Owner verification ke liye pending hai.",
             "success"
         );
 
         setSubmitting(true, "SUBMITTED ✓");
-
-        /*
-          complete.html must display the payment as pending,
-          not as approved or fully paid.
-        */
 
         setTimeout(function () {
             window.location.replace("complete.html");
@@ -1282,9 +2593,8 @@ paidBtn.addEventListener("click", async function () {
         setSubmitting(false);
 
         /*
-          If a payment record was inserted but the request update
-          failed, do not allow the user to retry blindly. That could
-          create another payment record for the same transaction.
+          If the payment row was inserted but request update failed,
+          prevent blind retries that could create duplicate records.
         */
 
         if (paymentRecord && !requestUpdateSucceeded) {
@@ -1348,6 +2658,15 @@ const paymentQr = document.getElementById("paymentQr");
 
 paymentQr.addEventListener("error", checkQrImage);
 window.addEventListener("load", checkQrImage);
+
+/* =========================================================
+   CLEAN UP CAMERA WHEN LEAVING THE PAGE
+========================================================= */
+
+window.addEventListener("pagehide", function () {
+    stopCameraStream();
+    clearPreviewObjectUrl();
+});
 
 /* =========================================================
    INITIALISE PAYMENT PAGE

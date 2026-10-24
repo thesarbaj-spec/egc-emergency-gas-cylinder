@@ -7,851 +7,189 @@
 <title>EGC - Request Status</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style> * { box-sizing: border-box; margin: 0; padding: 0; } :root { --blue-dark: #06477f; --blue: #0878d1; --blue-light: #eef7fc; --green: #16844c; --red: #c62828; --muted: #7890a3; --border: #dfeaf2; } body { font-family: Arial, Helvetica, sans-serif; background: #eef7fc; color: #073f73; min-height: 100vh; } button { font-family: inherit; } .app { min-height: 100vh; width: 100%; } .header { height: 82px; background: #fff; border-bottom: 1px solid #e2edf5; display: flex; align-items: center; justify-content: center; position: sticky; top: 0; z-index: 20; } .header-left { position: absolute; left: 25px; } .back-btn { width: 43px; height: 43px; border: 0; border-radius: 12px; background: #eef7ff; color: #075ca5; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; } .back-btn:hover { background: #dceeff; } .egc-logo { height: 60px; width: auto; max-width: 65%; object-fit: contain; } .main { width: 100%; max-width: 1050px; margin: auto; padding: 40px 25px 70px; } .page-title { text-align: center; margin-bottom: 32px; } .page-title h1 { color: #06477f; font-size: 34px; font-weight: 800; margin-bottom: 8px; } .page-title p { color: #73899b; font-size: 16px; line-height: 1.5; } .card { background: #fff; border: 1px solid #dfeaf2; border-radius: 22px; box-shadow: 0 10px 40px rgba(7, 65, 105, .08); padding: 30px; margin-bottom: 20px; } .status-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 25px; border-bottom: 1px solid #e4edf3; } .status-title { font-size: 25px; font-weight: 800; color: #06477f; margin-bottom: 7px; } .request-number { color: #7890a3; font-size: 14px; overflow-wrap: anywhere; } .status-badge { padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 800; background: #fff5d9; color: #a66b00; white-space: nowrap; } .status-badge.approved, .status-badge.completed { background: #eaf9f0; color: #16834d; } .status-badge.rejected { background: #fff0f0; color: #c62828; } .status-badge.processing { background: #eaf4ff; color: #075ca5; } .progress { display: flex; align-items: flex-start; margin: 30px 0 5px; } .progress-item { flex: 1; min-width: 0; text-align: center; position: relative; } /* FIX: last step has no extra width or connecting line */ .progress-item:last-child { flex: 1; } /* Each line connects the current circle to the next circle. The final step has no line after it. */ .progress-line { position: absolute; height: 3px; background: #d7e3eb; left: calc(50% + 20px); right: calc(-50% + 20px); top: 19px; z-index: 1; pointer-events: none; } .progress-item.done .progress-line { background: #168c50; } /* Hide any line accidentally present in the final step */ .progress-item:last-child .progress-line { display: none !important; } .progress-circle { width: 40px; height: 40px; border-radius: 50%; margin: auto; display: flex; align-items: center; justify-content: center; background: #fff; border: 3px solid #d3e1eb; color: #8da1b0; font-weight: 800; position: relative; z-index: 2; } .progress-item.active .progress-circle { background: #0878d1; border-color: #0878d1; color: #fff; } .progress-item.done .progress-circle { background: #168c50; border-color: #168c50; color: #fff; } .progress-name { margin-top: 8px; font-size: 11px; font-weight: 700; color: #8a9aa7; } .progress-item.active .progress-name { color: #0872c7; } .progress-item.done .progress-name { color: #16834d; } .info-title { font-size: 20px; font-weight: 800; color: #06477f; margin-bottom: 16px; } .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; } .info-box { min-width: 0; background: #f8fcff; border: 1px solid #dfebf3; border-radius: 14px; padding: 15px; } .info-label { color: #8295a4; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; } .info-value { color: #164d72; font-size: 15px; font-weight: 700; word-break: break-word; } .amount-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; } .amount-box { min-width: 0; border-radius: 15px; padding: 19px; background: #f8fcff; border: 1px solid #dceaf4; } .amount-box.first { background: #fffaf0; border-color: #ffe0a1; } .amount-box.remaining { background: #effaf4; border-color: #c8ead7; } .amount-label { color: #7c91a1; font-size: 11px; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; } .amount-value { color: #06477f; font-size: 25px; font-weight: 800; overflow-wrap: anywhere; } .amount-box.first .amount-value { color: #c38300; } .amount-box.remaining .amount-value { color: #16844c; } .wait-box, .approved-box, .rejected-box { margin-top: 20px; border-radius: 15px; padding: 19px; } .wait-box { background: #fff9eb; border: 1px solid #f4d899; } .wait-title { color: #986500; font-size: 17px; font-weight: 800; margin-bottom: 7px; } .wait-text { color: #735a29; font-size: 14px; line-height: 1.6; } .approved-box { display: none; background: #effaf4; border: 1px solid #c6e8d3; } .approved-box.show { display: block; } .approved-title { color: #16844c; font-size: 17px; font-weight: 800; margin-bottom: 7px; } .approved-text { color: #376a4d; font-size: 14px; line-height: 1.6; } .rejected-box { display: none; background: #fff1f1; border: 1px solid #f4caca; } .rejected-box.show { display: block; } .rejected-title { color: #c62828; font-size: 17px; font-weight: 800; margin-bottom: 7px; } .rejected-text { color: #784040; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; } .payment-status-box { margin-top: 20px; padding: 18px; border-radius: 15px; background: #f6faff; border: 1px solid #d7e8f7; } .payment-status-heading { font-size: 17px; font-weight: 800; margin-bottom: 7px; color: #06477f; } .payment-status-text { font-size: 14px; line-height: 1.6; color: #496a83; overflow-wrap: anywhere; } .payment-status-box.pending { background: #fff9eb; border-color: #f4d899; } .payment-status-box.paid { background: #effaf4; border-color: #c6e8d3; } .payment-status-box.failed { background: #fff1f1; border-color: #f4caca; } .action { margin-top: 24px; display: flex; justify-content: center; } .payment-btn { display: none; width: 100%; max-width: 400px; min-height: 56px; padding: 12px 18px; border: 0; border-radius: 14px; background: #ffc21a; color: #063d70; font-size: 17px; font-weight: 800; cursor: pointer; box-shadow: 0 7px 18px rgba(255, 194, 26, .25); } .payment-btn:hover { background: #ffb900; } .payment-btn.show { display: block; } .payment-btn:disabled { opacity: .6; cursor: not-allowed; } .home-btn { width: 100%; max-width: 400px; min-height: 54px; padding: 12px 18px; border: 1px solid #d2e1ec; border-radius: 14px; background: #fff; color: #15547d; font-size: 15px; font-weight: 800; cursor: pointer; } .home-btn:hover { background: #f5faff; } .message { display: none; margin-top: 18px; padding: 14px 17px; border-radius: 12px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; } .message.error { display: block; color: #bd2828; background: #fff1f1; border: 1px solid #ffc9c9; } .message.success { display: block; color: #16844c; background: #effaf4; border: 1px solid #c6e8d3; } .loading { text-align: center; padding: 40px 15px; color: #71879a; font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; } .retry-btn { margin-top: 15px; border: 0; background: #0878d1; color: #fff; border-radius: 10px; padding: 11px 18px; font-weight: 700; cursor: pointer; } .hidden { display: none !important; } @media (max-width: 700px) { .header { height: 70px; } .header-left { left: 14px; } .back-btn { width: 38px; height: 38px; font-size: 25px; } .egc-logo { height: 49px; max-width: 58%; } .main { padding: 25px 12px 45px; } .page-title { margin-bottom: 23px; } .page-title h1 { font-size: 27px; } .page-title p { font-size: 13px; line-height: 1.5; } .card { padding: 19px 14px; border-radius: 17px; } .status-top { align-items: flex-start; flex-direction: column; gap: 12px; } .status-title { font-size: 21px; } .request-number { font-size: 12px; } .status-badge { font-size: 11px; padding: 8px 13px; } .progress { margin-top: 25px; } /* Keep all four steps evenly aligned on mobile */ .progress-item:last-child { flex: 1; } .progress-circle { width: 34px; height: 34px; font-size: 12px; } .progress-line { top: 16px; left: calc(50% + 17px); right: calc(-50% + 17px); } .progress-item:last-child .progress-line { display: none !important; } .progress-name { font-size: 8px; } .info-title { font-size: 18px; } .info-grid, .amount-grid { grid-template-columns: 1fr; } .amount-box { padding: 16px; } .amount-value { font-size: 23px; } .wait-title, .approved-title, .rejected-title, .payment-status-heading { font-size: 15px; } .wait-text, .approved-text, .rejected-text, .payment-status-text { font-size: 12px; } .payment-btn { font-size: 15px; } } @media (max-width: 360px) { .main { padding-left: 9px; padding-right: 9px; } .card { padding: 16px 11px; } .progress-name { font-size: 7px; } } </style>
 
-<style>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-:root {
-    --blue-dark: #06477f;
-    --blue: #0878d1;
-    --blue-light: #eef7fc;
-    --green: #16844c;
-    --red: #c62828;
-    --muted: #7890a3;
-    --border: #dfeaf2;
-}
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #eef7fc;
-    color: #073f73;
-    min-height: 100vh;
-}
-
-button {
-    font-family: inherit;
-}
-
-.app {
-    min-height: 100vh;
-    width: 100%;
-}
-
-.header {
-    height: 82px;
-    background: #fff;
-    border-bottom: 1px solid #e2edf5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-.header-left {
-    position: absolute;
-    left: 25px;
-}
-
-.back-btn {
-    width: 43px;
-    height: 43px;
-    border: 0;
-    border-radius: 12px;
-    background: #eef7ff;
-    color: #075ca5;
-    font-size: 28px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.back-btn:hover {
-    background: #dceeff;
-}
-
-.egc-logo {
-    height: 60px;
-    width: auto;
-    max-width: 65%;
-    object-fit: contain;
-}
-
-.main {
-    width: 100%;
-    max-width: 1050px;
-    margin: auto;
-    padding: 40px 25px 70px;
-}
-
-.page-title {
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.page-title h1 {
-    color: #06477f;
-    font-size: 34px;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.page-title p {
-    color: #73899b;
-    font-size: 16px;
-    line-height: 1.5;
-}
-
-.card {
-    background: #fff;
-    border: 1px solid #dfeaf2;
-    border-radius: 22px;
-    box-shadow: 0 10px 40px rgba(7, 65, 105, .08);
-    padding: 30px;
-    margin-bottom: 20px;
-}
-
-.status-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding-bottom: 25px;
-    border-bottom: 1px solid #e4edf3;
-}
-
-.status-title {
-    font-size: 25px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 7px;
-}
-
-.request-number {
-    color: #7890a3;
-    font-size: 14px;
-    overflow-wrap: anywhere;
-}
-
-.status-badge {
-    padding: 10px 18px;
-    border-radius: 30px;
-    font-size: 13px;
-    font-weight: 800;
-    background: #fff5d9;
-    color: #a66b00;
-    white-space: nowrap;
-}
-
-.status-badge.approved,
-.status-badge.completed {
-    background: #eaf9f0;
-    color: #16834d;
-}
-
-.status-badge.rejected {
-    background: #fff0f0;
-    color: #c62828;
-}
-
-.status-badge.processing {
-    background: #eaf4ff;
-    color: #075ca5;
-}
-
-.progress {
-    display: flex;
-    align-items: flex-start;
-    margin: 30px 0 5px;
-}
-
-.progress-item {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-    position: relative;
-}
-
-.progress-item:last-child {
-    flex: 0 0 90px;
-}
-
-.progress-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    border: 3px solid #d3e1eb;
-    color: #8da1b0;
-    font-weight: 800;
-    position: relative;
-    z-index: 2;
-}
-
-.progress-item.active .progress-circle {
-    background: #0878d1;
-    border-color: #0878d1;
-    color: #fff;
-}
-
-.progress-item.done .progress-circle {
-    background: #168c50;
-    border-color: #168c50;
-    color: #fff;
-}
-
-.progress-line {
-    position: absolute;
-    height: 3px;
-    background: #d7e3eb;
-    left: 50%;
-    right: -50%;
-    top: 19px;
-    z-index: 1;
-}
-
-.progress-item.done .progress-line {
-    background: #168c50;
-}
-
-.progress-name {
-    margin-top: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #8a9aa7;
-}
-
-.progress-item.active .progress-name {
-    color: #0872c7;
-}
-
-.progress-item.done .progress-name {
-    color: #16834d;
-}
-
-.info-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: #06477f;
-    margin-bottom: 16px;
-}
-
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 13px;
-}
-
-.info-box {
-    min-width: 0;
-    background: #f8fcff;
-    border: 1px solid #dfebf3;
-    border-radius: 14px;
-    padding: 15px;
-}
-
-.info-label {
-    color: #8295a4;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-.info-value {
-    color: #164d72;
-    font-size: 15px;
-    font-weight: 700;
-    word-break: break-word;
-}
-
-.amount-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 13px;
-}
-
-.amount-box {
-    min-width: 0;
-    border-radius: 15px;
-    padding: 19px;
-    background: #f8fcff;
-    border: 1px solid #dceaf4;
-}
-
-.amount-box.first {
-    background: #fffaf0;
-    border-color: #ffe0a1;
-}
-
-.amount-box.remaining {
-    background: #effaf4;
-    border-color: #c8ead7;
-}
-
-.amount-label {
-    color: #7c91a1;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.amount-value {
-    color: #06477f;
-    font-size: 25px;
-    font-weight: 800;
-    overflow-wrap: anywhere;
-}
-
-.amount-box.first .amount-value {
-    color: #c38300;
-}
-
-.amount-box.remaining .amount-value {
-    color: #16844c;
-}
-
-.wait-box,
-.approved-box,
-.rejected-box {
-    margin-top: 20px;
-    border-radius: 15px;
-    padding: 19px;
-}
-
-.wait-box {
-    background: #fff9eb;
-    border: 1px solid #f4d899;
-}
-
-.wait-title {
-    color: #986500;
-    font-size: 17px;
-    font-weight: 800;
-    margin-bottom: 7px;
-}
-
-.wait-text {
-    color: #735a29;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.approved-box {
-    display: none;
-    background: #effaf4;
-    border: 1px solid #c6e8d3;
-}
-
-.approved-box.show {
-    display: block;
-}
-
-.approved-title {
-    color: #16844c;
-    font-size: 17px;
-    font-weight: 800;
-    margin-bottom: 7px;
-}
-
-.approved-text {
-    color: #376a4d;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.rejected-box {
-    display: none;
-    background: #fff1f1;
-    border: 1px solid #f4caca;
-}
-
-.rejected-box.show {
-    display: block;
-}
-
-.rejected-title {
-    color: #c62828;
-    font-size: 17px;
-    font-weight: 800;
-    margin-bottom: 7px;
-}
-
-.rejected-text {
-    color: #784040;
-    font-size: 14px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-}
-
-.payment-status-box {
-    margin-top: 20px;
-    padding: 18px;
-    border-radius: 15px;
-    background: #f6faff;
-    border: 1px solid #d7e8f7;
-}
-
-.payment-status-heading {
-    font-size: 17px;
-    font-weight: 800;
-    margin-bottom: 7px;
-    color: #06477f;
-}
-
-.payment-status-text {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #496a83;
-    overflow-wrap: anywhere;
-}
-
-.payment-status-box.pending {
-    background: #fff9eb;
-    border-color: #f4d899;
-}
-
-.payment-status-box.paid {
-    background: #effaf4;
-    border-color: #c6e8d3;
-}
-
-.payment-status-box.failed {
-    background: #fff1f1;
-    border-color: #f4caca;
-}
-
-.action {
-    margin-top: 24px;
-    display: flex;
-    justify-content: center;
-}
-
-.payment-btn {
-    display: none;
-    width: 100%;
-    max-width: 400px;
-    min-height: 56px;
-    padding: 12px 18px;
-    border: 0;
-    border-radius: 14px;
-    background: #ffc21a;
-    color: #063d70;
-    font-size: 17px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 7px 18px rgba(255, 194, 26, .25);
-}
-
-.payment-btn:hover {
-    background: #ffb900;
-}
-
-.payment-btn.show {
-    display: block;
-}
-
-.payment-btn:disabled {
-    opacity: .6;
-    cursor: not-allowed;
-}
-
-.home-btn {
-    width: 100%;
-    max-width: 400px;
-    min-height: 54px;
-    padding: 12px 18px;
-    border: 1px solid #d2e1ec;
-    border-radius: 14px;
-    background: #fff;
-    color: #15547d;
-    font-size: 15px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.home-btn:hover {
-    background: #f5faff;
-}
-
-.message {
-    display: none;
-    margin-top: 18px;
-    padding: 14px 17px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.message.error {
-    display: block;
-    color: #bd2828;
-    background: #fff1f1;
-    border: 1px solid #ffc9c9;
-}
-
-.message.success {
-    display: block;
-    color: #16844c;
-    background: #effaf4;
-    border: 1px solid #c6e8d3;
-}
-
-.loading {
-    text-align: center;
-    padding: 40px 15px;
-    color: #71879a;
-    font-size: 15px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-}
-
-.retry-btn {
-    margin-top: 15px;
-    border: 0;
-    background: #0878d1;
-    color: #fff;
-    border-radius: 10px;
-    padding: 11px 18px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.hidden {
-    display: none !important;
-}
-
-@media (max-width: 700px) {
-    .header {
-        height: 70px;
-    }
-
-    .header-left {
-        left: 14px;
-    }
-
-    .back-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 25px;
-    }
-
-    .egc-logo {
-        height: 49px;
-        max-width: 58%;
-    }
-
-    .main {
-        padding: 25px 12px 45px;
-    }
-
-    .page-title {
-        margin-bottom: 23px;
-    }
-
-    .page-title h1 {
-        font-size: 27px;
-    }
-
-    .page-title p {
-        font-size: 13px;
-        line-height: 1.5;
-    }
-
-    .card {
-        padding: 19px 14px;
-        border-radius: 17px;
-    }
-
-    .status-top {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .status-title {
-        font-size: 21px;
-    }
-
-    .request-number {
-        font-size: 12px;
-    }
-
-    .status-badge {
-        font-size: 11px;
-        padding: 8px 13px;
-    }
-
-    .progress {
-        margin-top: 25px;
-    }
-
-    .progress-item:last-child {
-        flex: 0 0 55px;
-    }
-
-    .progress-circle {
-        width: 34px;
-        height: 34px;
-        font-size: 12px;
-    }
-
-    .progress-line {
-        top: 16px;
-    }
-
-    .progress-name {
-        font-size: 8px;
-    }
-
-    .info-title {
-        font-size: 18px;
-    }
-
-    .info-grid,
-    .amount-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .amount-box {
-        padding: 16px;
-    }
-
-    .amount-value {
-        font-size: 23px;
-    }
-
-    .wait-title,
-    .approved-title,
-    .rejected-title,
-    .payment-status-heading {
-        font-size: 15px;
-    }
-
-    .wait-text,
-    .approved-text,
-    .rejected-text,
-    .payment-status-text {
-        font-size: 12px;
-    }
-
-    .payment-btn {
-        font-size: 15px;
-    }
-}
-
-@media (max-width: 360px) {
-    .main {
-        padding-left: 9px;
-        padding-right: 9px;
-    }
-
-    .card {
-        padding: 16px 11px;
-    }
-
-    .progress-item:last-child {
-        flex-basis: 48px;
-    }
-
-    .progress-name {
-        font-size: 7px;
-    }
-}
-</style>
 </head>
 
-<body>
-<div class="app">
+<body> <div class="app">
 
-    <header class="header">
-        <div class="header-left">
-            <button type="button" class="back-btn" id="backBtn"
-                    aria-label="Back to dashboard">‹</button>
-        </div>
+<header class="header">
+    <div class="header-left">
+        <button type="button" class="back-btn" id="backBtn"
+                aria-label="Back to dashboard">‹</button>
+    </div>
 
-        <img
-            src="assets/EGC - Emergency Gas Cylinder logo.png"
-            class="egc-logo"
-            alt="EGC"
-            onerror="this.style.display='none';"
-        >
-    </header>
+    <img
+        src="assets/EGC - Emergency Gas Cylinder logo.png"
+        class="egc-logo"
+        alt="EGC"
+        onerror="this.style.display='none';"
+    >
+</header>
 
-    <main class="main">
+<main class="main">
 
-        <div class="page-title">
-            <h1>Request Status</h1>
-            <p>Track the current status of your EGC cylinder request.</p>
-        </div>
+    <div class="page-title">
+        <h1>Request Status</h1>
+        <p>Track the current status of your EGC cylinder request.</p>
+    </div>
 
-        <div id="loadingBox" class="card">
-            <div class="loading">Loading your request...</div>
-        </div>
+    <div id="loadingBox" class="card">
+        <div class="loading">Loading your request...</div>
+    </div>
 
-        <div id="content" class="hidden">
+    <div id="content" class="hidden">
 
-            <section class="card">
-                <div class="status-top">
-                    <div>
-                        <div class="status-title">Cylinder Request</div>
-                        <div class="request-number">
-                            Request No:
-                            <strong id="requestNumber">---</strong>
-                        </div>
-                    </div>
-
-                    <div class="status-badge" id="statusBadge">
-                        PENDING APPROVAL
+        <section class="card">
+            <div class="status-top">
+                <div>
+                    <div class="status-title">Cylinder Request</div>
+                    <div class="request-number">
+                        Request No:
+                        <strong id="requestNumber">---</strong>
                     </div>
                 </div>
 
-                <div class="progress" aria-label="Request progress">
-
-                    <div class="progress-item done" id="progressRequest">
-                        <div class="progress-circle">✓</div>
-                        <div class="progress-name">Request</div>
-                        <div class="progress-line"></div>
-                    </div>
-
-                    <div class="progress-item active" id="progressApproval">
-                        <div class="progress-circle">2</div>
-                        <div class="progress-name">Approval</div>
-                        <div class="progress-line"></div>
-                    </div>
-
-                    <div class="progress-item" id="progressPayment">
-                        <div class="progress-circle">3</div>
-                        <div class="progress-name">Payment</div>
-                        <div class="progress-line"></div>
-                    </div>
-
-                    <div class="progress-item" id="progressComplete">
-                        <div class="progress-circle">4</div>
-                        <div class="progress-name">Complete</div>
-                    </div>
-
+                <div class="status-badge" id="statusBadge">
+                    PENDING APPROVAL
                 </div>
-            </section>
-
-            <section class="card">
-                <div class="info-title">Request Details</div>
-
-                <div class="info-grid">
-                    <div class="info-box">
-                        <div class="info-label">Agency</div>
-                        <div class="info-value" id="agencyName">---</div>
-                    </div>
-
-                    <div class="info-box">
-                        <div class="info-label">Agency Code</div>
-                        <div class="info-value" id="agencyCode">---</div>
-                    </div>
-
-                    <div class="info-box">
-                        <div class="info-label">LPG Company</div>
-                        <div class="info-value" id="lpgCompany">---</div>
-                    </div>
-
-                    <div class="info-box">
-                        <div class="info-label">Request Date</div>
-                        <div class="info-value" id="requestDate">---</div>
-                    </div>
-
-                    <div class="info-box">
-                        <div class="info-label">Owner Approval</div>
-                        <div class="info-value" id="ownerApprovalValue">Checking...</div>
-                    </div>
-
-                    <div class="info-box">
-                        <div class="info-label">Payment Status</div>
-                        <div class="info-value" id="paymentStatusValue">Checking...</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="card">
-                <div class="info-title">Payment Details</div>
-
-                <div class="amount-grid">
-                    <div class="amount-box">
-                        <div class="amount-label">Cylinder Amount</div>
-                        <div class="amount-value" id="cylinderAmount">₹890</div>
-                    </div>
-
-                    <div class="amount-box first">
-                        <div class="amount-label">First Payment</div>
-                        <div class="amount-value" id="firstPayment">₹200</div>
-                    </div>
-
-                    <div class="amount-box remaining">
-                        <div class="amount-label">Remaining</div>
-                        <div class="amount-value" id="remainingAmount">₹690</div>
-                    </div>
-                </div>
-
-                <div class="wait-box" id="waitBox">
-                    <div class="wait-title">Waiting for Owner Approval</div>
-                    <div class="wait-text">
-                        Your cylinder request has been submitted successfully.
-                        Payment is not available yet. The EGC owner must approve
-                        your request first. Once approved, the payment option
-                        will become available.
-                    </div>
-                </div>
-
-                <div class="approved-box" id="approvedBox">
-                    <div class="approved-title">✓ Request Approved</div>
-                    <div class="approved-text" id="approvedText">
-                        Your cylinder request has been approved by the EGC owner.
-                    </div>
-                </div>
-
-                <div class="rejected-box" id="rejectedBox">
-                    <div class="rejected-title">Request Not Approved</div>
-                    <div class="rejected-text" id="rejectedText">
-                        Your request was not approved.
-                    </div>
-                </div>
-
-                <div class="payment-status-box pending" id="paymentStatusBox">
-                    <div class="payment-status-heading" id="paymentStatusHeading">
-                        Payment Status
-                    </div>
-                    <div class="payment-status-text" id="paymentStatusText">
-                        Checking your payment status...
-                    </div>
-                </div>
-
-                <div class="action">
-                    <button type="button" class="payment-btn" id="paymentBtn">
-                        PROCEED TO PAYMENT
-                    </button>
-                </div>
-            </section>
-
-            <div id="message" class="message" role="status" aria-live="polite"></div>
-
-            <div class="action">
-                <button type="button" class="home-btn" id="homeBtn">
-                    BACK TO DASHBOARD
-                </button>
             </div>
 
+            <div class="progress" aria-label="Request progress">
+
+                <div class="progress-item done" id="progressRequest">
+                    <div class="progress-circle">✓</div>
+                    <div class="progress-name">Request</div>
+                    <div class="progress-line"></div>
+                </div>
+
+                <div class="progress-item active" id="progressApproval">
+                    <div class="progress-circle">3</div>
+                    <div class="progress-name">Approval</div>
+                    <div class="progress-line"></div>
+                </div>
+
+                <div class="progress-item" id="progressPayment">
+                    <div class="progress-circle">4</div>
+                    <div class="progress-name">Payment</div>
+                    <div class="progress-line"></div>
+                </div>
+
+                <div class="progress-item" id="progressComplete">
+                    <div class="progress-circle">5</div>
+                    <div class="progress-name">Complete</div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="info-title">Request Details</div>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="info-label">Agency</div>
+                    <div class="info-value" id="agencyName">---</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-label">Agency Code</div>
+                    <div class="info-value" id="agencyCode">---</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-label">LPG Company</div>
+                    <div class="info-value" id="lpgCompany">---</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-label">Request Date</div>
+                    <div class="info-value" id="requestDate">---</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-label">Owner Approval</div>
+                    <div class="info-value" id="ownerApprovalValue">Checking...</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-label">Payment Status</div>
+                    <div class="info-value" id="paymentStatusValue">Checking...</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="info-title">Payment Details</div>
+
+            <div class="amount-grid">
+                <div class="amount-box">
+                    <div class="amount-label">Cylinder Amount</div>
+                    <div class="amount-value" id="cylinderAmount">₹890</div>
+                </div>
+
+                <div class="amount-box first">
+                    <div class="amount-label">First Payment</div>
+                    <div class="amount-value" id="firstPayment">₹200</div>
+                </div>
+
+                <div class="amount-box remaining">
+                    <div class="amount-label">Remaining</div>
+                    <div class="amount-value" id="remainingAmount">₹690</div>
+                </div>
+            </div>
+
+            <div class="wait-box" id="waitBox">
+                <div class="wait-title">Waiting for Owner Approval</div>
+                <div class="wait-text">
+                    Your cylinder request has been submitted successfully.
+                    Payment is not available yet. The EGC owner must approve
+                    your request first. Once approved, the payment option
+                    will become available.
+                </div>
+            </div>
+
+            <div class="approved-box" id="approvedBox">
+                <div class="approved-title">✓ Request Approved</div>
+                <div class="approved-text" id="approvedText">
+                    Your cylinder request has been approved by the EGC owner.
+                </div>
+            </div>
+
+            <div class="rejected-box" id="rejectedBox">
+                <div class="rejected-title">Request Not Approved</div>
+                <div class="rejected-text" id="rejectedText">
+                    Your request was not approved.
+                </div>
+            </div>
+
+            <div class="payment-status-box pending" id="paymentStatusBox">
+                <div class="payment-status-heading" id="paymentStatusHeading">
+                    Payment Status
+                </div>
+                <div class="payment-status-text" id="paymentStatusText">
+                    Checking your payment status...
+                </div>
+            </div>
+
+            <div class="action">
+                <button type="button" class="payment-btn" id="paymentBtn">
+                    PROCEED TO PAYMENT
+                </button>
+            </div>
+        </section>
+
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+
+        <div class="action">
+            <button type="button" class="home-btn" id="homeBtn">
+                BACK TO DASHBOARD
+            </button>
         </div>
-    </main>
+
+    </div>
+</main>
+
 </div>
 
 <script>
@@ -867,7 +205,7 @@ const SUPABASE_PUBLISHABLE_KEY =
     "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 const supabaseClient =
-    window.supabase && window.supabase.createClient
+    window.supabase && typeof window.supabase.createClient === "function"
         ? window.supabase.createClient(
             SUPABASE_URL,
             SUPABASE_PUBLISHABLE_KEY
@@ -920,25 +258,49 @@ let realtimeChannel = null;
 let refreshInProgress = false;
 
 /* =========================================================
+   SAFE ELEMENT HELPERS
+========================================================= */
+
+function setText(element, value) {
+    if (element) {
+        element.textContent = value == null ? "" : String(value);
+    }
+}
+
+function setDisplay(element, value) {
+    if (element) {
+        element.style.display = value;
+    }
+}
+
+/* =========================================================
    MESSAGES
 ========================================================= */
 
 function showError(text) {
+    if (!message) return;
+
     message.className = "message error";
     message.textContent = text;
 }
 
 function showSuccess(text) {
+    if (!message) return;
+
     message.className = "message success";
     message.textContent = text;
 }
 
 function clearMessage() {
+    if (!message) return;
+
     message.className = "message";
     message.textContent = "";
 }
 
 function setLoadingText(text) {
+    if (!loadingBox) return;
+
     loadingBox.replaceChildren();
 
     const box = document.createElement("div");
@@ -949,6 +311,8 @@ function setLoadingText(text) {
 }
 
 function showLoadError(text) {
+    if (!loadingBox) return;
+
     loadingBox.replaceChildren();
 
     const wrapper = document.createElement("div");
@@ -967,7 +331,10 @@ function showLoadError(text) {
 
     loadingBox.appendChild(wrapper);
     loadingBox.classList.remove("hidden");
-    content.classList.add("hidden");
+
+    if (content) {
+        content.classList.add("hidden");
+    }
 }
 
 /* =========================================================
@@ -1005,7 +372,9 @@ function money(value) {
 }
 
 function normalise(value) {
-    return String(value ?? "").trim().toLowerCase()
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
         .replace(/[\s-]+/g, "_");
 }
 
@@ -1054,81 +423,33 @@ function isCancelled(request) {
     ].includes(approval);
 }
 
-/*
- * Approval is based primarily on owner_approval.
- * Agency processing/delivery status alone must not
- * grant payment access if owner approval is pending.
- */
 function isApproved(request) {
     if (isRejected(request) || isCancelled(request)) {
         return false;
     }
 
-    const approval = normalise(request.owner_approval);
-
     return [
         "approved",
         "approve",
         "accepted"
-    ].includes(approval);
+    ].includes(normalise(request.owner_approval));
 }
 
-function getPaymentStatus(request) {
+/* =========================================================
+   INITIAL PAYMENT STATUS
+
+   payment_status refers to the initial payment workflow.
+   Do not use it alone to decide whether the ₹690 repayment
+   is complete.
+========================================================= */
+
+function getInitialPaymentStatus(request) {
     const rawStatus = firstExistingValue(request, [
         "payment_status",
         "initial_payment_status"
     ]);
 
     const status = normalise(rawStatus);
-
-    const paidAmountRaw = firstExistingValue(request, [
-        "paid_amount",
-        "total_paid",
-        "amount_paid"
-    ]);
-
-    const remainingRaw = firstExistingValue(request, [
-        "remaining_amount",
-        "balance_amount"
-    ]);
-
-    const totalRaw = firstExistingValue(request, [
-        "cylinder_amount",
-        "total_amount",
-        "amount"
-    ]);
-
-    const paidAmount = paidAmountRaw === null
-        ? null
-        : Number(paidAmountRaw);
-
-    const remaining = remainingRaw === null
-        ? null
-        : Number(remainingRaw);
-
-    const total = totalRaw === null
-        ? 890
-        : Number(totalRaw);
-
-    /*
-     * Do not treat remaining_amount = 0 by itself as
-     * definitive proof of completed payment if the
-     * database has an explicit unpaid/pending status.
-     */
-    if ([
-        "fully_paid",
-        "paid_in_full",
-        "settled",
-        "completed"
-    ].includes(status)) {
-        return {
-            key: "paid",
-            label: "Fully Paid",
-            description: "The database marks this request as fully paid.",
-            paidAmount,
-            remaining
-        };
-    }
 
     if ([
         "rejected",
@@ -1137,10 +458,24 @@ function getPaymentStatus(request) {
     ].includes(status)) {
         return {
             key: "failed",
-            label: "Payment Failed / Rejected",
-            description: "The payment has not been approved. Please check the payment details or contact EGC support.",
-            paidAmount,
-            remaining
+            label: "Initial Payment Rejected",
+            description:
+                "The initial payment has not been approved. Please check the payment details or contact EGC support."
+        };
+    }
+
+    if ([
+        "verified",
+        "success",
+        "successful",
+        "approved",
+        "paid"
+    ].includes(status)) {
+        return {
+            key: "verified",
+            label: "Initial Payment Verified",
+            description:
+                "The initial payment is marked as verified."
         };
     }
 
@@ -1153,38 +488,168 @@ function getPaymentStatus(request) {
     ].includes(status)) {
         return {
             key: "pending",
-            label: "Payment Verification Pending",
-            description: "Your payment has been submitted and is waiting for verification. Please do not submit the same payment again unless instructed.",
-            paidAmount,
+            label: "Initial Payment Verification Pending",
+            description:
+                "Your initial payment is waiting for verification by the EGC owner."
+        };
+    }
+
+    return {
+        key: "unpaid",
+        label: "Initial Payment Pending",
+        description:
+            "The initial payment is not yet marked as verified."
+    };
+}
+
+/* =========================================================
+   REPAYMENT STATUS
+
+   ₹690 repayment must be evaluated independently from
+   the initial ₹200 payment.
+
+   IMPORTANT:
+   remaining_amount must be zero or less, and a recognised
+   completed repayment status must also be present.
+
+   cylinder_hold_eligible = eligible alone does not prove
+   that repayment has been completed.
+========================================================= */
+
+function getRepaymentStatus(request) {
+    const remainingRaw = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
+
+    const remaining = remainingRaw === null
+        ? null
+        : Number(remainingRaw);
+
+    const rawStatus = firstExistingValue(request, [
+        "repayment_status"
+    ]);
+
+    const status = normalise(rawStatus);
+
+    const repaymentCompletedStatuses = [
+        "completed",
+        "complete",
+        "paid",
+        "cleared",
+        "fully_paid",
+        "fully_cleared",
+        "paid_in_full",
+        "settled",
+        "clear"
+    ];
+
+    const validRemaining =
+        remaining !== null &&
+        Number.isFinite(remaining);
+
+    const balanceCleared =
+        validRemaining &&
+        remaining <= 0;
+
+    const statusCleared =
+        repaymentCompletedStatuses.includes(status);
+
+    if (balanceCleared && statusCleared) {
+        return {
+            key: "paid",
+            label: "Repayment Complete",
+            description:
+                "The remaining balance is zero and the repayment status is marked complete.",
+            remaining: 0
+        };
+    }
+
+    if (validRemaining && remaining > 0) {
+        return {
+            key: "pending",
+            label: "Repayment Pending",
+            description:
+                "Your remaining repayment balance is " +
+                money(remaining) +
+                ". A new cylinder request must wait until the repayment is fully completed.",
             remaining
         };
     }
 
-    if ([
-        "paid",
-        "verified",
-        "success",
-        "successful",
-        "approved"
-    ].includes(status)) {
-        const isFull = (
-            remaining !== null &&
-            Number.isFinite(remaining) &&
-            remaining <= 0
-        ) || (
-            paidAmount !== null &&
-            Number.isFinite(paidAmount) &&
-            paidAmount >= total
-        );
-
+    if (!validRemaining) {
         return {
-            key: isFull ? "paid" : "partial",
-            label: isFull ? "Fully Paid" : "Payment Verified",
-            description: isFull
-                ? "Your payment is marked as fully paid."
-                : "Your payment has been verified. Any remaining balance must still be paid.",
-            paidAmount,
-            remaining
+            key: "unknown",
+            label: "Repayment Status Unconfirmed",
+            description:
+                "The remaining repayment balance could not be confirmed. Please contact EGC support before requesting another cylinder.",
+            remaining: null
+        };
+    }
+
+    if (balanceCleared && !statusCleared) {
+        return {
+            key: "review",
+            label: "Repayment Under Review",
+            description:
+                "The balance is zero, but the repayment status is not marked complete. Please wait for confirmation.",
+            remaining: 0
+        };
+    }
+
+    return {
+        key: "unknown",
+        label: "Repayment Status Unconfirmed",
+        description:
+            "The repayment status could not be confirmed.",
+        remaining
+    };
+}
+
+function isFullyRepaid(request) {
+    return getRepaymentStatus(request).key === "paid";
+}
+
+/* =========================================================
+   OVERALL REQUEST PAYMENT DISPLAY
+
+   This is the initial payment status, not the separate
+   repayment status.
+========================================================= */
+
+function getPaymentStatus(request) {
+    const initial = getInitialPaymentStatus(request);
+
+    const remainingRaw = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
+
+    const remaining = remainingRaw === null
+        ? null
+        : Number(remainingRaw);
+
+    if (initial.key === "failed") {
+        return {
+            key: "failed",
+            label: initial.label,
+            description: initial.description
+        };
+    }
+
+    if (initial.key === "pending") {
+        return {
+            key: "pending",
+            label: initial.label,
+            description: initial.description
+        };
+    }
+
+    if (initial.key === "verified") {
+        return {
+            key: "verified",
+            label: initial.label,
+            description: initial.description
         };
     }
 
@@ -1195,38 +660,20 @@ function getPaymentStatus(request) {
     ) {
         return {
             key: "unpaid",
-            label: "Payment Not Completed",
-            description: "A balance remains on this request. Continue to the payment page when available.",
-            paidAmount,
-            remaining
-        };
-    }
-
-    if (
-        paidAmount !== null &&
-        Number.isFinite(paidAmount) &&
-        paidAmount > 0
-    ) {
-        return {
-            key: "partial",
-            label: "Partial Payment",
-            description: "A payment amount is recorded, but the request is not explicitly marked fully paid.",
-            paidAmount,
-            remaining
+            label: "Initial Payment Not Verified",
+            description: initial.description
         };
     }
 
     return {
         key: "unpaid",
-        label: "Payment Not Started",
-        description: "No verified full payment is recorded for this request.",
-        paidAmount,
-        remaining
+        label: initial.label,
+        description: initial.description
     };
 }
 
-function isFullyPaid(request) {
-    return getPaymentStatus(request).key === "paid";
+function isInitialPaymentVerified(request) {
+    return getInitialPaymentStatus(request).key === "verified";
 }
 
 /* =========================================================
@@ -1256,23 +703,32 @@ async function getCurrentUser() {
 }
 
 /* =========================================================
-   REQUEST ID
+   REQUEST ID RESOLUTION
+
+   Priority:
+   1. request_id in the URL
+   2. Current request ID stored by Scheme page
+   3. Most recent request belonging to this logged-in user
+
+   The exact request ID is used to keep old and new requests
+   separate.
 ========================================================= */
 
 function getSavedRequestId() {
-    const queryId = new URLSearchParams(window.location.search)
-        .get("request_id");
+    const queryId = new URLSearchParams(
+        window.location.search
+    ).get("request_id");
 
-    if (queryId) {
-        return queryId;
+    if (queryId && queryId.trim()) {
+        return queryId.trim();
     }
 
-    const keys = [
-        "egc_current_request",
-        "egc_current_request_id"
+    const idKeys = [
+        "egc_current_request_id",
+        "egc_current_request"
     ];
 
-    for (const key of keys) {
+    for (const key of idKeys) {
         try {
             const value = localStorage.getItem(key);
 
@@ -1282,19 +738,22 @@ function getSavedRequestId() {
 
             try {
                 parsed = JSON.parse(value);
-            } catch (_) {
+            } catch (error) {
                 parsed = null;
             }
 
             if (parsed && typeof parsed === "object") {
                 const id =
                     parsed.request_id ||
-                    parsed.id ||
-                    parsed.requestId;
+                    parsed.requestId ||
+                    parsed.cylinder_request_id ||
+                    parsed.id;
 
                 if (id) {
                     return String(id);
                 }
+
+                continue;
             }
 
             const trimmed = value.trim();
@@ -1309,12 +768,22 @@ function getSavedRequestId() {
                 return trimmed;
             }
         } catch (error) {
-            console.warn("Could not read saved request:", error);
+            console.warn(
+                "Could not read saved request ID:",
+                error
+            );
         }
     }
 
     return null;
 }
+
+/* =========================================================
+   SAVE CURRENT REQUEST
+
+   These local values always refer to the exact request
+   currently being displayed.
+========================================================= */
 
 function saveCurrentRequest(request, userId) {
     const cylinderRaw = firstExistingValue(request, [
@@ -1353,7 +822,11 @@ function saveCurrentRequest(request, userId) {
         first_payment: first,
         remaining_amount: Number.isFinite(remaining)
             ? remaining
-            : Math.max(0, cylinder - first)
+            : Math.max(0, cylinder - first),
+        owner_approval: request.owner_approval || "pending",
+        payment_status: request.payment_status || "pending",
+        repayment_status: request.repayment_status || "pending",
+        saved_at: new Date().toISOString()
     };
 
     try {
@@ -1363,26 +836,47 @@ function saveCurrentRequest(request, userId) {
         );
 
         localStorage.setItem(
+            "egc_request_data",
+            JSON.stringify(saved)
+        );
+
+        localStorage.setItem(
             "egc_current_request_id",
             String(request.id)
         );
+
+        localStorage.setItem(
+            "egc_last_request_id",
+            String(request.id)
+        );
+
+        if (request.request_number) {
+            localStorage.setItem(
+                "egc_last_request_number",
+                String(request.request_number)
+            );
+        }
     } catch (error) {
-        console.warn("Could not save request locally:", error);
+        console.warn(
+            "Could not save request locally:",
+            error
+        );
     }
 }
 
 /* =========================================================
    LOAD EXACT REQUEST
+
+   Never silently replace a saved request ID with another
+   request if that saved ID does not exist.
+
+   This prevents old request statuses from being mixed
+   with a newer request.
 ========================================================= */
 
 async function findCurrentRequest(userId) {
     const savedId = getSavedRequestId();
 
-    /*
-     * If an ID exists, show only that exact request.
-     * Never silently switch to a different request when
-     * the saved ID does not belong to this user.
-     */
     if (savedId) {
         const exact = await supabaseClient
             .from("cylinder_requests")
@@ -1397,17 +891,13 @@ async function findCurrentRequest(userId) {
 
         if (!exact.data) {
             throw new Error(
-                "The saved request could not be found for your account. Please return to the dashboard and check your latest request."
+                "The saved request could not be found. Please return to your dashboard and open the correct request."
             );
         }
 
         return exact.data;
     }
 
-    /*
-     * No saved ID: find the newest request belonging
-     * to the authenticated user.
-     */
     const result = await supabaseClient
         .from("cylinder_requests")
         .select("*")
@@ -1419,9 +909,9 @@ async function findCurrentRequest(userId) {
         throw result.error;
     }
 
-    const requests = result.data || [];
-
-    return requests.length ? requests[0] : null;
+    return result.data && result.data.length
+        ? result.data[0]
+        : null;
 }
 
 /* =========================================================
@@ -1429,24 +919,47 @@ async function findCurrentRequest(userId) {
 ========================================================= */
 
 function resetProgress() {
-    [
+    const items = [
         progressRequest,
         progressApproval,
         progressPayment,
         progressComplete
-    ].forEach(function(item) {
-        item.classList.remove("active", "done");
+    ];
+
+    items.forEach(function(item) {
+        if (item) {
+            item.classList.remove("active", "done");
+        }
     });
 
-    progressRequest.classList.add("done");
-    progressRequest.querySelector(".progress-circle").textContent = "✓";
+    if (progressRequest) {
+        progressRequest.classList.add("done");
 
-    progressApproval.querySelector(".progress-circle").textContent = "2";
-    progressPayment.querySelector(".progress-circle").textContent = "3";
-    progressComplete.querySelector(".progress-circle").textContent = "4";
+        const circle =
+            progressRequest.querySelector(".progress-circle");
+
+        if (circle) circle.textContent = "✓";
+    }
+
+    [
+        [progressApproval, "2"],
+        [progressPayment, "3"],
+        [progressComplete, "4"]
+    ].forEach(function(entry) {
+        const element = entry[0];
+        const symbol = entry[1];
+
+        if (!element) return;
+
+        const circle = element.querySelector(".progress-circle");
+
+        if (circle) circle.textContent = symbol;
+    });
 }
 
 function markStepDone(element, symbol) {
+    if (!element) return;
+
     element.classList.remove("active");
     element.classList.add("done");
 
@@ -1458,6 +971,8 @@ function markStepDone(element, symbol) {
 }
 
 function markStepActive(element) {
+    if (!element) return;
+
     element.classList.remove("done");
     element.classList.add("active");
 }
@@ -1476,19 +991,15 @@ function setProgress(request) {
 
     markStepDone(progressApproval, "✓");
 
-    const payment = getPaymentStatus(request);
-
-    if (payment.key === "paid") {
-        markStepDone(progressPayment, "✓");
-        markStepDone(progressComplete, "✓");
-        return;
-    }
+    const initialPayment = getInitialPaymentStatus(request);
+    const repayment = getRepaymentStatus(request);
 
     if (
-        payment.key === "partial" ||
-        payment.key === "pending"
+        initialPayment.key === "verified" &&
+        repayment.key === "paid"
     ) {
-        markStepActive(progressPayment);
+        markStepDone(progressPayment, "✓");
+        markStepDone(progressComplete, "✓");
         return;
     }
 
@@ -1503,28 +1014,46 @@ function updateStatusUI(request) {
     const approval = normalise(request.owner_approval);
     const status = normalise(request.status);
     const payment = getPaymentStatus(request);
+    const repayment = getRepaymentStatus(request);
 
-    waitBox.style.display = "none";
-    approvedBox.classList.remove("show");
-    rejectedBox.classList.remove("show");
-    paymentBtn.classList.remove("show");
+    setDisplay(waitBox, "none");
 
-    statusBadge.className = "status-badge";
+    if (approvedBox) {
+        approvedBox.classList.remove("show");
+    }
 
-    /*
-     * Display the actual Owner Approval field.
-     */
+    if (rejectedBox) {
+        rejectedBox.classList.remove("show");
+    }
+
+    if (paymentBtn) {
+        paymentBtn.classList.remove("show");
+        paymentBtn.disabled = false;
+    }
+
+    if (statusBadge) {
+        statusBadge.className = "status-badge";
+    }
+
     if (isCancelled(request)) {
-        statusBadge.textContent = "CANCELLED";
-        statusBadge.classList.add("rejected");
+        setText(statusBadge, "CANCELLED");
 
-        ownerApprovalValue.textContent = "Cancelled";
+        if (statusBadge) {
+            statusBadge.classList.add("rejected");
+        }
 
-        rejectedBox.classList.add("show");
-        rejectedText.textContent =
+        setText(ownerApprovalValue, "Cancelled");
+
+        if (rejectedBox) {
+            rejectedBox.classList.add("show");
+        }
+
+        setText(
+            rejectedText,
             request.owner_note ||
             request.rejection_reason ||
-            "This request has been cancelled.";
+            "This request has been cancelled."
+        );
 
         setProgress(request);
         updatePaymentStatusUI(payment);
@@ -1532,16 +1061,24 @@ function updateStatusUI(request) {
     }
 
     if (isRejected(request)) {
-        statusBadge.textContent = "NOT APPROVED";
-        statusBadge.classList.add("rejected");
+        setText(statusBadge, "NOT APPROVED");
 
-        ownerApprovalValue.textContent = "Rejected";
+        if (statusBadge) {
+            statusBadge.classList.add("rejected");
+        }
 
-        rejectedBox.classList.add("show");
-        rejectedText.textContent =
+        setText(ownerApprovalValue, "Rejected");
+
+        if (rejectedBox) {
+            rejectedBox.classList.add("show");
+        }
+
+        setText(
+            rejectedText,
             request.owner_note ||
             request.rejection_reason ||
-            "The owner did not approve this request.";
+            "The owner did not approve this request."
+        );
 
         setProgress(request);
         updatePaymentStatusUI(payment);
@@ -1549,69 +1086,108 @@ function updateStatusUI(request) {
     }
 
     if (!isApproved(request)) {
-        statusBadge.textContent = "PENDING APPROVAL";
-        statusBadge.classList.add("processing");
+        setText(statusBadge, "PENDING APPROVAL");
 
-        ownerApprovalValue.textContent =
+        if (statusBadge) {
+            statusBadge.classList.add("processing");
+        }
+
+        setText(
+            ownerApprovalValue,
             approval
                 ? approval.replace(/_/g, " ").toUpperCase()
-                : "Pending";
+                : "Pending"
+        );
 
-        waitBox.style.display = "block";
+        setDisplay(waitBox, "block");
 
-        approvedText.textContent =
-            "Your request is waiting for the EGC owner's approval. Payment access will be enabled only after approval is confirmed.";
-
-        setProgress(request);
-        updatePaymentStatusUI(payment);
-        return;
-    }
-
-    ownerApprovalValue.textContent = "Approved";
-
-    if (payment.key === "paid") {
-        statusBadge.textContent = "FULLY PAID";
-        statusBadge.classList.add("completed");
-
-        approvedBox.classList.add("show");
-        approvedText.textContent =
-            "Your request is approved and the database marks the payment as fully paid. Check your dashboard for the latest delivery and repayment details.";
+        setText(
+            approvedText,
+            "Your request is waiting for the EGC owner's approval. Payment access will be enabled only after approval is confirmed."
+        );
 
         setProgress(request);
         updatePaymentStatusUI(payment);
         return;
     }
 
-    statusBadge.textContent =
+    setText(ownerApprovalValue, "Approved");
+
+    if (
+        repayment.key === "paid" &&
+        getInitialPaymentStatus(request).key === "verified"
+    ) {
+        setText(statusBadge, "REPAYMENT COMPLETE");
+
+        if (statusBadge) {
+            statusBadge.classList.add("completed");
+        }
+
+        if (approvedBox) {
+            approvedBox.classList.add("show");
+        }
+
+        setText(
+            approvedText,
+            "This request is approved and its repayment is marked complete. The record shown here belongs only to this Request Number."
+        );
+
+        setProgress(request);
+        updatePaymentStatusUI(payment);
+        return;
+    }
+
+    setText(
+        statusBadge,
         status === "delivered"
             ? "APPROVED — DELIVERED"
-            : "APPROVED";
+            : "APPROVED"
+    );
 
-    statusBadge.classList.add("approved");
+    if (statusBadge) {
+        statusBadge.classList.add("approved");
+    }
 
-    approvedBox.classList.add("show");
+    if (approvedBox) {
+        approvedBox.classList.add("show");
+    }
 
-    approvedText.textContent =
-        "Your cylinder request has been approved by the EGC owner. You can continue to the payment page.";
+    setText(
+        approvedText,
+        "Your cylinder request has been approved by the EGC owner. The initial payment page is available only if this request still requires its initial payment and payment has not already been verified."
+    );
 
     /*
-     * Payment button is shown only after explicit owner approval.
-     * A second database check is performed on click.
+     * Only show the initial payment button when:
+     * - Owner explicitly approved this exact request.
+     * - Initial payment is not verified yet.
+     *
+     * This does not mark the ₹690 repayment complete.
      */
-    paymentBtn.classList.add("show");
+    const initialPayment = getInitialPaymentStatus(request);
+
+    if (
+        paymentBtn &&
+        initialPayment.key !== "verified" &&
+        initialPayment.key !== "pending"
+    ) {
+        paymentBtn.classList.add("show");
+    }
 
     setProgress(request);
     updatePaymentStatusUI(payment);
 }
 
 function updatePaymentStatusUI(payment) {
-    paymentStatusValue.textContent = payment.label;
-    paymentStatusHeading.textContent = payment.label;
-    paymentStatusText.textContent = payment.description;
+    setText(paymentStatusValue, payment.label);
+    setText(paymentStatusHeading, payment.label);
+    setText(paymentStatusText, payment.description);
+
+    if (!paymentStatusBox) return;
 
     paymentStatusBox.className = "payment-status-box";
 
-    if (payment.key === "paid") {
+    if (payment.key === "verified") {
         paymentStatusBox.classList.add("paid");
     } else if (
         payment.key === "pending" ||
@@ -1628,19 +1204,14 @@ function updatePaymentStatusUI(payment) {
 ========================================================= */
 
 async function loadAgencyDetails(request) {
-    agencyName.textContent = request.agency_name || "---";
-    agencyCode.textContent = request.agency_code || "---";
-    lpgCompany.textContent = request.lpg_company || "---";
+    setText(agencyName, request.agency_name || "---");
+    setText(agencyCode, request.agency_code || "---");
+    setText(lpgCompany, request.lpg_company || "---");
 
     if (!request.agency_id || !supabaseClient) {
         return;
     }
 
-    /*
-     * This lookup is optional. If your agencies table has
-     * different column names, the request's saved agency
-     * information remains visible.
-     */
     const result = await supabaseClient
         .from("agencies")
         .select("agency_name,agency_code,lpg_company")
@@ -1648,39 +1219,52 @@ async function loadAgencyDetails(request) {
         .maybeSingle();
 
     if (result.error) {
-        console.warn("Agency details lookup failed:", result.error);
+        console.warn(
+            "Agency details lookup failed:",
+            result.error
+        );
         return;
     }
 
     if (result.data) {
-        agencyName.textContent =
+        setText(
+            agencyName,
             result.data.agency_name ||
             request.agency_name ||
-            "---";
+            "---"
+        );
 
-        agencyCode.textContent =
+        setText(
+            agencyCode,
             result.data.agency_code ||
             request.agency_code ||
-            "---";
+            "---"
+        );
 
-        lpgCompany.textContent =
+        setText(
+            lpgCompany,
             request.lpg_company ||
             result.data.lpg_company ||
-            "---";
+            "---"
+        );
     }
 }
 
 /* =========================================================
-   RENDER REQUEST
+   RENDER EXACT REQUEST
 ========================================================= */
 
 async function renderRequest(request, userId) {
+    /*
+     * Confirm this is the exact record being displayed.
+     * The database row ID is never replaced with another ID.
+     */
     currentRequest = request;
 
-    requestNumber.textContent =
-        request.request_number ||
-        request.id ||
-        "---";
+    setText(
+        requestNumber,
+        request.request_number || request.id || "---"
+    );
 
     const cylinderRaw = firstExistingValue(request, [
         "cylinder_amount",
@@ -1709,25 +1293,36 @@ async function renderRequest(request, userId) {
         ? Math.max(0, cylinder - first)
         : Number(remainingRaw);
 
-    cylinderAmount.textContent = money(cylinder);
-    firstPayment.textContent = money(first);
-    remainingAmount.textContent = money(
-        Number.isFinite(remaining)
-            ? remaining
-            : Math.max(0, cylinder - first)
+    setText(cylinderAmount, money(cylinder));
+    setText(firstPayment, money(first));
+
+    setText(
+        remainingAmount,
+        money(
+            Number.isFinite(remaining)
+                ? remaining
+                : Math.max(0, cylinder - first)
+        )
     );
 
-    requestDate.textContent = formatDate(
-        request.request_date || request.created_at
+    setText(
+        requestDate,
+        formatDate(request.request_date || request.created_at)
     );
 
     await loadAgencyDetails(request);
 
     updateStatusUI(request);
+
     saveCurrentRequest(request, userId);
 
-    loadingBox.classList.add("hidden");
-    content.classList.remove("hidden");
+    if (loadingBox) {
+        loadingBox.classList.add("hidden");
+    }
+
+    if (content) {
+        content.classList.remove("hidden");
+    }
 }
 
 /* =========================================================
@@ -1742,12 +1337,20 @@ async function loadRequest() {
     refreshInProgress = true;
     clearMessage();
 
-    paymentBtn.disabled = false;
-    paymentBtn.textContent = "PROCEED TO PAYMENT";
+    if (paymentBtn) {
+        paymentBtn.disabled = false;
+        paymentBtn.textContent = "PROCEED TO PAYMENT";
+    }
 
     setLoadingText("Loading your request...");
-    loadingBox.classList.remove("hidden");
-    content.classList.add("hidden");
+
+    if (loadingBox) {
+        loadingBox.classList.remove("hidden");
+    }
+
+    if (content) {
+        content.classList.add("hidden");
+    }
 
     try {
         currentUser = await getCurrentUser();
@@ -1762,6 +1365,7 @@ async function loadRequest() {
         }
 
         await renderRequest(request, currentUser.id);
+
         startRealtime(request.id);
 
     } catch (error) {
@@ -1772,6 +1376,7 @@ async function loadRequest() {
                 ? error.message
                 : "Unable to load request status. Please try again."
         );
+
     } finally {
         refreshInProgress = false;
     }
@@ -1802,25 +1407,32 @@ function startRealtime(requestId) {
                 filter: "id=eq." + requestId
             },
             function(payload) {
-                if (!payload.new || !currentUser) {
-                    return;
-                }
-
                 if (
-                    !currentRequest ||
-                    String(payload.new.id) !== String(currentRequest.id) ||
-                    String(payload.new.user_id) !== String(currentUser.id)
+                    !payload.new ||
+                    !currentUser ||
+                    !currentRequest
                 ) {
                     return;
                 }
 
-                renderRequest(payload.new, currentUser.id)
-                    .catch(function(error) {
-                        console.error(
-                            "Could not refresh request display:",
-                            error
-                        );
-                    });
+                if (
+                    String(payload.new.id) !==
+                        String(currentRequest.id) ||
+                    String(payload.new.user_id) !==
+                        String(currentUser.id)
+                ) {
+                    return;
+                }
+
+                renderRequest(
+                    payload.new,
+                    currentUser.id
+                ).catch(function(error) {
+                    console.error(
+                        "Could not refresh request display:",
+                        error
+                    );
+                });
             }
         )
         .subscribe(function(status) {
@@ -1830,119 +1442,136 @@ function startRealtime(requestId) {
 
 /* =========================================================
    PAYMENT BUTTON
-   No automatic redirects.
-   Recheck the exact request and owner approval first.
+
+   Recheck the exact request and approval before navigation.
 ========================================================= */
 
-paymentBtn.addEventListener("click", async function() {
-    clearMessage();
+if (paymentBtn) {
+    paymentBtn.addEventListener("click", async function() {
+        clearMessage();
 
-    if (paymentBtn.disabled) {
-        return;
-    }
-
-    paymentBtn.disabled = true;
-    paymentBtn.textContent = "CHECKING APPROVAL...";
-
-    try {
-        const user = await getCurrentUser();
-
-        const requestId =
-            currentRequest && currentRequest.id
-                ? currentRequest.id
-                : getSavedRequestId();
-
-        if (!requestId) {
-            throw new Error(
-                "Request information was not found. Please reload this page."
-            );
-        }
-
-        const result = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("id", requestId)
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-        if (result.error) {
-            throw result.error;
-        }
-
-        const request = result.data;
-
-        if (!request) {
-            throw new Error(
-                "This request could not be found for your account."
-            );
-        }
-
-        if (isRejected(request) || isCancelled(request)) {
-            throw new Error(
-                "This request is not approved for payment."
-            );
-        }
-
-        if (!isApproved(request)) {
-            throw new Error(
-                "Payment is available only after the EGC owner approves your request."
-            );
-        }
-
-        saveCurrentRequest(request, user.id);
-
-        /*
-         * Important:
-         * Do not automatically redirect fully paid users
-         * to another page from this status page.
-         *
-         * Keep the user on Request Status. The dashboard's
-         * Cylinder button and finalization logic should decide
-         * the next step based on the application's full flow.
-         */
-        if (isFullyPaid(request)) {
-            showSuccess(
-                "This request is already marked fully paid. No payment is required on this page."
-            );
-
-            await renderRequest(request, user.id);
+        if (paymentBtn.disabled) {
             return;
         }
 
-        /*
-         * Approved and not fully paid:
-         * open the payment page for this exact request.
-         */
-        window.location.href =
-            "payment.html?request_id=" +
-            encodeURIComponent(request.id);
+        paymentBtn.disabled = true;
+        paymentBtn.textContent = "CHECKING APPROVAL...";
 
-    } catch (error) {
-        console.error("PAYMENT NAVIGATION ERROR:", error);
+        try {
+            const user = await getCurrentUser();
 
-        showError(
-            error && error.message
-                ? error.message
-                : "Unable to continue to payment."
-        );
+            const requestId =
+                currentRequest && currentRequest.id
+                    ? currentRequest.id
+                    : getSavedRequestId();
 
-    } finally {
-        paymentBtn.disabled = false;
-        paymentBtn.textContent = "PROCEED TO PAYMENT";
-    }
-});
+            if (!requestId) {
+                throw new Error(
+                    "Request information was not found. Please reload this page."
+                );
+            }
+
+            const result = await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("id", requestId)
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+            if (result.error) {
+                throw result.error;
+            }
+
+            const request = result.data;
+
+            if (!request) {
+                throw new Error(
+                    "This request could not be found for your account."
+                );
+            }
+
+            if (
+                isRejected(request) ||
+                isCancelled(request)
+            ) {
+                throw new Error(
+                    "This request is not approved for payment."
+                );
+            }
+
+            if (!isApproved(request)) {
+                throw new Error(
+                    "Payment is available only after the EGC owner approves this request."
+                );
+            }
+
+            /*
+             * If the initial payment is already verified or
+             * pending verification, do not send the user to
+             * submit the same initial payment again.
+             */
+            const initialPayment =
+                getInitialPaymentStatus(request);
+
+            if (
+                initialPayment.key === "verified" ||
+                initialPayment.key === "pending"
+            ) {
+                await renderRequest(request, user.id);
+
+                showSuccess(
+                    initialPayment.key === "verified"
+                        ? "The initial payment for this request is already verified."
+                        : "The initial payment for this request is waiting for verification."
+                );
+
+                return;
+            }
+
+            saveCurrentRequest(request, user.id);
+
+            window.location.href =
+                "payment.html?request_id=" +
+                encodeURIComponent(request.id);
+
+        } catch (error) {
+            console.error(
+                "PAYMENT NAVIGATION ERROR:",
+                error
+            );
+
+            showError(
+                error && error.message
+                    ? error.message
+                    : "Unable to continue to payment."
+            );
+
+        } finally {
+            paymentBtn.disabled = false;
+            paymentBtn.textContent = "PROCEED TO PAYMENT";
+        }
+    });
+}
 
 /* =========================================================
    DASHBOARD NAVIGATION
 ========================================================= */
 
-document.getElementById("backBtn").addEventListener("click", function() {
-    window.location.href = "dashboard.html";
-});
+const backBtn = document.getElementById("backBtn");
 
-document.getElementById("homeBtn").addEventListener("click", function() {
-    window.location.href = "dashboard.html";
-});
+if (backBtn) {
+    backBtn.addEventListener("click", function() {
+        window.location.href = "dashboard.html";
+    });
+}
+
+const homeBtn = document.getElementById("homeBtn");
+
+if (homeBtn) {
+    homeBtn.addEventListener("click", function() {
+        window.location.href = "dashboard.html";
+    });
+}
 
 /* =========================================================
    CLEANUP
