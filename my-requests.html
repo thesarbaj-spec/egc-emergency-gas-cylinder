@@ -1873,8 +1873,82 @@ function goDashboard() {
   window.location.href = "dashboard.html";
 }
 
-function goRequests() {
-  window.location.href = "my-requests.html";
+async function requestCylinder() {
+  if (window.egcRequestNavigationBusy) return;
+
+  window.egcRequestNavigationBusy = true;
+
+  try {
+    if (!supabaseClient) {
+      toast("Supabase is not available. Please refresh the page.");
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.getUser();
+
+    if (error || !data?.user) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    currentUser = data.user;
+
+    await loadRequests();
+
+    const activeRequest = getActiveRequest();
+
+    if (!activeRequest) {
+      window.location.href = "request-cylinder.html";
+      return;
+    }
+
+    const state = getOverallState(activeRequest);
+
+    console.log("EGC Request Navigation:", {
+      requestId: activeRequest.id,
+      requestStatus: getRequestStatus(activeRequest),
+      ownerApproval: getOwnerApproval(activeRequest),
+      state: state.key
+    });
+
+    if (state.key === "payment_required") {
+      openPaymentPage(activeRequest.id);
+      return;
+    }
+
+    if (
+      state.key === "repayment_due" ||
+      state.key === "repayment_pending"
+    ) {
+      openPaymentPage(activeRequest.id, true);
+      return;
+    }
+
+    if (state.key === "completed") {
+      window.location.href = "request-cylinder.html";
+      return;
+    }
+
+    toast(state.message || "Your request is still in progress.");
+
+    const card = document.querySelector(".active-request");
+
+    if (card) {
+      card.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    } else {
+      window.location.href = "my-requests.html";
+    }
+
+  } catch (error) {
+    console.error("Request Cylinder navigation error:", error);
+
+    toast("Unable to verify your request. Please try again.");
+  } finally {
+    window.egcRequestNavigationBusy = false;
+  }
 }
 
 function goPayments() {

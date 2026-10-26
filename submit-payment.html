@@ -169,7 +169,9 @@ button{cursor:pointer}
 <aside class="sidebar">
   <div class="nav-title">MENU</div>
   <button class="nav-btn" onclick="goDashboard()">🏠 &nbsp; Dashboard</button>
-  <button class="nav-btn" onclick="requestCylinder()">🛢️ &nbsp; Request Cylinder</button>
+<button class="nav-btn" onclick="requestCylinder()">
+  🛢️ &nbsp; Request Cylinder
+</button>
   <button class="nav-btn" onclick="goRequests()">📋 &nbsp; My Requests</button>
   <button class="nav-btn active" onclick="goPayments()">💰 &nbsp; Payments</button>
   <button class="nav-btn" onclick="goNotifications()">🔔 &nbsp; Notifications</button>
@@ -1811,8 +1813,186 @@ function goDashboard() {
   window.location.href = "dashboard.html";
 }
 
-function requestCylinder() {
-  window.location.href = "request-cylinder.html";
+function getRequestNavigationState(request) {
+  if (!request) {
+    return "no_request";
+  }
+
+  const requestStatus = normalizeStatus(
+    request.status ||
+    request.request_status ||
+    ""
+  );
+
+  const ownerApproval = normalizeStatus(
+    request.owner_approval ||
+    request.owner_status ||
+    request.owner_approval_status ||
+    request.approval_status ||
+    ""
+  );
+
+  if (
+    [
+      "rejected",
+      "reject",
+      "cancelled",
+      "canceled",
+      "declined"
+    ].includes(requestStatus) ||
+    [
+      "rejected",
+      "reject",
+      "cancelled",
+      "canceled",
+      "declined"
+    ].includes(ownerApproval)
+  ) {
+    return "no_request";
+  }
+
+  const payments = getRequestPayments(request.id);
+  const initial = getInitialPayment(request.id);
+
+  const initialPaid =
+    !!initial && paymentIsSuccessful(initial);
+
+  const initialPending =
+    !!initial && paymentIsPending(initial);
+
+  const repaymentPayments =
+    payments.filter(isRepaymentType);
+
+  const repaymentPending =
+    repaymentPayments.some(paymentIsPending);
+
+  const calculation =
+    calculateRequestPayment(request);
+
+  const ownerApproved =
+    isApproved(ownerApproval) ||
+    (
+      !ownerApproval &&
+      isApproved(requestStatus)
+    );
+
+  if (!ownerApproved) {
+    return "approval_pending";
+  }
+
+  if (initialPending) {
+    return "payment_pending";
+  }
+
+  if (!initialPaid) {
+    return "initial_payment_due";
+  }
+
+  if (repaymentPending) {
+    return "payment_pending";
+  }
+
+  if (!getDeliveryDate(request)) {
+    return "request_in_progress";
+  }
+
+  if (calculation.remaining <= 0) {
+    return "fully_paid";
+  }
+
+  return "repayment_due";
+}
+
+async function requestCylinder() {
+  if (pageBusy) return;
+
+  pageBusy = true;
+
+  try {
+    if (!currentUser || !currentUser.id) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    await loadRequests();
+    await loadPayments();
+
+    const request = getLatestActiveRequest();
+
+    if (!request) {
+      window.location.href = "request-cylinder.html";
+      return;
+    }
+
+    const state =
+      getRequestNavigationState(request);
+
+    console.log("EGC Request Navigation:", {
+      requestId: request.id,
+      requestStatus: request.status,
+      requestApproval: request.owner_approval,
+      state: state
+    });
+
+    switch (state) {
+      case "no_request":
+        window.location.href = "request-cylinder.html";
+        return;
+
+      case "approval_pending":
+        toast("Your request is awaiting Owner approval.");
+        window.location.href = "my-requests.html";
+        return;
+
+      case "payment_pending":
+        toast("Your payment is awaiting Owner verification.");
+        window.location.href = "my-requests.html";
+        return;
+
+      case "initial_payment_due":
+        window.location.href =
+          "submit-payment.html?" +
+          new URLSearchParams({
+            request_id: String(request.id),
+            payment_type: "initial",
+            amount: String(INITIAL_PAYMENT_AMOUNT)
+          }).toString();
+        return;
+
+      case "request_in_progress":
+        toast(
+          "Your request is in progress. Check My Requests for updates."
+        );
+        window.location.href = "my-requests.html";
+        return;
+
+      case "repayment_due":
+        window.location.href =
+          "payments.html?request_id=" +
+          encodeURIComponent(String(request.id));
+        return;
+
+      case "fully_paid":
+        window.location.href = "request-cylinder.html";
+        return;
+
+      default:
+        window.location.href = "my-requests.html";
+        return;
+    }
+
+  } catch (error) {
+    console.error(
+      "Request navigation error:",
+      error
+    );
+
+    toast(
+      "Request status could not be verified. Please try again."
+    );
+  } finally {
+    pageBusy = false;
+  }
 }
 
 function goRequests() {
@@ -1832,7 +2012,7 @@ function goProfile() {
 }
 
 function goSettings() {
-  window.location.href = "settings.html";
+  window.location.href = "setting.html";
 }
 
 function goHelpSupport() {

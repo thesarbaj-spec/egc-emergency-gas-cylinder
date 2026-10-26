@@ -2499,7 +2499,7 @@ function getDeliveryDayCount(request) {
     (today.getTime() - deliveryDay.getTime()) / 86400000
   );
 
-  return difference < 0 ? 0 : difference + 1;
+  return Math.max(0, difference);
 }
 
 function calculateTierExtraCharge(days) {
@@ -2611,39 +2611,66 @@ function getRequestStatusLabel(request) {
 }
 
 function getAgencyStatusLabel(request) {
-  if (!request) return "Not Assigned";
+if (!request) return "Not Assigned";
 
-  if (!isRequestApproved(request)) {
-    return "Waiting for Owner Approval";
-  }
+if (!isRequestApproved(request)) {
+return "Waiting for Owner Approval";
+}
 
-  const status = normalizeStatus(
-    request.agency_status ||
-    request.agency_processing_status ||
-    request.processing_status ||
-    ""
-  );
+const status = normalizeStatus(
+request.agency_status ||
+request.agency_processing_status ||
+request.processing_status ||
+""
+);
 
-  if (status) return humanizeStatus(status);
+if (status) return humanizeStatus(status);
 
-  const agencyName =
-    request.agency_name ||
-    request.lpg_agency_name ||
-    request.assigned_agency_name ||
-    "";
+if (
+request.agency_name ||
+request.lpg_agency_name ||
+request.assigned_agency_name
+) {
+return "Agency Assigned";
+}
 
-  if (agencyName) {
-    return "Agency Assigned";
-  }
+if (request.agency_id || request.assigned_agency_id) {
+return "Agency Assigned";
+}
 
-  if (
-    request.agency_id ||
-    request.assigned_agency_id
-  ) {
-    return "Agency Assigned";
-  }
+return "Waiting for Agency Assignment";
+}
 
-  return "Waiting for Agency Assignment";
+async function loadAgencyName(request) {
+if (!request) return "Not available";
+
+const existingName =
+request.agency_name ||
+request.lpg_agency_name ||
+request.assigned_agency_name;
+
+if (existingName) return existingName;
+
+const agencyId =
+request.agency_id ||
+request.assigned_agency_id;
+
+if (!agencyId || !supabaseClient) {
+return "Not available";
+}
+
+const { data, error } = await supabaseClient
+.from("agencies")
+.select("agency_name")
+.eq("id", agencyId)
+.maybeSingle();
+
+if (error) {
+console.error("Agency name load error:", error.message);
+return "Agency details unavailable";
+}
+
+return data?.agency_name || "Not available";
 }
 
 function getDeliveryStatusLabel(request) {
@@ -2818,12 +2845,11 @@ function createStatusCard(title, value, description) {
   `;
 }
 
-function renderStatusPanel(request) {
+async function renderStatusPanel(request) {
   let container = $("egcStatusPanel");
 
   if (!container) {
     const requestArea = $("currentRequestArea");
-
     if (!requestArea) return;
 
     container = document.createElement("section");
@@ -2869,17 +2895,27 @@ function renderStatusPanel(request) {
         )}
       </div>
     `;
-
     return;
   }
 
   const financials = getRequestFinancials(request);
 
+  let displayAgencyName = "";
+
+  try {
+    displayAgencyName = await loadAgencyName(request);
+  } catch (error) {
+    console.error("Unable to load agency name:", error);
+  }
+
   const agencyName =
+    displayAgencyName ||
     request.agency_name ||
     request.lpg_agency_name ||
     request.assigned_agency_name ||
-    "";
+    request.lpg_agency ||
+    request.agency ||
+    "Not available";
 
   const agencyStatus = getAgencyStatusLabel(request);
   const deliveryStatus = getDeliveryStatusLabel(request);
@@ -2902,10 +2938,10 @@ function renderStatusPanel(request) {
       " | Due: " + money(financials.remainingAmount)
     : "Payment will be available after Owner approval.";
 
-  const agencyDescription = agencyName
-    ? "Agency: " + agencyName
-    : "Selected agency: " +
-      (request.lpg_agency || request.agency || "Not available");
+  const agencyDescription =
+    agencyName !== "Not available"
+      ? "Selected agency: " + agencyName
+      : "Selected agency: Not available";
 
   const deliveryDescription = deliveryDate
     ? "Delivered: " + formatDate(deliveryDate) +

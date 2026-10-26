@@ -1078,22 +1078,27 @@ button{
 </div>
 
 <script>
-
 /* =========================================================
    SUPABASE
 ========================================================= */
 
 const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
+  "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+  "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+let supabaseClient = null;
+
+if (
+  window.supabase &&
+  typeof window.supabase.createClient === "function"
+) {
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+}
 
 
 /* =========================================================
@@ -1103,11 +1108,12 @@ window.supabase.createClient(
 let currentUser = null;
 let currentProfile = null;
 let toastTimer = null;
+let isLoggingOut = false;
 
 let settings = {
-  paymentNotifications:true,
-  requestNotifications:true,
-  deliveryNotifications:true
+  paymentNotifications: true,
+  requestNotifications: true,
+  deliveryNotifications: true
 };
 
 
@@ -1115,108 +1121,251 @@ let settings = {
    HELPERS
 ========================================================= */
 
-function $(id){
+function $(id) {
   return document.getElementById(id);
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-function toast(message){
+function toast(message) {
+  const el = $("toast");
 
-  const el =
-    $("toast");
+  if (!el) {
+    console.log("EGC:", message);
+    return;
+  }
 
-  el.textContent =
-    message || "";
-
+  el.textContent = message || "";
   el.classList.add("show");
 
   clearTimeout(toastTimer);
 
-  toastTimer =
-    setTimeout(
-      function(){
-        el.classList.remove("show");
-      },
-      3000
-    );
-
+  toastTimer = setTimeout(function () {
+    el.classList.remove("show");
+  }, 3000);
 }
 
+function showError(message) {
+  const box = $("errorBox");
 
-function showError(message){
+  if (!box) {
+    console.error(message);
+    return;
+  }
 
-  const box =
-    $("errorBox");
-
-  box.textContent =
-    message || "Something went wrong.";
-
-  box.style.display =
-    "block";
-
+  box.textContent = message || "Something went wrong.";
+  box.style.display = "block";
 }
 
+function clearError() {
+  const box = $("errorBox");
 
-function clearError(){
+  if (!box) return;
 
-  $("errorBox").style.display =
-    "none";
-
+  box.style.display = "none";
+  box.textContent = "";
 }
 
+function showSuccess(message) {
+  const box = $("successBox");
 
-function showSuccess(message){
+  if (!box) {
+    toast(message);
+    return;
+  }
 
-  const box =
-    $("successBox");
+  box.textContent = message || "";
+  box.style.display = "block";
 
-  box.textContent =
-    message || "";
-
-  box.style.display =
-    "block";
-
-  setTimeout(
-    function(){
-      box.style.display =
-        "none";
-    },
-    3500
-  );
-
+  setTimeout(function () {
+    box.style.display = "none";
+  }, 3500);
 }
 
 
 /* =========================================================
-   PROFILE
+   PROFILE FIELD HELPER
 ========================================================= */
 
-/* PROFILE — LOAD USER DETAILS AND PROFILE PHOTO */
+function setFirstAvailableElement(ids, value) {
+  const displayValue =
+    value !== null &&
+    value !== undefined &&
+    String(value).trim() !== ""
+      ? String(value)
+      : "Not provided";
+
+  ids.forEach(function (id) {
+    const element = $(id);
+
+    if (element) {
+      element.textContent = displayValue;
+    }
+  });
+}
+
+
+/* =========================================================
+   PROFILE — LOAD USER DETAILS AND PHOTO
+========================================================= */
 
 async function loadProfile() {
-  if (!currentUser?.id || !supabaseClient) return;
+  if (!currentUser || !currentUser.id || !supabaseClient) {
+    setFirstAvailableElement(
+      ["accountName", "fullName", "profileName", "userFullName"],
+      "Unavailable"
+    );
 
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+    setFirstAvailableElement(
+      ["accountEmail", "profileEmail", "userEmail"],
+      "Unavailable"
+    );
 
-  if (error) {
-    console.error("Profile load error:", error);
+    setFirstAvailableElement(
+      ["accountMobile", "mobileNumber", "profileMobile", "userMobile"],
+      "Unavailable"
+    );
+
+    return;
   }
 
-  currentProfile = data || null;
+  /*
+    Show a loading indicator only while the profile
+    request is being fetched.
+  */
+
+  setFirstAvailableElement(
+    ["accountName", "fullName", "profileName", "userFullName"],
+    "Loading..."
+  );
+
+  setFirstAvailableElement(
+    ["accountEmail", "profileEmail", "userEmail"],
+    "Loading..."
+  );
+
+  setFirstAvailableElement(
+    ["accountMobile", "mobileNumber", "profileMobile", "userMobile"],
+    "Loading..."
+  );
+
+  let profileData = null;
+
+  try {
+    /*
+      Load the user's profile using the authenticated
+      Supabase user ID.
+    */
+
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Profile database query error:", error);
+    } else {
+      profileData = data;
+    }
+
+  } catch (error) {
+    console.error("Profile query failed:", error);
+  }
+
+  currentProfile = profileData || null;
+
+  /*
+    Resolve name from the profile table first,
+    then fall back to Supabase Auth metadata.
+  */
 
   const name =
     currentProfile?.full_name ||
+    currentProfile?.fullName ||
+    currentProfile?.name ||
     currentUser.user_metadata?.full_name ||
+    currentUser.user_metadata?.name ||
     "EGC Customer";
 
+  /*
+    Email normally comes from the authenticated
+    Supabase user.
+  */
+
   const email =
-    currentProfile?.email ||
     currentUser.email ||
-    "";
+    currentProfile?.email ||
+    "Not provided";
+
+  /*
+    Mobile field names may differ between projects.
+    This checks common profile column names.
+  */
+
+  const mobile =
+    currentProfile?.phone ||
+    currentProfile?.mobile ||
+    currentProfile?.phone_number ||
+    currentProfile?.mobile_number ||
+    currentProfile?.contact_number ||
+    currentUser.user_metadata?.phone ||
+    currentUser.user_metadata?.mobile ||
+    "Not provided";
+
+  /*
+    Update existing account-information elements.
+    These IDs are alternatives: only existing elements
+    on the page will be updated.
+  */
+
+  setFirstAvailableElement(
+    [
+      "accountName",
+      "fullName",
+      "profileName",
+      "userFullName",
+      "fullNameValue",
+      "accountFullName"
+    ],
+    name
+  );
+
+  setFirstAvailableElement(
+    [
+      "accountEmail",
+      "profileEmail",
+      "userEmail",
+      "emailValue",
+      "accountEmailValue"
+    ],
+    email
+  );
+
+  setFirstAvailableElement(
+    [
+      "accountMobile",
+      "mobileNumber",
+      "profileMobile",
+      "userMobile",
+      "mobileValue",
+      "phoneValue",
+      "accountMobileValue"
+    ],
+    mobile
+  );
+
+  /*
+    Update header information if these elements
+    exist on the page.
+  */
 
   if ($("topName")) {
     $("topName").textContent = name;
@@ -1226,7 +1375,9 @@ async function loadProfile() {
     $("topEmail").textContent = email;
   }
 
-  /* PROFILE PHOTO */
+  /*
+    PROFILE PHOTO
+  */
 
   const image = $("topPhoto");
 
@@ -1243,33 +1394,47 @@ async function loadProfile() {
   };
 
   const storedPhoto = String(
-    currentProfile?.profile_photo || ""
+    currentProfile?.profile_photo ||
+    currentProfile?.avatar_url ||
+    currentProfile?.avatar ||
+    currentProfile?.photo_url ||
+    currentProfile?.profile_image ||
+    ""
   ).trim();
 
-  /* No saved profile photo */
+  /*
+    Use fallback when no photo is saved.
+  */
+
   if (!storedPhoto) {
     image.src = fallback;
     return;
   }
 
-  /* Existing full image URL */
+  /*
+    Existing public image URL.
+  */
+
   if (/^(https?:\/\/|data:image\/)/i.test(storedPhoto)) {
     image.src = storedPhoto;
     return;
   }
 
-  /* Supabase Storage object path */
+  /*
+    Supabase Storage object path.
+  */
+
   try {
     const photoPath = storedPhoto.replace(/^\/+/, "");
 
     const { data: signedData, error: signedError } =
       await supabaseClient.storage
         .from("profile-photos")
-        .createSignedUrl(photoPath, 60 * 60);
+        .createSignedUrl(photoPath, 3600);
 
     if (signedError || !signedData?.signedUrl) {
       console.error(
-        "Dashboard profile photo URL error:",
+        "Profile photo URL error:",
         signedError?.message || "Signed URL unavailable"
       );
 
@@ -1280,11 +1445,7 @@ async function loadProfile() {
     image.src = signedData.signedUrl;
 
   } catch (photoError) {
-    console.error(
-      "Dashboard profile photo error:",
-      photoError
-    );
-
+    console.error("Profile photo error:", photoError);
     image.src = fallback;
   }
 }
@@ -1294,35 +1455,22 @@ async function loadProfile() {
    LOCAL SETTINGS
 ========================================================= */
 
-function loadLocalSettings(){
-
-  try{
-
-    const saved =
-      localStorage.getItem(
-        "egc_customer_settings"
-      );
-
-    if(saved){
-
-      const parsed =
-        JSON.parse(saved);
-
-      settings =
-        {
-          ...settings,
-          ...parsed
-        };
-
-    }
-
-  }catch(error){
-
-    console.warn(
-      "Settings read error:",
-      error
+function loadLocalSettings() {
+  try {
+    const saved = localStorage.getItem(
+      "egc_customer_settings"
     );
 
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      settings = {
+        ...settings,
+        ...parsed
+      };
+    }
+  } catch (error) {
+    console.warn("Settings read error:", error);
   }
 
   updateToggle(
@@ -1341,54 +1489,30 @@ function loadLocalSettings(){
   );
 
   updateBrowserToggle();
-
 }
 
-
-function saveLocalSettings(){
-
-  try{
-
+function saveLocalSettings() {
+  try {
     localStorage.setItem(
       "egc_customer_settings",
       JSON.stringify(settings)
     );
-
-  }catch(error){
-
-    console.warn(
-      "Settings save error:",
-      error
-    );
-
+  } catch (error) {
+    console.warn("Settings save error:", error);
   }
-
 }
 
+function updateToggle(id, active) {
+  const button = $(id);
 
-function updateToggle(id,active){
+  if (!button) return;
 
-  const button =
-    $(id);
+  button.classList.toggle("active", Boolean(active));
 
-  if(!button){
-    return;
-  }
-
-  if(active){
-
-    button.classList.add(
-      "active"
-    );
-
-  }else{
-
-    button.classList.remove(
-      "active"
-    );
-
-  }
-
+  button.setAttribute(
+    "aria-pressed",
+    String(Boolean(active))
+  );
 }
 
 
@@ -1396,46 +1520,32 @@ function updateToggle(id,active){
    TOGGLE SETTING
 ========================================================= */
 
-function toggleSetting(key){
+function toggleSetting(key) {
+  if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+    return;
+  }
 
-  settings[key] =
-    !settings[key];
+  settings[key] = !settings[key];
 
   saveLocalSettings();
 
-  if(key === "paymentNotifications"){
-
-    updateToggle(
-      "paymentToggle",
-      settings[key]
-    );
-
+  if (key === "paymentNotifications") {
+    updateToggle("paymentToggle", settings[key]);
   }
 
-  if(key === "requestNotifications"){
-
-    updateToggle(
-      "requestToggle",
-      settings[key]
-    );
-
+  if (key === "requestNotifications") {
+    updateToggle("requestToggle", settings[key]);
   }
 
-  if(key === "deliveryNotifications"){
-
-    updateToggle(
-      "deliveryToggle",
-      settings[key]
-    );
-
+  if (key === "deliveryNotifications") {
+    updateToggle("deliveryToggle", settings[key]);
   }
 
   toast(
     settings[key]
-    ? "Setting enabled."
-    : "Setting disabled."
+      ? "Setting enabled."
+      : "Setting disabled."
   );
-
 }
 
 
@@ -1443,140 +1553,73 @@ function toggleSetting(key){
    BROWSER NOTIFICATIONS
 ========================================================= */
 
-async function toggleBrowserNotifications(){
-
-  if(!("Notification" in window)){
-
-    toast(
-      "Browser notifications are not supported."
-    );
-
+async function toggleBrowserNotifications() {
+  if (!("Notification" in window)) {
+    toast("Browser notifications are not supported.");
     return;
-
   }
 
-  if(
-    Notification.permission ===
-    "granted"
-  ){
-
-    toast(
-      "Browser notifications are already enabled."
-    );
-
+  if (Notification.permission === "granted") {
+    toast("Browser notifications are already enabled.");
     updateBrowserToggle();
-
     return;
-
   }
 
-  if(
-    Notification.permission ===
-    "denied"
-  ){
-
+  if (Notification.permission === "denied") {
     toast(
       "Notifications are blocked. Please allow them in browser settings."
     );
 
     updateBrowserToggle();
-
     return;
-
   }
 
-  try{
-
+  try {
     const permission =
       await Notification.requestPermission();
 
     updateBrowserToggle();
 
-    if(
-      permission ===
-      "granted"
-    ){
-
-      toast(
-        "Browser notifications enabled."
-      );
-
+    if (permission === "granted") {
+      toast("Browser notifications enabled.");
       showTestNotification();
-
-    }else{
-
+    } else {
       toast(
         "Browser notification permission was not granted."
       );
-
     }
 
-  }catch(error){
+  } catch (error) {
+    console.warn("Notification permission error:", error);
 
-    console.warn(
-      error
-    );
-
-    toast(
-      "Unable to change notification permission."
-    );
-
+    toast("Unable to change notification permission.");
   }
-
 }
 
-
-function updateBrowserToggle(){
-
+function updateBrowserToggle() {
   const active =
     "Notification" in window &&
-    Notification.permission ===
-    "granted";
+    Notification.permission === "granted";
 
-  updateToggle(
-    "browserToggle",
-    active
-  );
-
+  updateToggle("browserToggle", active);
 }
 
+function showTestNotification() {
+  if (!("Notification" in window)) return;
 
-function showTestNotification(){
+  if (Notification.permission !== "granted") return;
 
-  if(
-    !("Notification" in window)
-  ){
-    return;
-  }
-
-  if(
-    Notification.permission !==
-    "granted"
-  ){
-    return;
-  }
-
-  try{
-
+  try {
     new Notification(
       "EGC Notifications Enabled",
       {
-        body:
-          "You will receive important EGC updates here.",
-        icon:
-          "assets/EGC - Emergency Gas Cylinder logo.png"
+        body: "You will receive important EGC updates here.",
+        icon: "assets/EGC - Emergency Gas Cylinder logo.png"
       }
     );
-
-  }catch(error){
-
-    console.warn(
-      "Test notification error:",
-      error
-    );
-
+  } catch (error) {
+    console.warn("Test notification error:", error);
   }
-
 }
 
 
@@ -1584,11 +1627,8 @@ function showTestNotification(){
    CHANGE MPIN
 ========================================================= */
 
-function changeMPIN(){
-
-  window.location.href =
-    "change-mpin.html";
-
+function changeMPIN() {
+  window.location.href = "change-mpin.html";
 }
 
 
@@ -1596,59 +1636,36 @@ function changeMPIN(){
    NAVIGATION
 ========================================================= */
 
-function goDashboard(){
-
-  window.location.href =
-    "dashboard.html";
-
+function goDashboard() {
+  window.location.href = "dashboard.html";
 }
 
-
-function goRequest(){
-
-  window.location.href =
-    "request-cylinder.html";
-
+function goRequest() {
+  window.location.href = "request-cylinder.html";
 }
 
-
-function goRequests(){
-
-  window.location.href =
-    "my-requests.html";
-
+function goRequests() {
+  window.location.href = "my-requests.html";
 }
 
-
-function goPayments(){
-
-  window.location.href =
-    "payments.html";
-
+function goPayments() {
+  window.location.href = "payments.html";
 }
 
-
-function goNotifications(){
-
-  window.location.href =
-    "notifications.html";
-
+function goNotifications() {
+  window.location.href = "notifications.html";
 }
 
-
-function goProfile(){
-
-  window.location.href =
-    "profile.html";
-
+function goProfile() {
+  window.location.href = "profile.html";
 }
 
+function goHelp() {
+  window.location.href = "help-support.html";
+}
 
-function goHelp(){
-
-  window.location.href =
-    "help-support.html";
-
+function goSettings() {
+  window.location.href = "setting.html";
 }
 
 
@@ -1656,78 +1673,70 @@ function goHelp(){
    LOGOUT
 ========================================================= */
 
-function openLogoutPopup(){
+function openLogoutPopup() {
+  const overlay = $("logoutOverlay");
 
-  $("logoutOverlay")
-    .classList
-    .add("show");
+  if (!overlay) return;
 
-  document.body.style.overflow =
-    "hidden";
-
+  overlay.classList.add("show");
+  document.body.style.overflow = "hidden";
 }
 
-
-function closeLogoutPopup(event){
-
-  if(
+function closeLogoutPopup(event) {
+  if (
     event &&
     event.target &&
-    event.target.id !==
-    "logoutOverlay"
-  ){
-
+    event.target.id !== "logoutOverlay"
+  ) {
     return;
-
   }
 
-  $("logoutOverlay")
-    .classList
-    .remove("show");
+  const overlay = $("logoutOverlay");
 
-  document.body.style.overflow =
-    "";
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
 
+  document.body.style.overflow = "";
 }
 
+async function confirmLogout() {
+  if (isLoggingOut) return;
 
-async function confirmLogout(){
-
-  const button =
-    $("confirmLogoutBtn");
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    "Logging out...";
-
-  const result =
-    await supabaseClient
-      .auth
-      .signOut();
-
-  if(result.error){
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      "Logout";
-
-    toast(
-      result.error.message ||
-      "Logout failed."
-    );
-
+  if (!supabaseClient) {
+    toast("Supabase is not available.");
     return;
-
   }
 
-  window.location.replace(
-    "login.html"
-  );
+  isLoggingOut = true;
 
+  const button = $("confirmLogoutBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Logging out...";
+  }
+
+  try {
+    const { error } =
+      await supabaseClient.auth.signOut();
+
+    if (error) throw error;
+
+    window.location.replace("login.html");
+
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    isLoggingOut = false;
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Logout";
+    }
+
+    toast(error.message || "Logout failed.");
+  }
 }
 
 
@@ -1735,96 +1744,113 @@ async function confirmLogout(){
    AUTH STATE
 ========================================================= */
 
-supabaseClient
-  .auth
-  .onAuthStateChange(
-    function(event){
-
-      if(
-        event ===
-        "SIGNED_OUT"
-      ){
-
-        window.location.replace(
-          "login.html"
-        );
-
-      }
-
+if (supabaseClient) {
+  supabaseClient.auth.onAuthStateChange(function (event) {
+    if (event === "SIGNED_OUT" && !isLoggingOut) {
+      window.location.replace("login.html");
     }
-  );
+  });
+}
 
 
 /* =========================================================
    ESCAPE
 ========================================================= */
 
-document.addEventListener(
-  "keydown",
-  function(event){
-
-    if(
-      event.key ===
-      "Escape"
-    ){
-
-      closeLogoutPopup();
-
-    }
-
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape") {
+    closeLogoutPopup();
   }
-);
+});
 
 
 /* =========================================================
    INITIALIZE
 ========================================================= */
 
-async function initializePage(){
-
-  try{
-
+async function initializePage() {
+  try {
     clearError();
 
-    const authResult =
-      await supabaseClient
-        .auth
-        .getUser();
-
-    if(
-      authResult.error ||
-      !authResult.data?.user
-    ){
-
-      window.location.replace(
-        "login.html"
+    if (!supabaseClient) {
+      throw new Error(
+        "Supabase client is unavailable. Check the Supabase JS library."
       );
-
-      return;
-
     }
-
-    currentUser =
-      authResult.data.user;
 
     loadLocalSettings();
 
+    /*
+      Get the authenticated user.
+    */
+
+    const { data, error } =
+      await supabaseClient.auth.getUser();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data?.user) {
+      window.location.replace("login.html");
+      return;
+    }
+
+    currentUser = data.user;
+
+    /*
+      Load account information and profile photo.
+    */
+
     await loadProfile();
 
-  }catch(error){
+  } catch (error) {
+    console.error("Settings initialization error:", error);
 
-    console.error(
-      "Settings initialization error:",
-      error
+    /*
+      Prevent fields from remaining on Loading...
+    */
+
+    setFirstAvailableElement(
+      [
+        "accountName",
+        "fullName",
+        "profileName",
+        "userFullName",
+        "fullNameValue",
+        "accountFullName"
+      ],
+      "Unable to load"
+    );
+
+    setFirstAvailableElement(
+      [
+        "accountEmail",
+        "profileEmail",
+        "userEmail",
+        "emailValue",
+        "accountEmailValue"
+      ],
+      currentUser?.email || "Unable to load"
+    );
+
+    setFirstAvailableElement(
+      [
+        "accountMobile",
+        "mobileNumber",
+        "profileMobile",
+        "userMobile",
+        "mobileValue",
+        "phoneValue",
+        "accountMobileValue"
+      ],
+      "Unable to load"
     );
 
     showError(
-      error.message ||
-      "Unable to load settings."
+      error.message || "Unable to load settings."
     );
-
   }
-
 }
 
 
@@ -1832,11 +1858,14 @@ async function initializePage(){
    START
 ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  initializePage
-);
-
+if (document.readyState === "loading") {
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializePage
+  );
+} else {
+  initializePage();
+}
 </script>
 
 </body>

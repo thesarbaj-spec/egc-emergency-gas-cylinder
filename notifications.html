@@ -893,9 +893,7 @@
         🏠 &nbsp; Dashboard
       </button>
 
-      <button class="nav-btn" onclick="goPage('request-cylinder.html')">
-        🛢️ &nbsp; Request Cylinder
-      </button>
+<button class="nav-btn" onclick="goRequest()">🛢️ &nbsp; Request Cylinder</button>
 
       <button class="nav-btn" onclick="goPage('my-requests.html')">
         📋 &nbsp; My Requests
@@ -1086,124 +1084,141 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script>
-    "use strict";
+<script>
+"use strict";
 
-    /*
-     * SUPABASE CONFIGURATION
-     */
-    const SUPABASE_URL =
-      "https://szefvmvokkhvnzryodqu.supabase.co";
+/* SUPABASE CONFIGURATION */
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-    const SUPABASE_ANON_KEY =
-      "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+if (!window.supabase) {
+  const errorBox = document.getElementById("errorBox");
 
-    if (!window.supabase) {
-      document.getElementById("errorBox").textContent =
-        "Supabase library could not be loaded. Please refresh this page.";
-      document.getElementById("errorBox").style.display = "block";
-      throw new Error("Supabase JS library not loaded.");
-    }
+  if (errorBox) {
+    errorBox.textContent =
+      "Supabase library could not be loaded. Please refresh this page.";
+    errorBox.style.display = "block";
+  }
 
-    const supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
+  throw new Error("Supabase JS library not loaded.");
+}
 
-    let currentUser = null;
-    let currentProfile = null;
-    let notifications = [];
-    let currentFilter = "all";
-    let realtimeChannel = null;
-    let toastTimer = null;
-    let isLoggingOut = false;
-    let authListener = null;
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
-    const $ = (id) => document.getElementById(id);
+let currentUser = null;
+let currentProfile = null;
+let notifications = [];
+let currentFilter = "all";
+let realtimeChannel = null;
+let requestRealtimeChannel = null;
+let toastTimer = null;
+let isLoggingOut = false;
+let authListener = null;
 
-    /*
-     * SAFE TEXT / DATE HELPERS
-     */
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
+/* REQUEST CYLINDER STATE */
+let currentRequests = [];
+let currentPayments = [];
+let requestStateLoading = false;
+let requestStateError = false;
+let requestRefreshPromise = null;
 
-    function formatDateTime(value) {
-      if (!value) return "Date unavailable";
+const $ = (id) => document.getElementById(id);
 
-      const date = new Date(value);
+/* SAFE TEXT / DATE HELPERS */
 
-      if (Number.isNaN(date.getTime())) {
-        return "Date unavailable";
-      }
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-      return date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
+function formatDateTime(value) {
+  if (!value) return "Date unavailable";
 
-    function showError(message) {
-      const box = $("errorBox");
-      box.textContent = message || "Something went wrong.";
-      box.style.display = "block";
-    }
+  const date = new Date(value);
 
-    function clearError() {
-      $("errorBox").textContent = "";
-      $("errorBox").style.display = "none";
-    }
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
 
-    function showInfo(message) {
-      const box = $("infoBox");
-      box.textContent = message || "";
-      box.style.display = message ? "block" : "none";
-    }
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
 
-    function toast(message) {
-      const element = $("toast");
-      element.textContent = message || "";
-      element.classList.add("show");
+function showError(message) {
+  const box = $("errorBox");
+  if (!box) return;
 
-      clearTimeout(toastTimer);
+  box.textContent = message || "Something went wrong.";
+  box.style.display = "block";
+}
 
-      toastTimer = setTimeout(() => {
-        element.classList.remove("show");
-      }, 3000);
-    }
+function clearError() {
+  const box = $("errorBox");
+  if (!box) return;
 
-    /*
-     * PAGE NAVIGATION
-     */
-    function goPage(page) {
-      if (!page) return;
-      window.location.href = page;
-    }
+  box.textContent = "";
+  box.style.display = "none";
+}
 
-    /*
-     * PROFILE
-     */
-    function setDefaultProfilePhoto(name) {
-      const safeName = encodeURIComponent(name || "EGC");
+function showInfo(message) {
+  const box = $("infoBox");
+  if (!box) return;
 
-      $("topPhoto").src =
-        "https://ui-avatars.com/api/?name=" +
-        safeName +
-        "&background=eaf5fc&color=0754a9&bold=true";
-    }
+  box.textContent = message || "";
+  box.style.display = message ? "block" : "none";
+}
 
-    /* PROFILE — LOAD USER DETAILS AND PROFILE PHOTO */
+function toast(message) {
+  const element = $("toast");
+
+  if (!element) {
+    console.log(message);
+    return;
+  }
+
+  element.textContent = message || "";
+  element.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer = setTimeout(() => {
+    element.classList.remove("show");
+  }, 3000);
+}
+
+/* PAGE NAVIGATION */
+
+function goPage(page) {
+  if (!page) return;
+  window.location.href = page;
+}
+
+/* PROFILE */
+
+function setDefaultProfilePhoto(name) {
+  const image = $("topPhoto");
+  if (!image) return;
+
+  image.src =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name || "EGC") +
+    "&background=eaf5fc&color=0754a9&bold=true";
+}
 
 async function loadProfile() {
-  if (!currentUser?.id || !supabaseClient) return;
+  if (!currentUser?.id) return;
 
   const { data, error } = await supabaseClient
     .from("profiles")
@@ -1235,10 +1250,7 @@ async function loadProfile() {
     $("topEmail").textContent = email;
   }
 
-  /* PROFILE PHOTO */
-
   const image = $("topPhoto");
-
   if (!image) return;
 
   const fallback =
@@ -1255,19 +1267,16 @@ async function loadProfile() {
     currentProfile?.profile_photo || ""
   ).trim();
 
-  /* No saved profile photo */
   if (!storedPhoto) {
     image.src = fallback;
     return;
   }
 
-  /* Existing full image URL */
   if (/^(https?:\/\/|data:image\/)/i.test(storedPhoto)) {
     image.src = storedPhoto;
     return;
   }
 
-  /* Supabase Storage object path */
   try {
     const photoPath = storedPhoto.replace(/^\/+/, "");
 
@@ -1278,7 +1287,7 @@ async function loadProfile() {
 
     if (signedError || !signedData?.signedUrl) {
       console.error(
-        "Dashboard profile photo URL error:",
+        "Profile photo URL error:",
         signedError?.message || "Signed URL unavailable"
       );
 
@@ -1289,674 +1298,1370 @@ async function loadProfile() {
     image.src = signedData.signedUrl;
 
   } catch (photoError) {
-    console.error(
-      "Dashboard profile photo error:",
-      photoError
-    );
-
+    console.error("Profile photo error:", photoError);
     image.src = fallback;
   }
 }
 
-    function setProfileHeaderFallback() {
-      const name = "EGC Customer";
+function setProfileHeaderFallback() {
+  const name = "EGC Customer";
 
-      $("topName").textContent = name;
-      $("topEmail").textContent = currentUser?.email || "";
+  if ($("topName")) {
+    $("topName").textContent = name;
+  }
 
-      setDefaultProfilePhoto(name);
+  if ($("topEmail")) {
+    $("topEmail").textContent = currentUser?.email || "";
+  }
+
+  setDefaultProfilePhoto(name);
+}
+
+/* =========================================================
+   REQUEST CYLINDER NAVIGATION
+   ========================================================= */
+
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function getOwnerApproval(record) {
+  if (!record) return "pending";
+
+  return normalizeStatus(
+    record.owner_approval ??
+    record.owner_status ??
+    record.approval_status ??
+    "pending"
+  );
+}
+
+function isOwnerApproved(record) {
+  return [
+    "approved",
+    "approve",
+    "accepted",
+    "verified"
+  ].includes(getOwnerApproval(record));
+}
+
+function isOwnerRejected(record) {
+  return [
+    "rejected",
+    "reject",
+    "declined",
+    "denied"
+  ].includes(getOwnerApproval(record));
+}
+
+function isRequestCancelled(request) {
+  if (!request) return true;
+
+  const status = normalizeStatus(request.status);
+
+  return [
+    "cancelled",
+    "canceled",
+    "rejected",
+    "declined"
+  ].includes(status) || isOwnerRejected(request);
+}
+
+function isRequestApproved(request) {
+  if (!request || isRequestCancelled(request)) {
+    return false;
+  }
+
+  return isOwnerApproved(request);
+}
+
+function getRequestTotal(request) {
+  const possibleAmounts = [
+    request?.total_amount,
+    request?.total_payable,
+    request?.total_price,
+    request?.request_amount,
+    request?.cylinder_amount,
+    request?.amount
+  ];
+
+  for (const value of possibleAmounts) {
+    if (value !== null && value !== undefined && value !== "") {
+      const amount = Number(value);
+
+      if (Number.isFinite(amount) && amount > 0) {
+        return amount;
+      }
+    }
+  }
+
+  return 890;
+}
+
+function getPaymentRequestId(payment) {
+  return String(
+    payment?.request_id ??
+    payment?.cylinder_request_id ??
+    ""
+  );
+}
+
+function getPaymentState(payment) {
+  const paymentStatus = normalizeStatus(
+    payment?.payment_status ??
+    payment?.status ??
+    ""
+  );
+
+  const approvalStatus = normalizeStatus(
+    payment?.verification_status ??
+    payment?.owner_approval ??
+    payment?.approval_status ??
+    payment?.owner_status ??
+    ""
+  );
+
+  const successfulStatuses = [
+    "paid",
+    "success",
+    "successful",
+    "completed"
+  ];
+
+  const rejectedStatuses = [
+    "rejected",
+    "reject",
+    "declined",
+    "failed",
+    "cancelled",
+    "canceled"
+  ];
+
+  if (
+    rejectedStatuses.includes(paymentStatus) ||
+    rejectedStatuses.includes(approvalStatus)
+  ) {
+    return { key: "rejected" };
+  }
+
+  if (
+    successfulStatuses.includes(paymentStatus) &&
+    [
+      "approved",
+      "approve",
+      "verified",
+      "accepted"
+    ].includes(approvalStatus)
+  ) {
+    return { key: "approved" };
+  }
+
+  if (
+    [
+      "pending",
+      "pending_verification",
+      "under_review",
+      "processing",
+      "submitted",
+      "initiated",
+      "awaiting_verification"
+    ].includes(paymentStatus) ||
+    [
+      "pending",
+      "pending_verification",
+      "under_review",
+      "submitted",
+      "awaiting_verification"
+    ].includes(approvalStatus)
+  ) {
+    return { key: "pending" };
+  }
+
+  if (successfulStatuses.includes(paymentStatus)) {
+    return { key: "pending" };
+  }
+
+  return { key: "unknown" };
+}
+
+function getRequestPayments(requestId) {
+  return currentPayments.filter(payment => {
+    return getPaymentRequestId(payment) === String(requestId);
+  });
+}
+
+function getRequestVerifiedPayments(requestId) {
+  return getRequestPayments(requestId).reduce((total, payment) => {
+    if (getPaymentState(payment).key !== "approved") {
+      return total;
     }
 
-    /*
-     * NOTIFICATION TYPE / ICON
-     *
-     * Supports common notification types used for:
-     * requests, payments, owner approvals, delivery,
-     * repayment and system updates.
-     */
-    function notificationIcon(type) {
-      const value = String(type || "general").toLowerCase();
+    const amount = Number(
+      payment.amount ??
+      payment.payment_amount ??
+      payment.paid_amount ??
+      0
+    );
 
-      if (
-        value.includes("payment") ||
-        value.includes("transaction") ||
-        value.includes("repayment")
-      ) {
-        return "💳";
-      }
+    return total + (
+      Number.isFinite(amount) && amount > 0 ? amount : 0
+    );
+  }, 0);
+}
 
-      if (
-        value.includes("request") ||
-        value.includes("cylinder")
-      ) {
-        return "🛢️";
-      }
+function getPaymentTypeValue(payment) {
+  return normalizeStatus(
+    payment?.payment_type ??
+    payment?.type ??
+    payment?.payment_for ??
+    ""
+  );
+}
 
-      if (
-        value.includes("approval") ||
-        value.includes("approved") ||
-        value.includes("verified")
-      ) {
-        return "✅";
-      }
+function isInitialPayment(payment) {
+  return [
+    "initial",
+    "initial_payment",
+    "registration",
+    "registration_fee",
+    "first_payment"
+  ].includes(getPaymentTypeValue(payment));
+}
 
-      if (
-        value.includes("reject") ||
-        value.includes("cancel")
-      ) {
-        return "❌";
-      }
+function isRepaymentPayment(payment) {
+  return [
+    "repayment",
+    "repayment_payment",
+    "remaining",
+    "remaining_payment",
+    "balance"
+  ].includes(getPaymentTypeValue(payment));
+}
 
-      if (
-        value.includes("delivery") ||
-        value.includes("delivered")
-      ) {
-        return "🚚";
-      }
+function getInitialPayment(requestId) {
+  return getRequestPayments(requestId)
+    .filter(isInitialPayment)
+    .sort((a, b) => {
+      return new Date(b.created_at || 0) -
+        new Date(a.created_at || 0);
+    })[0] || null;
+}
 
-      if (
-        value.includes("processing") ||
-        value.includes("agency")
-      ) {
-        return "⚙️";
-      }
+function getDeliveryDate(request) {
+  const possibleDates = [
+    request?.delivery_date,
+    request?.delivered_at,
+    request?.delivery_completed_at,
+    request?.actual_delivery_date,
+    request?.date_of_delivery,
+    request?.delivered_on
+  ];
 
-      if (value.includes("complete")) {
-        return "🎉";
-      }
+  for (const value of possibleDates) {
+    if (value) return value;
+  }
 
-      if (value.includes("system")) {
-        return "⚙️";
-      }
+  const deliveryStatus = normalizeStatus(
+    request?.delivery_status ??
+    request?.delivery_state ??
+    ""
+  );
 
-      return "🔔";
-    }
+  if (
+    ["delivered", "completed", "delivery_completed"].includes(
+      deliveryStatus
+    )
+  ) {
+    return (
+      request?.updated_at ||
+      request?.created_at ||
+      null
+    );
+  }
 
-    /*
-     * LOAD NOTIFICATIONS
-     *
-     * Each customer sees only their own rows.
-     * Owner notifications require separate owner rows
-     * and suitable Supabase RLS policies.
-     */
-    async function loadNotifications() {
-      if (!currentUser?.id) return;
+  return null;
+}
 
-      $("notificationsList").innerHTML =
-        '<div class="loading">Loading notifications...</div>';
+function getDeliveryDayCount(request) {
+  const deliveryDate = getDeliveryDate(request);
 
-      const { data, error } = await supabaseClient
-        .from("notifications")
-        .select(
-          "id,user_id,title,message,notification_type,is_read,created_at"
-        )
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
+  if (!deliveryDate) return 0;
 
-      if (error) {
-        console.error("Notifications load error:", error);
+  const start = new Date(deliveryDate);
 
-        notifications = [];
-        updateStats();
+  if (Number.isNaN(start.getTime())) return 0;
 
-        $("notificationsList").innerHTML =
-          '<div class="empty">' +
-            '<div class="empty-icon">⚠️</div>' +
-            '<div>Unable to load notifications.</div>' +
-            '<div>Please check the notifications table and RLS policies.</div>' +
-          '</div>';
+  const now = new Date();
 
-        showError(
-          "Notifications could not be loaded: " + error.message
+  start.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+
+  const difference = Math.floor(
+    (now.getTime() - start.getTime()) / 86400000
+  );
+
+  return Math.max(1, difference + 1);
+}
+
+/* Extra charge rules */
+
+function calculateTierExtraCharge(days) {
+  if (days <= 0) return 0;
+  if (days <= 10) return 35;
+  if (days <= 15) return 40;
+  if (days <= 45) return 50;
+
+  return 100;
+}
+
+function getRequestExtraCharge(request) {
+  if (!isRequestApproved(request)) return 0;
+  if (!getDeliveryDate(request)) return 0;
+
+  const savedCharge = Number(
+    request?.extra_charge ??
+    request?.late_charge ??
+    request?.repayment_extra_charge ??
+    0
+  );
+
+  if (Number.isFinite(savedCharge) && savedCharge > 0) {
+    return savedCharge;
+  }
+
+  return calculateTierExtraCharge(
+    getDeliveryDayCount(request)
+  );
+}
+
+function getRequestFinancials(request) {
+  const baseAmount = getRequestTotal(request);
+  const extraCharge = getRequestExtraCharge(request);
+  const totalPayable = baseAmount + extraCharge;
+  const verifiedPaid = getRequestVerifiedPayments(request.id);
+
+  return {
+    baseAmount,
+    extraCharge,
+    totalPayable,
+    verifiedPaid,
+    remaining: Math.max(0, totalPayable - verifiedPaid)
+  };
+}
+
+function isRequestFullyPaid(request) {
+  if (!isRequestApproved(request)) return false;
+
+  const financials = getRequestFinancials(request);
+
+  return (
+    financials.totalPayable > 0 &&
+    financials.remaining <= 0
+  );
+}
+
+function getLatestRequest() {
+  const requests = [...currentRequests].sort((a, b) => {
+    const dateA = new Date(
+      a.updated_at ||
+      a.created_at ||
+      a.request_date ||
+      0
+    ).getTime();
+
+    const dateB = new Date(
+      b.updated_at ||
+      b.created_at ||
+      b.request_date ||
+      0
+    ).getTime();
+
+    return dateB - dateA;
+  });
+
+  return (
+    requests.find(request => !isRequestCancelled(request)) ||
+    requests[0] ||
+    null
+  );
+}
+
+function getRequestNavigationState(request) {
+  if (!request || isRequestCancelled(request)) {
+    return {
+      state: "new_request",
+      label: "+ REQUEST CYLINDER",
+      note: "Start a new cylinder request."
+    };
+  }
+
+  if (!isRequestApproved(request)) {
+    return {
+      state: "approval_pending",
+      label: "REQUEST PENDING",
+      note: "Your request is waiting for Owner approval."
+    };
+  }
+
+  const requestId = String(request.id);
+  const requestPayments = getRequestPayments(requestId);
+
+  const hasPendingPayment = requestPayments.some(payment => {
+    return getPaymentState(payment).key === "pending";
+  });
+
+  if (hasPendingPayment) {
+    return {
+      state: "payment_pending",
+      label: "PAYMENT VERIFICATION PENDING",
+      note: "Your payment is awaiting Owner verification."
+    };
+  }
+
+  const initialPayment = getInitialPayment(requestId);
+  const initialPaymentState = initialPayment
+    ? getPaymentState(initialPayment).key
+    : "unknown";
+
+  if (initialPaymentState !== "approved") {
+    return {
+      state: "initial_payment_due",
+      label: "PAY INITIAL PAYMENT",
+      note: "Your request is approved. Pay the initial ₹200."
+    };
+  }
+
+  if (isRequestFullyPaid(request)) {
+    return {
+      state: "fully_paid",
+      label: "+ REQUEST NEW CYLINDER",
+      note: "Your previous request is fully paid."
+    };
+  }
+
+  if (!getDeliveryDate(request)) {
+    return {
+      state: "delivery_pending",
+      label: "CHECK REQUEST STATUS",
+      note: "Your request is being processed for delivery."
+    };
+  }
+
+  return {
+    state: "repayment_due",
+    label: "CONTINUE REPAYMENT",
+    note: "Your cylinder has been delivered. Complete repayment."
+  };
+}
+
+/* REFRESH SUPABASE REQUEST AND PAYMENT RECORDS */
+
+async function refreshRequestNavigation() {
+  if (!currentUser?.id) {
+    currentRequests = [];
+    currentPayments = [];
+    return false;
+  }
+
+  if (requestRefreshPromise) {
+    return requestRefreshPromise;
+  }
+
+  requestStateLoading = true;
+  requestStateError = false;
+  updateRequestButton();
+
+  requestRefreshPromise = (async () => {
+    try {
+      const [requestsResult, paymentsResult] = await Promise.all([
+        supabaseClient
+          .from("cylinder_requests")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false }),
+
+        supabaseClient
+          .from("payments")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false })
+      ]);
+
+      if (requestsResult.error) {
+        throw new Error(
+          "Request records: " + requestsResult.error.message
         );
-
-        return;
       }
 
-      clearError();
-
-      notifications = Array.isArray(data) ? data : [];
-
-      updateStats();
-      renderNotifications();
-    }
-
-    /*
-     * STATISTICS
-     */
-    function updateStats() {
-      const total = notifications.length;
-
-      const unread = notifications.filter(
-        item => item.is_read !== true
-      ).length;
-
-      const read = total - unread;
-
-      $("totalNotifications").textContent = String(total);
-      $("unreadNotifications").textContent = String(unread);
-      $("readNotifications").textContent = String(read);
-
-      $("markAllBtn").disabled = unread === 0;
-    }
-
-    /*
-     * FILTERS
-     */
-    function setFilter(filter) {
-      if (!["all", "unread", "read"].includes(filter)) {
-        return;
+      if (paymentsResult.error) {
+        throw new Error(
+          "Payment records: " + paymentsResult.error.message
+        );
       }
 
-      currentFilter = filter;
+      currentRequests = Array.isArray(requestsResult.data)
+        ? requestsResult.data
+        : [];
 
-      document.querySelectorAll(".filter-btn").forEach(button => {
-        button.classList.remove("active");
-      });
+      currentPayments = Array.isArray(paymentsResult.data)
+        ? paymentsResult.data
+        : [];
 
-      const activeButton = {
-        all: $("filterAll"),
-        unread: $("filterUnread"),
-        read: $("filterRead")
-      }[filter];
+      requestStateError = false;
 
-      if (activeButton) {
-        activeButton.classList.add("active");
-      }
-
-      renderNotifications();
-    }
-
-    function getFilteredNotifications() {
-      if (currentFilter === "unread") {
-        return notifications.filter(item => item.is_read !== true);
-      }
-
-      if (currentFilter === "read") {
-        return notifications.filter(item => item.is_read === true);
-      }
-
-      return notifications;
-    }
-
-    /*
-     * RENDER NOTIFICATIONS
-     */
-    function renderNotifications() {
-      const list = $("notificationsList");
-      const filtered = getFilteredNotifications();
-
-      if (!filtered.length) {
-        let message = "No notifications yet.";
-
-        if (currentFilter === "unread") {
-          message = "You have no unread notifications.";
-        } else if (currentFilter === "read") {
-          message = "You have no read notifications.";
-        }
-
-        list.innerHTML =
-          '<div class="empty">' +
-            '<div class="empty-icon">🔔</div>' +
-            '<div>' + escapeHtml(message) + '</div>' +
-          '</div>';
-
-        return;
-      }
-
-      list.innerHTML = filtered.map(item => {
-        const unread = item.is_read !== true;
-
-        const title = escapeHtml(item.title || "Notification");
-        const message = escapeHtml(item.message || "");
-        const date = escapeHtml(formatDateTime(item.created_at));
-        const id = escapeHtml(item.id);
-        const icon = notificationIcon(item.notification_type);
-
-        return `
-          <article
-            class="notification ${unread ? "unread" : ""}"
-            data-notification-id="${id}"
-          >
-            <div class="notification-icon" aria-hidden="true">
-              ${icon}
-            </div>
-
-            <div class="notification-content">
-              <div class="notification-top">
-                <div class="notification-title">${title}</div>
-
-                ${
-                  unread
-                    ? '<div class="unread-dot" title="Unread" aria-label="Unread"></div>'
-                    : ''
-                }
-              </div>
-
-              <div class="notification-message">${message}</div>
-
-              <div class="notification-date">${date}</div>
-
-              <div class="notification-actions">
-                ${
-                  unread
-                    ? `
-                      <button
-                        type="button"
-                        class="read-btn"
-                        data-read-id="${id}"
-                      >
-                        ✓ Mark as read
-                      </button>
-                    `
-                    : '<span class="read-label">✓ Read</span>'
-                }
-              </div>
-            </div>
-          </article>
-        `;
-      }).join("");
-    }
-
-    /*
-     * MARK ONE NOTIFICATION AS READ
-     */
-    async function markNotificationRead(id) {
-      if (!id || !currentUser?.id) {
-        return false;
-      }
-
-      const item = notifications.find(
-        notification => String(notification.id) === String(id)
-      );
-
-      if (!item || item.is_read === true) {
-        return true;
-      }
-
-      const { data, error } = await supabaseClient
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", id)
-        .eq("user_id", currentUser.id)
-        .select("id,is_read")
-        .maybeSingle();
-
-      if (error) {
-        console.error("Mark notification read error:", error);
-        toast("Unable to mark as read: " + error.message);
-        return false;
-      }
-
-      if (!data) {
-        toast("Notification was not updated. Please check access policies.");
-        return false;
-      }
-
-      item.is_read = true;
-
-      updateStats();
-      renderNotifications();
+      console.log("EGC request records loaded:", currentRequests.length);
+      console.log("EGC payment records loaded:", currentPayments.length);
 
       return true;
-    }
 
-    /*
-     * MARK ALL NOTIFICATIONS AS READ
-     */
-    async function markAllAsRead() {
-      if (!currentUser?.id) return;
+    } catch (error) {
+      requestStateError = true;
 
-      const unread = notifications.filter(
-        item => item.is_read !== true
+      console.error(
+        "Request Cylinder state load error:",
+        error
       );
 
-      if (!unread.length) {
-        toast("All notifications are already read.");
-        return;
-      }
+      toast(
+        "Request status could not be refreshed. Please try again."
+      );
 
-      const button = $("markAllBtn");
+      return false;
+
+    } finally {
+      requestStateLoading = false;
+      requestRefreshPromise = null;
+      updateRequestButton();
+    }
+  })();
+
+  return requestRefreshPromise;
+}
+
+/* UPDATE OPTIONAL REQUEST BUTTON AND STATUS NOTE */
+
+function updateRequestButton() {
+  const button = $("requestCylinderBtn");
+  const note = $("requestCylinderNote");
+
+  if (requestStateLoading) {
+    if (button) {
+      button.textContent = "CHECKING REQUEST STATUS...";
       button.disabled = true;
-      button.textContent = "Marking...";
-
-      const { error } = await supabaseClient
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("user_id", currentUser.id)
-        .eq("is_read", false);
-
-      if (error) {
-        console.error("Mark all read error:", error);
-
-        button.textContent = "✓ Mark All as Read";
-        updateStats();
-
-        toast("Unable to mark notifications as read: " + error.message);
-        return;
-      }
-
-      notifications = notifications.map(item => ({
-        ...item,
-        is_read: true
-      }));
-
-      updateStats();
-      renderNotifications();
-
-      button.textContent = "✓ Mark All as Read";
-      toast("All notifications marked as read.");
     }
 
-    /*
-     * DELEGATED CLICK HANDLER
-     */
-    $("notificationsList").addEventListener("click", async event => {
-      const button = event.target.closest("[data-read-id]");
+    if (note) {
+      note.textContent =
+        "Checking your latest request and payment status.";
+    }
 
-      if (!button) return;
+    return;
+  }
 
-      const id = button.getAttribute("data-read-id");
+  if (requestStateError) {
+    if (button) {
+      button.textContent = "RETRY REQUEST STATUS";
+      button.disabled = false;
+    }
 
-      if (!id) return;
+    if (note) {
+      note.textContent =
+        "Your request status could not be checked. Tap to retry.";
+    }
 
-      button.disabled = true;
-      button.textContent = "Updating...";
+    return;
+  }
 
-      await markNotificationRead(id);
+  const request = getLatestRequest();
+  const state = getRequestNavigationState(request);
+
+  if (button) {
+    button.textContent = state.label;
+    button.disabled = false;
+  }
+
+  if (note) {
+    note.textContent = state.note;
+  }
+}
+
+/* REQUEST CYLINDER BUTTON ROUTING */
+
+async function goRequest() {
+  if (!currentUser?.id) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  if (requestStateLoading) {
+    toast("Please wait while your request status is checked.");
+    return;
+  }
+
+  const refreshed = await refreshRequestNavigation();
+
+  if (!refreshed || requestStateError) {
+    toast("Unable to check request status. Please try again.");
+    return;
+  }
+
+  const request = getLatestRequest();
+  const state = getRequestNavigationState(request);
+
+  console.log("EGC navigation state:", state.state, request);
+
+  if (
+    state.state === "new_request" ||
+    state.state === "fully_paid"
+  ) {
+    window.location.href = "request-cylinder.html";
+    return;
+  }
+
+  if (
+    state.state === "approval_pending" ||
+    state.state === "payment_pending" ||
+    state.state === "delivery_pending"
+  ) {
+    window.location.href =
+      "request-status.html?request_id=" +
+      encodeURIComponent(request.id);
+
+    return;
+  }
+
+  if (state.state === "initial_payment_due") {
+    window.location.href =
+      "submit-payment.html?" +
+      new URLSearchParams({
+        request_id: String(request.id),
+        payment_type: "initial",
+        amount: "200"
+      }).toString();
+
+    return;
+  }
+
+  if (state.state === "repayment_due") {
+    window.location.href =
+      "payments.html?request_id=" +
+      encodeURIComponent(request.id);
+
+    return;
+  }
+
+  /* Safe fallback: never start a duplicate request on an unknown state. */
+  window.location.href =
+    "request-status.html?request_id=" +
+    encodeURIComponent(request.id);
+}
+
+function requestCylinder() {
+  return goRequest();
+}
+
+/* NOTIFICATION TYPE / ICON */
+
+function notificationIcon(type) {
+  const value = String(type || "general").toLowerCase();
+
+  if (
+    value.includes("payment") ||
+    value.includes("transaction") ||
+    value.includes("repayment")
+  ) return "💳";
+
+  if (
+    value.includes("request") ||
+    value.includes("cylinder")
+  ) return "🛢️";
+
+  if (
+    value.includes("approval") ||
+    value.includes("approved") ||
+    value.includes("verified")
+  ) return "✅";
+
+  if (
+    value.includes("reject") ||
+    value.includes("cancel")
+  ) return "❌";
+
+  if (
+    value.includes("delivery") ||
+    value.includes("delivered")
+  ) return "🚚";
+
+  if (
+    value.includes("processing") ||
+    value.includes("agency")
+  ) return "⚙️";
+
+  if (value.includes("complete")) return "🎉";
+  if (value.includes("system")) return "⚙️";
+
+  return "🔔";
+}
+
+/* LOAD NOTIFICATIONS */
+
+async function loadNotifications() {
+  if (!currentUser?.id) return;
+
+  const list = $("notificationsList");
+
+  if (list) {
+    list.innerHTML =
+      '<div class="loading">Loading notifications...</div>';
+  }
+
+  const { data, error } = await supabaseClient
+    .from("notifications")
+    .select(
+      "id,user_id,title,message,notification_type,is_read,created_at"
+    )
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("Notifications load error:", error);
+
+    notifications = [];
+    updateStats();
+
+    if (list) {
+      list.innerHTML =
+        '<div class="empty">' +
+          '<div class="empty-icon">⚠️</div>' +
+          '<div>Unable to load notifications.</div>' +
+          '<div>Please check the notifications table and RLS policies.</div>' +
+        '</div>';
+    }
+
+    showError(
+      "Notifications could not be loaded: " + error.message
+    );
+
+    return;
+  }
+
+  clearError();
+
+  notifications = Array.isArray(data) ? data : [];
+
+  updateStats();
+  renderNotifications();
+}
+
+/* NOTIFICATION STATISTICS */
+
+function updateStats() {
+  const total = notifications.length;
+
+  const unread = notifications.filter(
+    item => item.is_read !== true
+  ).length;
+
+  const read = total - unread;
+
+  if ($("totalNotifications")) {
+    $("totalNotifications").textContent = String(total);
+  }
+
+  if ($("unreadNotifications")) {
+    $("unreadNotifications").textContent = String(unread);
+  }
+
+  if ($("readNotifications")) {
+    $("readNotifications").textContent = String(read);
+  }
+
+  if ($("markAllBtn")) {
+    $("markAllBtn").disabled = unread === 0;
+  }
+}
+
+/* NOTIFICATION FILTERS */
+
+function setFilter(filter) {
+  if (!["all", "unread", "read"].includes(filter)) {
+    return;
+  }
+
+  currentFilter = filter;
+
+  document.querySelectorAll(".filter-btn").forEach(button => {
+    button.classList.remove("active");
+  });
+
+  const activeButton = {
+    all: $("filterAll"),
+    unread: $("filterUnread"),
+    read: $("filterRead")
+  }[filter];
+
+  if (activeButton) {
+    activeButton.classList.add("active");
+  }
+
+  renderNotifications();
+}
+
+function getFilteredNotifications() {
+  if (currentFilter === "unread") {
+    return notifications.filter(item => item.is_read !== true);
+  }
+
+  if (currentFilter === "read") {
+    return notifications.filter(item => item.is_read === true);
+  }
+
+  return notifications;
+}
+
+/* RENDER NOTIFICATIONS */
+
+function renderNotifications() {
+  const list = $("notificationsList");
+  if (!list) return;
+
+  const filtered = getFilteredNotifications();
+
+  if (!filtered.length) {
+    let message = "No notifications yet.";
+
+    if (currentFilter === "unread") {
+      message = "You have no unread notifications.";
+    } else if (currentFilter === "read") {
+      message = "You have no read notifications.";
+    }
+
+    list.innerHTML =
+      '<div class="empty">' +
+        '<div class="empty-icon">🔔</div>' +
+        '<div>' + escapeHtml(message) + '</div>' +
+      '</div>';
+
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => {
+    const unread = item.is_read !== true;
+
+    const title = escapeHtml(item.title || "Notification");
+    const message = escapeHtml(item.message || "");
+    const date = escapeHtml(formatDateTime(item.created_at));
+    const id = escapeHtml(item.id);
+    const icon = notificationIcon(item.notification_type);
+
+    return `
+      <article
+        class="notification ${unread ? "unread" : ""}"
+        data-notification-id="${id}"
+      >
+        <div class="notification-icon" aria-hidden="true">
+          ${icon}
+        </div>
+
+        <div class="notification-content">
+          <div class="notification-top">
+            <div class="notification-title">${title}</div>
+
+            ${
+              unread
+                ? '<div class="unread-dot" title="Unread" aria-label="Unread"></div>'
+                : ''
+            }
+          </div>
+
+          <div class="notification-message">${message}</div>
+          <div class="notification-date">${date}</div>
+
+          <div class="notification-actions">
+            ${
+              unread
+                ? `
+                  <button
+                    type="button"
+                    class="read-btn"
+                    data-read-id="${id}"
+                  >
+                    ✓ Mark as read
+                  </button>
+                `
+                : '<span class="read-label">✓ Read</span>'
+            }
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+/* MARK ONE NOTIFICATION AS READ */
+
+async function markNotificationRead(id) {
+  if (!id || !currentUser?.id) {
+    return false;
+  }
+
+  const item = notifications.find(
+    notification => String(notification.id) === String(id)
+  );
+
+  if (!item || item.is_read === true) {
+    return true;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("id", id)
+    .eq("user_id", currentUser.id)
+    .select("id,is_read")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Mark notification read error:", error);
+    toast("Unable to mark as read: " + error.message);
+    return false;
+  }
+
+  if (!data) {
+    toast("Notification was not updated. Please check access policies.");
+    return false;
+  }
+
+  item.is_read = true;
+
+  updateStats();
+  renderNotifications();
+
+  return true;
+}
+
+/* MARK ALL NOTIFICATIONS AS READ */
+
+async function markAllAsRead() {
+  if (!currentUser?.id) return;
+
+  const unread = notifications.filter(
+    item => item.is_read !== true
+  );
+
+  if (!unread.length) {
+    toast("All notifications are already read.");
+    return;
+  }
+
+  const button = $("markAllBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Marking...";
+  }
+
+  const { error } = await supabaseClient
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("user_id", currentUser.id)
+    .eq("is_read", false);
+
+  if (error) {
+    console.error("Mark all read error:", error);
+
+    if (button) {
+      button.textContent = "✓ Mark All as Read";
+    }
+
+    updateStats();
+
+    toast("Unable to mark notifications as read: " + error.message);
+    return;
+  }
+
+  notifications = notifications.map(item => ({
+    ...item,
+    is_read: true
+  }));
+
+  updateStats();
+  renderNotifications();
+
+  if (button) {
+    button.textContent = "✓ Mark All as Read";
+  }
+
+  toast("All notifications marked as read.");
+}
+
+/* DELEGATED NOTIFICATION CLICK HANDLER */
+
+if ($("notificationsList")) {
+  $("notificationsList").addEventListener("click", async event => {
+    const target = event.target;
+
+    if (!(target instanceof Element)) return;
+
+    const button = target.closest("[data-read-id]");
+    if (!button) return;
+
+    const id = button.getAttribute("data-read-id");
+    if (!id) return;
+
+    button.disabled = true;
+    button.textContent = "Updating...";
+
+    await markNotificationRead(id);
+  });
+}
+
+/* REALTIME NOTIFICATIONS */
+
+function subscribeRealtime() {
+  if (!currentUser?.id) return;
+
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  realtimeChannel = supabaseClient
+    .channel("customer-notifications-" + currentUser.id)
+
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: "user_id=eq." + currentUser.id
+      },
+      payload => {
+        const item = payload.new;
+        if (!item) return;
+
+        const exists = notifications.some(
+          oldItem => String(oldItem.id) === String(item.id)
+        );
+
+        if (exists) return;
+
+        notifications.unshift(item);
+        notifications = notifications.slice(0, 100);
+
+        updateStats();
+        renderNotifications();
+
+        showBrowserNotification(item);
+        toast(item.title || "New EGC notification");
+      }
+    )
+
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "notifications",
+        filter: "user_id=eq." + currentUser.id
+      },
+      payload => {
+        const updated = payload.new;
+        if (!updated) return;
+
+        const index = notifications.findIndex(
+          item => String(item.id) === String(updated.id)
+        );
+
+        if (index !== -1) {
+          notifications[index] = {
+            ...notifications[index],
+            ...updated
+          };
+        } else {
+          notifications.unshift(updated);
+          notifications = notifications.slice(0, 100);
+        }
+
+        updateStats();
+        renderNotifications();
+      }
+    )
+
+    .subscribe(status => {
+      console.log("EGC notification realtime status:", status);
     });
+}
 
-    /*
-     * REALTIME SUBSCRIPTION
-     *
-     * INSERT:
-     * New notification appears immediately.
-     *
-     * UPDATE:
-     * Read/unread state is refreshed.
-     */
-    function subscribeRealtime() {
-      if (!currentUser?.id) return;
+/* OPTIONAL REALTIME REQUEST/PAYMENT REFRESH */
 
+function subscribeRequestRealtime() {
+  if (!currentUser?.id) return;
+
+  if (requestRealtimeChannel) {
+    supabaseClient.removeChannel(requestRealtimeChannel);
+    requestRealtimeChannel = null;
+  }
+
+  requestRealtimeChannel = supabaseClient
+    .channel("customer-request-state-" + currentUser.id)
+
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "cylinder_requests",
+        filter: "user_id=eq." + currentUser.id
+      },
+      async () => {
+        await refreshRequestNavigation();
+      }
+    )
+
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "payments",
+        filter: "user_id=eq." + currentUser.id
+      },
+      async () => {
+        await refreshRequestNavigation();
+      }
+    )
+
+    .subscribe(status => {
+      console.log("EGC request realtime status:", status);
+    });
+}
+
+/* BROWSER NOTIFICATIONS */
+
+async function requestBrowserNotificationPermission() {
+  if (!("Notification" in window)) {
+    toast("Browser notifications are not supported here.");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    toast("Browser notifications are already enabled.");
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    toast("Browser notifications are blocked in browser settings.");
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+      toast("Browser notifications enabled.");
+    } else {
+      toast("Browser notifications were not enabled.");
+    }
+  } catch (error) {
+    console.warn("Notification permission error:", error);
+    toast("Unable to request browser notification permission.");
+  }
+}
+
+function showBrowserNotification(item) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  try {
+    const browserNotification = new Notification(
+      item.title || "EGC Notification",
+      {
+        body: item.message || "You have a new notification.",
+        icon: "assets/EGC - Emergency Gas Cylinder logo.png",
+        tag: String(item.id || Date.now())
+      }
+    );
+
+    browserNotification.onclick = () => {
+      window.focus();
+      browserNotification.close();
+    };
+  } catch (error) {
+    console.warn("Browser notification error:", error);
+  }
+}
+
+/* LOGOUT POPUP */
+
+function openLogoutPopup() {
+  const overlay = $("logoutOverlay");
+  if (!overlay) return;
+
+  overlay.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLogoutPopup(event) {
+  if (
+    event &&
+    event.target &&
+    event.target.id !== "logoutOverlay"
+  ) {
+    return;
+  }
+
+  const overlay = $("logoutOverlay");
+
+  if (overlay) {
+    overlay.classList.remove("show");
+  }
+
+  document.body.style.overflow = "";
+}
+
+async function confirmLogout() {
+  if (isLoggingOut) return;
+
+  isLoggingOut = true;
+
+  const button = $("confirmLogoutBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Logging out...";
+  }
+
+  try {
+    if (realtimeChannel) {
+      await supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    if (requestRealtimeChannel) {
+      await supabaseClient.removeChannel(requestRealtimeChannel);
+      requestRealtimeChannel = null;
+    }
+
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+      throw error;
+    }
+
+    window.location.replace("login.html");
+
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    isLoggingOut = false;
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Logout";
+    }
+
+    toast(error.message || "Logout failed. Please try again.");
+  }
+}
+
+/* AUTH STATE */
+
+function setupAuthListener() {
+  const result = supabaseClient.auth.onAuthStateChange(event => {
+    if (event === "SIGNED_OUT" && !isLoggingOut) {
       if (realtimeChannel) {
         supabaseClient.removeChannel(realtimeChannel);
         realtimeChannel = null;
       }
 
-      realtimeChannel = supabaseClient
-        .channel("customer-notifications-" + currentUser.id)
+      if (requestRealtimeChannel) {
+        supabaseClient.removeChannel(requestRealtimeChannel);
+        requestRealtimeChannel = null;
+      }
 
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: "user_id=eq." + currentUser.id
-          },
-          payload => {
-            const item = payload.new;
+      window.location.replace("login.html");
+    }
+  });
 
-            if (!item) return;
+  authListener = result.data?.subscription || null;
+}
 
-            const exists = notifications.some(
-              oldItem => String(oldItem.id) === String(item.id)
-            );
+/* ESC KEY */
 
-            if (exists) return;
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeLogoutPopup();
+  }
+});
 
-            notifications.unshift(item);
-            notifications = notifications.slice(0, 100);
+/* ASK FOR NOTIFICATION PERMISSION AFTER USER GESTURE */
 
-            updateStats();
-            renderNotifications();
+document.addEventListener("click", event => {
+  const target = event.target;
 
-            showBrowserNotification(item);
-            toast(item.title || "New EGC notification");
-          }
-        )
+  if (!(target instanceof Element)) return;
 
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "notifications",
-            filter: "user_id=eq." + currentUser.id
-          },
-          payload => {
-            const updated = payload.new;
+  if (
+    target.closest(".notification") ||
+    target.closest("#logoutOverlay") ||
+    target.closest(".filter-btn") ||
+    target.closest("#markAllBtn")
+  ) {
+    return;
+  }
 
-            if (!updated) return;
+  if (
+    currentUser &&
+    "Notification" in window &&
+    Notification.permission === "default"
+  ) {
+    requestBrowserNotificationPermission();
+  }
+}, { once: true });
 
-            const index = notifications.findIndex(
-              item => String(item.id) === String(updated.id)
-            );
+/* INITIALIZE PAGE */
 
-            if (index !== -1) {
-              notifications[index] = {
-                ...notifications[index],
-                ...updated
-              };
-            } else {
-              notifications.unshift(updated);
-              notifications = notifications.slice(0, 100);
-            }
+async function initializePage() {
+  try {
+    clearError();
+    showInfo("");
 
-            updateStats();
-            renderNotifications();
-          }
-        )
+    const { data, error } = await supabaseClient.auth.getUser();
 
-        .subscribe(status => {
-          console.log("EGC notification realtime status:", status);
-        });
+    if (error || !data?.user) {
+      window.location.replace("login.html");
+      return;
     }
 
-    /*
-     * BROWSER NOTIFICATIONS
-     *
-     * Permission is requested after a user gesture,
-     * not automatically when the page first opens.
-     */
-    async function requestBrowserNotificationPermission() {
-      if (!("Notification" in window)) {
-        toast("Browser notifications are not supported here.");
-        return;
-      }
+    currentUser = data.user;
 
-      if (Notification.permission === "granted") {
-        toast("Browser notifications are already enabled.");
-        return;
-      }
+    await Promise.all([
+      loadProfile(),
+      loadNotifications(),
+      refreshRequestNavigation()
+    ]);
 
-      if (Notification.permission === "denied") {
-        toast("Browser notifications are blocked in browser settings.");
-        return;
-      }
+    subscribeRealtime();
+    subscribeRequestRealtime();
+    setupAuthListener();
 
-      try {
-        const permission = await Notification.requestPermission();
+  } catch (error) {
+    console.error("Notifications initialization error:", error);
 
-        if (permission === "granted") {
-          toast("Browser notifications enabled.");
-        } else {
-          toast("Browser notifications were not enabled.");
-        }
-      } catch (error) {
-        console.warn("Notification permission error:", error);
-        toast("Unable to request browser notification permission.");
-      }
-    }
+    showError(
+      error.message || "Unable to initialize the notifications page."
+    );
+  }
+}
 
-    function showBrowserNotification(item) {
-      if (!("Notification" in window)) return;
-      if (Notification.permission !== "granted") return;
-
-      try {
-        const browserNotification = new Notification(
-          item.title || "EGC Notification",
-          {
-            body: item.message || "You have a new notification.",
-            icon: "assets/EGC - Emergency Gas Cylinder logo.png",
-            tag: String(item.id || Date.now())
-          }
-        );
-
-        browserNotification.onclick = () => {
-          window.focus();
-          browserNotification.close();
-        };
-      } catch (error) {
-        console.warn("Browser notification error:", error);
-      }
-    }
-
-    /*
-     * LOGOUT POPUP
-     */
-    function openLogoutPopup() {
-      $("logoutOverlay").classList.add("show");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeLogoutPopup(event) {
-      if (
-        event &&
-        event.target &&
-        event.target.id !== "logoutOverlay"
-      ) {
-        return;
-      }
-
-      $("logoutOverlay").classList.remove("show");
-      document.body.style.overflow = "";
-    }
-
-    async function confirmLogout() {
-      if (isLoggingOut) return;
-
-      isLoggingOut = true;
-
-      const button = $("confirmLogoutBtn");
-      button.disabled = true;
-      button.textContent = "Logging out...";
-
-      try {
-        if (realtimeChannel) {
-          await supabaseClient.removeChannel(realtimeChannel);
-          realtimeChannel = null;
-        }
-
-        const { error } = await supabaseClient.auth.signOut();
-
-        if (error) {
-          throw error;
-        }
-
-        window.location.replace("login.html");
-      } catch (error) {
-        console.error("Logout error:", error);
-
-        isLoggingOut = false;
-        button.disabled = false;
-        button.textContent = "Logout";
-
-        toast(error.message || "Logout failed. Please try again.");
-      }
-    }
-
-    /*
-     * AUTH STATE
-     */
-    function setupAuthListener() {
-      const result = supabaseClient.auth.onAuthStateChange(
-        (event) => {
-          if (event === "SIGNED_OUT" && !isLoggingOut) {
-            if (realtimeChannel) {
-              supabaseClient.removeChannel(realtimeChannel);
-              realtimeChannel = null;
-            }
-
-            window.location.replace("login.html");
-          }
-        }
-      );
-
-      authListener = result.data?.subscription || null;
-    }
-
-    /*
-     * ESC KEY
-     */
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape") {
-        closeLogoutPopup();
-      }
-    });
-
-    /*
-     * ASK FOR BROWSER NOTIFICATION PERMISSION
-     * Only after a real user gesture.
-     */
-    document.addEventListener("click", event => {
-      const target = event.target;
-
-      if (!(target instanceof Element)) return;
-
-      if (
-        target.closest(".notification") ||
-        target.closest("#logoutOverlay") ||
-        target.closest(".filter-btn") ||
-        target.closest("#markAllBtn")
-      ) {
-        return;
-      }
-
-      if (
-        currentUser &&
-        "Notification" in window &&
-        Notification.permission === "default"
-      ) {
-        requestBrowserNotificationPermission();
-      }
-    }, { once: true });
-
-    /*
-     * INITIALIZE PAGE
-     */
-    async function initializePage() {
-      try {
-        clearError();
-        showInfo("");
-
-        const { data, error } = await supabaseClient.auth.getUser();
-
-        if (error || !data?.user) {
-          window.location.replace("login.html");
-          return;
-        }
-
-        currentUser = data.user;
-
-        await loadProfile();
-        await loadNotifications();
-
-        subscribeRealtime();
-        setupAuthListener();
-
-      } catch (error) {
-        console.error("Notifications initialization error:", error);
-
-        showError(
-          error.message || "Unable to initialize the notifications page."
-        );
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", initializePage);
-  </script>
+document.addEventListener("DOMContentLoaded", initializePage);
+</script>
 
 </body>
 </html>

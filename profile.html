@@ -148,8 +148,8 @@ button{cursor:pointer}
   <button class="nav-btn" onclick="goPayments()">💰 &nbsp; Payments</button>
   <button class="nav-btn" onclick="goNotifications()">🔔 &nbsp; Notifications</button>
   <button class="nav-btn active">👤 &nbsp; Profile</button>
-  <button class="nav-btn" onclick="showComingSoon('Settings')">⚙️ &nbsp; Settings</button>
-  <button class="nav-btn" onclick="showComingSoon('Help & Support')">❓ &nbsp; Help & Support</button>
+  <button class="nav-btn" onclick="goSetting('Settings')">⚙️ &nbsp; Settings</button>
+  <button class="nav-btn" onclick="goHelpSupport('Help & Support')">❓ &nbsp; Help & Support</button>
   <button class="nav-btn logout" onclick="openLogoutPopup()">🚪 &nbsp; Logout</button>
 </aside>
 
@@ -259,22 +259,23 @@ button{cursor:pointer}
    EGC PROFILE — SUPABASE CONFIGURATION
 ========================================================= */
 
-const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_URL =
+"https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
-  "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
 const PHOTO_BUCKET = "profile-photos";
 
 if (!window.supabase) {
-  throw new Error(
-    "Supabase JS library is not loaded. Load the Supabase CDN before this script."
-  );
+    throw new Error(
+        "Supabase JS library is not loaded. Load the Supabase CDN before this script."
+    );
 }
 
 const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
 );
 
 /* =========================================================
@@ -288,165 +289,191 @@ let cameraStream = null;
 let currentCameraFacing = "user";
 let isLoggingOut = false;
 
+let currentRequests = [];
+let currentPayments = [];
+let requestDataError = false;
+
 /* =========================================================
    HELPERS
 ========================================================= */
 
 function $(id) {
-  return document.getElementById(id);
+    return document.getElementById(id);
 }
 
 function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+    if (!value) return "—";
 
-  const date = new Date(value);
+    const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "—";
+    if (Number.isNaN(date.getTime())) return "—";
 
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
 }
 
 function showMessage(message, type = "success") {
-  const element = $("message");
-  if (!element) return;
+    const element = $("message");
 
-  element.textContent = message || "";
-  element.className = "message " + type;
+    if (!element) {
+        toast(message);
+        return;
+    }
+
+    element.textContent = message || "";
+    element.className = "message " + type;
 }
 
 function clearMessage() {
-  const element = $("message");
-  if (!element) return;
+    const element = $("message");
 
-  element.className = "message";
-  element.textContent = "";
+    if (!element) return;
+
+    element.className = "message";
+    element.textContent = "";
 }
 
 function toast(message) {
-  const element = $("toast");
+    const element = $("toast");
 
-  if (!element) {
-    console.log(message);
-    return;
-  }
+    if (!element) {
+        console.log(message);
+        return;
+    }
 
-  element.textContent = message || "";
-  element.classList.add("show");
+    element.textContent = message || "";
+    element.classList.add("show");
 
-  clearTimeout(toastTimer);
+    clearTimeout(toastTimer);
 
-  toastTimer = setTimeout(() => {
-    element.classList.remove("show");
-  }, 3500);
+    toastTimer = setTimeout(() => {
+        element.classList.remove("show");
+    }, 3500);
 }
 
 function avatarUrl(name) {
-  return (
-    "https://ui-avatars.com/api/?name=" +
-    encodeURIComponent(name || "EGC Customer") +
-    "&background=eaf5fc&color=0754a9&size=256"
-  );
+    return (
+        "https://ui-avatars.com/api/?name=" +
+        encodeURIComponent(name || "EGC Customer") +
+        "&background=eaf5fc&color=0754a9&size=256"
+    );
+}
+
+/* =========================================================
+   COMMON STATUS HELPERS
+========================================================= */
+
+function normalizeStatus(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+}
+
+function getFirstValue(object, keys) {
+    for (const key of keys) {
+        const value = object?.[key];
+
+        if (
+            value !== null &&
+            value !== undefined &&
+            String(value).trim() !== ""
+        ) {
+            return value;
+        }
+    }
+
+    return null;
 }
 
 /* =========================================================
    EGC USER ID
 
-   The EGC User ID is a separate profile field.
-   Never replace Supabase Auth's UUID.
-
-   Supported profile fields:
-   egc_user_id, egc_id, user_code
-
-   If no EGC ID exists in the database, show "Not assigned"
-   instead of displaying a misleading UUID as the EGC ID.
+   Keep the Supabase Auth UUID unchanged.
 ========================================================= */
 
 function getEGCUserId(profile) {
-  if (!profile) return "Not assigned";
+    if (!profile) return "Not assigned";
 
-  return (
-    profile.egc_user_id ||
-    profile.egc_id ||
-    profile.user_code ||
-    "Not assigned"
-  );
+    return (
+        profile.egc_user_id ||
+        profile.egc_id ||
+        profile.user_code ||
+        "Not assigned"
+    );
 }
 
 function displayEGCUserId() {
-  const element = $("accountId");
-  if (!element) return;
+    const element = $("accountId");
 
-  element.textContent = getEGCUserId(currentProfile);
+    if (!element) return;
+
+    element.textContent = getEGCUserId(currentProfile);
 }
 
 /* =========================================================
    PROFILE PHOTO URL
-
-   Supports:
-   1. Existing full image URL
-   2. Supabase Storage object path
 ========================================================= */
 
 async function resolvePhotoUrl(photoValue) {
-  if (!photoValue) return "";
+    if (!photoValue) return "";
 
-  const value = String(photoValue).trim();
+    const value = String(photoValue).trim();
 
-  if (!value) return "";
+    if (!value) return "";
 
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
+    if (/^(https?:\/\/|data:image\/)/i.test(value)) {
+        return value;
+    }
 
-  const cleanPath = value.replace(/^\/+/, "");
+    const cleanPath = value.replace(/^\/+/, "");
 
-  const { data, error } = await supabaseClient.storage
-    .from(PHOTO_BUCKET)
-    .createSignedUrl(cleanPath, 60 * 60 * 24 * 7);
+    const { data, error } = await supabaseClient.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(cleanPath, 60 * 60 * 24 * 7);
 
-  if (error) {
-    console.error("Signed photo URL error:", error.message);
-    return "";
-  }
+    if (error) {
+        console.error("Signed photo URL error:", error.message);
+        return "";
+    }
 
-  return data?.signedUrl || "";
+    return data?.signedUrl || "";
 }
 
 function setImageWithFallback(imageElement, url, name) {
-  if (!imageElement) return;
+    if (!imageElement) return;
 
-  imageElement.onerror = function () {
-    this.onerror = null;
-    this.src = avatarUrl(name);
-  };
+    imageElement.onerror = function () {
+        this.onerror = null;
+        this.src = avatarUrl(name);
+    };
 
-  imageElement.src = url || avatarUrl(name);
+    imageElement.src = url || avatarUrl(name);
 }
 
 async function refreshProfilePhotos() {
-  const name =
-    currentProfile?.full_name ||
-    currentUser?.user_metadata?.full_name ||
-    "EGC Customer";
+    const name =
+        currentProfile?.full_name ||
+        currentUser?.user_metadata?.full_name ||
+        "EGC Customer";
 
-  const storedPhoto = currentProfile?.profile_photo || "";
-  const resolvedUrl = await resolvePhotoUrl(storedPhoto);
+    const storedPhoto = currentProfile?.profile_photo || "";
+    const resolvedUrl = await resolvePhotoUrl(storedPhoto);
 
-  setImageWithFallback($("profilePhoto"), resolvedUrl, name);
-  setImageWithFallback($("topPhoto"), resolvedUrl, name);
+    setImageWithFallback($("profilePhoto"), resolvedUrl, name);
+    setImageWithFallback($("topPhoto"), resolvedUrl, name);
 }
 
 /* =========================================================
@@ -454,134 +481,650 @@ async function refreshProfilePhotos() {
 ========================================================= */
 
 async function loadProfile() {
-  if (!currentUser?.id) return;
+    if (!currentUser?.id) return;
 
-  const result = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+    const result = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", currentUser.id)
+        .maybeSingle();
 
-  if (result.error) {
-    console.error("Profile load error:", result.error);
+    if (result.error) {
+        console.error("Profile load error:", result.error);
 
-    showMessage(
-      "Unable to load profile: " + result.error.message,
-      "error"
-    );
+        showMessage(
+            "Unable to load profile: " + result.error.message,
+            "error"
+        );
 
-    return;
-  }
-
-  currentProfile = result.data || null;
-
-  /*
-    Create a profile row if one does not exist.
-    This assumes the profiles table permits authenticated
-    users to insert their own row through its RLS policies.
-  */
-
-  if (!currentProfile) {
-    const newProfile = {
-      id: currentUser.id,
-      full_name: currentUser.user_metadata?.full_name || "",
-      mobile: currentUser.user_metadata?.mobile || null,
-      email: currentUser.email || null
-    };
-
-    const insertResult = await supabaseClient
-      .from("profiles")
-      .insert(newProfile)
-      .select("*")
-      .maybeSingle();
-
-    if (insertResult.error) {
-      console.error("Profile create error:", insertResult.error);
-
-      currentProfile = newProfile;
-
-      showMessage(
-        "Profile could not be created in the database: " +
-        insertResult.error.message,
-        "error"
-      );
-    } else {
-      currentProfile = insertResult.data || newProfile;
+        return;
     }
-  }
 
-  const name =
-    currentProfile?.full_name ||
-    currentUser.user_metadata?.full_name ||
-    "EGC Customer";
+    currentProfile = result.data || null;
 
-  const email =
-    currentProfile?.email ||
-    currentUser.email ||
-    "";
+    /* Create a profile row if one does not exist. */
 
-  const mobile =
-    currentProfile?.mobile ||
-    currentUser.user_metadata?.mobile ||
-    "";
+    if (!currentProfile) {
+        const newProfile = {
+            id: currentUser.id,
+            full_name: currentUser.user_metadata?.full_name || "",
+            mobile: currentUser.user_metadata?.mobile || null,
+            email: currentUser.email || null
+        };
 
-  if ($("fullName")) {
-    $("fullName").value =
-      name === "EGC Customer" ? "" : name;
-  }
+        const insertResult = await supabaseClient
+            .from("profiles")
+            .insert(newProfile)
+            .select("*")
+            .maybeSingle();
 
-  if ($("mobile")) {
-    $("mobile").value = mobile;
-  }
+        if (insertResult.error) {
+            console.error(
+                "Profile create error:",
+                insertResult.error
+            );
 
-  if ($("email")) {
-    $("email").value = email;
-  }
+            currentProfile = newProfile;
 
-  if ($("profileNameLarge")) {
-    $("profileNameLarge").textContent = name;
-  }
+            showMessage(
+                "Profile could not be created in the database: " +
+                insertResult.error.message,
+                "error"
+            );
 
-  if ($("profileEmailLarge")) {
-    $("profileEmailLarge").textContent =
-      email || "No email available";
-  }
+        } else {
+            currentProfile = insertResult.data || newProfile;
+        }
+    }
 
-  if ($("topName")) {
-    $("topName").textContent = name;
-  }
+    const name =
+        currentProfile?.full_name ||
+        currentUser.user_metadata?.full_name ||
+        "EGC Customer";
 
-  if ($("topEmail")) {
-    $("topEmail").textContent =
-      email || "No email available";
-  }
+    const email =
+        currentProfile?.email ||
+        currentUser.email ||
+        "";
 
-  displayEGCUserId();
+    const mobile =
+        currentProfile?.mobile ||
+        currentUser.user_metadata?.mobile ||
+        "";
 
-  if ($("accountCreated")) {
-    $("accountCreated").textContent = formatDate(
-      currentUser.created_at || currentProfile?.created_at
+    if ($("fullName")) {
+        $("fullName").value =
+            name === "EGC Customer" ? "" : name;
+    }
+
+    if ($("mobile")) {
+        $("mobile").value = mobile;
+    }
+
+    if ($("email")) {
+        $("email").value = email;
+    }
+
+    if ($("profileNameLarge")) {
+        $("profileNameLarge").textContent = name;
+    }
+
+    if ($("profileEmailLarge")) {
+        $("profileEmailLarge").textContent =
+            email || "No email available";
+    }
+
+    if ($("topName")) {
+        $("topName").textContent = name;
+    }
+
+    if ($("topEmail")) {
+        $("topEmail").textContent =
+            email || "No email available";
+    }
+
+    displayEGCUserId();
+
+    if ($("accountCreated")) {
+        $("accountCreated").textContent = formatDate(
+            currentUser.created_at || currentProfile?.created_at
+        );
+    }
+
+    if ($("accountEmail")) {
+        $("accountEmail").textContent = email || "—";
+    }
+
+    if ($("authReference")) {
+        $("authReference").textContent =
+            currentUser.id
+                ? currentUser.id.substring(0, 8) + "..."
+                : "—";
+    }
+
+    await refreshProfilePhotos();
+}
+
+/* =========================================================
+   REQUEST OWNER APPROVAL
+========================================================= */
+
+function getOwnerApproval(request) {
+    return normalizeStatus(
+        getFirstValue(request, [
+            "owner_approval",
+            "owner_status",
+            "approval_status"
+        ]) || "pending"
     );
-  }
+}
 
-  if ($("accountEmail")) {
-    $("accountEmail").textContent = email || "—";
-  }
+function isRequestCancelled(request) {
+    const status = normalizeStatus(
+        getFirstValue(request, [
+            "status",
+            "request_status"
+        ]) || ""
+    );
 
-  /*
-    Optional element:
-    If the HTML has an element with id="authReference",
-    show the shortened Auth UUID separately from the EGC User ID.
-  */
+    const approval = getOwnerApproval(request);
 
-  if ($("authReference")) {
-    $("authReference").textContent =
-      currentUser.id
-        ? currentUser.id.substring(0, 8) + "..."
-        : "—";
-  }
+    return [
+        "cancelled",
+        "canceled",
+        "rejected",
+        "declined"
+    ].includes(status) ||
+    [
+        "rejected",
+        "declined"
+    ].includes(approval);
+}
 
-  await refreshProfilePhotos();
+function isRequestApproved(request) {
+    if (!request) return false;
+
+    return [
+        "approved",
+        "approve",
+        "accepted"
+    ].includes(getOwnerApproval(request));
+}
+
+/* =========================================================
+   REQUEST AMOUNT
+========================================================= */
+
+function getRequestTotal(request) {
+    const value = Number(
+        getFirstValue(request, [
+            "total_amount",
+            "total_payable",
+            "total_price",
+            "request_amount",
+            "cylinder_amount",
+            "amount"
+        ]) || 890
+    );
+
+    return Number.isFinite(value) && value > 0
+        ? value
+        : 890;
+}
+
+/* =========================================================
+   PAYMENT VERIFICATION
+
+   Only successful AND Owner-approved payments count.
+========================================================= */
+
+function getPaymentState(payment) {
+    const paymentStatus = normalizeStatus(
+        getFirstValue(payment, [
+            "payment_status",
+            "status"
+        ]) || ""
+    );
+
+    const approval = normalizeStatus(
+        getFirstValue(payment, [
+            "verification_status",
+            "owner_approval",
+            "approval_status"
+        ]) || "pending"
+    );
+
+    const rejectedStatuses = [
+        "rejected",
+        "declined",
+        "failed",
+        "cancelled",
+        "canceled"
+    ];
+
+    if (
+        rejectedStatuses.includes(paymentStatus) ||
+        rejectedStatuses.includes(approval)
+    ) {
+        return { key: "rejected" };
+    }
+
+    const paymentSuccessful = [
+        "paid",
+        "success",
+        "successful",
+        "completed"
+    ].includes(paymentStatus);
+
+    const ownerApproved = [
+        "approved",
+        "approve",
+        "verified",
+        "accepted"
+    ].includes(approval);
+
+    if (paymentSuccessful && ownerApproved) {
+        return { key: "approved" };
+    }
+
+    const pendingStatuses = [
+        "pending",
+        "processing",
+        "under_review",
+        "submitted",
+        "initiated",
+        "verification_pending"
+    ];
+
+    if (
+        pendingStatuses.includes(paymentStatus) ||
+        pendingStatuses.includes(approval) ||
+        paymentSuccessful ||
+        ownerApproved
+    ) {
+        return { key: "pending" };
+    }
+
+    return { key: "unknown" };
+}
+
+/* =========================================================
+   LINK PAYMENT TO REQUEST
+========================================================= */
+
+function getPaymentRequestId(payment) {
+    return String(
+        getFirstValue(payment, [
+            "request_id",
+            "cylinder_request_id"
+        ]) || ""
+    );
+}
+
+function getVerifiedPaymentsForRequest(requestId) {
+    if (!requestId) return 0;
+
+    return currentPayments.reduce(function (total, payment) {
+        if (
+            getPaymentRequestId(payment) !== String(requestId)
+        ) {
+            return total;
+        }
+
+        if (getPaymentState(payment).key !== "approved") {
+            return total;
+        }
+
+        const amount = Number(
+            getFirstValue(payment, [
+                "amount",
+                "paid_amount",
+                "payment_amount"
+            ]) || 0
+        );
+
+        return total + (
+            Number.isFinite(amount) && amount > 0
+                ? amount
+                : 0
+        );
+    }, 0);
+}
+
+/* =========================================================
+   DELIVERY DATE AND EXTRA CHARGE
+
+   Current Dashboard slabs:
+   1-10 days  = ₹35
+   11-15 days = ₹40
+   16-45 days = ₹50
+   46+ days   = ₹100
+========================================================= */
+
+function getDeliveryDate(request) {
+    const value = getFirstValue(request, [
+        "delivery_date",
+        "delivered_at",
+        "delivery_completed_at",
+        "actual_delivery_date",
+        "date_of_delivery",
+        "delivered_on"
+    ]);
+
+    if (!value) return null;
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? null
+        : date;
+}
+
+function getDeliveryDayCount(request) {
+    const deliveryDate = getDeliveryDate(request);
+
+    if (!deliveryDate) return 0;
+
+    const today = new Date();
+
+    const start = new Date(
+        deliveryDate.getFullYear(),
+        deliveryDate.getMonth(),
+        deliveryDate.getDate()
+    );
+
+    const end = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+    );
+
+    const difference = Math.floor(
+        (end.getTime() - start.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    return Math.max(1, difference + 1);
+}
+
+function calculateTierExtraCharge(days) {
+    if (days <= 0) return 0;
+    if (days <= 10) return 35;
+    if (days <= 15) return 40;
+    if (days <= 45) return 50;
+
+    return 100;
+}
+
+function getRequestExtraCharge(request) {
+    if (!request || !isRequestApproved(request)) {
+        return 0;
+    }
+
+    if (!getDeliveryDate(request)) {
+        return 0;
+    }
+
+    const savedCharge = Number(
+        getFirstValue(request, [
+            "extra_charge",
+            "late_charge",
+            "penalty_amount"
+        ]) || 0
+    );
+
+    if (savedCharge > 0) {
+        return savedCharge;
+    }
+
+    return calculateTierExtraCharge(
+        getDeliveryDayCount(request)
+    );
+}
+
+/* =========================================================
+   REQUEST FINANCIALS
+========================================================= */
+
+function getRequestFinancials(request) {
+    const baseAmount = getRequestTotal(request);
+    const extraCharge = getRequestExtraCharge(request);
+    const totalPayable = baseAmount + extraCharge;
+
+    const requestId = getFirstValue(request, [
+        "id",
+        "request_id"
+    ]);
+
+    const verifiedPaid =
+        getVerifiedPaymentsForRequest(requestId);
+
+    const remaining = Math.max(
+        0,
+        totalPayable - verifiedPaid
+    );
+
+    return {
+        baseAmount,
+        extraCharge,
+        totalPayable,
+        verifiedPaid,
+        remaining
+    };
+}
+
+function isRequestFullyPaid(request) {
+    if (!request || !isRequestApproved(request)) {
+        return false;
+    }
+
+    const financials = getRequestFinancials(request);
+
+    return (
+        financials.totalPayable > 0 &&
+        financials.remaining <= 0
+    );
+}
+
+/* =========================================================
+   LATEST ACTIVE REQUEST
+========================================================= */
+
+function getLatestRequest() {
+    const sorted = [...currentRequests].sort(function (a, b) {
+        const dateA = new Date(
+            getFirstValue(a, [
+                "updated_at",
+                "created_at",
+                "request_date"
+            ]) || 0
+        ).getTime();
+
+        const dateB = new Date(
+            getFirstValue(b, [
+                "updated_at",
+                "created_at",
+                "request_date"
+            ]) || 0
+        ).getTime();
+
+        return dateB - dateA;
+    });
+
+    return (
+        sorted.find(request => !isRequestCancelled(request)) ||
+        sorted[0] ||
+        null
+    );
+}
+
+/* =========================================================
+   REQUEST CYLINDER BUTTON STATE
+
+   Same navigation state as Dashboard.
+========================================================= */
+
+function getRequestNavigationState(request) {
+    if (!request || isRequestCancelled(request)) {
+        return {
+            state: "new_request",
+            label: "+ REQUEST CYLINDER",
+            note: "Start a new cylinder request."
+        };
+    }
+
+    if (!isRequestApproved(request)) {
+        return {
+            state: "approval_pending",
+            label: "REQUEST PENDING",
+            note: "Your request is waiting for Owner approval."
+        };
+    }
+
+    const requestId = String(
+        getFirstValue(request, [
+            "id",
+            "request_id"
+        ]) || ""
+    );
+
+    const hasPendingPayment = currentPayments.some(
+        function (payment) {
+            if (getPaymentRequestId(payment) !== requestId) {
+                return false;
+            }
+
+            return getPaymentState(payment).key === "pending";
+        }
+    );
+
+    if (hasPendingPayment) {
+        return {
+            state: "payment_pending",
+            label: "PAYMENT VERIFICATION PENDING",
+            note: "Your payment is awaiting Owner verification."
+        };
+    }
+
+    if (isRequestFullyPaid(request)) {
+        return {
+            state: "fully_paid",
+            label: "+ REQUEST NEW CYLINDER",
+            note: "Your previous request is fully paid."
+        };
+    }
+
+    return {
+        state: "payment_due",
+        label: "CONTINUE PAYMENT",
+        note: "Your request is approved. Continue with payment."
+    };
+}
+
+/* =========================================================
+   UPDATE OPTIONAL REQUEST BUTTON
+
+   Optional HTML IDs:
+   requestCylinderBtn
+   requestCylinderNote
+========================================================= */
+
+function updateRequestButton() {
+    const button = $("requestCylinderBtn");
+    const note = $("requestCylinderNote");
+
+    if (requestDataError) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = "STATUS UNAVAILABLE";
+        }
+
+        if (note) {
+            note.textContent =
+                "Unable to verify your request status. Please refresh the page.";
+        }
+
+        return;
+    }
+
+    const state = getRequestNavigationState(
+        getLatestRequest()
+    );
+
+    if (button) {
+        button.textContent = state.label;
+        button.disabled = false;
+        button.dataset.requestState = state.state;
+    }
+
+    if (note) {
+        note.textContent = state.note;
+    }
+}
+
+/* =========================================================
+   LOAD REQUESTS
+========================================================= */
+
+async function loadRequests() {
+    const result = await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", {
+            ascending: false
+        });
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    currentRequests = result.data || [];
+}
+
+/* =========================================================
+   LOAD PAYMENTS
+========================================================= */
+
+async function loadPayments() {
+    const result = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", {
+            ascending: false
+        });
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    currentPayments = result.data || [];
+}
+
+/* =========================================================
+   REFRESH REQUEST STATUS
+========================================================= */
+
+async function refreshRequestNavigation() {
+    requestDataError = false;
+
+    try {
+        await Promise.all([
+            loadRequests(),
+            loadPayments()
+        ]);
+
+    } catch (error) {
+        requestDataError = true;
+
+        console.error(
+            "Request eligibility load error:",
+            error
+        );
+    }
+
+    updateRequestButton();
 }
 
 /* =========================================================
@@ -589,114 +1132,132 @@ async function loadProfile() {
 ========================================================= */
 
 async function saveProfile() {
-  if (!currentUser?.id) {
-    showMessage("Please sign in again.", "error");
-    return;
-  }
-
-  clearMessage();
-
-  const button = $("saveBtn");
-  const nameInput = $("fullName");
-  const mobileInput = $("mobile");
-
-  if (!nameInput || !mobileInput) {
-    showMessage("Profile form fields are missing from the page.", "error");
-    return;
-  }
-
-  const fullName = nameInput.value.trim();
-  const mobile = mobileInput.value.trim();
-
-  if (!fullName) {
-    showMessage("Please enter your full name.", "error");
-    nameInput.focus();
-    return;
-  }
-
-  if (mobile) {
-    const cleanMobile = mobile.replace(/\D/g, "");
-
-    if (cleanMobile.length < 10 || cleanMobile.length > 15) {
-      showMessage("Please enter a valid mobile number.", "error");
-      mobileInput.focus();
-      return;
-    }
-  }
-
-  if (button) {
-    button.disabled = true;
-    button.textContent = "SAVING...";
-  }
-
-  try {
-    const updateData = {
-      full_name: fullName,
-      mobile: mobile || null,
-      updated_at: new Date().toISOString()
-    };
-
-    const result = await supabaseClient
-      .from("profiles")
-      .update(updateData)
-      .eq("id", currentUser.id)
-      .select("*")
-      .maybeSingle();
-
-    if (result.error) {
-      console.error("Profile update error:", result.error);
-
-      showMessage(
-        "Unable to update profile: " + result.error.message,
-        "error"
-      );
-
-      return;
+    if (!currentUser?.id) {
+        showMessage("Please sign in again.", "error");
+        return;
     }
 
-    if (!result.data) {
-      showMessage(
-        "No profile row was updated. Check your profiles table and RLS policies.",
-        "error"
-      );
+    clearMessage();
 
-      return;
+    const button = $("saveBtn");
+    const nameInput = $("fullName");
+    const mobileInput = $("mobile");
+
+    if (!nameInput || !mobileInput) {
+        showMessage(
+            "Profile form fields are missing from the page.",
+            "error"
+        );
+        return;
     }
 
-    currentProfile = {
-      ...currentProfile,
-      ...result.data
-    };
+    const fullName = nameInput.value.trim();
+    const mobile = mobileInput.value.trim();
 
-    if ($("profileNameLarge")) {
-      $("profileNameLarge").textContent = fullName;
+    if (!fullName) {
+        showMessage("Please enter your full name.", "error");
+        nameInput.focus();
+        return;
     }
 
-    if ($("topName")) {
-      $("topName").textContent = fullName;
+    if (mobile) {
+        const cleanMobile = mobile.replace(/\D/g, "");
+
+        if (
+            cleanMobile.length < 10 ||
+            cleanMobile.length > 15
+        ) {
+            showMessage(
+                "Please enter a valid mobile number.",
+                "error"
+            );
+
+            mobileInput.focus();
+            return;
+        }
     }
 
-    displayEGCUserId();
-
-    await refreshProfilePhotos();
-
-    showMessage("✓ Profile updated successfully.", "success");
-    toast("Profile updated successfully.");
-
-  } catch (error) {
-    console.error("Save profile exception:", error);
-
-    showMessage(
-      error.message || "Unable to update profile.",
-      "error"
-    );
-
-  } finally {
     if (button) {
-      button.disabled = false;
-      button.textContent = "SAVE PROFILE";
+        button.disabled = true;
+        button.textContent = "SAVING...";
     }
-  }
+
+    try {
+        const updateData = {
+            full_name: fullName,
+            mobile: mobile || null,
+            updated_at: new Date().toISOString()
+        };
+
+        const result = await supabaseClient
+            .from("profiles")
+            .update(updateData)
+            .eq("id", currentUser.id)
+            .select("*")
+            .maybeSingle();
+
+        if (result.error) {
+            console.error(
+                "Profile update error:",
+                result.error
+            );
+
+            showMessage(
+                "Unable to update profile: " +
+                result.error.message,
+                "error"
+            );
+
+            return;
+        }
+
+        if (!result.data) {
+            showMessage(
+                "No profile row was updated. Check your profiles table and RLS policies.",
+                "error"
+            );
+
+            return;
+        }
+
+        currentProfile = {
+            ...currentProfile,
+            ...result.data
+        };
+
+        if ($("profileNameLarge")) {
+            $("profileNameLarge").textContent = fullName;
+        }
+
+        if ($("topName")) {
+            $("topName").textContent = fullName;
+        }
+
+        displayEGCUserId();
+
+        await refreshProfilePhotos();
+
+        showMessage(
+            "✓ Profile updated successfully.",
+            "success"
+        );
+
+        toast("Profile updated successfully.");
+
+    } catch (error) {
+        console.error("Save profile exception:", error);
+
+        showMessage(
+            error.message || "Unable to update profile.",
+            "error"
+        );
+
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = "SAVE PROFILE";
+        }
+    }
 }
 
 /* =========================================================
@@ -704,40 +1265,44 @@ async function saveProfile() {
 ========================================================= */
 
 function choosePhoto() {
-  const input = $("photoInput");
+    const input = $("photoInput");
 
-  if (input) {
-    input.click();
-  }
+    if (input) {
+        input.click();
+    }
 }
 
 const photoInput = $("photoInput");
 
 if (photoInput) {
-  photoInput.addEventListener("change", async function (event) {
-    const file = event.target.files?.[0];
+    photoInput.addEventListener("change", async function (event) {
+        const file = event.target.files?.[0];
 
-    if (!file) return;
+        if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      showMessage("Please select an image file.", "error");
-      event.target.value = "";
-      return;
-    }
+        if (!file.type.startsWith("image/")) {
+            showMessage(
+                "Please select an image file.",
+                "error"
+            );
 
-    if (file.size > 5 * 1024 * 1024) {
-      showMessage(
-        "Profile photo must be smaller than 5 MB.",
-        "error"
-      );
+            event.target.value = "";
+            return;
+        }
 
-      event.target.value = "";
-      return;
-    }
+        if (file.size > 5 * 1024 * 1024) {
+            showMessage(
+                "Profile photo must be smaller than 5 MB.",
+                "error"
+            );
 
-    await uploadProfilePhoto(file);
-    event.target.value = "";
-  });
+            event.target.value = "";
+            return;
+        }
+
+        await uploadProfilePhoto(file);
+        event.target.value = "";
+    });
 }
 
 /* =========================================================
@@ -745,122 +1310,124 @@ if (photoInput) {
 ========================================================= */
 
 async function uploadProfilePhoto(file) {
-  if (!currentUser?.id) {
-    showMessage(
-      "Please sign in again before uploading a photo.",
-      "error"
-    );
-
-    return;
-  }
-
-  clearMessage();
-  toast("Uploading profile photo...");
-
-  let uploadedFilePath = null;
-
-  try {
-    const extensionFromName =
-      file.name?.split(".").pop()?.toLowerCase();
-
-    const allowedExtensions = [
-      "jpg", "jpeg", "png", "webp", "gif"
-    ];
-
-    const extension = allowedExtensions.includes(extensionFromName)
-      ? extensionFromName
-      : (
-          file.type === "image/png" ? "png" :
-          file.type === "image/webp" ? "webp" :
-          file.type === "image/gif" ? "gif" :
-          "jpg"
+    if (!currentUser?.id) {
+        showMessage(
+            "Please sign in again before uploading a photo.",
+            "error"
         );
 
-    const filePath =
-      currentUser.id +
-      "/profile-" +
-      Date.now() +
-      "." +
-      extension;
-
-    const uploadResult = await supabaseClient.storage
-      .from(PHOTO_BUCKET)
-      .upload(filePath, file, {
-        upsert: false,
-        contentType: file.type || "image/jpeg",
-        cacheControl: "3600"
-      });
-
-    if (uploadResult.error) {
-      console.error("Photo upload error:", uploadResult.error);
-
-      showMessage(
-        "Photo upload failed: " + uploadResult.error.message,
-        "error"
-      );
-
-      return;
+        return;
     }
 
-    uploadedFilePath = filePath;
+    clearMessage();
+    toast("Uploading profile photo...");
 
-    const updateResult = await supabaseClient
-      .from("profiles")
-      .update({
-        profile_photo: filePath,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", currentUser.id)
-      .select("*")
-      .maybeSingle();
+    try {
+        const extensionFromName =
+            file.name?.split(".").pop()?.toLowerCase();
 
-    if (updateResult.error) {
-      console.error(
-        "Photo profile update error:",
-        updateResult.error
-      );
+        const allowedExtensions = [
+            "jpg", "jpeg", "png", "webp", "gif"
+        ];
 
-      showMessage(
-        "Photo uploaded, but the profile database could not be updated: " +
-        updateResult.error.message,
-        "error"
-      );
+        const extension = allowedExtensions.includes(
+            extensionFromName
+        )
+            ? extensionFromName
+            : (
+                file.type === "image/png" ? "png" :
+                file.type === "image/webp" ? "webp" :
+                file.type === "image/gif" ? "gif" :
+                "jpg"
+            );
 
-      return;
+        const filePath =
+            currentUser.id +
+            "/profile-" +
+            Date.now() +
+            "." +
+            extension;
+
+        const uploadResult = await supabaseClient.storage
+            .from(PHOTO_BUCKET)
+            .upload(filePath, file, {
+                upsert: false,
+                contentType: file.type || "image/jpeg",
+                cacheControl: "3600"
+            });
+
+        if (uploadResult.error) {
+            console.error(
+                "Photo upload error:",
+                uploadResult.error
+            );
+
+            showMessage(
+                "Photo upload failed: " +
+                uploadResult.error.message,
+                "error"
+            );
+
+            return;
+        }
+
+        const updateResult = await supabaseClient
+            .from("profiles")
+            .update({
+                profile_photo: filePath,
+                updated_at: new Date().toISOString()
+            })
+            .eq("id", currentUser.id)
+            .select("*")
+            .maybeSingle();
+
+        if (updateResult.error) {
+            console.error(
+                "Photo profile update error:",
+                updateResult.error
+            );
+
+            showMessage(
+                "Photo uploaded, but the profile database could not be updated: " +
+                updateResult.error.message,
+                "error"
+            );
+
+            return;
+        }
+
+        if (!updateResult.data) {
+            showMessage(
+                "Photo uploaded, but no profile row was updated. Check profiles RLS policies.",
+                "error"
+            );
+
+            return;
+        }
+
+        currentProfile = {
+            ...currentProfile,
+            ...updateResult.data,
+            profile_photo: filePath
+        };
+
+        await refreshProfilePhotos();
+
+        showMessage(
+            "✓ Profile photo uploaded and saved successfully.",
+            "success"
+        );
+
+        toast("Profile photo updated.");
+
+    } catch (error) {
+        console.error("Photo upload exception:", error);
+
+        showMessage(
+            error.message || "Unable to upload profile photo.",
+            "error"
+        );
     }
-
-    if (!updateResult.data) {
-      showMessage(
-        "Photo uploaded, but no profile row was updated. Check profiles RLS policies.",
-        "error"
-      );
-
-      return;
-    }
-
-    currentProfile = {
-      ...currentProfile,
-      ...updateResult.data,
-      profile_photo: filePath
-    };
-
-    await refreshProfilePhotos();
-
-    showMessage(
-      "✓ Profile photo uploaded and saved successfully.",
-      "success"
-    );
-
-    toast("Profile photo updated.");
-
-  } catch (error) {
-    console.error("Photo upload exception:", error);
-
-    showMessage(
-      error.message || "Unable to upload profile photo.",
-      "error"
-    );
-  }
 }
 
 /* =========================================================
@@ -868,181 +1435,181 @@ async function uploadProfilePhoto(file) {
 ========================================================= */
 
 async function openCamera() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    showMessage(
-      "Camera is not supported. Try HTTPS or localhost.",
-      "error"
-    );
+    if (!navigator.mediaDevices?.getUserMedia) {
+        showMessage(
+            "Camera is not supported. Try HTTPS or localhost.",
+            "error"
+        );
 
-    return;
-  }
+        return;
+    }
 
-  currentCameraFacing = "user";
-  await startCamera();
+    currentCameraFacing = "user";
+    await startCamera();
 }
 
 async function startCamera() {
-  closeCamera();
+    closeCamera();
 
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: {
-          ideal: currentCameraFacing
-        },
-        width: {
-          ideal: 1280
-        },
-        height: {
-          ideal: 1280
-        }
-      },
-      audio: false
-    });
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: {
+                    ideal: currentCameraFacing
+                },
+                width: {
+                    ideal: 1280
+                },
+                height: {
+                    ideal: 1280
+                }
+            },
+            audio: false
+        });
 
-    createCameraModal();
+        createCameraModal();
 
-  } catch (error) {
-    console.error("Camera error:", error);
+    } catch (error) {
+        console.error("Camera error:", error);
 
-    showMessage(
-      "Camera permission was denied or the camera could not be opened.",
-      "error"
-    );
-  }
+        showMessage(
+            "Camera permission was denied or the camera could not be opened.",
+            "error"
+        );
+    }
 }
 
 function createCameraModal() {
-  const modal = document.createElement("div");
-  modal.id = "cameraModal";
-  modal.className = "camera-overlay";
+    const modal = document.createElement("div");
+    modal.id = "cameraModal";
+    modal.className = "camera-overlay";
 
-  const card = document.createElement("div");
-  card.className = "camera-card";
+    const card = document.createElement("div");
+    card.className = "camera-card";
 
-  const title = document.createElement("div");
-  title.className = "camera-title";
-  title.textContent = "Take Profile Photo";
+    const title = document.createElement("div");
+    title.className = "camera-title";
+    title.textContent = "Take Profile Photo";
 
-  const video = document.createElement("video");
-  video.className = "camera-video";
-  video.autoplay = true;
-  video.playsInline = true;
-  video.muted = true;
-  video.srcObject = cameraStream;
+    const video = document.createElement("video");
+    video.className = "camera-video";
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.srcObject = cameraStream;
 
-  const controls = document.createElement("div");
-  controls.className = "camera-controls";
+    const controls = document.createElement("div");
+    controls.className = "camera-controls";
 
-  const cancel = document.createElement("button");
-  cancel.type = "button";
-  cancel.className = "camera-action camera-cancel";
-  cancel.textContent = "Cancel";
-  cancel.addEventListener("click", closeCamera);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "camera-action camera-cancel";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeCamera);
 
-  const capture = document.createElement("button");
-  capture.type = "button";
-  capture.className = "camera-action camera-capture";
-  capture.textContent = "📷 Capture";
+    const capture = document.createElement("button");
+    capture.type = "button";
+    capture.className = "camera-action camera-capture";
+    capture.textContent = "📷 Capture";
 
-  const switchCamera = document.createElement("button");
-  switchCamera.type = "button";
-  switchCamera.className = "camera-switch";
-  switchCamera.textContent = "🔄 Switch Camera";
+    const switchCamera = document.createElement("button");
+    switchCamera.type = "button";
+    switchCamera.className = "camera-switch";
+    switchCamera.textContent = "🔄 Switch Camera";
 
-  const hint = document.createElement("div");
-  hint.className = "camera-hint";
-  hint.textContent =
-    currentCameraFacing === "user"
-      ? "Front camera"
-      : "Back camera";
+    const hint = document.createElement("div");
+    hint.className = "camera-hint";
+    hint.textContent =
+        currentCameraFacing === "user"
+            ? "Front camera"
+            : "Back camera";
 
-  controls.append(cancel, capture);
-  card.append(title, video, controls, switchCamera, hint);
-  modal.appendChild(card);
-  document.body.appendChild(modal);
+    controls.append(cancel, capture);
+    card.append(title, video, controls, switchCamera, hint);
+    modal.appendChild(card);
+    document.body.appendChild(modal);
 
-  switchCamera.addEventListener("click", async () => {
-    currentCameraFacing =
-      currentCameraFacing === "user"
-        ? "environment"
-        : "user";
+    switchCamera.addEventListener("click", async function () {
+        currentCameraFacing =
+            currentCameraFacing === "user"
+                ? "environment"
+                : "user";
 
-    await startCamera();
-  });
+        await startCamera();
+    });
 
-  capture.addEventListener("click", async () => {
-    if (!video.videoWidth || !video.videoHeight) {
-      toast("Camera is still starting...");
-      return;
-    }
+    capture.addEventListener("click", async function () {
+        if (!video.videoWidth || !video.videoHeight) {
+            toast("Camera is still starting...");
+            return;
+        }
 
-    capture.disabled = true;
-    capture.textContent = "Capturing...";
+        capture.disabled = true;
+        capture.textContent = "Capturing...";
 
-    const canvas = document.createElement("canvas");
-    const maxSize = 1200;
+        const canvas = document.createElement("canvas");
+        const maxSize = 1200;
 
-    let width = video.videoWidth;
-    let height = video.videoHeight;
+        let width = video.videoWidth;
+        let height = video.videoHeight;
 
-    if (width > maxSize) {
-      height = Math.round(height * maxSize / width);
-      width = maxSize;
-    }
+        if (width > maxSize) {
+            height = Math.round(height * maxSize / width);
+            width = maxSize;
+        }
 
-    canvas.width = width;
-    canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
 
-    const context = canvas.getContext("2d");
+        const context = canvas.getContext("2d");
 
-    if (!context) {
-      capture.disabled = false;
-      capture.textContent = "📷 Capture";
-      toast("Unable to capture photo.");
-      return;
-    }
+        if (!context) {
+            capture.disabled = false;
+            capture.textContent = "📷 Capture";
+            toast("Unable to capture photo.");
+            return;
+        }
 
-    if (currentCameraFacing === "user") {
-      context.translate(width, 0);
-      context.scale(-1, 1);
-    }
+        if (currentCameraFacing === "user") {
+            context.translate(width, 0);
+            context.scale(-1, 1);
+        }
 
-    context.drawImage(video, 0, 0, width, height);
+        context.drawImage(video, 0, 0, width, height);
 
-    canvas.toBlob(async blob => {
-      if (!blob) {
-        capture.disabled = false;
-        capture.textContent = "📷 Capture";
-        toast("Unable to capture photo.");
-        return;
-      }
+        canvas.toBlob(async function (blob) {
+            if (!blob) {
+                capture.disabled = false;
+                capture.textContent = "📷 Capture";
+                toast("Unable to capture photo.");
+                return;
+            }
 
-      closeCamera();
+            closeCamera();
 
-      const file = new File(
-        [blob],
-        "profile-camera.jpg",
-        { type: "image/jpeg" }
-      );
+            const file = new File(
+                [blob],
+                "profile-camera.jpg",
+                { type: "image/jpeg" }
+            );
 
-      await uploadProfilePhoto(file);
+            await uploadProfilePhoto(file);
 
-    }, "image/jpeg", 0.9);
-  });
+        }, "image/jpeg", 0.9);
+    });
 }
 
 function closeCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
 
-  const modal = $("cameraModal");
+    const modal = $("cameraModal");
 
-  if (modal) {
-    modal.remove();
-  }
+    if (modal) {
+        modal.remove();
+    }
 }
 
 /* =========================================================
@@ -1050,31 +1617,118 @@ function closeCamera() {
 ========================================================= */
 
 function changeMPIN() {
-  window.location.href = "forgot-mpin.html";
+    window.location.href = "forgot-mpin.html";
 }
 
 function goDashboard() {
-  window.location.href = "dashboard.html";
+    window.location.href = "dashboard.html";
 }
 
 function goRequests() {
-  window.location.href = "my-requests.html";
+    window.location.href = "my-requests.html";
 }
 
 function goPayments() {
-  window.location.href = "payments.html";
+    window.location.href = "payments.html";
 }
 
 function goNotifications() {
-  window.location.href = "notifications.html";
+    window.location.href = "notifications.html";
 }
 
-function requestCylinder() {
-  window.location.href = "request-cylinder.html";
+/* =========================================================
+   REQUEST CYLINDER — SAME AS DASHBOARD
+
+   New/cancelled/fully-paid:
+       request-cylinder.html
+
+   Owner approval pending:
+       request-status.html
+
+   Payment verification pending:
+       request-status.html
+
+   Approved but payment due:
+       submit-payment.html
+========================================================= */
+
+async function requestCylinder() {
+    if (!currentUser?.id) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    await refreshRequestNavigation();
+
+    if (requestDataError) {
+        toast(
+            "Unable to verify your request status. Please refresh and try again."
+        );
+
+        return;
+    }
+
+    const request = getLatestRequest();
+
+    const state = getRequestNavigationState(request);
+
+    const requestId = getFirstValue(request, [
+        "id",
+        "request_id"
+    ]);
+
+    if (
+        state.state === "new_request" ||
+        state.state === "fully_paid"
+    ) {
+        window.location.href = "request-cylinder.html";
+        return;
+    }
+
+    if (
+        state.state === "approval_pending" ||
+        state.state === "payment_pending"
+    ) {
+        if (!requestId) {
+            toast(
+                "Request ID not found. Please contact support."
+            );
+
+            return;
+        }
+
+        window.location.href =
+            "request-status.html?request_id=" +
+            encodeURIComponent(requestId);
+
+        return;
+    }
+
+    if (state.state === "payment_due") {
+        if (!requestId) {
+            toast(
+                "Request ID not found. Please contact support."
+            );
+
+            return;
+        }
+
+        window.location.href =
+            "submit-payment.html?request_id=" +
+            encodeURIComponent(requestId);
+
+        return;
+    }
+
+    toast("Unable to determine your request status.");
 }
 
-function showComingSoon(page) {
-  window.location.href = page || "settings.html";
+function goSetting() {
+    window.location.href = "setting.html";
+}
+
+function goHelpSupport() {
+    window.location.href = "help-support.html";
 }
 
 /* =========================================================
@@ -1082,90 +1736,89 @@ function showComingSoon(page) {
 ========================================================= */
 
 function openLogoutPopup() {
-  const overlay = $("logoutOverlay");
+    const overlay = $("logoutOverlay");
 
-  if (!overlay) return;
+    if (!overlay) return;
 
-  overlay.classList.add("show");
-  document.body.style.overflow = "hidden";
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
 }
 
 function closeLogoutPopup(event) {
-  if (
-    event &&
-    event.target &&
-    event.target.id !== "logoutOverlay"
-  ) {
-    return;
-  }
+    if (
+        event &&
+        event.target &&
+        event.target.id !== "logoutOverlay"
+    ) {
+        return;
+    }
 
-  const overlay = $("logoutOverlay");
+    const overlay = $("logoutOverlay");
 
-  if (overlay) {
-    overlay.classList.remove("show");
-  }
+    if (overlay) {
+        overlay.classList.remove("show");
+    }
 
-  document.body.style.overflow = "";
+    document.body.style.overflow = "";
 }
 
 async function confirmLogout() {
-  if (isLoggingOut) return;
+    if (isLoggingOut) return;
 
-  isLoggingOut = true;
+    isLoggingOut = true;
 
-  const button = $("confirmLogoutBtn");
-
-  if (button) {
-    button.disabled = true;
-    button.textContent = "Logging out...";
-  }
-
-  try {
-    closeCamera();
-
-    const result = await supabaseClient.auth.signOut();
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    window.location.replace("login.html");
-
-  } catch (error) {
-    console.error("Logout error:", error);
-
-    isLoggingOut = false;
+    const button = $("confirmLogoutBtn");
 
     if (button) {
-      button.disabled = false;
-      button.textContent = "Logout";
+        button.disabled = true;
+        button.textContent = "Logging out...";
     }
 
-    toast(error.message || "Logout failed.");
-  }
+    try {
+        closeCamera();
+
+        const result = await supabaseClient.auth.signOut();
+
+        if (result.error) {
+            throw result.error;
+        }
+
+        window.location.replace("login.html");
+
+    } catch (error) {
+        console.error("Logout error:", error);
+
+        isLoggingOut = false;
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = "Logout";
+        }
+
+        toast(error.message || "Logout failed.");
+    }
 }
 
 /* =========================================================
    AUTH STATE
 ========================================================= */
 
-const authListenerResult =
-  supabaseClient.auth.onAuthStateChange(event => {
+supabaseClient.auth.onAuthStateChange(function (event) {
     if (event === "SIGNED_OUT" && !isLoggingOut) {
-      closeCamera();
-      window.location.replace("login.html");
+        closeCamera();
+        window.location.replace("login.html");
     }
-  });
+});
 
 /* =========================================================
    ESC KEY
 ========================================================= */
 
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    closeLogoutPopup();
-    closeCamera();
-  }
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+        closeLogoutPopup();
+        closeCamera();
+    }
 });
 
 /* =========================================================
@@ -1173,28 +1826,37 @@ document.addEventListener("keydown", event => {
 ========================================================= */
 
 async function initializeProfile() {
-  try {
-    clearMessage();
+    try {
+        clearMessage();
 
-    const authResult = await supabaseClient.auth.getUser();
+        const authResult = await supabaseClient.auth.getUser();
 
-    if (authResult.error || !authResult.data?.user) {
-      window.location.replace("login.html");
-      return;
+        if (
+            authResult.error ||
+            !authResult.data?.user
+        ) {
+            window.location.replace("login.html");
+            return;
+        }
+
+        currentUser = authResult.data.user;
+
+        await Promise.all([
+            loadProfile(),
+            refreshRequestNavigation()
+        ]);
+
+    } catch (error) {
+        console.error(
+            "Profile initialization error:",
+            error
+        );
+
+        showMessage(
+            error.message || "Unable to load profile.",
+            "error"
+        );
     }
-
-    currentUser = authResult.data.user;
-
-    await loadProfile();
-
-  } catch (error) {
-    console.error("Profile initialization error:", error);
-
-    showMessage(
-      error.message || "Unable to load profile.",
-      "error"
-    );
-  }
 }
 
 /* =========================================================
@@ -1211,7 +1873,8 @@ window.goRequests = goRequests;
 window.goPayments = goPayments;
 window.goNotifications = goNotifications;
 window.requestCylinder = requestCylinder;
-window.showComingSoon = showComingSoon;
+window.goSetting = goSetting;
+window.goHelpSupport = goHelpSupport;
 window.openLogoutPopup = openLogoutPopup;
 window.closeLogoutPopup = closeLogoutPopup;
 window.confirmLogout = confirmLogout;
@@ -1221,13 +1884,13 @@ window.confirmLogout = confirmLogout;
 ========================================================= */
 
 if (document.readyState === "loading") {
-  document.addEventListener(
-    "DOMContentLoaded",
-    initializeProfile,
-    { once: true }
-  );
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeProfile,
+        { once: true }
+    );
 } else {
-  initializeProfile();
+    initializeProfile();
 }
 </script>
 
