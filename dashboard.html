@@ -2479,58 +2479,61 @@ function calculateTierExtraCharge(days) {
 }
 
 function getRequestExtraCharge(request) {
-  if (!request || !isRequestApproved(request)) return 0;
+if (!request || !isRequestApproved(request)) return 0;
 
-  const deliveryDate = getDeliveryDate(request);
+const deliveryDate = getDeliveryDate(request);
 
-  /*
-   * No delivery date = no automatic extra charge.
-   */
-  if (!deliveryDate) return 0;
+// No confirmed delivery date means no extra charge.
+if (!deliveryDate) return 0;
 
-  const saved = firstMoneyValue(request, [
-    "extra_charge",
-    "extra_charges",
-    "late_charge",
-    "additional_charge"
-  ]);
+const days = getDeliveryDayCount(request);
 
-  if (saved !== null) return saved;
+// Prefer a saved charge only when it is greater than zero.
+const saved = firstMoneyValue(request, [
+"extra_charge",
+"extra_charges",
+"late_charge",
+"additional_charge"
+]);
 
-  return calculateTierExtraCharge(getDeliveryDayCount(request));
+if (saved !== null && saved > 0) {
+return saved;
 }
 
+// Calculate the charge when the saved amount is zero or empty.
+return calculateTierExtraCharge(days);
+}
 /* =========================================================
    REQUEST FINANCIALS
 ========================================================= */
 
 function getRequestFinancials(request) {
-  const approved = isRequestApproved(request);
-  const baseAmount = getRequestTotal(request);
+const approved = isRequestApproved(request);
+const baseAmount = getRequestTotal(request);
 
-  if (!approved) {
-    return {
-      approved: false,
-      baseAmount,
-      extraCharge: 0,
-      totalPayable: 0,
-      paidAmount: 0,
-      remainingAmount: 0
-    };
-  }
+if (!approved) {
+return {
+approved: false,
+baseAmount,
+extraCharge: 0,
+totalPayable: 0,
+paidAmount: 0,
+remainingAmount: 0
+};
+}
 
-  const extraCharge = getRequestExtraCharge(request);
-  const totalPayable = baseAmount + extraCharge;
-  const paidAmount = getRequestVerifiedPayments(request.id);
+const extraCharge = getRequestExtraCharge(request);
+const totalPayable = baseAmount + extraCharge;
+const paidAmount = getRequestVerifiedPayments(request.id);
 
-  return {
-    approved: true,
-    baseAmount,
-    extraCharge,
-    totalPayable,
-    paidAmount,
-    remainingAmount: Math.max(0, totalPayable - paidAmount)
-  };
+return {
+approved: true,
+baseAmount,
+extraCharge,
+totalPayable,
+paidAmount,
+remainingAmount: Math.max(0, totalPayable - paidAmount)
+};
 }
 
 function isRequestFullyPaid(request) {
@@ -3083,97 +3086,145 @@ function installStatusStyles() {
 ========================================================= */
 
 function calculatePaymentSummary() {
-  const activeRequests = currentRequests.filter(
-    request => !isRequestCancelled(request)
-  );
+const activeRequests = currentRequests.filter(
+request => !isRequestCancelled(request)
+);
 
-  let baseTotal = 0;
-  let extraTotal = 0;
-  let payableTotal = 0;
-  let paidTotal = 0;
-  let remainingTotal = 0;
+const sortedRequests = [...activeRequests].sort((a, b) => {
+const dateA = new Date(
+a.created_at || a.request_date || a.createdAt || 0
+).getTime() || 0;
 
-  activeRequests.forEach(request => {
-    const financials = getRequestFinancials(request);
+const dateB = new Date(
+  b.created_at || b.request_date || b.createdAt || 0
+).getTime() || 0;
 
-    if (!financials.approved) return;
+return dateB - dateA;
 
-    baseTotal += financials.baseAmount;
-    extraTotal += financials.extraCharge;
-    payableTotal += financials.totalPayable;
-    paidTotal += financials.paidAmount;
-    remainingTotal += financials.remainingAmount;
-  });
+});
 
-  const percentage = payableTotal > 0
-    ? Math.min(100, Math.round((paidTotal / payableTotal) * 100))
-    : 0;
+// Use the latest approved request for the financial summary.
+const currentRequest = sortedRequests.find(
+request => isRequestApproved(request)
+);
 
-  setText("totalAmount", money(baseTotal));
-  setText("extraChargeAmount", money(extraTotal));
-  setText("totalPayableAmount", money(payableTotal));
-  setText("paidAmount", money(paidTotal));
-  setText("remainingAmount", money(remainingTotal));
+let baseTotal = 0;
+let extraTotal = 0;
+let payableTotal = 0;
+let paidTotal = 0;
+let remainingTotal = 0;
 
-  setText("totalPaidStat", money(paidTotal));
-  setText("remainingStat", money(remainingTotal));
+if (currentRequest) {
+const financials = getRequestFinancials(currentRequest);
 
-  const progress = $("payProgressBar");
+baseTotal = Number(financials.baseAmount) || 0;
+extraTotal = Number(financials.extraCharge) || 0;
+payableTotal = baseTotal + extraTotal;
+paidTotal = Number(financials.paidAmount) || 0;
 
-  if (progress) {
-    progress.style.width = percentage + "%";
-  }
+remainingTotal = Math.max(
+  0,
+  payableTotal - paidTotal
+);
 
-  setText("paymentProgressText", percentage + "% paid");
+}
 
-  updatePaymentAndRepaymentStatus();
-  updatePaymentDueBox();
+const percentage = payableTotal > 0
+? Math.min(
+100,
+Math.round((paidTotal / payableTotal) * 100)
+)
+: 0;
+
+setText("totalAmount", money(baseTotal));
+setText("extraChargeAmount", money(extraTotal));
+setText("totalPayableAmount", money(payableTotal));
+setText("paidAmount", money(paidTotal));
+setText("remainingAmount", money(remainingTotal));
+
+setText("totalPaidStat", money(paidTotal));
+setText("remainingStat", money(remainingTotal));
+
+const progress = $("payProgressBar");
+
+if (progress) {
+progress.style.width = percentage + "%";
+}
+
+setText("paymentProgressText", percentage + "% paid");
+
+updatePaymentAndRepaymentStatus();
+updatePaymentDueBox();
 }
 
 function updatePaymentAndRepaymentStatus() {
-  const request = getLatestRequest();
-  const latestPayment = getLatestPayment();
+const request = getLatestRequest();
 
-  let paymentLabel = "No Payment";
-  let paymentSubtitle = "No payment submitted yet.";
+// Only consider payments belonging to this request.
+const requestPayments = request
+? currentPayments.filter(
+payment =>
+String(payment.request_id || "") === String(request.id)
+)
+: [];
 
-  if (request && !isRequestCancelled(request) && !isRequestApproved(request)) {
-    paymentLabel = "Awaiting Approval";
-    paymentSubtitle = "Payment is locked until Owner approval.";
-  } else if (request && isRequestApproved(request)) {
-    const financials = getRequestFinancials(request);
+const sortedPayments = [...requestPayments].sort((a, b) => {
+const dateA = new Date(
+a.created_at || a.createdAt || 0
+).getTime() || 0;
 
-    if (isRequestFullyPaid(request)) {
-      paymentLabel = "Fully Paid";
-      paymentSubtitle = "Verified balance is complete.";
-    } else if (
-      latestPayment &&
-      String(latestPayment.request_id || "") === String(request.id)
-    ) {
-      const state = getPaymentState(latestPayment);
+const dateB = new Date(
+  b.created_at || b.createdAt || 0
+).getTime() || 0;
 
-      paymentLabel = state.label;
-      paymentSubtitle = state.message;
-    } else {
-      paymentLabel = "Payment Due";
-      paymentSubtitle = "Remaining: " + money(financials.remainingAmount);
-    }
-  }
+return dateB - dateA;
 
-  setText("paymentStatusStat", paymentLabel);
-  setText("paymentStatusSubtitle", paymentSubtitle);
+});
 
-  const repaymentLabel = getRepaymentStatusLabel(request);
+const latestPayment = sortedPayments[0] || null;
 
-  setText("repaymentStatusStat", repaymentLabel);
-  setText(
-    "repaymentStatusSubtitle",
-    request && isRequestApproved(request)
-      ? "Remaining: " + money(
-          getRequestFinancials(request).remainingAmount
-        )
-      : "Repayment status will update after approval."
-  );
+let paymentLabel = "No Payment";
+let paymentSubtitle = "No payment submitted yet.";
+
+if (!request || isRequestCancelled(request)) {
+paymentLabel = "No Active Request";
+paymentSubtitle = "Submit a cylinder request to continue.";
+} else if (!isRequestApproved(request)) {
+paymentLabel = "Awaiting Approval";
+paymentSubtitle = "Payment is locked until Owner approval.";
+} else {
+const financials = getRequestFinancials(request);
+
+if (financials.remainingAmount <= 0 && financials.totalPayable > 0) {
+  paymentLabel = "Fully Paid";
+  paymentSubtitle = "Verified balance is complete.";
+} else if (latestPayment) {
+  const state = getPaymentState(latestPayment);
+
+  paymentLabel = state.label;
+  paymentSubtitle = state.message;
+} else {
+  paymentLabel = "Payment Due";
+  paymentSubtitle =
+    "Remaining: " + money(financials.remainingAmount);
+}
+
+}
+
+setText("paymentStatusStat", paymentLabel);
+setText("paymentStatusSubtitle", paymentSubtitle);
+
+const repaymentLabel = getRepaymentStatusLabel(request);
+
+setText("repaymentStatusStat", repaymentLabel);
+
+setText(
+"repaymentStatusSubtitle",
+request && isRequestApproved(request)
+? "Remaining: " +
+money(getRequestFinancials(request).remainingAmount)
+: "Repayment status will update after approval."
+);
 }
 
 function updatePaymentDueBox() {

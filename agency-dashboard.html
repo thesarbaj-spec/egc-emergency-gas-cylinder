@@ -2118,8 +2118,9 @@ td{
 "use strict";
 
 /* =========================================================
-   EGC AGENCY DASHBOARD — COMPLETE UPDATED SCRIPT
-   Payment + Next Cylinder: agency-customers.html जैसा flow
+   EGC AGENCY DASHBOARD — UPDATED SCRIPT
+   Customer count matches agency-customers.html.
+   Recent Transactions retains all assigned requests.
    ========================================================= */
 
 /* SUPABASE CONFIGURATION */
@@ -2144,7 +2145,9 @@ const supabaseClient = window.supabase.createClient(
     }
 );
 
-/* GLOBAL STATE */
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
@@ -2152,6 +2155,7 @@ let currentAgency = null;
 let agencyId = null;
 
 let agencyRequests = [];
+let allPayments = [];
 let approvedPayments = [];
 let agencyCustomers = [];
 let notifications = [];
@@ -2159,9 +2163,13 @@ let notifications = [];
 let realtimeChannel = null;
 let notificationChannel = null;
 let paymentRealtimeChannel = null;
-let toastTimer = null;
 
-/* DOM HELPERS */
+let toastTimer = null;
+let dashboardRefreshing = false;
+
+/* =========================================================
+   DOM HELPERS
+   ========================================================= */
 
 const $ = id => document.getElementById(id);
 
@@ -2203,7 +2211,9 @@ const toast = $("toast");
 const toastTitle = $("toastTitle");
 const toastText = $("toastText");
 
-/* SAFE VALUE HELPERS */
+/* =========================================================
+   SAFE VALUE HELPERS
+   ========================================================= */
 
 function valueOf(row, keys, fallback = "") {
     if (!row) return fallback;
@@ -2226,8 +2236,8 @@ function lower(value) {
 }
 
 function numberValue(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
 }
 
 function money(value) {
@@ -2274,18 +2284,29 @@ function dateValue(row) {
 
 function setText(id, value) {
     const element = $(id);
-    if (element) element.textContent = value;
+    if (element) element.textContent = String(value ?? "");
 }
 
-/* TOAST */
+function isTrue(value) {
+    return value === true || value === 1 || lower(value) === "true";
+}
+
+/* =========================================================
+   TOAST
+   ========================================================= */
 
 function showToast(title, message) {
     if (!toast) return;
 
     if (toastTimer) clearTimeout(toastTimer);
 
-    if (toastTitle) toastTitle.textContent = title || "Notification";
-    if (toastText) toastText.textContent = message || "";
+    if (toastTitle) {
+        toastTitle.textContent = title || "Notification";
+    }
+
+    if (toastText) {
+        toastText.textContent = message || "";
+    }
 
     toast.classList.add("show");
 
@@ -2294,7 +2315,9 @@ function showToast(title, message) {
     }, 3500);
 }
 
-/* NOTIFICATION SOUND */
+/* =========================================================
+   NOTIFICATION SOUND
+   ========================================================= */
 
 function playNotificationSound() {
     try {
@@ -2317,13 +2340,17 @@ function playNotificationSound() {
         oscillator.start();
         oscillator.stop(context.currentTime + 0.13);
 
-        oscillator.onended = () => context.close().catch(() => {});
+        oscillator.onended = () => {
+            context.close().catch(() => {});
+        };
     } catch (error) {
         console.warn("Notification sound unavailable:", error);
     }
 }
 
-/* SESSION */
+/* =========================================================
+   SESSION
+   ========================================================= */
 
 async function checkSession() {
     try {
@@ -2346,7 +2373,9 @@ async function checkSession() {
     }
 }
 
-/* LOAD PROFILE */
+/* =========================================================
+   LOAD CURRENT PROFILE
+   ========================================================= */
 
 async function loadCurrentProfile() {
     if (!currentUser) return false;
@@ -2367,6 +2396,19 @@ async function loadCurrentProfile() {
             return false;
         }
 
+        const role = lower(valueOf(currentProfile, ["role"], ""));
+
+        if (role && role !== "agency") {
+            showToast(
+                "Access Denied",
+                "This account is not an agency account."
+            );
+
+            await supabaseClient.auth.signOut();
+            window.location.replace("agency-login.html");
+            return false;
+        }
+
         agencyId = valueOf(currentProfile, [
             "agency_id",
             "agencyId"
@@ -2383,15 +2425,19 @@ async function loadCurrentProfile() {
         return true;
     } catch (error) {
         console.error("Profile loading error:", error);
+
         showToast(
             "Profile Error",
             error.message || "Unable to load agency profile."
         );
+
         return false;
     }
 }
 
-/* LOAD AGENCY */
+/* =========================================================
+   LOAD AGENCY
+   ========================================================= */
 
 async function loadAgency() {
     if (!agencyId) return false;
@@ -2416,15 +2462,19 @@ async function loadAgency() {
         return true;
     } catch (error) {
         console.error("Agency loading error:", error);
+
         showToast(
             "Agency Error",
             error.message || "Unable to load agency."
         );
+
         return false;
     }
 }
 
-/* RENDER AGENCY */
+/* =========================================================
+   RENDER AGENCY
+   ========================================================= */
 
 function renderAgency() {
     if (!currentAgency) return;
@@ -2470,59 +2520,19 @@ function renderAgency() {
 
     setText(
         "settingsMobile",
-        valueOf(currentAgency, [
-            "mobile",
-            "phone",
-            "contact"
-        ], valueOf(currentProfile, [
-            "mobile",
-            "phone"
-        ], "—"))
+        valueOf(
+            currentAgency,
+            ["mobile", "phone", "contact"],
+            valueOf(currentProfile, ["mobile", "phone"], "—")
+        )
     );
 
     setText("settingsCompany", company);
 }
 
 /* =========================================================
-   PAYMENT HELPERS
+   REQUEST HELPERS
    ========================================================= */
-
-function isApprovedPaymentStatus(status) {
-    return [
-        "approved",
-        "success",
-        "successful",
-        "paid",
-        "completed",
-        "complete"
-    ].includes(lower(status));
-}
-
-function isFailedPaymentStatus(status) {
-    return [
-        "failed",
-        "rejected",
-        "declined"
-    ].includes(lower(status));
-}
-
-function getPaymentStatus(payment) {
-    if (!payment) return "pending";
-
-    return lower(valueOf(payment, [
-        "status",
-        "payment_status"
-    ], "pending"));
-}
-
-function getPaymentRequestId(payment) {
-    return String(valueOf(payment, [
-        "request_id",
-        "cylinder_request_id",
-        "requestId",
-        "cylinderRequestId"
-    ], ""));
-}
 
 function getRequestId(request) {
     return String(valueOf(request, [
@@ -2548,133 +2558,6 @@ function getUserId(row) {
     ], ""));
 }
 
-/*
-  सभी payments को memory में रखते हैं, ताकि Pending और Failed
-  payments भी table में दिखाई दे सकें।
-*/
-
-function getPaymentForRequest(request) {
-    const requestId = getRequestId(request);
-
-    if (!requestId) return null;
-
-    return approvedPayments.find(payment =>
-        getPaymentRequestId(payment) === requestId
-    ) || null;
-}
-
-/* LOAD ALL PAYMENTS */
-
-async function loadApprovedPayments() {
-    if (!agencyId) return false;
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("payments")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        const allPayments = Array.isArray(data) ? data : [];
-
-        approvedPayments = allPayments.filter(payment => {
-            const paymentAgency = valueOf(payment, [
-                "agency_id",
-                "agencyId"
-            ], "");
-
-            return !paymentAgency ||
-                String(paymentAgency) === String(agencyId);
-        });
-
-        return true;
-    } catch (error) {
-        console.error("Payment loading error:", error);
-        approvedPayments = [];
-        return false;
-    }
-}
-
-/* LOAD CYLINDER REQUESTS */
-
-async function loadRequests() {
-    if (!agencyId) return false;
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("agency_id", agencyId)
-            .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        agencyRequests = Array.isArray(data) ? data : [];
-
-        return true;
-    } catch (error) {
-        console.error("Request loading error:", error);
-
-        agencyRequests = [];
-
-        if (customerTableBody) {
-            customerTableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="empty">
-                        Unable to load agency requests.
-                    </td>
-                </tr>
-            `;
-        }
-
-        return false;
-    }
-}
-
-/* LOAD CUSTOMER PROFILES */
-
-async function loadCustomers() {
-    try {
-        const userIds = [
-            ...new Set(
-                agencyRequests
-                    .map(request => getUserId(request))
-                    .filter(Boolean)
-            )
-        ];
-
-        if (!userIds.length) {
-            agencyCustomers = [];
-            return true;
-        }
-
-        const { data, error } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .in("id", userIds);
-
-        if (error) throw error;
-
-        agencyCustomers = Array.isArray(data) ? data : [];
-        return true;
-    } catch (error) {
-        console.error("Customer loading error:", error);
-        agencyCustomers = [];
-        return false;
-    }
-}
-
-/* FIND PROFILE */
-
-function findProfile(userId) {
-    return agencyCustomers.find(profile =>
-        String(profile.id) === String(userId || "")
-    ) || null;
-}
-
-/* REQUEST HELPERS */
-
 function requestStatus(request) {
     return valueOf(request, [
         "status",
@@ -2692,12 +2575,16 @@ function deliveryStatus(request) {
 function requestAmount(request) {
     const payment = getPaymentForRequest(request);
 
-    if (payment && isApprovedPaymentStatus(getPaymentStatus(payment))) {
+    if (payment) {
         return numberValue(valueOf(payment, [
             "amount",
             "paid_amount",
             "payment_amount"
-        ], 0));
+        ], valueOf(request, [
+            "amount",
+            "total_amount",
+            "finance_amount"
+        ], 0)));
     }
 
     return numberValue(valueOf(request, [
@@ -2707,6 +2594,315 @@ function requestAmount(request) {
     ], 0));
 }
 
+function requestCylinders(request) {
+    return numberValue(valueOf(request, [
+        "cylinder_count",
+        "cylinders",
+        "quantity"
+    ], 1));
+}
+
+/* =========================================================
+   PAYMENT HELPERS
+
+   IMPORTANT:
+   allPayments = every payment record.
+   approvedPayments = successful/approved payment records.
+   Do not remove unpaid requests from Recent Transactions.
+   ========================================================= */
+
+function getPaymentRequestId(payment) {
+    return String(valueOf(payment, [
+        "request_id",
+        "cylinder_request_id",
+        "requestId",
+        "cylinderRequestId"
+    ], ""));
+}
+
+function getPaymentStatus(payment) {
+    return lower(valueOf(payment, [
+        "status",
+        "payment_status"
+    ], "pending"));
+}
+
+function getPaymentVerificationStatus(payment) {
+    return lower(valueOf(payment, [
+        "verification_status",
+        "owner_verification_status",
+        "approval_status",
+        "verified_status"
+    ], ""));
+}
+
+function isSuccessfulPaymentStatus(status) {
+    return [
+        "approved",
+        "success",
+        "successful",
+        "paid",
+        "completed",
+        "complete",
+        "verified"
+    ].includes(lower(status));
+}
+
+function isApprovedPayment(payment) {
+    if (!payment) return false;
+
+    const status = getPaymentStatus(payment);
+    const verification = getPaymentVerificationStatus(payment);
+
+    const paymentSuccessful = isSuccessfulPaymentStatus(status);
+
+    if (!paymentSuccessful) return false;
+
+    /*
+     * If the table has a verification-status field, require it
+     * to be approved. If that field is absent, use the payment
+     * status rather than excluding valid records automatically.
+     */
+    if (!verification) return true;
+
+    return [
+        "approved",
+        "verified",
+        "success",
+        "successful",
+        "paid",
+        "completed",
+        "complete"
+    ].includes(verification);
+}
+
+function getPaymentForRequest(request) {
+    const requestId = getRequestId(request);
+
+    if (!requestId) return null;
+
+    const matches = allPayments.filter(payment =>
+        getPaymentRequestId(payment) === requestId
+    );
+
+    if (!matches.length) return null;
+
+    /*
+     * Prefer an approved payment if multiple records exist for
+     * the same request. Otherwise use the most recent record.
+     */
+    const approved = matches.find(isApprovedPayment);
+
+    return approved || matches[0];
+}
+
+function getApprovedPaymentForRequest(request) {
+    const requestId = getRequestId(request);
+
+    if (!requestId) return null;
+
+    return approvedPayments.find(payment =>
+        getPaymentRequestId(payment) === requestId
+    ) || null;
+}
+
+function requestHasApprovedPayment(request) {
+    return Boolean(getApprovedPaymentForRequest(request));
+}
+
+/* =========================================================
+   LOAD ALL PAYMENTS
+   ========================================================= */
+
+async function loadApprovedPayments() {
+    if (!agencyId) return false;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const payments = Array.isArray(data) ? data : [];
+
+        /*
+         * Keep payments linked to this agency, plus payments
+         * without agency_id that belong to one of its requests.
+         * Request IDs are used to confirm the relationship below.
+         */
+        allPayments = payments;
+
+        approvedPayments = allPayments.filter(isApprovedPayment);
+
+        return true;
+    } catch (error) {
+        console.error("Payment loading error:", error);
+
+        allPayments = [];
+        approvedPayments = [];
+
+        showToast(
+            "Payment Loading Error",
+            error.message || "Unable to load payment records."
+        );
+
+        return false;
+    }
+}
+
+/* =========================================================
+   LOAD CYLINDER REQUESTS
+
+   Load ALL requests assigned to this agency.
+   Do not filter Recent Transactions by payment status.
+   ========================================================= */
+
+async function loadRequests() {
+    if (!agencyId) return false;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq("agency_id", agencyId)
+            .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        agencyRequests = Array.isArray(data) ? data : [];
+
+        /*
+         * Match payment records to the loaded requests.
+         * A payment with an agency_id must match this agency.
+         * Records without agency_id can still be linked through
+         * the agency's own cylinder_requests.
+         */
+        const requestIds = new Set(
+            agencyRequests.map(getRequestId).filter(Boolean)
+        );
+
+        allPayments = allPayments.filter(payment => {
+            const paymentRequestId = getPaymentRequestId(payment);
+
+            if (!requestIds.has(paymentRequestId)) {
+                return false;
+            }
+
+            const paymentAgencyId = valueOf(payment, [
+                "agency_id",
+                "agencyId"
+            ], "");
+
+            return !paymentAgencyId ||
+                String(paymentAgencyId) === String(agencyId);
+        });
+
+        approvedPayments = allPayments.filter(isApprovedPayment);
+
+        return true;
+    } catch (error) {
+        console.error("Request loading error:", error);
+
+        agencyRequests = [];
+
+        if (customerTableBody) {
+            customerTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="empty">
+                        Unable to load agency requests.
+                    </td>
+                </tr>
+            `;
+        }
+
+        if (recentTableBody) {
+            recentTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty">
+                        Unable to load recent transactions.
+                    </td>
+                </tr>
+            `;
+        }
+
+        showToast(
+            "Request Loading Error",
+            error.message || "Unable to load agency requests."
+        );
+
+        return false;
+    }
+}
+
+/* =========================================================
+   CUSTOMER REQUESTS
+
+   Customers page contains customers with an approved payment.
+   Recent Transactions continues to use agencyRequests, which
+   includes every request assigned to the agency.
+   ========================================================= */
+
+function getCustomerEligibleRequests() {
+    return agencyRequests.filter(request =>
+        requestHasApprovedPayment(request)
+    );
+}
+
+/* =========================================================
+   LOAD CUSTOMER PROFILES
+   ========================================================= */
+
+async function loadCustomers() {
+    try {
+        const userIds = [
+            ...new Set(
+                getCustomerEligibleRequests()
+                    .map(getUserId)
+                    .filter(Boolean)
+            )
+        ];
+
+        if (!userIds.length) {
+            agencyCustomers = [];
+            return true;
+        }
+
+        const { data, error } = await supabaseClient
+            .from("profiles")
+            .select("*")
+            .in("id", userIds);
+
+        if (error) throw error;
+
+        agencyCustomers = Array.isArray(data) ? data : [];
+
+        return true;
+    } catch (error) {
+        console.error("Customer loading error:", error);
+
+        agencyCustomers = [];
+
+        showToast(
+            "Customer Loading Error",
+            error.message || "Unable to load customer profiles."
+        );
+
+        return false;
+    }
+}
+
+/* =========================================================
+   FIND PROFILE
+   ========================================================= */
+
+function findProfile(userId) {
+    return agencyCustomers.find(profile =>
+        String(profile.id) === String(userId || "")
+    ) || null;
+}
+
 /* =========================================================
    CUSTOMER DATA
    ========================================================= */
@@ -2714,8 +2910,14 @@ function requestAmount(request) {
 function buildCustomerRows() {
     const map = new Map();
 
-    agencyRequests.forEach(request => {
+    /*
+     * Only approved-payment requests are included in the
+     * customer table. This makes the customer count consistent
+     * with the agency-customers page.
+     */
+    getCustomerEligibleRequests().forEach(request => {
         const userId = getUserId(request);
+
         if (!userId) return;
 
         if (!map.has(userId)) {
@@ -2730,15 +2932,13 @@ function buildCustomerRows() {
         const item = map.get(userId);
         item.requests.push(request);
 
-        const payment = getPaymentForRequest(request);
+        const payment = getApprovedPaymentForRequest(request);
 
-        if (payment) item.payments.push(payment);
+        if (payment) {
+            item.payments.push(payment);
+        }
 
-        item.cylinders += numberValue(valueOf(request, [
-            "cylinder_count",
-            "cylinders",
-            "quantity"
-        ], 1));
+        item.cylinders += requestCylinders(request);
     });
 
     return [...map.values()];
@@ -2751,87 +2951,43 @@ function latestRequest(item) {
     )[0] || null;
 }
 
-/* PAYMENT BADGE STATE */
-
 function customerPaymentState(item) {
     const latest = latestRequest(item);
 
     if (!latest) return "pending";
 
-    const payment = getPaymentForRequest(latest);
-
-    if (!payment) return "pending";
-
-    const status = getPaymentStatus(payment);
-
-    if (isApprovedPaymentStatus(status)) return "paid";
-    if (isFailedPaymentStatus(status)) return "failed";
-
-    return "pending";
+    return requestHasApprovedPayment(latest) ? "paid" : "pending";
 }
 
 /*
-  agency-customers.html में उपयोग होने वाले fields:
-  payment_pending_clear = clear / pending
-  cylinder_hold_eligible = eligible / hold
-
-  यदि fields मौजूद नहीं हैं, तो fallback calculation इस्तेमाल होगी।
-*/
-
+ * Previous due can be stored on the profile or request.
+ * If no due value exists, default to zero.
+ */
 function customerPreviousDue(item) {
     if (!item) return 0;
 
-    let due = 0;
+    const profileDue = numberValue(valueOf(
+        item.profile,
+        ["previous_due", "due_amount", "outstanding_due"],
+        0
+    ));
+
+    if (profileDue > 0) return profileDue;
+
+    let totalDue = 0;
 
     item.requests.forEach(request => {
-        const payment = getPaymentForRequest(request);
-
-        if (
-            payment &&
-            isApprovedPaymentStatus(getPaymentStatus(payment))
-        ) {
-            return;
-        }
-
-        due += numberValue(valueOf(request, [
+        totalDue += numberValue(valueOf(request, [
             "previous_due",
             "due_amount",
-            "remaining_amount",
-            "balance_amount",
-            "amount_due"
+            "outstanding_due"
         ], 0));
     });
 
-    return due;
-}
-
-function customerOwnerPaymentState(item) {
-    const latest = latestRequest(item);
-
-    if (!latest) return "pending";
-
-    const state = lower(valueOf(latest, [
-        "payment_pending_clear"
-    ], ""));
-
-    if (state === "clear") return "clear";
-    if (state === "pending") return "pending";
-
-    return customerPreviousDue(item) <= 0 ? "clear" : "pending";
+    return totalDue;
 }
 
 function isCustomerEligible(item) {
-    const latest = latestRequest(item);
-
-    if (!latest) return false;
-
-    const state = lower(valueOf(latest, [
-        "cylinder_hold_eligible"
-    ], ""));
-
-    if (state === "eligible") return true;
-    if (state === "hold") return false;
-
     return customerPreviousDue(item) <= 0;
 }
 
@@ -2846,23 +3002,25 @@ function customerCode(profile) {
     ], "—");
 }
 
-/* UPDATE DASHBOARD COUNTERS */
+/* =========================================================
+   UPDATE DASHBOARD COUNTERS
+
+   Total Requests/Cylinders use ALL agency requests.
+   Total Customers uses unique customers with approved payments.
+   ========================================================= */
 
 function updateCounters() {
     const requests = agencyRequests;
+    const customerRequests = getCustomerEligibleRequests();
 
     const totalUsers = new Set(
-        requests.map(getUserId).filter(Boolean)
+        customerRequests.map(getUserId).filter(Boolean)
     ).size;
 
     const totalRequests = requests.length;
 
     const totalCylinders = requests.reduce((total, request) =>
-        total + numberValue(valueOf(request, [
-            "cylinder_count",
-            "cylinders",
-            "quantity"
-        ], 1)), 0);
+        total + requestCylinders(request), 0);
 
     let pending = 0;
     let completed = 0;
@@ -2873,12 +3031,7 @@ function updateCounters() {
     requests.forEach(request => {
         const status = lower(requestStatus(request));
         const delivery = lower(deliveryStatus(request));
-
-        const cylinders = numberValue(valueOf(request, [
-            "cylinder_count",
-            "cylinders",
-            "quantity"
-        ], 1));
+        const cylinders = requestCylinders(request);
 
         if ([
             "pending",
@@ -2912,44 +3065,59 @@ function updateCounters() {
         }
     });
 
-    const failedPayments = approvedPayments.filter(payment =>
-        isFailedPaymentStatus(getPaymentStatus(payment))
-    ).length;
+    const receivedRequestIds = new Set(
+        requests
+            .filter(requestHasApprovedPayment)
+            .map(getRequestId)
+            .filter(Boolean)
+    );
 
-    const paymentPending = requests.filter(request => {
-        const payment = getPaymentForRequest(request);
+    const paymentsReceived = receivedRequestIds.size;
 
-        return !payment ||
-            !isApprovedPaymentStatus(getPaymentStatus(payment));
-    }).length;
+    const paymentPending = Math.max(
+        0,
+        totalRequests - paymentsReceived
+    );
+
+    const failedPaymentRequestIds = new Set(
+        requests
+            .filter(request => {
+                const payment = getPaymentForRequest(request);
+
+                return payment &&
+                    ["failed", "rejected"].includes(
+                        getPaymentStatus(payment)
+                    );
+            })
+            .map(getRequestId)
+            .filter(Boolean)
+    );
 
     setText("totalUsers", totalUsers);
     setText("totalRequests", totalRequests);
     setText("totalCylinders", totalCylinders);
-    setText(
-        "paymentsReceived",
-        approvedPayments.filter(payment =>
-            isApprovedPaymentStatus(getPaymentStatus(payment))
-        ).length
-    );
+    setText("paymentsReceived", paymentsReceived);
     setText("pendingRequests", pending);
     setText("completedRequests", completed);
     setText("cancelledRequests", cancelled);
     setText("paymentsPending", paymentPending);
     setText("pendingCylinders", pendingCylinders);
     setText("deliveredCylinders", deliveredCylinders);
-    setText("failedPayments", failedPayments);
+    setText("failedPayments", failedPaymentRequestIds.size);
     setText("customersOnHold", calculateCustomersOnHold());
 }
 
-/* CUSTOMERS ON HOLD */
+/* =========================================================
+   CUSTOMERS ON HOLD
+   ========================================================= */
 
 function calculateCustomersOnHold() {
     const ids = new Set();
 
     buildCustomerRows().forEach(item => {
-        if (!isCustomerEligible(item)) {
-            const userId = getUserId(latestRequest(item));
+        if (customerPreviousDue(item) > 0) {
+            const userId = getUserId(latestRequest(item) || {});
+
             if (userId) ids.add(userId);
         }
     });
@@ -2959,8 +3127,6 @@ function calculateCustomersOnHold() {
 
 /* =========================================================
    RENDER CUSTOMERS
-   User, Mobile, Email, Customer ID, Requests,
-   Cylinders, Payment, Next Cylinder, Last Request
    ========================================================= */
 
 function renderCustomers() {
@@ -3003,7 +3169,9 @@ function renderCustomers() {
             requestNumbers
         ].join(" "));
 
-        if (search && !searchText.includes(search)) return false;
+        if (search && !searchText.includes(search)) {
+            return false;
+        }
 
         if (
             paymentFilterValue &&
@@ -3116,17 +3284,9 @@ function renderCustomers() {
                     <span class="badge ${
                         paymentState === "paid"
                             ? "badge-green"
-                            : paymentState === "failed"
-                                ? "badge-red"
-                                : "badge-yellow"
+                            : "badge-yellow"
                     }">
-                        ${
-                            paymentState === "paid"
-                                ? "Paid"
-                                : paymentState === "failed"
-                                    ? "Failed"
-                                    : "Pending"
-                        }
+                        ${paymentState === "paid" ? "Paid" : "Pending"}
                     </span>
                 </td>
 
@@ -3152,13 +3312,15 @@ function renderCustomers() {
     });
 }
 
-/* RENDER HOLD CUSTOMERS */
+/* =========================================================
+   RENDER HOLD CUSTOMERS
+   ========================================================= */
 
 function renderHoldCustomers() {
     if (!holdTableBody) return;
 
     const rows = buildCustomerRows().filter(item =>
-        !isCustomerEligible(item)
+        customerPreviousDue(item) > 0
     );
 
     if (!rows.length) {
@@ -3187,40 +3349,31 @@ function renderHoldCustomers() {
             "phone_number"
         ], "—");
 
-        const paymentState = customerPaymentState(item);
-
         return `
             <tr>
                 <td><strong>${escapeHtml(name)}</strong></td>
                 <td>${escapeHtml(mobile)}</td>
-
                 <td>
-                    <span class="badge ${
-                        paymentState === "paid"
-                            ? "badge-green"
-                            : paymentState === "failed"
-                                ? "badge-red"
-                                : "badge-yellow"
-                    }">
-                        ${
-                            paymentState === "paid"
-                                ? "Paid"
-                                : paymentState === "failed"
-                                    ? "Failed"
-                                    : "Pending"
-                        }
+                    <span class="badge badge-red">
+                        Payment Pending
                     </span>
                 </td>
-
                 <td>
-                    <span class="badge badge-red">On Hold</span>
+                    <span class="badge badge-red">
+                        On Hold
+                    </span>
                 </td>
             </tr>
         `;
     }).join("");
 }
 
-/* RECENT TRANSACTIONS / ACTIVITY */
+/* =========================================================
+   RECENT TRANSACTIONS
+
+   Shows ALL agencyRequests, including requests with pending
+   payments. This table must not be limited to paid requests.
+   ========================================================= */
 
 function renderRecent() {
     if (!recentTableBody) return;
@@ -3245,6 +3398,7 @@ function renderRecent() {
 
     recentTableBody.innerHTML = requests.map(request => {
         const profile = findProfile(getUserId(request));
+
         const name = valueOf(profile, [
             "full_name",
             "name",
@@ -3266,11 +3420,9 @@ function renderRecent() {
 
                 <td>
                     <span class="badge ${
-                        isApprovedPaymentStatus(paymentStatus)
+                        isApprovedPayment(payment)
                             ? "badge-green"
-                            : isFailedPaymentStatus(paymentStatus)
-                                ? "badge-red"
-                                : "badge-yellow"
+                            : "badge-yellow"
                     }">
                         ${escapeHtml(paymentStatus)}
                     </span>
@@ -3298,14 +3450,16 @@ function renderRecent() {
     }).join("");
 }
 
-/* CUSTOMER MODAL */
+/* =========================================================
+   CUSTOMER MODAL
+   ========================================================= */
 
 function openCustomerModal(userId) {
     if (!customerModal) return;
 
     const profile = findProfile(userId);
 
-    const requests = agencyRequests.filter(request =>
+    const requests = getCustomerEligibleRequests().filter(request =>
         getUserId(request) === String(userId)
     );
 
@@ -3345,16 +3499,10 @@ function openCustomerModal(userId) {
     ], "—"));
 
     const cylinders = requests.reduce((total, request) =>
-        total + numberValue(valueOf(request, [
-            "cylinder_count",
-            "cylinders",
-            "quantity"
-        ], 1)), 0);
+        total + requestCylinders(request), 0);
 
     const due = customerPreviousDue(item);
     const latest = latestRequest(item);
-    const paymentState = customerPaymentState(item);
-    const eligible = isCustomerEligible(item);
 
     const photo = valueOf(profile, [
         "profile_photo",
@@ -3371,14 +3519,7 @@ function openCustomerModal(userId) {
     setText("detailRequests", requests.length);
     setText("detailCylinders", cylinders);
     setText("detailDue", money(due));
-    setText(
-        "detailPayment",
-        paymentState === "paid"
-            ? "Paid"
-            : paymentState === "failed"
-                ? "Failed"
-                : "Pending"
-    );
+    setText("detailPayment", due > 0 ? "Pending" : "Clear");
 
     setText(
         "detailLastRequest",
@@ -3405,14 +3546,14 @@ function openCustomerModal(userId) {
     const eligibility = $("customerEligibility");
     const eligibilityText = $("customerEligibilityText");
 
-    if (!eligible) {
+    if (due > 0) {
         if (eligibility) {
             eligibility.textContent = "🔴 Next Cylinder: On Hold";
         }
 
         if (eligibilityText) {
             eligibilityText.textContent =
-                "Customer is on hold. Check payment and eligibility status.";
+                "Previous payment due is pending. Customer must clear the due amount.";
         }
     } else {
         if (eligibility) {
@@ -3420,15 +3561,16 @@ function openCustomerModal(userId) {
         }
 
         if (eligibilityText) {
-            eligibilityText.textContent =
-                "Customer is eligible for the next cylinder.";
+            eligibilityText.textContent = "Payment status is clear.";
         }
     }
 
     customerModal.classList.add("show");
 }
 
-/* NOTIFICATIONS */
+/* =========================================================
+   NOTIFICATIONS
+   ========================================================= */
 
 function notificationIcon(type) {
     switch (lower(type)) {
@@ -3444,6 +3586,7 @@ function notificationTime(value) {
     if (!value) return "";
 
     const date = new Date(value);
+
     if (Number.isNaN(date.getTime())) return "";
 
     return date.toLocaleString("en-IN", {
@@ -3476,13 +3619,16 @@ async function loadNotifications() {
         if (error) throw error;
 
         notifications = Array.isArray(data) ? data : [];
+
         renderNotifications();
 
         return true;
     } catch (error) {
         console.error("Notification loading error:", error);
+
         notifications = [];
         renderNotifications();
+
         return false;
     }
 }
@@ -3557,6 +3703,7 @@ function renderNotifications() {
             .forEach(button => {
                 button.addEventListener("click", async function(event) {
                     event.stopPropagation();
+
                     await markNotificationRead(
                         this.dataset.notificationId
                     );
@@ -3580,7 +3727,7 @@ function renderNotifications() {
 }
 
 async function markNotificationRead(id) {
-    if (!id) return;
+    if (!id || !currentUser) return;
 
     try {
         const { error } = await supabaseClient
@@ -3647,52 +3794,64 @@ async function createNotification(title, message, type) {
     }
 }
 
-/* REFRESH DASHBOARD */
+/* =========================================================
+   REFRESH DASHBOARD
+   ========================================================= */
 
 async function refreshDashboard(showMessageAfter = false) {
-    if (!currentUser || !agencyId) return;
+    if (!currentUser || !agencyId || dashboardRefreshing) return;
 
-    const paymentOk = await loadApprovedPayments();
+    dashboardRefreshing = true;
 
-    if (!paymentOk) {
-        if (customerTableBody) {
-            customerTableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="empty">
-                        Unable to load payment records.
-                    </td>
-                </tr>
-            `;
+    try {
+        const paymentOk = await loadApprovedPayments();
+
+        if (!paymentOk) {
+            if (customerTableBody) {
+                customerTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty">
+                            Unable to load payment records.
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return;
         }
 
+        const requestOk = await loadRequests();
+
+        if (!requestOk) return;
+
+        await loadCustomers();
+
+        updateCounters();
+        renderCustomers();
+        renderHoldCustomers();
+        renderRecent();
+
+        if (showMessageAfter) {
+            showToast(
+                "Data Refreshed",
+                "Agency dashboard data has been updated."
+            );
+        }
+    } catch (error) {
+        console.error("Dashboard refresh error:", error);
+
         showToast(
-            "Payment Loading Error",
-            "Unable to load payment records."
+            "Refresh Error",
+            error.message || "Unable to refresh dashboard."
         );
-
-        return;
-    }
-
-    const requestOk = await loadRequests();
-
-    if (!requestOk) return;
-
-    await loadCustomers();
-
-    updateCounters();
-    renderCustomers();
-    renderHoldCustomers();
-    renderRecent();
-
-    if (showMessageAfter) {
-        showToast(
-            "Data Refreshed",
-            "Agency dashboard data has been updated."
-        );
+    } finally {
+        dashboardRefreshing = false;
     }
 }
 
-/* SIDEBAR NAVIGATION */
+/* =========================================================
+   SIDEBAR NAVIGATION
+   ========================================================= */
 
 const agencyRoutesById = {
     dashboardBtn: "agency-dashboard.html",
@@ -3837,10 +3996,7 @@ function openAgencyPage(page) {
 function openAgencySettings() {
     closeAgencySidebar();
 
-    if (!settingsModal) {
-        console.warn("Settings modal not found.");
-        return;
-    }
+    if (!settingsModal) return;
 
     settingsModal.classList.add("show");
     settingsModal.style.display = "flex";
@@ -3849,10 +4005,7 @@ function openAgencySettings() {
 function openAgencyLogout() {
     closeAgencySidebar();
 
-    if (!logoutModal) {
-        console.warn("Logout modal not found.");
-        return;
-    }
+    if (!logoutModal) return;
 
     logoutModal.classList.add("show");
     logoutModal.style.display = "flex";
@@ -3919,7 +4072,9 @@ function updateAgencyActiveSidebar() {
         });
 }
 
-/* MOBILE SIDEBAR */
+/* =========================================================
+   MOBILE SIDEBAR
+   ========================================================= */
 
 if (menuBtn) {
     menuBtn.addEventListener("click", function(event) {
@@ -3935,7 +4090,9 @@ if (overlay) {
     overlay.addEventListener("click", closeAgencySidebar);
 }
 
-/* NOTIFICATION PANEL */
+/* =========================================================
+   NOTIFICATION PANEL
+   ========================================================= */
 
 if (notificationBtn) {
     notificationBtn.addEventListener("click", function(event) {
@@ -3965,7 +4122,9 @@ if (markAllRead) {
     });
 }
 
-/* NOTIFICATION REALTIME */
+/* =========================================================
+   NOTIFICATION REALTIME
+   ========================================================= */
 
 function startNotificationRealtime() {
     if (notificationChannel) {
@@ -4012,7 +4171,9 @@ function startNotificationRealtime() {
         });
 }
 
-/* CYLINDER REQUEST REALTIME */
+/* =========================================================
+   CYLINDER REQUEST REALTIME
+   ========================================================= */
 
 function startRealtime() {
     if (realtimeChannel) {
@@ -4035,7 +4196,7 @@ function startRealtime() {
             if (payload.eventType === "INSERT") {
                 showToast(
                     "New Cylinder Request",
-                    "Cylinder request data has changed."
+                    "A new cylinder request has been received."
                 );
 
                 playNotificationSound();
@@ -4075,7 +4236,9 @@ function startRealtime() {
         });
 }
 
-/* PAYMENT REALTIME */
+/* =========================================================
+   PAYMENT REALTIME
+   ========================================================= */
 
 function startPaymentRealtime() {
     if (paymentRealtimeChannel) {
@@ -4108,14 +4271,14 @@ function startPaymentRealtime() {
             await refreshDashboard(false);
 
             if (
-                !isApprovedPaymentStatus(oldStatus) &&
-                isApprovedPaymentStatus(newStatus)
+                !isSuccessfulPaymentStatus(oldStatus) &&
+                isSuccessfulPaymentStatus(newStatus)
             ) {
                 playNotificationSound();
 
                 showToast(
                     "Payment Approved",
-                    "Owner has approved a payment. Related data has been refreshed."
+                    "A payment has been approved. Dashboard data has been refreshed."
                 );
             } else if (payload.eventType === "INSERT") {
                 showToast(
@@ -4129,7 +4292,9 @@ function startPaymentRealtime() {
         });
 }
 
-/* SETTINGS / PASSWORD RESET */
+/* =========================================================
+   SETTINGS / PASSWORD RESET
+   ========================================================= */
 
 if (resetPasswordBtn) {
     resetPasswordBtn.addEventListener("click", async function() {
@@ -4143,6 +4308,7 @@ if (resetPasswordBtn) {
                 settingsMessage.textContent =
                     "Registered agency email was not found.";
             }
+
             return;
         }
 
@@ -4188,13 +4354,17 @@ if (resetPasswordBtn) {
     });
 }
 
-/* MODAL CONTROLS */
+/* =========================================================
+   MODAL CONTROLS
+   ========================================================= */
 
 if (settingsClose) {
     settingsClose.addEventListener("click", function() {
         settingsModal?.classList.remove("show");
 
-        if (settingsModal) settingsModal.style.display = "";
+        if (settingsModal) {
+            settingsModal.style.display = "";
+        }
     });
 }
 
@@ -4225,6 +4395,7 @@ if (logoutBtn) {
     logoutBtn.addEventListener("click", function(event) {
         event.preventDefault();
         event.stopPropagation();
+
         openAgencyLogout();
     });
 }
@@ -4233,7 +4404,9 @@ if (logoutCancel) {
     logoutCancel.addEventListener("click", function() {
         logoutModal?.classList.remove("show");
 
-        if (logoutModal) logoutModal.style.display = "";
+        if (logoutModal) {
+            logoutModal.style.display = "";
+        }
     });
 }
 
@@ -4285,7 +4458,9 @@ if (logoutConfirm) {
     });
 }
 
-/* SEARCH / FILTERS */
+/* =========================================================
+   SEARCH / FILTERS
+   ========================================================= */
 
 if (searchInput) {
     searchInput.addEventListener("input", renderCustomers);
@@ -4303,7 +4478,9 @@ if (monthFilter) {
     monthFilter.addEventListener("change", renderCustomers);
 }
 
-/* ESC KEY */
+/* =========================================================
+   ESC KEY
+   ========================================================= */
 
 document.addEventListener("keydown", function(event) {
     if (event.key !== "Escape") return;
@@ -4319,7 +4496,9 @@ document.addEventListener("keydown", function(event) {
     closeAgencySidebar();
 });
 
-/* AUTH STATE */
+/* =========================================================
+   AUTH STATE
+   ========================================================= */
 
 supabaseClient.auth.onAuthStateChange(event => {
     if (event === "SIGNED_OUT") {
@@ -4610,10 +4789,14 @@ document.addEventListener("touchcancel", function() {
     pullCurrentY = 0;
     pullDistance = 0;
 
-    if (!pullRefreshing) updatePullIndicator(0);
+    if (!pullRefreshing) {
+        updatePullIndicator(0);
+    }
 }, { passive: true });
 
-/* INITIALIZE DASHBOARD */
+/* =========================================================
+   INITIALIZE DASHBOARD
+   ========================================================= */
 
 async function init() {
     updateAgencyActiveSidebar();
@@ -4640,7 +4823,6 @@ async function init() {
 }
 
 init();
-
 </script>
 
 </body>
