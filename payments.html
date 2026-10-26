@@ -617,7 +617,11 @@ function setAvatar(image, name) {
     "&background=eaf5fc&color=0754a9";
 }
 
+/* PROFILE — LOAD USER DETAILS AND PROFILE PHOTO */
+
 async function loadProfile() {
+  if (!currentUser?.id || !supabaseClient) return;
+
   const { data, error } = await supabaseClient
     .from("profiles")
     .select("*")
@@ -625,27 +629,89 @@ async function loadProfile() {
     .maybeSingle();
 
   if (error) {
-    console.warn("Profile load error:", error);
+    console.error("Profile load error:", error);
   }
 
-  currentProfile = data || {};
+  currentProfile = data || null;
 
   const name =
-    currentProfile.full_name ||
+    currentProfile?.full_name ||
     currentUser.user_metadata?.full_name ||
     "EGC Customer";
 
-  setText("topName", name);
-  setText("topEmail", currentProfile.email || currentUser.email || "");
+  const email =
+    currentProfile?.email ||
+    currentUser.email ||
+    "";
 
-  const photo = $("topPhoto");
-  if (!photo) return;
+  if ($("topName")) {
+    $("topName").textContent = name;
+  }
 
-  if (currentProfile.profile_photo) {
-    photo.src = currentProfile.profile_photo;
-    photo.onerror = () => setAvatar(photo, name);
-  } else {
-    setAvatar(photo, name);
+  if ($("topEmail")) {
+    $("topEmail").textContent = email;
+  }
+
+  /* PROFILE PHOTO */
+
+  const image = $("topPhoto");
+
+  if (!image) return;
+
+  const fallback =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name) +
+    "&background=eaf5fc&color=0754a9&size=256";
+
+  image.onerror = function () {
+    this.onerror = null;
+    this.src = fallback;
+  };
+
+  const storedPhoto = String(
+    currentProfile?.profile_photo || ""
+  ).trim();
+
+  /* No saved profile photo */
+  if (!storedPhoto) {
+    image.src = fallback;
+    return;
+  }
+
+  /* Existing full image URL */
+  if (/^(https?:\/\/|data:image\/)/i.test(storedPhoto)) {
+    image.src = storedPhoto;
+    return;
+  }
+
+  /* Supabase Storage object path */
+  try {
+    const photoPath = storedPhoto.replace(/^\/+/, "");
+
+    const { data: signedData, error: signedError } =
+      await supabaseClient.storage
+        .from("profile-photos")
+        .createSignedUrl(photoPath, 60 * 60);
+
+    if (signedError || !signedData?.signedUrl) {
+      console.error(
+        "Dashboard profile photo URL error:",
+        signedError?.message || "Signed URL unavailable"
+      );
+
+      image.src = fallback;
+      return;
+    }
+
+    image.src = signedData.signedUrl;
+
+  } catch (photoError) {
+    console.error(
+      "Dashboard profile photo error:",
+      photoError
+    );
+
+    image.src = fallback;
   }
 }
 

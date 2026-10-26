@@ -825,34 +825,45 @@ button:disabled {
 ========================================= */
 
 .history-wrap {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+width: 100%;
+max-width: 100%;
+max-height: 190px;
+overflow-x: auto;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
 }
 
 .history {
-  width: 100%;
-  border-collapse: collapse;
+width: 100%;
+border-collapse: collapse;
 }
 
 .history th {
-  text-align: left;
-  color: #899aaa;
-  font-size: 11px;
-  padding: 10px;
-  border-bottom: 1px solid #e8f0f5;
-  white-space: nowrap;
+text-align: left;
+color: #899aaa;
+font-size: 11px;
+padding: 10px;
+border-bottom: 1px solid #e8f0f5;
+white-space: nowrap;
 }
 
 .history td {
-  padding: 12px 10px;
-  border-bottom: 1px solid #eef3f6;
-  font-size: 12px;
-  color: #315b7e;
-  font-weight: 700;
-  vertical-align: middle;
-  overflow-wrap: anywhere;
+padding: 12px 10px;
+border-bottom: 1px solid #eef3f6;
+font-size: 12px;
+color: #315b7e;
+font-weight: 700;
+vertical-align: middle;
+overflow-wrap: anywhere;
+}
+
+/* Keep payment history box compact */
+.history-wrap table {
+margin-bottom: 0;
+}
+
+.history tbody tr td {
+border-bottom: 0;
 }
 
 .empty {
@@ -2157,24 +2168,46 @@ function isRejectedStatus(value) {
   ].includes(normalizeStatus(value));
 }
 
-function safeSetImage(id, source, name) {
+async function safeSetImage(id, source, name) {
   const image = $(id);
 
   if (!image) return;
 
-  image.onerror = () => {
-    image.onerror = null;
-
-    image.src =
-      "https://ui-avatars.com/api/?name=" +
-      encodeURIComponent(name || "EGC Customer") +
-      "&background=eaf5fc&color=0754a9";
-  };
-
-  image.src = source ||
+  const fallback =
     "https://ui-avatars.com/api/?name=" +
     encodeURIComponent(name || "EGC Customer") +
-    "&background=eaf5fc&color=0754a9";
+    "&background=eaf5fc&color=0754a9&size=256";
+
+  image.onerror = function () {
+    this.onerror = null;
+    this.src = fallback;
+  };
+
+  let photoUrl = String(source || "").trim();
+
+  if (
+    photoUrl &&
+    !/^https?:\/\//i.test(photoUrl) &&
+    !/^data:image\//i.test(photoUrl)
+  ) {
+    try {
+      const { data, error } = await supabaseClient.storage
+        .from("profile-photos")
+        .createSignedUrl(photoUrl.replace(/^\/+/, ""), 60 * 60);
+
+      if (error) {
+        console.error("Dashboard profile photo error:", error.message);
+        photoUrl = "";
+      } else {
+        photoUrl = data?.signedUrl || "";
+      }
+    } catch (error) {
+      console.error("Dashboard photo URL error:", error);
+      photoUrl = "";
+    }
+  }
+
+  image.src = photoUrl || fallback;
 }
 
 /* =========================================================
@@ -3831,7 +3864,7 @@ async function loadProfile() {
     currentUser.email ||
     "";
 
-  setText("welcomeName", "Welcome, " + name + " 👋");
+  setText("welcomeName", "Welcome " + name );
   setText("topName", name);
   setText("topEmail", email);
 

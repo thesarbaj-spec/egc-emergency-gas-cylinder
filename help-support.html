@@ -1442,66 +1442,102 @@ function showSuccess(message){
    PROFILE
 ========================================================= */
 
-async function loadProfile(){
+/* PROFILE — LOAD USER DETAILS AND PROFILE PHOTO */
 
-  if(!currentUser?.id){
-    return;
+async function loadProfile() {
+  if (!currentUser?.id || !supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Profile load error:", error);
   }
 
-  const result =
-    await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id",currentUser.id)
-      .maybeSingle();
-
-  if(result.error){
-
-    console.warn(
-      "Profile load error:",
-      result.error
-    );
-
-    return;
-
-  }
-
-  if(!result.data){
-    return;
-  }
-
-  currentProfile =
-    result.data;
+  currentProfile = data || null;
 
   const name =
-    result.data.full_name ||
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
     "EGC Customer";
 
   const email =
-    result.data.email ||
+    currentProfile?.email ||
     currentUser.email ||
     "";
 
-  $("topName").textContent =
-    name;
-
-  $("topEmail").textContent =
-    email;
-
-  if(result.data.profile_photo){
-
-    $("topPhoto").src =
-      result.data.profile_photo;
-
-  }else{
-
-    $("topPhoto").src =
-      "https://ui-avatars.com/api/?name=" +
-      encodeURIComponent(name) +
-      "&background=eaf5fc&color=0754a9";
-
+  if ($("topName")) {
+    $("topName").textContent = name;
   }
 
+  if ($("topEmail")) {
+    $("topEmail").textContent = email;
+  }
+
+  /* PROFILE PHOTO */
+
+  const image = $("topPhoto");
+
+  if (!image) return;
+
+  const fallback =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name) +
+    "&background=eaf5fc&color=0754a9&size=256";
+
+  image.onerror = function () {
+    this.onerror = null;
+    this.src = fallback;
+  };
+
+  const storedPhoto = String(
+    currentProfile?.profile_photo || ""
+  ).trim();
+
+  /* No saved profile photo */
+  if (!storedPhoto) {
+    image.src = fallback;
+    return;
+  }
+
+  /* Existing full image URL */
+  if (/^(https?:\/\/|data:image\/)/i.test(storedPhoto)) {
+    image.src = storedPhoto;
+    return;
+  }
+
+  /* Supabase Storage object path */
+  try {
+    const photoPath = storedPhoto.replace(/^\/+/, "");
+
+    const { data: signedData, error: signedError } =
+      await supabaseClient.storage
+        .from("profile-photos")
+        .createSignedUrl(photoPath, 60 * 60);
+
+    if (signedError || !signedData?.signedUrl) {
+      console.error(
+        "Dashboard profile photo URL error:",
+        signedError?.message || "Signed URL unavailable"
+      );
+
+      image.src = fallback;
+      return;
+    }
+
+    image.src = signedData.signedUrl;
+
+  } catch (photoError) {
+    console.error(
+      "Dashboard profile photo error:",
+      photoError
+    );
+
+    image.src = fallback;
+  }
 }
 
 /* =========================================================

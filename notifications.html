@@ -1200,43 +1200,103 @@
         "&background=eaf5fc&color=0754a9&bold=true";
     }
 
-    async function loadProfile() {
-      if (!currentUser?.id) return;
+    /* PROFILE — LOAD USER DETAILS AND PROFILE PHOTO */
 
-      const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", currentUser.id)
-        .maybeSingle();
+async function loadProfile() {
+  if (!currentUser?.id || !supabaseClient) return;
 
-      if (error) {
-        console.warn("Profile load error:", error.message);
-        setProfileHeaderFallback();
-        return;
-      }
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
-      currentProfile = data || null;
+  if (error) {
+    console.error("Profile load error:", error);
+  }
 
-      if (!data) {
-        setProfileHeaderFallback();
-        return;
-      }
+  currentProfile = data || null;
 
-      const name = data.full_name || "EGC Customer";
-      const email = data.email || currentUser.email || "";
+  const name =
+    currentProfile?.full_name ||
+    currentUser.user_metadata?.full_name ||
+    "EGC Customer";
 
-      $("topName").textContent = name;
-      $("topEmail").textContent = email;
+  const email =
+    currentProfile?.email ||
+    currentUser.email ||
+    "";
 
-      if (data.profile_photo) {
-        $("topPhoto").src = data.profile_photo;
-        $("topPhoto").onerror = () => {
-          setDefaultProfilePhoto(name);
-        };
-      } else {
-        setDefaultProfilePhoto(name);
-      }
+  if ($("topName")) {
+    $("topName").textContent = name;
+  }
+
+  if ($("topEmail")) {
+    $("topEmail").textContent = email;
+  }
+
+  /* PROFILE PHOTO */
+
+  const image = $("topPhoto");
+
+  if (!image) return;
+
+  const fallback =
+    "https://ui-avatars.com/api/?name=" +
+    encodeURIComponent(name) +
+    "&background=eaf5fc&color=0754a9&size=256";
+
+  image.onerror = function () {
+    this.onerror = null;
+    this.src = fallback;
+  };
+
+  const storedPhoto = String(
+    currentProfile?.profile_photo || ""
+  ).trim();
+
+  /* No saved profile photo */
+  if (!storedPhoto) {
+    image.src = fallback;
+    return;
+  }
+
+  /* Existing full image URL */
+  if (/^(https?:\/\/|data:image\/)/i.test(storedPhoto)) {
+    image.src = storedPhoto;
+    return;
+  }
+
+  /* Supabase Storage object path */
+  try {
+    const photoPath = storedPhoto.replace(/^\/+/, "");
+
+    const { data: signedData, error: signedError } =
+      await supabaseClient.storage
+        .from("profile-photos")
+        .createSignedUrl(photoPath, 60 * 60);
+
+    if (signedError || !signedData?.signedUrl) {
+      console.error(
+        "Dashboard profile photo URL error:",
+        signedError?.message || "Signed URL unavailable"
+      );
+
+      image.src = fallback;
+      return;
     }
+
+    image.src = signedData.signedUrl;
+
+  } catch (photoError) {
+    console.error(
+      "Dashboard profile photo error:",
+      photoError
+    );
+
+    image.src = fallback;
+  }
+}
 
     function setProfileHeaderFallback() {
       const name = "EGC Customer";
