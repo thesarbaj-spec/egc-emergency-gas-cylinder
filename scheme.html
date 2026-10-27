@@ -1219,7 +1219,7 @@
                ["rejected", "cancelled", "canceled"].includes(approval);
     }
 
-   function isFullyCleared(request) {
+   function isFullyCleared(request, verifiedPaidAmount = null) {
 if (!request) return false;
 
 const remaining = Number(request.remaining_amount);
@@ -1236,6 +1236,17 @@ const completedStatuses = [
     "settled",
     "clear"
 ];
+
+// When verified payment records are available, use their calculated balance.
+if (
+    verifiedPaidAmount !== null &&
+    Number.isFinite(Number(verifiedPaidAmount))
+) {
+    const totalPaid = Number(verifiedPaidAmount);
+    const totalDue = Number(request.cylinder_amount || CYLINDER_AMOUNT);
+
+    return totalDue > 0 && totalPaid >= totalDue;
+}
 
 return (
     Number.isFinite(remaining) &&
@@ -1351,7 +1362,84 @@ return true;
         return data || null;
     }
 
-    async function getExistingActiveRequest(userId) {
+    async function getVerifiedPaymentsForRequest(request) {
+const { data, error } = await supabaseClient
+.from("payments")
+.select("*")
+.eq("request_id", request.id);
+
+if (error) {
+    throw new Error(
+        "Unable to verify your previous payments: " + error.message
+    );
+}
+
+const approvedPayments = (data || []).filter(payment => {
+    const verificationStatus = normalStatus(
+        payment.verification_status
+    );
+
+    const paymentStatus = normalStatus(payment.payment_status);
+
+    return (
+        ["approved", "verified"].includes(verificationStatus) &&
+        ["paid", "approved", "verified", "completed"].includes(paymentStatus)
+    );
+});
+
+const totalPaid = approvedPayments.reduce((sum, payment) => {
+    return sum + Math.max(
+        0,
+        Number(payment.payment_amount || payment.amount || 0)
+    );
+}, 0);
+
+const cylinderAmount = Number(
+    request.cylinder_amount || request.total_amount || CYLINDER_AMOUNT
+);
+
+// Repayment notes may contain the approved extra charge.
+let extraCharge = Number(request.extra_charge || 0);
+
+for (const payment of approvedPayments) {
+    let notes = payment.notes;
+
+    if (typeof notes === "string") {
+        try {
+            notes = JSON.parse(notes);
+        } catch {
+            notes = null;
+        }
+    }
+
+    if (notes && typeof notes === "object") {
+        const paymentType = normalStatus(
+            notes.payment_type || notes.type
+        );
+
+        if (paymentType === "repayment") {
+            extraCharge = Math.max(
+                extraCharge,
+                Number(notes.extra_charge || 0)
+            );
+        }
+    }
+}
+
+const totalDue = cylinderAmount + extraCharge;
+const remaining = Math.max(0, totalDue - totalPaid);
+
+return {
+    approvedPayments,
+    totalPaid,
+    totalDue,
+    remaining,
+    fullyPaid: totalDue > 0 && remaining <= 0
+};
+
+}
+
+ async function getExistingActiveRequest(userId) {
 const { data, error } = await supabaseClient
 .from("cylinder_requests")
 .select("*")
@@ -1367,9 +1455,35 @@ if (error) {
 
 const requests = data || [];
 
-// An unfinished request blocks another cylinder request.
-// A fully repaid request does not block a new request.
-return requests.find(isActiveRequest) || null;
+for (const request of requests) {
+    if (isRejectedOrCancelled(request)) {
+        continue;
+    }
+
+    const balance = await getVerifiedPaymentsForRequest(request);
+
+    // A fully repaid request must not block a new request.
+    if (balance.fullyPaid) {
+        continue;
+    }
+
+    // Any request with an outstanding balance blocks a new request.
+    if (balance.remaining > 0) {
+        return {
+            ...request,
+            calculated_remaining_amount: balance.remaining,
+            calculated_total_paid: balance.totalPaid,
+            calculated_total_due: balance.totalDue
+        };
+    }
+
+    // Do not silently ignore an unresolved active request.
+    if (!isFullyCleared(request)) {
+        return request;
+    }
+}
+
+return null;
 
 }
 
@@ -1466,6 +1580,7 @@ return requests.find(isActiveRequest) || null;
         null;
 
     const address = getAddress(verificationData, lpgDetails);
+    const personalDetails = verificationData.personal_details || verificationData.personalDetails || verificationData.personal || {}; const bookingNumber = String( verificationData.booking_number || verificationData.bookingNumber || personalDetails.booking_number || personalDetails.bookingNumber || localStorage.getItem("egc_booking_number") || "" ).trim();
 
     // Generate a unique request number for every new request.
     const requestNumber = generateRequestNumber();
@@ -1473,6 +1588,7 @@ return requests.find(isActiveRequest) || null;
     // Every new request starts with fresh approval and payment statuses.
     // Never copy approval or payment status from an older request.
     const insertData = {
+        booking_number: bookingNumber || null,
         user_id: user.id,
         request_number: requestNumber,
 
@@ -1682,7 +1798,27 @@ const agency = await getVerifiedAgency(lpgDetails);
 const existingRequest = await getExistingActiveRequest(user.id);
 
 if (existingRequest) {
-    const remaining = Number(existingRequest.remaining_amount);
+   if (existingRequest) {
+const remaining = Number(
+existingRequest.calculated_remaining_amount ??
+existingRequest.remaining_amount
+);
+
+if (Number.isFinite(remaining) && remaining > 0) {
+    throw new Error(
+        "Aapki purani cylinder request ki ₹" +
+        remaining +
+        " repayment abhi baaki hai. Repayment poori hone ke baad hi nayi request kar sakte hain."
+    );
+}
+
+if (!isFullyCleared(existingRequest)) {
+    throw new Error(
+        "Aapki purani cylinder request abhi active hai. Owner se repayment aur request status verify karwayein."
+    );
+}
+
+}
     const repaymentStatus = normalStatus(
         existingRequest.repayment_status || ""
     );

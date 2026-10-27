@@ -222,7 +222,20 @@ tbody tr:hover{background:#fbfdff}
 .payment-proof img{width:100%;height:135px;object-fit:contain;cursor:zoom-in;background:#eef4f8}
 .payment-proof a{display:block;padding:9px;font-size:11px;font-weight:800;overflow-wrap:anywhere}
 .inline-status{font-size:12px;color:#71889a;line-height:1.6;margin-top:12px}
+.view-btn {
+background: #eaf6ff;
+color: #0871c3;
+border: 1px solid #cfe7f8;
+border-radius: 8px;
+padding: 7px 10px;
+font-size: 11px;
+font-weight: 800;
+cursor: pointer;
+}
 
+.view-btn {
+background: #d9efff;
+}
 @media(max-width:1100px){
 .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .history-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -397,6 +410,7 @@ tbody tr:hover{background:#fbfdff}
                     <th>Mobile</th>
                     <th>Email</th>
                     <th>LPG Company</th>
+                    <th>Booking Number</th>
                     <th>Agency</th>
                     <th>City</th>
                     <th>Request Date</th>
@@ -1524,6 +1538,7 @@ function renderRequests() {
         const text = [
             getUserId(request),
             request.request_number,
+            request.booking_number,
             getUserName(request),
             getUserMobile(request),
             getUserEmail(request),
@@ -1546,7 +1561,7 @@ function renderRequests() {
 
     if (!filtered.length) {
         requestTableBody.innerHTML =
-            '<tr><td colspan="18" class="empty">No cylinder requests found.</td></tr>';
+            '<tr><td colspan="19" class="empty">No cylinder requests found.</td></tr>';
         return;
     }
 
@@ -1569,6 +1584,7 @@ function renderRequests() {
                 <td>${escapeHtml(getUserMobile(request))}</td>
                 <td>${escapeHtml(getUserEmail(request))}</td>
                 <td>${escapeHtml(getCompanyName(request))}</td>
+                <td>${escapeHtml(request.booking_number || "Not provided")}</td>
                 <td>${escapeHtml(getAgencyName(request))}</td>
                 <td>${escapeHtml(getCity(request))}</td>
                 <td>${formatDate(request.created_at || request.request_date)}</td>
@@ -1584,15 +1600,7 @@ function renderRequests() {
                         ${escapeHtml(displayStatusText(request.status || "Pending"))}
                     </span>
                 </td>
-                <td>
-                    <div class="action-wrap">
-                        <button class="action-btn details-btn" type="button" data-action="documents" data-id="${id}">👁️</button>
-                        <button class="action-btn approve-action-btn" type="button" data-action="request-approval" data-id="${id}">✅ Request</button>
-                        <button class="action-btn payment-action-btn" type="button" data-action="payment-approval" data-id="${id}">💳 Payment</button>
-                        <button class="action-btn edit-btn" type="button" data-action="edit" data-id="${id}">✏️</button>
-                        <button class="action-btn delete-btn" type="button" data-action="delete" data-id="${id}">🗑️</button>
-                    </div>
-                </td>
+            <td> <div class="action-wrap"> <button class="action-btn details-btn" type="button" data-action="documents" data-id="${id}">👁️</button> <button class="action-btn view-btn" type="button" data-action="view-payment-details" data-id="${id}">👁️ View</button> <button class="action-btn approve-action-btn" type="button" data-action="request-approval" data-id="${id}">✅ Request</button> <button class="action-btn payment-action-btn" type="button" data-action="payment-approval" data-id="${id}">💳 Payment</button> <button class="action-btn edit-btn" type="button" data-action="edit" data-id="${id}">✏️</button> <button class="action-btn delete-btn" type="button" data-action="delete" data-id="${id}">🗑️</button> </div> </td>
             </tr>`;
     }).join("");
 
@@ -1649,22 +1657,69 @@ if (requestTableBody) {
         if (!request) return;
 
         switch (button.dataset.action) {
-            case "documents":
-                void openDocumentsModal(request);
-                break;
-            case "request-approval":
-                openRequestApprovalModal(request);
-                break;
-            case "payment-approval":
-                void openPaymentApprovalModal(request);
-                break;
-            case "edit":
-                openEditModal(request);
-                break;
-            case "delete":
-                openDeleteModal(request);
-                break;
+case "documents":
+void openDocumentsModal(request);
+break;
+
+case "request-approval":
+    openRequestApprovalModal(request);
+    break;
+
+case "payment-approval":
+    void openPaymentApprovalModal(request);
+    break;
+
+case "view-payment-details": {
+    showToast(
+        "Loading Payment",
+        "Please wait while payment details are loading."
+    );
+
+    void (async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from("payments")
+                .select("id, request_id, created_at")
+                .eq("request_id", request.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (error) {
+                console.error("Payment lookup error:", error);
+                showToast("Error", "Payment record load nahi hua.");
+                return;
+            }
+
+            if (!data) {
+                showToast(
+                    "Payment Not Found",
+                    "Is request ke liye abhi payment record nahi mila."
+                );
+                return;
+            }
+
+            window.location.href =
+                "owner-payment-details.html?payment_id=" +
+                encodeURIComponent(data.id);
+        } catch (error) {
+            console.error("View payment error:", error);
+            showToast("Error", "Payment details open nahi ho paayi.");
         }
+    })();
+
+    break;
+}
+
+case "edit":
+    openEditModal(request);
+    break;
+
+case "delete":
+    openDeleteModal(request);
+    break;
+
+}
     });
 }
 
@@ -2812,6 +2867,8 @@ function openGroupedRepaymentDetails(groupKey) {
                 </div>
             </div>
 
+            <div class="summary-item"> <div class="summary-label">LPG Booking Number</div> <div class="summary-value" style="font-weight:700;color:#dc2626;"> ${escapeHtml(request.booking_number || "Not provided")} </div> </div>
+
             <div class="summary-item">
                 <div class="summary-label">Total Repayments</div>
                 <div class="summary-value">${rows.length}</div>
@@ -3809,6 +3866,7 @@ console.log("EGC REQUEST DOCUMENT FIELDS:", {
                     <div class="summary-label">Full Address</div>
                     <div class="summary-value">${escapeHtml(fullAddress)}</div>
                 </div>
+                <div class="summary-item"> <div class="summary-label">LPG BOOKING NUMBER</div> <div class="summary-value">${escapeHtml(request.booking_number || "Not provided")}</div> </div>
                 <div class="summary-item">
                     <div class="summary-label">LPG Company</div>
                     <div class="summary-value">${escapeHtml(getCompanyName(request))}</div>
