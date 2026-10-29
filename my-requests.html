@@ -484,46 +484,73 @@ function getPaymentsForRequest(requestId) {
 */
 
 function getPaymentType(payment) {
-  return normalizeStatus(
-    getValue(payment, [
-      "payment_type",
-      "type",
-      "payment_for",
-      "transaction_type"
-    ], "initial")
-  );
+const type = normalizeStatus(
+getValue(payment, [
+"payment_type",
+"type",
+"payment_for",
+"transaction_type"
+], "")
+);
+
+if ([
+"repayment",
+"repay",
+"balance_payment",
+"remaining_payment",
+"installment"
+].includes(type)) {
+return "repayment";
+}
+
+if ([
+"initial",
+"initial_payment",
+"first_payment",
+"advance"
+].includes(type)) {
+return "initial_payment";
+}
+
+// Legacy records without payment_type are not safely classifiable
+// merely by their chronological position.
+return "unknown";
 }
 
 function isRepaymentRecord(payment) {
-  return [
-    "repayment",
-    "repay",
-    "balance_payment",
-    "remaining_payment",
-    "installment"
-  ].includes(getPaymentType(payment));
+return getPaymentType(payment) === "repayment";
 }
 
 function getInitialPayment(item) {
-  return getPaymentsForRequest(item.id).find(
-    payment => !isRepaymentRecord(payment)
-  ) || null;
+return getPaymentsForRequest(item.id).find(payment => {
+return getPaymentType(payment) === "initial_payment";
+}) || null;
 }
 
 function getRepaymentRecords(item) {
-  return getPaymentsForRequest(item.id)
-    .filter(payment => isRepaymentRecord(payment))
-    .sort((a, b) => {
-      const dateA = new Date(
-        a.created_at || a.payment_date || 0
-      ).getTime();
+return getPaymentsForRequest(item.id)
+.filter(payment => getPaymentType(payment) === "repayment")
+.sort((a, b) => {
+const dateA = new Date(
+a.created_at || a.payment_date || 0
+).getTime();
 
-      const dateB = new Date(
-        b.created_at || b.payment_date || 0
-      ).getTime();
+  const dateB = new Date(
+    b.created_at || b.payment_date || 0
+  ).getTime();
 
-      return dateA - dateB;
-    });
+  return dateA - dateB;
+});
+
+}
+
+function getVerifiedPaidTotal(item) {
+if (!item || !item.id) return 0;
+
+const initialPaymentTotal = getVerifiedInitialPaymentTotal(item);
+const repaymentTotal = getApprovedRepaymentTotal(item);
+
+return initialPaymentTotal + repaymentTotal;
 }
 
 function getLatestPayment(item) {
@@ -531,96 +558,90 @@ function getLatestPayment(item) {
 }
 
 function isVerifiedPaymentRecord(payment) {
-  const status = normalizeStatus(payment.payment_status);
-  const verification = normalizeStatus(payment.verification_status);
+if (!payment) return false;
 
-  return (
-    ["paid", "approved", "completed"].includes(status) &&
-    ["approved", "verified"].includes(verification)
-  );
+const status = normalizeStatus(payment.payment_status);
+const verification = normalizeStatus(payment.verification_status);
+
+return (
+["paid", "approved", "completed", "success", "successful", "verified"]
+.includes(status) &&
+["approved", "verified"].includes(verification)
+);
 }
 
 function getPaymentData(item) {
-  const payment = getInitialPayment(item);
+const payment = getInitialPayment(item);
 
-  if (payment) {
-    return {
-      record: payment,
-      status: normalizeStatus(payment.payment_status),
-      verification: normalizeStatus(payment.verification_status),
-      amount: Number(payment.payment_amount) || 0,
-      transactionId:
-        payment.transaction_id ||
-        payment.payment_reference ||
-        "",
-      method: payment.payment_method || "",
-      rejectionReason: payment.owner_rejection_reason || ""
-    };
-  }
+if (payment) {
+return {
+record: payment,
+status: normalizeStatus(payment.payment_status),
+verification: normalizeStatus(payment.verification_status),
+amount: Number(payment.payment_amount) || 0,
+transactionId:
+payment.transaction_id ||
+payment.payment_reference ||
+"",
+method: payment.payment_method || "",
+rejectionReason: payment.owner_rejection_reason || ""
+};
+}
 
-  return {
-    record: null,
-    status: normalizeStatus(getValue(item, ["payment_status"], "")),
-    verification: normalizeStatus(
-      getValue(item, ["payment_verification_status"], "")
-    ),
-    amount: 0,
-    transactionId:
-      item.payment_transaction_id ||
-      item.payment_reference ||
-      "",
-    method: item.payment_method || "",
-    rejectionReason: item.owner_rejection_reason || ""
-  };
+return {
+record: null,
+status: "",
+verification: "",
+amount: 0,
+transactionId: "",
+method: "",
+rejectionReason: ""
+};
 }
 
 function isPaymentRejected(item) {
-  const payment = getPaymentData(item);
+const payment = getPaymentData(item);
 
-  return (
-    isRejectedValue(payment.status) ||
-    isRejectedValue(payment.verification)
-  );
+return (
+isRejectedValue(payment.status) ||
+isRejectedValue(payment.verification)
+);
 }
 
 function isPaymentVerified(item) {
-  const payment = getPaymentData(item);
+const payment = getPaymentData(item);
 
-  return (
-    ["paid", "approved", "completed"].includes(payment.status) &&
-    ["approved", "verified"].includes(payment.verification)
-  );
+return Boolean(
+payment.record &&
+isVerifiedPaymentRecord(payment.record)
+);
 }
 
 function isRepaymentVerified(item) {
-  const repayments = getRepaymentRecords(item);
+const repayments = getRepaymentRecords(item);
 
-  return (
-    repayments.length > 0 &&
-    repayments.every(isVerifiedPaymentRecord)
-  );
+return (
+repayments.length > 0 &&
+repayments.every(isVerifiedPaymentRecord)
+);
 }
 
 function isRepaymentPending(item) {
-  const repayments = getRepaymentRecords(item);
+return getRepaymentRecords(item).some(payment => {
+const status = normalizeStatus(payment.payment_status);
+const verification = normalizeStatus(payment.verification_status);
 
-  return repayments.some(payment => {
-    const status = normalizeStatus(payment.payment_status);
-    const verification = normalizeStatus(payment.verification_status);
+const rejected =
+  isRejectedValue(status) ||
+  isRejectedValue(verification);
 
-    return (
-      [
-        "submitted",
-        "pending",
-        "pending_verification",
-        "verification_pending",
-        "under_review",
-        "processing",
-        "paid"
-      ].includes(status) &&
-      !["approved", "verified"].includes(verification)
-    );
-  });
+if (rejected || isVerifiedPaymentRecord(payment)) {
+  return false;
+}
+
+return true;
+
+});
 }
 
 /* AMOUNT CALCULATION */
@@ -630,10 +651,10 @@ function getRequestAmount(item) {
     0,
     Number(
       getValue(item, [
-        "total_amount",
         "cylinder_amount",
         "request_amount",
-        "finance_amount"
+        "finance_amount",
+        "total_amount"
       ], 0)
     ) || 0
   );
@@ -660,20 +681,23 @@ function getApprovedRepaymentTotal(item) {
 
 /*
   Extra charge slabs:
-  Days 1-10  = ₹35
-  Days 11-15 = ₹40
-  Days 16-30 = ₹50
-  Days 31-45 = ₹50
-  Days 46+   = ₹100
+  Days 1-10  = ₹50
+  Days 11-15 = ₹60
+  Days 16-30 = ₹80
+  Days 31 more = ₹100
 
   This applies one charge according to the current day slab.
   The delivery date is treated as Day 1.
 */
 
 function getDaysSinceDelivery(item) {
-  if (!item.delivered_at) return 0;
+  const deliveredAt =
+    item?.delivery_date ||
+    item?.delivered_at;
 
-  const deliveredDate = new Date(item.delivered_at);
+  if (!deliveredAt) return 0;
+
+  const deliveredDate = new Date(deliveredAt);
 
   if (Number.isNaN(deliveredDate.getTime())) return 0;
 
@@ -691,102 +715,83 @@ function getDaysSinceDelivery(item) {
     now.getDate()
   );
 
-  const difference = Math.floor((today - deliveryDay) / 86400000);
+  const difference = Math.floor(
+    (today - deliveryDay) / 86400000
+  );
 
-  if (difference < 0) return 0;
-
-  return difference + 1;
+  return Math.max(0, difference);
 }
 
 function getCalculatedExtraCharge(item) {
-  // Delivery nahi hui to extra charge nahi lagega.
-  if (
-    getDeliveryStatus(item) !== "delivered" ||
-    !item.delivered_at
-  ) {
-    return 0;
-  }
-
-  // Cylinder/request amount aur verified payments calculate karein.
-  const requestAmount = getRequestAmount(item);
-  const paidAmount = getVerifiedPaidTotal(item);
-
-  // Agar request amount hi clear nahi hua,
-  // to current delivery-day slab ka charge dikhayein.
-  const remainingAmount = Math.max(
-    0,
-    requestAmount - paidAmount
-  );
-
-  if (remainingAmount > 0) {
-    const days = getDaysSinceDelivery(item);
-
-    if (days <= 0) return 0;
-    if (days <= 10) return 35;
-    if (days <= 15) return 40;
-    if (days <= 45) return 50;
-
-    return 100;
-  }
-
-  // Request amount se zyada ya barabar payment hone par
-  // extra charge ko automatically zero na karein.
-  // Extra charge clear hai ya nahi, ise total payable
-  // aur approved payments ke saath verify karna zaroori hai.
-  return 0;
+if (!item || getDeliveryStatus(item) !== "delivered") {
+return 0;
 }
 
-function getVerifiedPaidTotal(item) {
-  return getVerifiedInitialPaymentTotal(item) +
-    getApprovedRepaymentTotal(item);
+const deliveredAt = item.delivery_date || item.delivered_at;
+
+if (!deliveredAt) return 0;
+
+const days = getDaysSinceDelivery(item);
+
+if (days <= 0) return 0;
+if (days <= 10) return 50;
+if (days <= 15) return 60;
+if (days <= 30) return 80;
+
+return 100;
 }
 
-/*
-  Remaining Amount:
-  Cylinder/request amount minus verified payments.
-
-  Extra Charge:
-  Current charge based on delivery date.
-
-  Total Payable:
-  Remaining Amount + Extra Charge.
-
-  The old stored remaining_amount is intentionally not used as the
-  displayed balance because it may be stale.
-*/
-
-function getRemainingBeforeExtra(item) {
-  if (!isApproved(getOwnerApproval(item))) return 0;
-
-  const total = getRequestAmount(item);
-  if (total <= 0) return 0;
-
-  const paid = getVerifiedPaidTotal(item);
-
-  return Math.max(0, total - paid);
-}
-
-function getRemainingAmount(item) {
-  return getRemainingBeforeExtra(item);
-}
-
+// Historical total payable: cylinder amount + assessed extra charge.
+// Payment complete hone par historical total ko ₹890 par reset nahi karna.
 function getTotalPayable(item) {
-  const remainingAmount = getRemainingAmount(item);
-  const extraCharge = getCalculatedExtraCharge(item);
+if (!item) return 0;
 
-  return Math.max(0, remainingAmount + extraCharge);
+const cylinderAmount = getRequestAmount(item);
+const extraCharge = getCalculatedExtraCharge(item);
+
+return cylinderAmount + extraCharge;
+}
+
+// Remaining amount: verified payments ko total payable se minus karein.
+function getRemainingAmount(item) {
+if (!item) return 0;
+
+if (!isApproved(getOwnerApproval(item))) {
+return 0;
+}
+
+const totalPayable = getTotalPayable(item);
+const verifiedPaid = getVerifiedPaidTotal(item);
+
+return Math.max(0, totalPayable - verifiedPaid);
+}
+
+// Sirf unpaid extra charge display karein.
+function getExtraChargeDue(item) {
+if (!item) return 0;
+
+const assessedExtraCharge = getCalculatedExtraCharge(item);
+const remaining = getRemainingAmount(item);
+
+if (remaining <= 0) return 0;
+
+return Math.min(assessedExtraCharge, remaining);
 }
 
 function isFullyCompleted(item) {
-  if (getRequestStatus(item) === "completed") {
-    return true;
-  }
+if (!item) return false;
 
-  return (
-    getDeliveryStatus(item) === "delivered" &&
-    getRemainingAmount(item) <= 0 &&
-    getCalculatedExtraCharge(item) <= 0
-  );
+const deliveryStatus = getDeliveryStatus(item);
+
+if (deliveryStatus !== "delivered") {
+return getRequestStatus(item) === "completed";
+}
+
+return (
+isApproved(getOwnerApproval(item)) &&
+getRemainingAmount(item) <= 0 &&
+!isRepaymentPending(item)
+);
 }
 
 function isRejected(item) {
@@ -874,42 +879,42 @@ function getOverallState(item) {
   }
 
 if (deliveryStatus === "delivered") {
-  if (isRepaymentPending(item)) {
-    return {
-      key: "repayment_pending",
-      label: "Waiting for Owner",
-      message:
-        "Your repayment has been submitted and is waiting for Owner verification.",
-      progress: 95
-    };
-  }
+if (isRepaymentPending(item)) {
+return {
+key: "repayment_pending",
+label: "Waiting for Owner",
+message:
+"Your repayment has been submitted and is waiting for Owner verification.",
+progress: 95
+};
+}
 
-  const remainingAmount = getRemainingAmount(item);
-  const extraCharge = getCalculatedExtraCharge(item);
-  const totalPayable = remainingAmount + extraCharge;
+const remainingAmount = getRemainingAmount(item);
+const extraCharge = getCalculatedExtraCharge(item);
+const totalPayable = getTotalPayable(item);
 
-  if (totalPayable > 0) {
-    return {
-      key: "repayment_due",
-      label: "Repayment Due",
-      message:
-        "Your cylinder has been delivered. Remaining Amount: ₹" +
-        formatMoney(remainingAmount) +
-        ", Extra Charge: ₹" +
-        formatMoney(extraCharge) +
-        ", Total Payable: ₹" +
-        formatMoney(totalPayable),
-      progress: 90
-    };
-  }
+if (remainingAmount > 0) {
+return {
+key: "repayment_due",
+label: "Repayment Due",
+message:
+"Your cylinder has been delivered. Remaining Amount: ₹" +
+formatMoney(remainingAmount) +
+", Extra Charge: ₹" +
+formatMoney(extraCharge) +
+", Total Payable: ₹" +
+formatMoney(totalPayable),
+progress: 90
+};
+}
 
-  return {
-    key: "completed",
-    label: "Completed",
-    message:
-      "Your cylinder has been delivered and all payments have been completed.",
-    progress: 100
-  };
+return {
+key: "completed",
+label: "Completed",
+message:
+"Your cylinder has been delivered and all payments have been completed.",
+progress: 100
+};
 }
 
   const pendingStatuses = [
@@ -1431,25 +1436,36 @@ function renderPaymentSummary(item) {
 /* AMOUNT SUMMARY DISPLAY */
 
 function renderAmountSummary(item) {
-  const remaining = getRemainingAmount(item);
-  const extraCharge = getCalculatedExtraCharge(item);
-  const totalPayable = getTotalPayable(item);
+const remaining = getRemainingAmount(item);
+const extraChargeDue = getExtraChargeDue(item);
+const totalPayable = getTotalPayable(item);
+const verifiedPaid = getVerifiedPaidTotal(item);
 
-  return `
-    <div class="payment-status-note payment-pending" style="margin-top:12px;">
-      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
-        <span>Remaining Amount</span>
-        <strong>₹${formatMoney(remaining)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
-        <span>Extra Charge</span>
-        <strong>₹${formatMoney(extraCharge)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid #dce7ef;">
-        <span><strong>Total Payable</strong></span>
-        <strong>₹${formatMoney(totalPayable)}</strong>
-      </div>
-    </div>`;
+return `
+<div class="payment-status-note payment-pending" style="margin-top:12px;">
+
+  <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
+    <span>Verified Paid</span>
+    <strong>₹${formatMoney(verifiedPaid)}</strong>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
+    <span>Remaining Amount</span>
+    <strong>₹${formatMoney(remaining)}</strong>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
+    <span>Extra Charge Due</span>
+    <strong>₹${formatMoney(extraChargeDue)}</strong>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid #dce7ef;">
+    <span><strong>Total Payable</strong></span>
+    <strong>₹${formatMoney(totalPayable)}</strong>
+  </div>
+
+</div>`;
+
 }
 
 /* RENDER REQUEST CARDS */
@@ -1689,19 +1705,22 @@ function renderRequests() {
 /* NAVIGATION */
 
 function openPaymentPage(id, repayment = false) {
-  if (!id) {
-    toast("Request details not found.");
-    return;
-  }
+if (!id) {
+toast("Request details not found.");
+return;
+}
 
-  const params = new URLSearchParams();
-  params.set("request_id", id);
+const params = new URLSearchParams();
 
-  if (repayment) {
-    params.set("type", "repayment");
-  }
+params.set("request_id", String(id));
 
-  window.location.href = "payments.html?" + params.toString();
+if (repayment) {
+params.set("payment_type", "repayment");
+} else {
+params.set("payment_type", "initial_payment");
+}
+
+window.location.href = "submit-payment.html?" + params.toString();
 }
 
 function viewRequest(id) {
@@ -1734,44 +1753,6 @@ function viewRequest(id) {
   }
 
   toast(message);
-}
-
-function requestCylinder() {
-  const activeRequest = getActiveRequest();
-
-  if (!activeRequest) {
-    window.location.href = "request-cylinder.html";
-    return;
-  }
-
-  const state = getOverallState(activeRequest);
-
-  if (state.key === "payment_required") {
-    openPaymentPage(activeRequest.id);
-    return;
-  }
-
-  if (["repayment_due", "repayment_pending"].includes(state.key)) {
-    openPaymentPage(activeRequest.id, true);
-    return;
-  }
-
-  toast(
-    "Your request " +
-    getValue(activeRequest, ["request_number", "request_no"], "") +
-    " is still in progress."
-  );
-
-  showInfo(state.message);
-
-  const card = document.querySelector(".active-request");
-
-  if (card) {
-    card.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
-  }
 }
 
 async function refreshRequests() {

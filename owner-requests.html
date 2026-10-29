@@ -2396,318 +2396,294 @@ function renderHistoryTable(elementId, rows) {
    ========================================================= */
 
 function renderGroupedRepaymentHistory(rows) {
-    const body = $("repaymentHistoryTableBody");
-    if (!body) return;
+const body = $("repaymentHistoryTableBody");
+if (!body) return;
 
-    const count = $("historyRepaymentCount");
+const count = $("historyRepaymentCount");
 
-    if (!rows || !rows.length) {
-        if (count) count.textContent = "0";
+if (!rows || !rows.length) {
+    if (count) count.textContent = "0";
 
-        body.innerHTML = `
-            <tr>
-                <td colspan="12" class="history-empty">
-                    <strong>No repayment history loaded</strong>
-                    Repayments will appear here as separate entries.
-                </td>
-            </tr>`;
-        return;
-    }
-
-    const groups = new Map();
-
-    rows.forEach(payment => {
-        const key =
-            `${payment.user_id || "unknown"}::${payment.request_id || "no-request"}`;
-
-        if (!groups.has(key)) {
-            groups.set(key, {
-                key,
-                customerName: historyCustomerName(payment),
-                customerCode: historyCustomerCode(payment),
-                requestNumber: historyRequestNumber(payment),
-                records: []
-            });
-        }
-
-        groups.get(key).records.push(payment);
-    });
-
-    const grouped = [...groups.values()];
-
-    if (count) count.textContent = String(rows.length);
-
-    body.innerHTML = grouped.map(group => {
-        const records = [...group.records].sort((a, b) => {
-            const dateA = new Date(
-                a.payment_date || a.created_at || a.submitted_at || 0
-            ).getTime();
-
-            const dateB = new Date(
-                b.payment_date || b.created_at || b.submitted_at || 0
-            ).getTime();
-
-            return dateB - dateA;
-        });
-
-        const latest = records[0];
-        const totalRecords = records.length;
-
-        const totalAmount = records.reduce(
-            (sum, payment) =>
-                sum + (
-                    Number(payment.payment_amount ?? payment.amount) || 0
-                ),
-            0
-        );
-
-        const approved = records.filter(
-            payment => historyApproval(payment) === "approved"
-        ).length;
-
-        const rejected = records.filter(
-            payment => historyApproval(payment) === "rejected"
-        ).length;
-
-        const pending = records.filter(
-            payment => historyApproval(payment) === "pending"
-        ).length;
-
-        let summaryStatus = "approved";
-
-        if (pending > 0) {
-            summaryStatus = "pending";
-        } else if (rejected > 0 && approved === 0) {
-            summaryStatus = "rejected";
-        } else if (rejected > 0 && approved > 0) {
-            summaryStatus = "partial";
-        }
-
-        // Option C: one repayment number or total repayment count.
-        const repaymentNumberLabel = totalRecords === 1
-            ? `Repayment #${escapeHtml(
-                latest.id || latest.payment_id || "1"
-            )}`
-            : `${totalRecords} Repayments`;
-
-        const getDateValue = payment =>
-            payment.payment_date ||
-            payment.created_at ||
-            payment.submitted_at ||
-            null;
-
-        const getApprovalDateValue = payment =>
-            payment.owner_approved_at ||
-            payment.verified_at ||
-            payment.approved_at ||
-            null;
-
-        const latestDate = getDateValue(latest);
-
-        const latestApprovalDate = records
-            .map(payment => ({
-                payment,
-                date: getApprovalDateValue(payment)
-            }))
-            .filter(item => item.date)
-            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-
-        const transactionIds = [
-            ...new Set(
-                records
-                    .map(payment => historyTransaction(payment))
-                    .filter(Boolean)
-            )
-        ];
-
-        const paymentMethods = [
-            ...new Set(
-                records
-                    .map(payment =>
-                        payment.payment_method ||
-                        payment.method ||
-                        null
-                    )
-                    .filter(Boolean)
-            )
-        ];
-
-        const proofRecords = records.filter(payment =>
-            historyProofReference(payment)
-        );
-
-        const ownerApprovalLabel = pending > 0
-            ? `Pending: ${pending}`
-            : rejected > 0
-                ? `Reviewed · Rejected: ${rejected}`
-                : `All ${approved} approved`;
-
-        const dateText = latestDate
-            ? formatHistoryDate(latestDate)
-            : "—";
-
-        const timeText = latestDate
-            ? formatHistoryTime(latestDate)
-            : "—";
-
-        const approvalDateText = latestApprovalDate
-            ? `${formatHistoryDate(latestApprovalDate.date)}
-               <br><small>${formatHistoryTime(latestApprovalDate.date)}</small>`
-            : "—";
-
-        const transactionText = transactionIds.length === 0
-            ? "—"
-            : transactionIds.length === 1
-                ? escapeHtml(transactionIds[0])
-                : `${transactionIds.length} transactions`;
-
-        const methodText = paymentMethods.length === 0
-            ? "—"
-            : paymentMethods.length === 1
-                ? escapeHtml(paymentMethods[0])
-                : `${paymentMethods.length} methods`;
-
-        const proofButton = proofRecords.length === 0
-            ? "—"
-            : `
-                <button
-                    type="button"
-                    class="action-btn details-btn"
-                    data-history-action="view-group"
-                    data-group-key="${escapeHtml(group.key)}">
-                    View Proofs (${proofRecords.length})
-                </button>`;
-
-        return `
-            <tr>
-                <!-- 1. Repayment ID / Customer -->
-                <td>
-                    <strong>${escapeHtml(group.customerName)}</strong>
-                    <br>
-                    <small>
-                        EGC User ID: ${escapeHtml(group.customerCode)}
-                    </small>
-                </td>
-
-                <!-- 2. Repayment Number -->
-                <td>
-                    <strong>${repaymentNumberLabel}</strong>
-                    <br>
-                    <small>${escapeHtml(group.requestNumber)}</small>
-                </td>
-
-                <!-- 3. Amount -->
-                <td>
-                    <strong>${formatMoney(totalAmount)}</strong>
-                    <br>
-                    <small>${totalRecords} repayment record(s)</small>
-                    <br>
-                    <small>
-                        Latest: ${formatMoney(
-                            Number(
-                                latest.payment_amount ?? latest.amount
-                            ) || 0
-                        )}
-                    </small>
-                </td>
-
-                <!-- 4. Submitted Date -->
-                <td>${dateText}</td>
-
-                <!-- 5. Submitted Time -->
-                <td>${timeText}</td>
-
-                <!-- 6. Transaction ID -->
-                <td>${transactionText}</td>
-
-                <!-- 7. Payment Method -->
-                <td>${methodText}</td>
-
-                <!-- 8. Status -->
-                <td>
-                    ${badgeHtml(summaryStatus)}
-                    <br>
-                    <small>
-                        Approved: ${approved}<br>
-                        Pending: ${pending}<br>
-                        Rejected: ${rejected}
-                    </small>
-                </td>
-
-                <!-- 9. Owner Approval -->
-                <td>
-                    ${ownerApprovalLabel}
-                    <br>
-                    <small>Records: ${totalRecords}</small>
-                </td>
-
-                <!-- 10. Approval Date & Time -->
-                <td>${approvalDateText}</td>
-
-                <!-- 11. Proof -->
-                <td>${proofButton}</td>
-
-                <!-- 12. Actions -->
-                <td>
-                    <div class="repayment-actions">
-
-                        <button
-                            type="button"
-                            class="action-btn details-btn"
-                            data-history-action="view-group"
-                            data-group-key="${escapeHtml(group.key)}">
-                            View All History
-                        </button>
-
-                        <button
-                            type="button"
-                            class="action-btn details-btn"
-                            data-history-action="toggle-repayment-actions"
-                            data-group-key="${escapeHtml(group.key)}"
-                            aria-expanded="false">
-                            Manage
-                        </button>
-
-                        <div
-                            class="repayment-action-menu"
-                            id="repayment-actions-${escapeHtml(group.key)}"
-                            hidden>
-
-                            <button
-                                type="button"
-                                class="action-btn"
-                                data-history-action="approve-group"
-                                data-group-key="${escapeHtml(group.key)}">
-                                ✅ Approve
-                            </button>
-
-                            <button
-                                type="button"
-                                class="action-btn"
-                                data-history-action="reject-group"
-                                data-group-key="${escapeHtml(group.key)}">
-                                ❌ Reject
-                            </button>
-
-                        </div>
-                    </div>
-                </td>
-            </tr>`;
-    }).join("");
+    body.innerHTML = `
+        <tr>
+            <td colspan="12" class="history-empty">
+                <strong>No repayment history loaded</strong>
+                Repayments will appear here as separate entries.
+            </td>
+        </tr>`;
+    return;
 }
 
-function formatHistoryDate(value) {
-    if (!value) return "—";
+const groups = new Map();
 
-    const date = new Date(value);
+rows.forEach(payment => {
+    const key =
+        `${payment.user_id || "unknown"}::${payment.request_id || "no-request"}`;
 
-    if (Number.isNaN(date.getTime())) return "—";
+    if (!groups.has(key)) {
+        groups.set(key, {
+            key,
+            customerName: historyCustomerName(payment),
+            customerCode: historyCustomerCode(payment),
+            requestNumber: historyRequestNumber(payment),
+            records: []
+        });
+    }
 
-    return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
+    groups.get(key).records.push(payment);
+});
+
+const grouped = [...groups.values()];
+
+// The count represents the number of individual repayment records.
+if (count) count.textContent = String(rows.length);
+
+body.innerHTML = grouped.map(group => {
+    const records = [...group.records].sort((a, b) => {
+        const dateA = new Date(
+            a.payment_date || a.created_at || a.submitted_at || 0
+        ).getTime();
+
+        const dateB = new Date(
+            b.payment_date || b.created_at || b.submitted_at || 0
+        ).getTime();
+
+        return dateB - dateA;
     });
+
+    const latest = records[0];
+    const totalRecords = records.length;
+
+    const totalAmount = records.reduce(
+        (sum, payment) =>
+            sum + (
+                Number(payment.payment_amount ?? payment.amount) || 0
+            ),
+        0
+    );
+
+    const approved = records.filter(
+        payment => historyApproval(payment) === "approved"
+    ).length;
+
+    const rejected = records.filter(
+        payment => historyApproval(payment) === "rejected"
+    ).length;
+
+    const pending = records.filter(
+        payment => historyApproval(payment) === "pending"
+    ).length;
+
+    let summaryStatus = "approved";
+
+    if (pending > 0) {
+        summaryStatus = "pending";
+    } else if (rejected > 0 && approved === 0) {
+        summaryStatus = "rejected";
+    } else if (rejected > 0 && approved > 0) {
+        summaryStatus = "partial";
+    }
+
+    const repaymentNumberLabel = totalRecords === 1
+        ? `Repayment #${escapeHtml(
+            latest.id || latest.payment_id || "1"
+        )}`
+        : `${totalRecords} Repayments`;
+
+    const getDateValue = payment =>
+        payment.payment_date ||
+        payment.created_at ||
+        payment.submitted_at ||
+        null;
+
+    const getApprovalDateValue = payment =>
+        payment.owner_approved_at ||
+        payment.verified_at ||
+        payment.approved_at ||
+        null;
+
+    const latestDate = getDateValue(latest);
+
+    const latestApprovalDate = records
+        .map(payment => ({
+            payment,
+            date: getApprovalDateValue(payment)
+        }))
+        .filter(item => item.date)
+        .sort((a, b) =>
+            new Date(b.date).getTime() -
+            new Date(a.date).getTime()
+        )[0];
+
+    const transactionIds = [
+        ...new Set(
+            records
+                .map(payment => historyTransaction(payment))
+                .filter(Boolean)
+        )
+    ];
+
+    const paymentMethods = [
+        ...new Set(
+            records
+                .map(payment =>
+                    payment.payment_method ||
+                    payment.method ||
+                    null
+                )
+                .filter(Boolean)
+        )
+    ];
+
+    const proofRecords = records.filter(payment =>
+        historyProofReference(payment)
+    );
+
+    const ownerApprovalLabel = pending > 0
+        ? `Pending: ${pending}`
+        : rejected > 0
+            ? `Reviewed · Rejected: ${rejected}`
+            : `All ${approved} approved`;
+
+    const dateText = latestDate
+        ? formatHistoryDate(latestDate)
+        : "—";
+
+    const timeText = latestDate
+        ? formatHistoryTime(latestDate)
+        : "—";
+
+    const approvalDateText = latestApprovalDate
+        ? `${formatHistoryDate(latestApprovalDate.date)}
+           <br><small>${formatHistoryTime(latestApprovalDate.date)}</small>`
+        : "—";
+
+    const transactionText = transactionIds.length === 0
+        ? "—"
+        : transactionIds.length === 1
+            ? escapeHtml(transactionIds[0])
+            : `${transactionIds.length} transactions`;
+
+    const methodText = paymentMethods.length === 0
+        ? "—"
+        : paymentMethods.length === 1
+            ? escapeHtml(paymentMethods[0])
+            : `${paymentMethods.length} methods`;
+
+    // View Proofs now has its own action and opens proof records only.
+    const proofButton = proofRecords.length === 0
+        ? "—"
+        : `
+            <button
+                type="button"
+                class="action-btn details-btn"
+                data-history-action="view-group-proofs"
+                data-group-key="${escapeHtml(group.key)}">
+                View Proofs (${proofRecords.length})
+            </button>`;
+
+    return `
+        <tr>
+            <td>
+                <strong>${escapeHtml(group.customerName)}</strong>
+                <br>
+                <small>
+                    EGC User ID: ${escapeHtml(group.customerCode)}
+                </small>
+            </td>
+
+            <td>
+                <strong>${repaymentNumberLabel}</strong>
+                <br>
+                <small>${escapeHtml(group.requestNumber)}</small>
+            </td>
+
+            <td>
+                <strong>${formatMoney(totalAmount)}</strong>
+                <br>
+                <small>${totalRecords} repayment record(s)</small>
+                <br>
+                <small>
+                    Latest: ${formatMoney(
+                        Number(
+                            latest.payment_amount ?? latest.amount
+                        ) || 0
+                    )}
+                </small>
+            </td>
+
+            <td>${dateText}</td>
+            <td>${timeText}</td>
+            <td>${transactionText}</td>
+            <td>${methodText}</td>
+
+            <td>
+                ${badgeHtml(summaryStatus)}
+                <br>
+                <small>
+                    Approved: ${approved}<br>
+                    Pending: ${pending}<br>
+                    Rejected: ${rejected}
+                </small>
+            </td>
+
+            <td>
+                ${ownerApprovalLabel}
+                <br>
+                <small>Records: ${totalRecords}</small>
+            </td>
+
+            <td>${approvalDateText}</td>
+
+            <td>${proofButton}</td>
+
+            <td>
+                <div class="repayment-actions">
+
+                    <button
+                        type="button"
+                        class="action-btn details-btn"
+                        data-history-action="view-group"
+                        data-group-key="${escapeHtml(group.key)}">
+                        View All History
+                    </button>
+
+                    <button
+                        type="button"
+                        class="action-btn details-btn"
+                        data-history-action="toggle-repayment-actions"
+                        data-group-key="${escapeHtml(group.key)}"
+                        aria-expanded="false">
+                        Manage
+                    </button>
+
+                    <div
+                        class="repayment-action-menu"
+                        id="repayment-actions-${escapeHtml(group.key)}"
+                        hidden>
+
+                        <button
+                            type="button"
+                            class="action-btn"
+                            data-history-action="approve-group"
+                            data-group-key="${escapeHtml(group.key)}">
+                            ✅ Approve
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-btn"
+                            data-history-action="reject-group"
+                            data-group-key="${escapeHtml(group.key)}">
+                            ❌ Reject
+                        </button>
+
+                    </div>
+                </div>
+            </td>
+        </tr>`;
+}).join("");
+
 }
 
 function formatHistoryDate(value) {
@@ -2743,181 +2719,222 @@ function formatHistoryTime(value) {
    Every repayment stays an individual record.
    ========================================================= */
 
-function openGroupedRepaymentDetails(groupKey) {
-    const rows = (allPaymentHistory || [])
-        .filter(payment => historyType(payment) === "repayment")
-        .filter(payment => {
-            const key =
-                `${payment.user_id || "unknown"}::${payment.request_id || "no-request"}`;
+function openGroupedRepaymentDetails(groupKey, options = {}) {
+const proofsOnly = options.proofsOnly === true;
 
-            return key === groupKey;
-        })
-        .sort((a, b) => {
-            const dateA = new Date(historyPaymentDate(a) || 0).getTime();
-            const dateB = new Date(historyPaymentDate(b) || 0).getTime();
-            return dateB - dateA;
-        });
+const rows = (allPaymentHistory || [])
+    .filter(payment => historyType(payment) === "repayment")
+    .filter(payment => {
+        const key =
+            `${payment.user_id || "unknown"}::${payment.request_id || "no-request"}`;
 
-    if (!rows.length) {
-        showToast(
-            "History Not Found",
-            "No repayment records were found for this customer."
-        );
-        return;
+        return key === groupKey;
+    })
+    .sort((a, b) => {
+        const dateA = new Date(historyPaymentDate(a) || 0).getTime();
+        const dateB = new Date(historyPaymentDate(b) || 0).getTime();
+        return dateB - dateA;
+    });
+
+if (!rows.length) {
+    showToast(
+        "History Not Found",
+        "No repayment records were found for this customer."
+    );
+    return;
+}
+
+const first = rows[0];
+
+// Safely retrieve the related request, if available.
+let request = null;
+
+try {
+    if (typeof historyRequest === "function" && first.request_id) {
+        request = historyRequest(first.request_id);
     }
+} catch (error) {
+    console.warn("Could not retrieve request details:", error);
+}
 
-    const first = rows[0];
+const proofRows = rows.filter(payment => historyProofReference(payment));
+const displayedRows = proofsOnly ? proofRows : rows;
 
-    const tableRows = rows.map(payment => {
-        const submittedAt = historyPaymentDate(payment);
-        const approvedAt = historyApprovalDate(payment);
-        const approval = historyApproval(payment);
-
-        const actionHtml = approval === "pending"
-            ? `
-                <button
-                    type="button"
-                    class="action-btn payment-action-btn"
-                    data-history-action="review"
-                    data-payment-id="${escapeHtml(String(payment.id))}"
-                    data-request-id="${escapeHtml(String(payment.request_id || ""))}">
-                    Review
-                </button>`
-            : `
-                <button
-                    type="button"
-                    class="action-btn details-btn"
-                    data-history-action="details"
-                    data-payment-id="${escapeHtml(String(payment.id))}">
-                    Details
-                </button>`;
-
-        const proof = historyProofReference(payment);
-
-        const proofHtml = proof
-            ? `
-                <button
-                    type="button"
-                    class="action-btn details-btn"
-                    data-history-action="proof"
-                    data-proof="${escapeHtml(proof)}">
-                    Proof
-                </button>`
-            : "—";
-
-        return `
-            <tr>
-                <td>${escapeHtml(String(payment.id || "—"))}</td>
-                <td>${formatMoney(payment.payment_amount ?? payment.amount)}</td>
-                <td>${escapeHtml(formatDate(submittedAt))}</td>
-                <td>${escapeHtml(
-                    submittedAt
-                        ? new Date(submittedAt).toLocaleTimeString("en-IN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true
-                        })
-                        : "—"
-                )}</td>
-                <td>${escapeHtml(historyTransaction(payment))}</td>
-                <td>${escapeHtml(
-                    payment.payment_method ||
-                    payment.payment_method_name ||
-                    payment.method ||
-                    "—"
-                )}</td>
-                <td>${badgeHtml(payment.payment_status || approval)}</td>
-                <td>${badgeHtml(approval)}</td>
-                <td>${escapeHtml(formatDateTime(approvedAt))}</td>
-                <td>${proofHtml}</td>
-                <td>
-                    <div class="action-wrap">
-                        ${actionHtml}
-                    </div>
-                </td>
-            </tr>`;
-    }).join("");
-
-    const total = rows.reduce(
-        (sum, payment) =>
-            sum + (Number(payment.payment_amount ?? payment.amount) || 0),
-        0
+if (proofsOnly && !displayedRows.length) {
+    showToast(
+        "No Proofs Found",
+        "No payment proofs are available for this customer's repayments."
     );
+    return;
+}
 
-    const html = `
-        <div class="payment-summary">
-            <div class="summary-item">
-                <div class="summary-label">Customer</div>
-                <div class="summary-value">
-                    ${escapeHtml(historyCustomerName(first))}
+const tableRows = displayedRows.map(payment => {
+    const submittedAt = historyPaymentDate(payment);
+    const approvedAt = historyApprovalDate(payment);
+    const approval = historyApproval(payment);
+    const proof = historyProofReference(payment);
+
+    const actionHtml = approval === "pending"
+        ? `
+            <button
+                type="button"
+                class="action-btn payment-action-btn"
+                data-history-action="review"
+                data-payment-id="${escapeHtml(String(payment.id))}"
+                data-request-id="${escapeHtml(String(payment.request_id || ""))}">
+                Review
+            </button>`
+        : `
+            <button
+                type="button"
+                class="action-btn details-btn"
+                data-history-action="details"
+                data-payment-id="${escapeHtml(String(payment.id))}">
+                Details
+            </button>`;
+
+    const proofHtml = proof
+        ? `
+            <button
+                type="button"
+                class="action-btn details-btn"
+                data-history-action="proof"
+                data-proof="${escapeHtml(String(proof))}">
+                View Proof
+            </button>`
+        : "—";
+
+    return `
+        <tr>
+            <td>${escapeHtml(String(payment.id || "—"))}</td>
+            <td>${formatMoney(payment.payment_amount ?? payment.amount)}</td>
+            <td>${escapeHtml(formatDate(submittedAt))}</td>
+            <td>${escapeHtml(
+                submittedAt
+                    ? new Date(submittedAt).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true
+                    })
+                    : "—"
+            )}</td>
+            <td>${escapeHtml(historyTransaction(payment))}</td>
+            <td>${escapeHtml(
+                payment.payment_method ||
+                payment.payment_method_name ||
+                payment.method ||
+                "—"
+            )}</td>
+            <td>${badgeHtml(payment.payment_status || approval)}</td>
+            <td>${badgeHtml(approval)}</td>
+            <td>${escapeHtml(formatDateTime(approvedAt))}</td>
+            <td>${proofHtml}</td>
+            <td>
+                <div class="action-wrap">
+                    ${actionHtml}
                 </div>
-            </div>
+            </td>
+        </tr>`;
+}).join("");
 
-            <div class="summary-item">
-                <div class="summary-label">EGC User ID</div>
-                <div class="summary-value">
-                    ${escapeHtml(historyCustomerCode(first))}
-                </div>
-            </div>
+const total = displayedRows.reduce(
+    (sum, payment) =>
+        sum + (Number(payment.payment_amount ?? payment.amount) || 0),
+    0
+);
 
-            <div class="summary-item">
-                <div class="summary-label">Request Number</div>
-                <div class="summary-value">
-                    ${escapeHtml(historyRequestNumber(first))}
-                </div>
-            </div>
+const bookingNumber =
+    request?.booking_number ||
+    first.booking_number ||
+    first.lpg_booking_number ||
+    "Not provided";
 
-            <div class="summary-item"> <div class="summary-label">LPG Booking Number</div> <div class="summary-value" style="font-weight:700;color:#dc2626;"> ${escapeHtml(request.booking_number || "Not provided")} </div> </div>
-
-            <div class="summary-item">
-                <div class="summary-label">Total Repayments</div>
-                <div class="summary-value">${rows.length}</div>
-            </div>
-
-            <div class="summary-item">
-                <div class="summary-label">Total Amount</div>
-                <div class="summary-value">${formatMoney(total)}</div>
+const html = `
+    <div class="payment-summary">
+        <div class="summary-item">
+            <div class="summary-label">Customer</div>
+            <div class="summary-value">
+                ${escapeHtml(historyCustomerName(first))}
             </div>
         </div>
 
-        <div class="table-wrap" style="overflow-x:auto;margin-top:18px;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Repayment ID</th>
-                        <th>Amount</th>
-                        <th>Submitted Date</th>
-                        <th>Submitted Time</th>
-                        <th>Transaction ID</th>
-                        <th>Payment Method</th>
-                        <th>Status</th>
-                        <th>Owner Approval</th>
-                        <th>Approval Date &amp; Time</th>
-                        <th>Proof</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
+        <div class="summary-item">
+            <div class="summary-label">EGC User ID</div>
+            <div class="summary-value">
+                ${escapeHtml(historyCustomerCode(first))}
+            </div>
         </div>
 
-        <div class="modal-note" style="margin-top:14px;">
-            Each repayment remains an independent payment record.
-            Reviewing one repayment will not approve or reject other repayments
-            or change cylinder request approval.
+        <div class="summary-item">
+            <div class="summary-label">Request Number</div>
+            <div class="summary-value">
+                ${escapeHtml(historyRequestNumber(first))}
+            </div>
         </div>
 
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-close-modal>
-                Close
-            </button>
-        </div>`;
+        <div class="summary-item">
+            <div class="summary-label">LPG Booking Number</div>
+            <div class="summary-value" style="font-weight:700;color:#dc2626;">
+                ${escapeHtml(String(bookingNumber))}
+            </div>
+        </div>
 
-    openModal(
-        "Repayment History",
-        `All repayment records for ${historyCustomerName(first)}`,
-        html
-    );
+        <div class="summary-item">
+            <div class="summary-label">${proofsOnly ? "Repayments With Proofs" : "Total Repayments"}</div>
+            <div class="summary-value">${displayedRows.length}</div>
+        </div>
+
+        <div class="summary-item">
+            <div class="summary-label">${proofsOnly ? "Amount With Proofs" : "Total Amount"}</div>
+            <div class="summary-value">${formatMoney(total)}</div>
+        </div>
+    </div>
+
+    <div class="table-wrap" style="overflow-x:auto;margin-top:18px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Repayment ID</th>
+                    <th>Amount</th>
+                    <th>Submitted Date</th>
+                    <th>Submitted Time</th>
+                    <th>Transaction ID</th>
+                    <th>Payment Method</th>
+                    <th>Status</th>
+                    <th>Owner Approval</th>
+                    <th>Approval Date &amp; Time</th>
+                    <th>Proof</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-note" style="margin-top:14px;">
+        ${
+            proofsOnly
+                ? "Showing only repayment records that contain a payment proof. Click View Proof to open an individual proof."
+                : "Each repayment remains an independent payment record. Reviewing one repayment will not approve or reject other repayments or change cylinder request approval."
+        }
+    </div>
+
+    <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal>
+            Close
+        </button>
+    </div>`;
+
+openModal(
+    proofsOnly ? "Repayment Proofs" : "Repayment History",
+    proofsOnly
+        ? `Payment proofs for ${historyCustomerName(first)}`
+        : `All repayment records for ${historyCustomerName(first)}`,
+    html
+);
+
 }
 
 
@@ -2926,171 +2943,298 @@ function openGroupedRepaymentDetails(groupKey) {
    ========================================================= */
 
 function bindPaymentHistoryEvents() {
-    if (historyEventsBound) return;
-    historyEventsBound = true;
+if (historyEventsBound) return;
+historyEventsBound = true;
 
-    $("historySearchInput")?.addEventListener(
-        "input",
-        renderPaymentHistory
-    );
+$("historySearchInput")?.addEventListener(
+    "input",
+    renderPaymentHistory
+);
 
-    $("historyTypeFilter")?.addEventListener(
-        "change",
-        renderPaymentHistory
-    );
+$("historyTypeFilter")?.addEventListener(
+    "change",
+    renderPaymentHistory
+);
 
-    $("historyApprovalFilter")?.addEventListener(
-        "change",
-        renderPaymentHistory
-    );
+$("historyApprovalFilter")?.addEventListener(
+    "change",
+    renderPaymentHistory
+);
 
-    document.addEventListener("click", event => {
-        const button = event.target.closest("[data-history-action]");
-        if (!button) return;
+document.addEventListener("click", async event => {
+    const button = event.target.closest("[data-history-action]");
+    if (!button) return;
 
-        const action = button.dataset.historyAction;
+    const action = button.dataset.historyAction;
+    const groupKey = button.dataset.groupKey || "";
 
-        // View all individual repayments in this group.
-        if (action === "view-group") {
-            openGroupedRepaymentDetails(button.dataset.groupKey);
+    // --------------------------------------------------
+    // 1. VIEW PROOFS — open proofs for this group only
+    // --------------------------------------------------
+    if (action === "view-group-proofs") {
+        const separatorIndex = groupKey.indexOf("::");
+
+        if (separatorIndex < 0) {
+            showToast(
+                "Invalid Repayment Group",
+                "The selected repayment group is invalid."
+            );
             return;
         }
 
-        // Toggle the Approve / Reject menu.
-        if (action === "toggle-repayment-actions") {
-            const groupKey = button.dataset.groupKey;
+        const userId = groupKey.slice(0, separatorIndex);
+        const requestId = groupKey.slice(separatorIndex + 2);
 
-            const menu = document.getElementById(
-                `repayment-actions-${groupKey}`
+        const groupRecords = (allPaymentHistory || []).filter(payment =>
+            String(payment.user_id || "unknown") === userId &&
+            String(payment.request_id || "no-request") === requestId &&
+            historyType(payment) === "repayment"
+        );
+
+        const proofRecords = groupRecords.filter(payment =>
+            historyProofReference(payment)
+        );
+
+        if (!proofRecords.length) {
+            showToast(
+                "Proof Not Found",
+                "No uploaded proof was found for this repayment group."
             );
-
-            if (!menu) {
-                showToast(
-                    "Menu Not Found",
-                    "The repayment actions menu could not be found."
-                );
-                return;
-            }
-
-            menu.hidden = !menu.hidden;
-
-            button.setAttribute(
-                "aria-expanded",
-                String(!menu.hidden)
-            );
-
             return;
         }
 
-        // Open the existing approval modal for one pending repayment.
-        if (
-            action === "approve-group" ||
-            action === "reject-group"
-        ) {
-            const groupKey = button.dataset.groupKey;
-
-            const separatorIndex = groupKey.indexOf("::");
-
-            if (separatorIndex < 0) {
-                showToast(
-                    "Invalid Repayment Group",
-                    "The selected repayment group is invalid."
-                );
-                return;
-            }
-
-            const userId = groupKey.slice(0, separatorIndex);
-            const requestId = groupKey.slice(separatorIndex + 2);
-
-            const groupRecords = allPaymentHistory.filter(payment =>
-                String(payment.user_id || "unknown") === userId &&
-                String(payment.request_id || "no-request") === requestId
-            );
-
-            if (!groupRecords.length) {
-                showToast(
-                    "Records Not Found",
-                    "No repayment records were found for this group."
-                );
-                return;
-            }
-
-            const pendingRecords = groupRecords.filter(
-                payment => historyApproval(payment) === "pending"
-            );
-
-            if (!pendingRecords.length) {
-                showToast(
-                    "No Pending Repayments",
-                    "This group has no pending repayments to review."
-                );
-                return;
-            }
-
-            // Never approve/reject the whole group.
-            // Select one pending repayment only.
-            const selectedPayment = [...pendingRecords].sort((a, b) => {
-                const dateA = new Date(
-                    a.payment_date || a.created_at || a.submitted_at || 0
-                ).getTime();
-
-                const dateB = new Date(
-                    b.payment_date || b.created_at || b.submitted_at || 0
-                ).getTime();
-
-                return dateA - dateB;
-            })[0];
-
-            const request = historyRequest(selectedPayment.request_id);
-
-            if (!request) {
-                showToast(
-                    "Request Not Found",
-                    "The selected repayment has no linked cylinder request."
-                );
-                return;
-            }
-
-            const menu = document.getElementById(
-                `repayment-actions-${groupKey}`
-            );
-
-            if (menu) menu.hidden = true;
-
-            const manageButton = document.querySelector(
-                `[data-history-action="toggle-repayment-actions"]` +
-                `[data-group-key="${CSS.escape(groupKey)}"]`
-            );
-
-            manageButton?.setAttribute("aria-expanded", "false");
-
-            // The existing modal and savePaymentApproval() handle the decision.
-            void openPaymentApprovalModal(request, selectedPayment);
-            return;
-        }
-
-        // View an uploaded payment proof.
-        if (action === "proof") {
-            const reference = button.dataset.proof;
-
-            void resolveStorageUrl(reference).then(url => {
-                if (url) {
-                    showImagePreview(url);
-                } else {
-                    showToast(
-                        "Proof Unavailable",
-                        "The saved proof could not be opened. Check Storage path and permissions."
-                    );
-                }
+        // Open the existing group-history modal.
+        // The modal function must support the proofsOnly option
+        // for a proof-only view.
+        if (typeof openGroupedRepaymentDetails === "function") {
+            await openGroupedRepaymentDetails(groupKey, {
+                proofsOnly: true
             });
+        } else {
+            showToast(
+                "History Viewer Unavailable",
+                "The repayment history viewer function was not found."
+            );
+        }
 
+        return;
+    }
+
+    // --------------------------------------------------
+    // 2. VIEW ALL HISTORY — all repayments in this group
+    // --------------------------------------------------
+    if (action === "view-group") {
+        if (!groupKey) {
+            showToast(
+                "Invalid Repayment Group",
+                "The selected repayment group could not be identified."
+            );
             return;
         }
 
-        // Find an individual payment record for Review / Details.
+        if (typeof openGroupedRepaymentDetails === "function") {
+            await openGroupedRepaymentDetails(groupKey);
+        } else {
+            showToast(
+                "History Viewer Unavailable",
+                "The repayment history viewer function was not found."
+            );
+        }
+
+        return;
+    }
+
+    // --------------------------------------------------
+    // 3. MANAGE — toggle Approve / Reject menu
+    // --------------------------------------------------
+    if (action === "toggle-repayment-actions") {
+        if (!groupKey) {
+            showToast(
+                "Invalid Repayment Group",
+                "The selected repayment group could not be identified."
+            );
+            return;
+        }
+
+        const menuId = "repayment-actions-" + groupKey;
+
+        let menu = document.getElementById(menuId);
+
+        // Fallback: find the menu within the same repayment row.
+        if (!menu) {
+            const row = button.closest("tr");
+            menu = row?.querySelector(".repayment-action-menu");
+        }
+
+        if (!menu) {
+            showToast(
+                "Menu Not Found",
+                "The repayment actions menu could not be found."
+            );
+            return;
+        }
+
+        // Close other repayment menus first.
+        document.querySelectorAll(".repayment-action-menu").forEach(item => {
+            if (item !== menu) item.hidden = true;
+        });
+
+        document.querySelectorAll(
+            '[data-history-action="toggle-repayment-actions"]'
+        ).forEach(item => {
+            if (item !== button) {
+                item.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        menu.hidden = !menu.hidden;
+
+        button.setAttribute(
+            "aria-expanded",
+            String(!menu.hidden)
+        );
+
+        return;
+    }
+
+    // --------------------------------------------------
+    // 4. APPROVE / REJECT — review one pending repayment
+    // --------------------------------------------------
+    if (
+        action === "approve-group" ||
+        action === "reject-group"
+    ) {
+        const separatorIndex = groupKey.indexOf("::");
+
+        if (separatorIndex < 0) {
+            showToast(
+                "Invalid Repayment Group",
+                "The selected repayment group is invalid."
+            );
+            return;
+        }
+
+        const userId = groupKey.slice(0, separatorIndex);
+        const requestId = groupKey.slice(separatorIndex + 2);
+
+        const groupRecords = (allPaymentHistory || []).filter(payment =>
+            String(payment.user_id || "unknown") === userId &&
+            String(payment.request_id || "no-request") === requestId &&
+            historyType(payment) === "repayment"
+        );
+
+        if (!groupRecords.length) {
+            showToast(
+                "Records Not Found",
+                "No repayment records were found for this group."
+            );
+            return;
+        }
+
+        const pendingRecords = groupRecords.filter(
+            payment => historyApproval(payment) === "pending"
+        );
+
+        if (!pendingRecords.length) {
+            showToast(
+                "No Pending Repayments",
+                "This group has no pending repayments to review."
+            );
+            return;
+        }
+
+        // Keep the original workflow: review one pending record,
+        // never approve or reject the entire group at once.
+        const selectedPayment = [...pendingRecords].sort((a, b) => {
+            const dateA = new Date(
+                a.payment_date || a.created_at || a.submitted_at || 0
+            ).getTime();
+
+            const dateB = new Date(
+                b.payment_date || b.created_at || b.submitted_at || 0
+            ).getTime();
+
+            return dateA - dateB;
+        })[0];
+
+        const request = historyRequest(selectedPayment.request_id);
+
+        if (!request) {
+            showToast(
+                "Request Not Found",
+                "The selected repayment has no linked cylinder request."
+            );
+            return;
+        }
+
+        const row = button.closest("tr");
+        const menu = row?.querySelector(".repayment-action-menu");
+
+        if (menu) menu.hidden = true;
+
+        const manageButton = row?.querySelector(
+            '[data-history-action="toggle-repayment-actions"]'
+        );
+
+        manageButton?.setAttribute("aria-expanded", "false");
+
+        // Use the existing payment approval modal and save workflow.
+        await openPaymentApprovalModal(request, selectedPayment);
+        return;
+    }
+
+    // --------------------------------------------------
+    // 5. INDIVIDUAL PAYMENT PROOF
+    // --------------------------------------------------
+    if (action === "proof") {
+        const reference = button.dataset.proof;
+
+        if (!reference) {
+            showToast(
+                "Proof Unavailable",
+                "No payment proof reference was found."
+            );
+            return;
+        }
+
+        try {
+            const url = await resolveStorageUrl(reference);
+
+            if (url) {
+                showImagePreview(url);
+            } else {
+                showToast(
+                    "Proof Unavailable",
+                    "The saved proof could not be opened. Check Storage path and permissions."
+                );
+            }
+        } catch (error) {
+            console.error("Payment proof opening failed:", error);
+
+            showToast(
+                "Proof Error",
+                error.message || "Could not open the payment proof."
+            );
+        }
+
+        return;
+    }
+
+    // --------------------------------------------------
+    // 6. INDIVIDUAL PAYMENT REVIEW / DETAILS
+    // --------------------------------------------------
+    if (action === "review" || action === "details") {
         const paymentId = button.dataset.paymentId;
 
-        const payment = allPaymentHistory.find(
+        if (!paymentId) {
+            showToast(
+                "Record Not Found",
+                "The selected payment ID is missing."
+            );
+            return;
+        }
+
+        const payment = (allPaymentHistory || []).find(
             row => String(row.id) === String(paymentId)
         );
 
@@ -3113,14 +3257,17 @@ function bindPaymentHistoryEvents() {
                 return;
             }
 
-            void openPaymentApprovalModal(request, payment);
+            await openPaymentApprovalModal(request, payment);
             return;
         }
 
         if (action === "details") {
             openHistoryPaymentDetails(payment);
+            return;
         }
-    });
+    }
+});
+
 }
 
 function openHistoryPaymentDetails(payment) {
@@ -3365,25 +3512,6 @@ function collectDocumentReferences(request) {
     return uniqueDocumentReferences(fields);
 }
 
-function collectPaymentProofReferences(request, paymentOverride = null) {
-    const payment = paymentOverride || request.latest_payment || {};
-
-    const fields = [
-        ["Payment Screenshot", payment.screenshot_path],
-        ["Payment Screenshot", payment.payment_screenshot],
-        ["Payment Screenshot URL", payment.screenshot_url],
-        ["Payment Reference", payment.payment_reference],
-        ["Payment Proof", payment.payment_proof_url],
-        ["Payment Screenshot 1", request.payment_screenshot_1],
-        ["Payment Screenshot 2", request.payment_screenshot_2],
-        ["Payment Screenshot 3", request.payment_screenshot_3],
-        ["Payment Proof", request.payment_screenshot],
-        ["Payment Proof URL", request.payment_screenshot_url],
-        ["Payment Proof", request.payment_proof_url]
-    ];
-
-    return uniqueDocumentReferences(fields);
-}
 async function resolveDocumentList(references) {
     return Promise.all(
         references.map(async item => {
@@ -3718,56 +3846,6 @@ async function savePaymentApproval(request, decision, paymentOverride = null) {
 /* =========================================================
    CUSTOMER DOCUMENTS
    ========================================================= */
-
-function collectDocumentReferences(request) {
-    const fields = [];
-    const profile = request.profile || {};
-    const payment = request.latest_payment || {};
-
-    // Profile photo
-    fields.push(
-        ["Profile Photo", request.profile_photo],
-        ["Profile Photo", profile.profile_photo]
-    );
-
-    // Aadhaar Front
-    fields.push(
-        ["Aadhaar Front", request.aadhaar_front_photo],
-        ["Aadhaar Front", profile.aadhaar_front_photo]
-    );
-
-    // Aadhaar Back
-    fields.push(
-        ["Aadhaar Back", request.aadhaar_back_photo],
-        ["Aadhaar Back", profile.aadhaar_back_photo]
-    );
-
-    // PAN Card
-    fields.push(
-        ["PAN Card", request.pan_photo],
-        ["PAN Card", profile.pan_photo]
-    );
-
-    // Gas Passbook
-    fields.push(
-        ["Gas Passbook", request.gas_passbook_photo],
-        ["Gas Passbook", profile.gas_passbook_photo]
-    );
-
-    // Payment screenshots
-    fields.push(
-        ["Payment Screenshot", payment.screenshot_path],
-        ["Payment Screenshot", payment.payment_screenshot],
-        ["Payment Screenshot", payment.screenshot_url],
-        ["Payment Screenshot 1", request.payment_screenshot_1],
-        ["Payment Screenshot 2", request.payment_screenshot_2],
-        ["Payment Screenshot 3", request.payment_screenshot_3],
-        ["Payment Proof URL", request.payment_screenshot_url],
-        ["Payment Proof", request.payment_proof_url]
-    );
-
-    return uniqueDocumentReferences(fields);
-}
 
 async function openDocumentsModal(request) {
     const requestId = String(request.id);

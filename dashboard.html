@@ -2268,14 +2268,14 @@ function isRequestApproved(request) {
 }
 
 function getRequestTotal(request) {
-  return firstMoneyValue(request, [
-    "total_amount",
-    "total_payable",
-    "total_price",
-    "request_amount",
-    "cylinder_amount",
-    "amount"
-  ]) ?? 890;
+return firstMoneyValue(request, [
+"cylinder_amount",
+"request_amount",
+"total_price",
+"amount",
+"total_payable",
+"total_amount"
+]) ?? 890;
 }
 
 function getRequestNumber(request) {
@@ -2503,37 +2503,35 @@ function getDeliveryDayCount(request) {
 }
 
 function calculateTierExtraCharge(days) {
-  if (!days || days < 1) return 0;
-  if (days <= 10) return 35;
-  if (days <= 15) return 40;
-  if (days <= 45) return 50;
+const deliveryDays = Number(days);
 
-  return 100;
+if (!Number.isFinite(deliveryDays) || deliveryDays <= 0) {
+return 0;
+}
+
+if (deliveryDays <= 10) return 50;
+if (deliveryDays <= 15) return 60;
+if (deliveryDays <= 30) return 80;
+
+return 100;
 }
 
 function getRequestExtraCharge(request) {
-if (!request || !isRequestApproved(request)) return 0;
+if (!request || !isRequestApproved(request)) {
+return 0;
+}
 
 const deliveryDate = getDeliveryDate(request);
 
 // No confirmed delivery date means no extra charge.
-if (!deliveryDate) return 0;
+if (!deliveryDate) {
+return 0;
+}
 
 const days = getDeliveryDayCount(request);
 
-// Prefer a saved charge only when it is greater than zero.
-const saved = firstMoneyValue(request, [
-"extra_charge",
-"extra_charges",
-"late_charge",
-"additional_charge"
-]);
-
-if (saved !== null && saved > 0) {
-return saved;
-}
-
-// Calculate the charge when the saved amount is zero or empty.
+// Calculate from the current approved rate schedule.
+// Do not reuse a previously saved charge from an old slab.
 return calculateTierExtraCharge(days);
 }
 /* =========================================================

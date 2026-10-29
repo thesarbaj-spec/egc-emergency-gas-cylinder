@@ -391,6 +391,25 @@ button:disabled{opacity:.55;cursor:not-allowed}
       <div class="summary-box"><div class="summary-label">Submitted Payment Amount</div><div class="summary-amount" id="summaryPayment">₹0.00</div></div>
       <div class="amount-row"><div class="amount-label">Cylinder Amount</div><div class="amount-value" id="cylinderAmount">₹0.00</div></div>
       <div class="amount-row"><div class="amount-label">Advance Amount</div><div class="amount-value" id="advanceAmount">₹0.00</div></div>
+      <div class="amount-row">
+ <div class="amount-label">Initial Payment Paid</div>
+ <div class="amount-value" id="initialPaidAmount">₹0.00</div>
+</div>
+
+<div class="amount-row">
+ <div class="amount-label">Repayment Paid</div>
+ <div class="amount-value" id="repaymentPaidAmount">₹0.00</div>
+</div>
+
+<div class="amount-row">
+ <div class="amount-label">Initial Payment Pending</div>
+ <div class="amount-value" id="initialPendingAmount">₹0.00</div>
+</div>
+
+<div class="amount-row">
+ <div class="amount-label">Repayment Pending</div>
+ <div class="amount-value" id="repaymentPendingAmount">₹0.00</div>
+</div>
       <div class="amount-row"><div class="amount-label">Extra Charge</div><div class="amount-value" id="extraCharge">₹0.00</div></div>
       <div class="amount-row"><div class="amount-label">Request Total</div><div class="amount-value amount-total" id="requestTotal">₹0.00</div></div>
       <div class="amount-row"><div class="amount-label">Verified Paid Amount</div><div class="amount-value amount-total" id="verifiedPaidAmount">₹0.00</div></div>
@@ -498,6 +517,149 @@ function getPaymentIdFromUrl() {
  return params.get("payment_id") || params.get("id") || "";
 }
 
+function parsePaymentNotes(row) {
+const value = row?.notes;
+
+if (!value) return {};
+
+if (typeof value === "object" && !Array.isArray(value)) {
+    return value;
+}
+
+if (typeof value === "string") {
+    try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+return {};
+
+}
+
+/* =========================================================
+EGC REPAYMENT CALCULATION
+Delivery Day = Day 0
+========================================================= */
+
+function getDeliveryDays(requestRow) {
+if (
+String(requestRow?.delivery_status || "")
+.trim()
+.toLowerCase() !== "delivered"
+) {
+return null;
+}
+
+const deliveryValue =
+    requestRow?.delivery_date ||
+    requestRow?.delivered_at ||
+    null;
+
+if (!deliveryValue) {
+    return null;
+}
+
+const deliveryDate = new Date(deliveryValue);
+
+if (Number.isNaN(deliveryDate.getTime())) {
+    return null;
+}
+
+const today = new Date();
+
+const deliveryDay = Date.UTC(
+    deliveryDate.getFullYear(),
+    deliveryDate.getMonth(),
+    deliveryDate.getDate()
+);
+
+const currentDay = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+);
+
+return Math.max(
+    0,
+    Math.floor((currentDay - deliveryDay) / 86400000)
+);
+
+}
+
+function calculateDeliveryExtraCharge(requestRow) {
+const days = getDeliveryDays(requestRow);
+
+if (days === null || days <= 0) {
+    return null;
+}
+
+if (days <= 10) return 50;
+if (days <= 15) return 60;
+if (days <= 30) return 80;
+
+return 100;
+
+}
+
+function getRecordedExtraCharge(rows = []) {
+let extra = 0;
+
+for (const row of rows) {
+    const notes = parsePaymentNotes(row);
+
+    extra = Math.max(
+        extra,
+        moneyNumber(
+            notes.extra_charge ??
+            notes.extraCharge ??
+            notes.charge_amount
+        )
+    );
+}
+
+return extra;
+
+}
+
+function getCalculatedRequestTotal(requestRow, paymentRows = []) {
+const cylinderAmount = moneyNumber(
+requestRow?.cylinder_amount ??
+requestRow?.base_amount ??
+requestRow?.amount ??
+requestRow?.total_amount
+);
+
+const calculatedCharge =
+    calculateDeliveryExtraCharge(requestRow);
+
+const savedRequestCharge = moneyNumber(
+    requestRow?.extra_charge ??
+    requestRow?.extra_charge_amount ??
+    requestRow?.charge_amount
+);
+
+const recordedPaymentCharge =
+    getRecordedExtraCharge(paymentRows);
+
+const extraCharge = calculatedCharge !== null
+    ? calculatedCharge
+    : Math.max(savedRequestCharge, recordedPaymentCharge);
+
+if (cylinderAmount > 0) {
+    return cylinderAmount + extraCharge;
+}
+
+return moneyNumber(
+    requestRow?.total_amount ??
+    requestRow?.request_total ??
+    requestRow?.total
+) + extraCharge;
+
+}
+
 function showToast(title,message) {
  if (!$("toast")) return console.log(title,message);
  $("toastTitle").textContent = title || "Notification";
@@ -574,14 +736,31 @@ function getCylinderAmount() {
 }
 
 function getExtraCharge() {
- return moneyNumber(request?.extra_charge ?? request?.extra_charge_amount ?? request?.charge_amount);
+const calculatedCharge =
+calculateDeliveryExtraCharge(request);
+
+if (calculatedCharge !== null) {
+    return calculatedCharge;
+}
+
+const requestExtra = moneyNumber(
+    request?.extra_charge ??
+    request?.extra_charge_amount ??
+    request?.charge_amount
+);
+
+const recordedExtra =
+    getRecordedExtraCharge(verifiedRequestPayments);
+
+return Math.max(requestExtra, recordedExtra);
+
 }
 
 function getRequestTotal() {
- const explicit = request?.total_payable ?? request?.total_amount ??
-  request?.request_total ?? request?.total;
- if (explicit !== null && explicit !== undefined && explicit !== "") return moneyNumber(explicit);
- return getCylinderAmount() + getExtraCharge();
+return getCalculatedRequestTotal(
+request,
+verifiedRequestPayments
+);
 }
 
 function getAdvanceAmount() {
@@ -771,24 +950,184 @@ function renderPhoto(photo) {
  * If the current payment has just been approved, the refreshed row is included.
  */
 function getVerifiedPaidAmount() {
- return verifiedRequestPayments
-  .filter(isApprovedPayment)
-  .reduce((sum,row)=>sum + moneyNumber(row.payment_amount ?? row.amount),0);
+return (verifiedRequestPayments || [])
+.filter(isApprovedPayment)
+.reduce((sum, row) => {
+return sum + moneyNumber(
+row.payment_amount ?? row.amount
+);
+}, 0);
 }
 
 function getRemainingAmount() {
- return Math.max(0,getRequestTotal() - getVerifiedPaidAmount());
+return Math.max(
+0,
+getRequestTotal() - getVerifiedPaidAmount()
+);
 }
 
-function getPaymentType() {
- const amount = getPaymentAmount();
- const total = getRequestTotal();
- const advance = getAdvanceAmount();
+function normalisePaymentType(row) {
+    const type = String(
+        row?.payment_type ||
+        row?.type ||
+        row?.payment_for ||
+        row?.transaction_type ||
+        ""
+    ).trim().toLowerCase();
 
- if (total > 0 && amount >= total) return "Full Payment";
- if (advance > 0 && Math.abs(amount - advance) < 0.01) return "Initial Payment";
- if (advance > 0 && amount < total) return "Partial / Advance Payment";
- return amount > 0 && total > 0 && amount < total ? "Partial Payment" : "Payment";
+    if (
+        [
+            "initial",
+            "initial_payment",
+            "advance",
+            "first_payment"
+        ].includes(type)
+    ) {
+        return "initial";
+    }
+
+    if (
+        [
+            "repayment",
+            "repay",
+            "balance_payment",
+            "remaining_payment",
+            "installment"
+        ].includes(type)
+    ) {
+        return "repayment";
+    }
+
+    return "unclassified";
+}
+
+function getVerifiedInitialPaymentAmount() {
+    return (verifiedRequestPayments || [])
+        .filter(row =>
+            normalisePaymentType(row) === "initial" &&
+            isApprovedPayment(row)
+        )
+        .reduce(
+            (sum, row) =>
+                sum + moneyNumber(
+                    row.payment_amount ?? row.amount
+                ),
+            0
+        );
+}
+
+function getVerifiedRepaymentAmount() {
+    return (verifiedRequestPayments || [])
+        .filter(row =>
+            normalisePaymentType(row) === "repayment" &&
+            isApprovedPayment(row)
+        )
+        .reduce(
+            (sum, row) =>
+                sum + moneyNumber(
+                    row.payment_amount ?? row.amount
+                ),
+            0
+        );
+}
+
+function getPendingInitialPaymentAmount() {
+    return (verifiedRequestPayments || [])
+        .filter(row =>
+            normalisePaymentType(row) === "initial" &&
+            !isApprovedPayment(row) &&
+            !["rejected", "failed", "refunded", "cancelled"]
+                .includes(
+                    String(row.payment_status || "").toLowerCase()
+                ) &&
+            getVerificationStatus(row) !== "rejected"
+        )
+        .reduce(
+            (sum, row) =>
+                sum + moneyNumber(
+                    row.payment_amount ?? row.amount
+                ),
+            0
+        );
+}
+
+function getPendingRepaymentAmount() {
+    return (verifiedRequestPayments || [])
+        .filter(row =>
+            normalisePaymentType(row) === "repayment" &&
+            !isApprovedPayment(row) &&
+            !["rejected", "failed", "refunded", "cancelled"]
+                .includes(
+                    String(row.payment_status || "").toLowerCase()
+                ) &&
+            getVerificationStatus(row) !== "rejected"
+        )
+        .reduce(
+            (sum, row) =>
+                sum + moneyNumber(
+                    row.payment_amount ?? row.amount
+                ),
+            0
+        );
+}
+
+function getPaymentType(row = payment) {
+    const rawType = String(
+        row?.payment_type ||
+        row?.type ||
+        row?.payment_for ||
+        row?.transaction_type ||
+        ""
+    ).trim().toLowerCase();
+
+    const typeMap = {
+        initial: "Initial Payment",
+        initial_payment: "Initial Payment",
+        advance: "Initial Payment",
+        first_payment: "Initial Payment",
+
+        repayment: "Repayment",
+        repay: "Repayment",
+        balance_payment: "Repayment",
+        remaining_payment: "Repayment",
+        installment: "Repayment",
+
+        partial: "Partial Payment",
+        partial_payment: "Partial Payment",
+
+        full: "Full Payment",
+        full_payment: "Full Payment"
+    };
+
+    if (typeMap[rawType]) {
+        return typeMap[rawType];
+    }
+
+    // Legacy records without payment_type:
+    // Use the amount only as a display fallback.
+    const amount = moneyNumber(
+        row?.payment_amount ?? row?.amount
+    );
+
+    const total = getRequestTotal();
+    const advance = getAdvanceAmount();
+
+    if (
+        advance > 0 &&
+        Math.abs(amount - advance) < 0.01
+    ) {
+        return "Initial Payment";
+    }
+
+    if (total > 0 && amount >= total) {
+        return "Full Payment";
+    }
+
+    if (amount > 0) {
+        return "Payment Type Not Recorded";
+    }
+
+    return "Unclassified";
 }
 
 function updateReviewUI() {
@@ -830,120 +1169,357 @@ function isAbsoluteHttpUrl(value) {
 }
 
 async function renderScreenshot() {
- $("screenshotWrap").style.display = "none";
- $("screenshotEmpty").style.display = "none";
- $("screenshotImage").style.display = "none";
- $("screenshotFile").style.display = "none";
- $("screenshotNotice").style.display = "block";
- $("screenshotNotice").className = "notice notice-info";
- $("screenshotNotice").textContent = "Checking for an uploaded payment screenshot...";
- signedScreenshotUrl = "";
+$("screenshotWrap").style.display = "none";
+$("screenshotEmpty").style.display = "none";
+$("screenshotImage").style.display = "none";
+$("screenshotFile").style.display = "none";
 
- const path = payment?.screenshot_path ||
-  payment?.payment_screenshot || payment?.screenshot_url || payment?.proof_image ||
-  request?.payment_screenshot_1 || request?.payment_screenshot_2 ||
-  request?.payment_screenshot_3 || "";
+$("screenshotNotice").style.display = "block";
+$("screenshotNotice").className = "notice notice-info";
+$("screenshotNotice").textContent =
+    "Checking for an uploaded payment screenshot...";
 
- if (!path) {
-  $("screenshotNotice").style.display = "none";
-  $("screenshotEmpty").style.display = "block";
-  return;
- }
+signedScreenshotUrl = "";
 
- try {
-  let url = "";
-  if (isAbsoluteHttpUrl(path)) {
-   url = path;
-  } else {
-   const {data,error} = await supabaseClient.storage.from(PAYMENT_BUCKET).createSignedUrl(path,300);
-   if (error) throw error;
-   url = data?.signedUrl || "";
-  }
-  if (!url) throw new Error("Could not create screenshot viewing URL.");
+const path =
+    payment?.screenshot_path ||
+    payment?.payment_screenshot ||
+    payment?.screenshot_url ||
+    payment?.proof_image ||
+    request?.payment_screenshot_1 ||
+    request?.payment_screenshot_2 ||
+    request?.payment_screenshot_3 ||
+    "";
 
-  signedScreenshotUrl = url;
-  $("openScreenshotBtn").href = url;
-  $("screenshotWrap").style.display = "block";
+if (!path) {
+    $("screenshotNotice").style.display = "none";
+    $("screenshotEmpty").style.display = "block";
+    return;
+}
 
-  if (isImageFile(path)) {
-   $("screenshotImage").src = url;
-   $("screenshotImage").style.display = "block";
-   $("screenshotImage").onerror = ()=>{
-    $("screenshotImage").style.display = "none";
-    $("screenshotFile").style.display = "block";
-    $("screenshotFile").textContent = "The image could not be previewed. Use the button below to open the evidence file.";
-   };
-  } else {
-   $("screenshotFile").style.display = "block";
-   $("screenshotFile").textContent = "Payment evidence is available. Open the file in a new tab to review it.";
-  }
+try {
+    let url = "";
 
-  $("screenshotNotice").style.display = "none";
- } catch (error) {
-  console.warn("Screenshot loading:",error);
-  $("screenshotNotice").textContent = "The screenshot could not be opened. Check the payment-screenshots bucket and its Storage SELECT policy.";
- }
+    if (isAbsoluteHttpUrl(path)) {
+        url = path;
+    } else {
+        const { data, error } = await supabaseClient.storage
+            .from(PAYMENT_BUCKET)
+            .createSignedUrl(path, 300);
+
+        if (error) throw error;
+
+        url = data?.signedUrl || "";
+    }
+
+    if (!url) {
+        throw new Error("Could not create screenshot viewing URL.");
+    }
+
+    signedScreenshotUrl = url;
+
+    $("openScreenshotBtn").href = url;
+    $("openScreenshotBtn").target = "_blank";
+    $("openScreenshotBtn").rel = "noopener noreferrer";
+
+    $("screenshotWrap").style.display = "block";
+
+    if (isImageFile(path)) {
+        $("screenshotImage").src = url;
+        $("screenshotImage").style.display = "block";
+
+        $("screenshotImage").onerror = () => {
+            $("screenshotImage").style.display = "none";
+            $("screenshotFile").style.display = "block";
+
+            $("screenshotFile").textContent =
+                "The image could not be previewed. Use the button below to open the evidence file.";
+        };
+    } else {
+        $("screenshotFile").style.display = "block";
+
+        $("screenshotFile").textContent =
+            "Payment evidence is available. Open the file in a new tab to review it.";
+    }
+
+    $("screenshotNotice").style.display = "none";
+} catch (error) {
+    console.warn("Screenshot loading:", error);
+
+    $("screenshotNotice").style.display = "block";
+    $("screenshotNotice").className = "notice notice-warning";
+    $("screenshotNotice").textContent =
+        "The screenshot could not be opened. Check the payment-screenshots bucket, file path, and Storage SELECT policy.";
+}
+
 }
 
 async function renderPage() {
- $("loadingBox").style.display = "none";
- $("errorBox").style.display = "none";
- $("content").style.display = "grid";
+$("loadingBox").style.display = "none";
+$("errorBox").style.display = "none";
+$("content").style.display = "grid";
 
- const userName = getUserName();
- const mobile = getMobile();
- const email = getEmail();
- const amount = getPaymentAmount();
- const paid = getVerifiedPaidAmount();
- const remaining = getRemainingAmount();
+const userName = getUserName();
+const mobile = getMobile();
+const email = getEmail();
 
- setText("userName",userName);
- setText("userContact",mobile + " • " + email);
- setText("paymentId",payment?.id);
- setBadge("paymentStatus",payment?.payment_status || "pending");
- setText("paymentType",getPaymentType());
- setText("paymentAmount",formatMoney(amount));
- setText("paymentDate",formatDateTime(payment?.payment_date || payment?.created_at));
- setText("paymentMethod",payment?.payment_method || "—");
- setText("transactionId",payment?.transaction_id || "—");
- setText("paymentReference",payment?.payment_reference || "—");
- setBadge("verificationStatus",getVerificationStatus());
- setText("verifiedAt",payment?.verified_at || payment?.owner_approved_at ? formatDateTime(payment.verified_at || payment.owner_approved_at) : "Not Verified");
- setText("verificationNote",payment?.notes || payment?.owner_rejection_reason || "—");
+const amount = getPaymentAmount();
 
- setText("userId",payment?.user_id);
- setText("egcUserId",request?.egc_user_code || profile?.egc_user_id || profile?.user_code || profile?.customer_code || "Not available");
- setText("fullName",userName);
- setText("mobile",mobile);
- setText("email",email);
+const paid = getVerifiedPaidAmount();
 
- setText("requestNumber",request?.request_number || "—");
- setBadge("requestStatus",request?.status || request?.user_status || "—");
- setBadge("requestOwnerApproval",request?.owner_approval || "—");
- setBadge("requestPaymentStatus",request?.payment_status || "—");
- setText("company",getCompanyName());
- setText("agency",getAgencyName());
- setText("quantity",getQuantity());
- setText("state",request?.state || request?.state_name || profile?.state || "—");
- setText("district",request?.district || request?.district_name || profile?.district || "—");
- setText("city",request?.city || request?.city_name || profile?.city || "—");
+const remaining = getRemainingAmount();
 
- setText("summaryPayment",formatMoney(amount));
- setText("cylinderAmount",formatMoney(getCylinderAmount()));
- setText("advanceAmount",formatMoney(getAdvanceAmount()));
- setText("extraCharge",formatMoney(getExtraCharge()));
- setText("requestTotal",formatMoney(getRequestTotal()));
- setText("verifiedPaidAmount",formatMoney(paid));
- setText("remainingAmount",formatMoney(remaining));
+const initialPaid = getVerifiedInitialPaymentAmount();
 
- $("reviewNote").value = payment?.notes || payment?.owner_rejection_reason || "";
- updateReviewUI();
+const repaymentPaid = getVerifiedRepaymentAmount();
 
- const pending = !isFinalVerification();
- setText("notificationCount",pending ? "1" : "0");
- setText("paymentNotificationText",pending ? "This payment is awaiting Owner verification." : "This payment has already been reviewed.");
+const initialPending = getPendingInitialPaymentAmount();
 
- await renderScreenshot();
+const repaymentPending = getPendingRepaymentAmount();
+
+setText("userName", userName);
+setText("userContact", mobile + " • " + email);
+
+setText("paymentId", payment?.id || "—");
+
+setBadge(
+    "paymentStatus",
+    payment?.payment_status || "pending"
+);
+
+setText("paymentType", getPaymentType());
+setText("paymentAmount", formatMoney(amount));
+
+setText(
+    "paymentType",
+    getPaymentType(payment)
+);
+
+setText(
+    "initialPaidAmount",
+    formatMoney(initialPaid)
+);
+
+setText(
+    "repaymentPaidAmount",
+    formatMoney(repaymentPaid)
+);
+
+setText(
+    "initialPendingAmount",
+    formatMoney(initialPending)
+);
+
+setText(
+    "repaymentPendingAmount",
+    formatMoney(repaymentPending)
+);
+
+setText(
+    "verifiedPaidAmount",
+    formatMoney(paid)
+);
+
+setText(
+    "remainingAmount",
+    formatMoney(remaining)
+);
+
+setText(
+    "paymentDate",
+    formatDateTime(payment?.payment_date || payment?.created_at)
+);
+
+setText(
+    "paymentMethod",
+    payment?.payment_method || payment?.method || "—"
+);
+
+setText("transactionId", payment?.transaction_id || "—");
+
+setText(
+    "paymentReference",
+    payment?.payment_reference || "—"
+);
+
+setBadge(
+    "verificationStatus",
+    getVerificationStatus()
+);
+
+setText(
+    "verifiedAt",
+    payment?.verified_at || payment?.owner_approved_at
+        ? formatDateTime(
+            payment?.verified_at || payment?.owner_approved_at
+        )
+        : "Not Verified"
+);
+
+setText(
+    "verificationNote",
+    payment?.owner_rejection_reason ||
+    payment?.notes ||
+    "—"
+);
+
+setText("userId", payment?.user_id || "—");
+
+setText(
+    "egcUserId",
+    request?.egc_user_code ||
+    profile?.egc_user_id ||
+    profile?.user_code ||
+    profile?.customer_code ||
+    "Not available"
+);
+
+setText("fullName", userName);
+setText("mobile", mobile);
+setText("email", email);
+
+setText(
+    "requestNumber",
+    request?.request_number || "—"
+);
+
+/*
+  Payment status is calculated separately from request approval status.
+  This avoids changing the actual Owner approval workflow.
+*/
+
+const calculatedTotal = Number(getRequestTotal()) || 0;
+const calculatedPaid = Number(getVerifiedPaidAmount()) || 0;
+const calculatedRemaining = Math.max(
+    0,
+    Number(getRemainingAmount()) || 0
+);
+
+let calculatedPaymentStatus = "Pending";
+
+if (calculatedTotal > 0 && calculatedRemaining <= 0) {
+    calculatedPaymentStatus = "Paid";
+} else if (calculatedPaid > 0) {
+    calculatedPaymentStatus = "Partial";
+}
+
+setBadge(
+    "requestPaymentStatus",
+    calculatedPaymentStatus
+);
+
+/*
+  Display the request's actual approval status.
+  Do not replace it with Paid because request approval
+  and payment completion are two different statuses.
+*/
+
+const totalAmount = Number(getRequestTotal()) || 0;
+const totalPaid = Number(getVerifiedPaidAmount()) || 0;
+const remainingAmount = Math.max(
+    0,
+    Number(getRemainingAmount()) || 0
+);
+
+let displayRequestStatus =
+    request?.status ||
+    request?.user_status ||
+    "Pending";
+
+if (totalAmount > 0 && totalPaid >= totalAmount && remainingAmount <= 0) {
+    displayRequestStatus = "Paid";
+}
+
+setBadge("requestStatus", displayRequestStatus);
+
+setBadge(
+    "requestOwnerApproval",
+    request?.owner_approval || "—"
+);
+
+setText("company", getCompanyName());
+setText("agency", getAgencyName());
+setText("quantity", getQuantity());
+
+setText(
+    "state",
+    request?.state ||
+    request?.state_name ||
+    profile?.state ||
+    "—"
+);
+
+setText(
+    "district",
+    request?.district ||
+    request?.district_name ||
+    profile?.district ||
+    "—"
+);
+
+setText(
+    "city",
+    request?.city ||
+    request?.city_name ||
+    profile?.city ||
+    "—"
+);
+
+setText("summaryPayment", formatMoney(amount));
+
+setText(
+    "cylinderAmount",
+    formatMoney(getCylinderAmount())
+);
+
+setText(
+    "advanceAmount",
+    formatMoney(getAdvanceAmount())
+);
+
+setText(
+    "extraCharge",
+    formatMoney(getExtraCharge())
+);
+
+setText(
+    "requestTotal",
+    formatMoney(calculatedTotal)
+);
+
+setText(
+    "verifiedPaidAmount",
+    formatMoney(calculatedPaid)
+);
+
+setText(
+    "remainingAmount",
+    formatMoney(calculatedRemaining)
+);
+
+$("reviewNote").value =
+    payment?.owner_rejection_reason ||
+    payment?.notes ||
+    "";
+
+updateReviewUI();
+
+const pending = !isFinalVerification();
+
+setText(
+    "notificationCount",
+    pending ? "1" : "0"
+);
+
+setText(
+    "paymentNotificationText",
+    pending
+        ? "This payment is awaiting Owner verification."
+        : "This payment has already been reviewed."
+);
+
+await renderScreenshot();
+
 }
 
 function buildUpdatedNotes(oldNotes,ownerNote,decision) {
@@ -956,46 +1532,114 @@ function buildUpdatedNotes(oldNotes,ownerNote,decision) {
 }
 
 async function syncRequestBalance(decision) {
- if (!request?.id) return {ok:false,message:"No linked cylinder request was found."};
+if (!request?.id) {
+return {
+ok: false,
+message: "Linked cylinder request nahi mili."
+};
+}
 
- /*
-  * Re-fetch payments after saving the decision, so the just-approved record
-  * is included in the verified total.
-  */
- const {data:rows,error:rowsError} = await supabaseClient.from("payments")
-  .select("*").eq("request_id",request.id);
+try {
+    const { data: rows, error: rowsError } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("request_id", request.id);
 
- if (rowsError) {
-  return {ok:false,message:"Payment decision saved, but payment totals could not be recalculated: " + rowsError.message};
- }
+    if (rowsError) throw rowsError;
 
- const approvedRows = rows || [];
- const verifiedTotal = approvedRows.filter(isApprovedPayment)
-  .reduce((sum,row)=>sum + moneyNumber(row.payment_amount ?? row.amount),0);
- const total = getRequestTotal();
- const remaining = Math.max(0,total - verifiedTotal);
+    const allRows = (rows || []).map(row =>
+        row.id === payment?.id ? payment : row
+    );
 
- /*
-  * These columns exist in the supplied cylinder_requests schema.
-  * Request owner_approval is deliberately not changed here.
-  */
- const update = {
-  remaining_amount:remaining,
-  payment_status:remaining <= 0 ? "paid" : verifiedTotal > 0 ? "partial" : "pending"
- };
+    const approvedRows = allRows.filter(isApprovedPayment);
 
- if (decision === "approved") update.payment_verified_at = new Date().toISOString();
+const initialPaid = approvedRows
+    .filter(row => normalisePaymentType(row) === "initial")
+    .reduce(
+        (sum, row) =>
+            sum + moneyNumber(
+                row.payment_amount ?? row.amount
+            ),
+        0
+    );
 
- const {error:updateError} = await supabaseClient.from("cylinder_requests")
-  .update(update).eq("id",request.id);
+const repaymentPaid = approvedRows
+    .filter(row => normalisePaymentType(row) === "repayment")
+    .reduce(
+        (sum, row) =>
+            sum + moneyNumber(
+                row.payment_amount ?? row.amount
+            ),
+        0
+    );
 
- if (updateError) {
-  return {ok:false,message:"Payment decision saved, but request balance sync failed: " + updateError.message};
- }
+const verifiedTotal = initialPaid + repaymentPaid;
 
- request = {...request,...update};
- verifiedRequestPayments = approvedRows;
- return {ok:true,message:"Request balance updated."};
+const total = getCalculatedRequestTotal(
+    request,
+    allRows
+);
+
+const remaining = Math.max(
+    0,
+    total - verifiedTotal
+);
+
+const isClear = total > 0 && remaining <= 0;
+
+    const update = {
+        remaining_amount: remaining,
+        payment_status: isClear
+            ? "paid"
+            : verifiedTotal > 0
+                ? "partial"
+                : "pending",
+        payment_pending_clear: isClear ? "clear" : "pending",
+        repayment_status: isClear ? "clear" : "pending",
+        cylinder_hold_eligible: isClear ? "eligible" : "hold"
+    };
+
+    if (decision === "approved") {
+        update.payment_verification_status = "approved";
+    }
+
+    const { data: savedRows, error: updateError } =
+        await supabaseClient
+            .from("cylinder_requests")
+            .update(update)
+            .eq("id", request.id)
+            .select("*");
+
+    if (updateError) throw updateError;
+
+    if (!savedRows?.length) {
+        throw new Error(
+            "Request update nahi hui. Owner permissions aur RLS policy check karein."
+        );
+    }
+
+    request = savedRows[0];
+
+    await loadRelatedData();
+
+    return {
+        ok: true,
+        total,
+        verifiedTotal,
+        remaining,
+        message: "Request payment balance update ho gaya."
+    };
+
+} catch (error) {
+    console.error("Request balance sync failed:", error);
+
+    return {
+        ok: false,
+        message: error.message ||
+            "Request payment status update nahi ho saka."
+    };
+}
+
 }
 
 async function saveVerification(decision) {
@@ -1045,11 +1689,19 @@ async function saveVerification(decision) {
    return;
   }
 
-  const newStatus = decision === "approved" ? "paid" : "failed";
-  const updateData = {
-   payment_status:newStatus,
-   verification_status:decision
-  };
+  const newStatus =
+    decision === "approved" ? "paid" : "failed";
+
+const updateData = {
+    payment_status: newStatus,
+    verification_status: decision
+};
+
+// Preserve the existing payment type.
+// Do not convert a repayment into an initial payment.
+if (latest.payment_type) {
+    updateData.payment_type = latest.payment_type;
+}
 
   const newNotes = buildUpdatedNotes(latest.notes,note,decision);
   if (newNotes !== (String(latest.notes || "").trim() || null)) updateData.notes = newNotes;

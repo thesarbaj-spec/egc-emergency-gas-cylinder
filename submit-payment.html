@@ -345,6 +345,7 @@ button{cursor:pointer}
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <script>
 const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
@@ -459,14 +460,23 @@ function getPaymentId() {
 }
 
 function getRequestedPaymentType() {
-  const value = normalizeStatus(
-    new URLSearchParams(window.location.search)
-      .get("payment_type") || ""
-  );
+const value = normalizeStatus(
+new URLSearchParams(window.location.search)
+.get("payment_type") || ""
+);
 
-  return value === "initial" || value === "repayment"
-    ? value
-    : null;
+if (
+value === "initial" ||
+value === "initial_payment"
+) {
+return "initial";
+}
+
+if (value === "repayment") {
+return "repayment";
+}
+
+return null;
 }
 
 function getAmountFromURL() {
@@ -854,32 +864,45 @@ function getDeliveryDate() {
 }
 
 function getStoredPaymentType(payment) {
-  const metadata = getPaymentMetadata(payment);
+const metadata = getPaymentMetadata(payment);
 
-  const type = normalizeStatus(
-    payment?.payment_type ||
-    payment?.type ||
-    metadata.payment_type ||
-    metadata.type ||
-    ""
-  );
+const type = normalizeStatus(
+payment?.payment_type ||
+payment?.type ||
+metadata.payment_type ||
+metadata.type ||
+""
+);
 
-  if (type.includes("repayment")) return "repayment";
-  if (type.includes("initial")) return "initial";
+if (
+type === "repayment" ||
+type.includes("repayment")
+) {
+return "repayment";
+}
 
-  /*
-   * Legacy records may not have payment_type.
-   * Do not classify every ₹200 payment as an initial payment:
-   * a later partial payment can also be ₹200.
-   */
-  if (
-    Number(payment?.payment_amount || 0) === INITIAL_PAYMENT_AMOUNT &&
-    !getDeliveryDate()
-  ) {
-    return "initial";
-  }
+if (
+type === "initial" ||
+type === "initial_payment" ||
+type.includes("initial_payment")
+) {
+return "initial";
+}
 
-  return "";
+/*
+
+Legacy records may not have payment_type.
+Do not classify every ₹200 payment as an initial payment:
+a later partial payment can also be ₹200.
+*/
+if (
+Number(payment?.payment_amount || 0) === INITIAL_PAYMENT_AMOUNT &&
+!getDeliveryDate()
+) {
+return "initial";
+}
+
+return "";
 }
 
 /* CALCULATIONS */
@@ -965,11 +988,11 @@ function calculatePendingDays() {
 }
 
 function calculateExtraCharge(days) {
-  if (days <= 0) return 0;
-  if (days <= 10) return 35;
-  if (days <= 15) return 40;
-  if (days <= 45) return 50;
-  return 100;
+if (days <= 0) return 0;
+if (days <= 10) return 50;
+if (days <= 15) return 60;
+if (days <= 30) return 80;
+return 100;
 }
 
 function getRequestAmount() {
@@ -985,31 +1008,46 @@ function getRequestAmount() {
 }
 
 function calculatePayable() {
-  const paid = calculatePaidAmount();
-  const requestAmount = getRequestAmount();
+const paid = calculatePaidAmount();
+const requestAmount = getRequestAmount();
 
-  pendingDays = calculatePendingDays();
+pendingDays = calculatePendingDays();
 
-  extraCharge = paymentType === "repayment"
-    ? calculateExtraCharge(pendingDays)
-    : 0;
+if (paymentType === "initial") {
+extraCharge = 0;
 
-  if (paymentType === "initial") {
-    payableAmount = hasApprovedInitialPayment()
-      ? 0
-      : INITIAL_PAYMENT_AMOUNT;
-  } else {
-    /*
-     * Calculate only from approved payments.
-     * Pending submissions are not treated as paid.
-     */
-    payableAmount = Math.max(
-      0,
-      requestAmount - paid + extraCharge
-    );
-  }
+payableAmount = hasApprovedInitialPayment()
+  ? 0
+  : INITIAL_PAYMENT_AMOUNT;
 
-  renderAmount();
+renderAmount();
+return;
+
+}
+
+const deliveryDate = getDeliveryDate();
+
+// Repayment cannot be calculated without a recorded delivery date.
+if (!deliveryDate) {
+extraCharge = 0;
+payableAmount = 0;
+renderAmount();
+return;
+}
+
+const charge = calculateExtraCharge(pendingDays);
+const totalWithCharge = requestAmount + charge;
+
+// Charge is due only while the total payable amount is outstanding.
+if (paid >= totalWithCharge) {
+extraCharge = 0;
+payableAmount = 0;
+} else {
+extraCharge = charge;
+payableAmount = Math.max(0, totalWithCharge - paid);
+}
+
+renderAmount();
 }
 
 /* REQUEST DISPLAY */
@@ -1044,57 +1082,75 @@ function renderRequest() {
 /* AMOUNT DISPLAY */
 
 function renderAmount() {
-  const requestAmount = getRequestAmount();
-  const paidAmount = calculatePaidAmount();
-  const remaining = Math.max(0, requestAmount - paidAmount);
+const requestAmount = getRequestAmount();
+const paidAmount = calculatePaidAmount();
 
-  $("requestAmount").textContent =
-    "₹" + formatMoney(requestAmount);
+const deliveryDate = getDeliveryDate();
+const isRepayment = paymentType === "repayment";
 
-  $("alreadyPaid").textContent =
-    "₹" + formatMoney(paidAmount);
+const charge = isRepayment && deliveryDate
+? calculateExtraCharge(pendingDays)
+: 0;
 
-  $("remainingAmount").textContent =
-    "₹" + formatMoney(remaining);
+const totalPayable = requestAmount + charge;
+const remaining = Math.max(0, totalPayable - paidAmount);
 
-  if (paymentType === "repayment" && getDeliveryDate()) {
-    $("repaymentDaysBox").style.display = "block";
+$("requestAmount").textContent =
+"₹" + formatMoney(requestAmount);
 
-    $("repaymentDaysBox").innerHTML =
-      "<strong>Repayment calculation</strong><br>" +
-      "Cylinder delivered: " +
-      escapeHtml(formatDateTime(getDeliveryDate())) +
-      "<br>Days since delivery: " +
-      escapeHtml(String(pendingDays)) +
-      "<br>Remaining before charge: ₹" +
-      formatMoney(remaining) +
-      "<br>Extra charge: ₹" +
-      formatMoney(extraCharge);
-  } else {
-    $("repaymentDaysBox").style.display = "none";
-  }
+$("alreadyPaid").textContent =
+"₹" + formatMoney(paidAmount);
 
-  $("initialTypeCard").classList.toggle(
-    "active",
-    paymentType === "initial"
-  );
+$("remainingAmount").textContent =
+"₹" + formatMoney(Math.max(0, requestAmount - paidAmount));
 
-  $("repaymentTypeCard").classList.toggle(
-    "active",
-    paymentType === "repayment"
-  );
+if (isRepayment && deliveryDate) {
+$("repaymentDaysBox").style.display = "block";
 
-  const input = $("paymentAmountInput");
+$("repaymentDaysBox").innerHTML =
+  "<strong>Repayment calculation</strong><br>" +
+  "Cylinder delivered: " +
+  escapeHtml(formatDateTime(deliveryDate)) +
+  "<br>Days since delivery: " +
+  escapeHtml(String(pendingDays)) +
+  "<br>Remaining before charge: ₹" +
+  formatMoney(Math.max(0, requestAmount - paidAmount)) +
+  "<br>Extra charge: ₹" +
+  formatMoney(remaining > 0 ? charge : 0);
 
-  if (selectedPaymentAmountType === "full") {
-    input.value = payableAmount > 0
-      ? payableAmount.toFixed(2)
-      : "";
-  }
+} else {
+$("repaymentDaysBox").style.display = "none";
+}
 
-  input.max = Math.max(0, payableAmount).toFixed(2);
+$("initialTypeCard").classList.toggle(
+"active",
+paymentType === "initial"
+);
 
-  updateAmountHelp();
+$("repaymentTypeCard").classList.toggle(
+"active",
+paymentType === "repayment"
+);
+
+const input = $("paymentAmountInput");
+
+if (selectedPaymentAmountType === "full") {
+input.value = payableAmount > 0
+? payableAmount.toFixed(2)
+: "";
+}
+
+input.max = Math.max(0, payableAmount).toFixed(2);
+
+updateAmountHelp();
+
+$("payableAmount").textContent =
+"₹" + formatMoney(payableAmount);
+
+$("payableNote").textContent =
+paymentType === "initial"
+? "Initial EGC payment"
+: "Remaining amount + applicable extra charge";
 }
 
 function updateAmountHelp() {
@@ -1633,11 +1689,11 @@ async function submitPayment(event) {
      * the request amount. An approved initial payment alone does
      * not complete the request.
      */
-    if (approvedPaid >= requestAmount && paymentType === "repayment") {
-      throw new Error(
-        "All request payments have been approved. No further payment is due."
-      );
-    }
+    if (paymentType === "repayment" && payableAmount <= 0) {
+throw new Error(
+"All request payments have been approved. No further payment is due."
+);
+}
 
     if (payableAmount <= 0) {
       throw new Error(
@@ -1730,21 +1786,33 @@ async function submitPayment(event) {
 
     button.textContent = "SAVING PAYMENT...";
 
-    const paymentData = {
-      user_id: currentUser.id,
-      request_id: currentRequest.id,
-      payment_amount: Number(amount.toFixed(2)),
-      payment_status: "pending",
-      verification_status: "waiting_for_verification",
-      payment_date: new Date().toISOString(),
-      payment_reference: screenshotUrl,
-      notes: buildPaymentNotes(
-        selectedPaymentAmountType,
-        amount
-      ),
-      payment_method: method,
-      transaction_id: transactionId
-    };
+console.log("paymentType value:", paymentType);
+
+const paymentData = {
+user_id: currentUser.id,
+request_id: currentRequest.id,
+
+payment_type:
+["initial", "initial_payment"].includes(
+String(paymentType || "").toLowerCase()
+)
+? "initial_payment"
+: "repayment",
+
+payment_amount: Number(amount.toFixed(2)),
+payment_status: "pending",
+verification_status: "waiting_for_verification",
+payment_date: new Date().toISOString(),
+payment_reference: screenshotUrl,
+notes: buildPaymentNotes(
+selectedPaymentAmountType,
+amount
+),
+payment_method: method,
+transaction_id: transactionId
+};
+
+console.log("Payment data:", paymentData);
 
     const { data, error } = await supabaseClient
       .from("payments")
@@ -1954,7 +2022,7 @@ async function requestCylinder() {
           "submit-payment.html?" +
           new URLSearchParams({
             request_id: String(request.id),
-            payment_type: "initial",
+            payment_type: "initial_payment",
             amount: String(INITIAL_PAYMENT_AMOUNT)
           }).toString();
         return;
@@ -2124,17 +2192,15 @@ async function initializePage() {
     /*
      * A fully settled request should not accept more payments.
      */
-    if (
-      paymentType === "repayment" &&
-      requestAmount > 0 &&
-      approvedPaid >= requestAmount
-    ) {
-      disablePaymentForm(
-        "Your request payment is complete. No further payment is due."
-      );
-
-      return;
-    }
+   if (
+paymentType === "repayment" &&
+payableAmount <= 0
+) {
+disablePaymentForm(
+"Your request payment is complete. No further payment is due."
+);
+return;
+}
 
     /*
      * Do not lock merely because an earlier payment was approved.

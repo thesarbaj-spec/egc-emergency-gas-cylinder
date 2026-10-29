@@ -2037,6 +2037,116 @@ function badgeHtml(value) {
 }
 
 /* =====================================================
+EGC EXTRA CHARGE & TOTAL PAYABLE
+Delivery Day = Day 0
+===================================================== */
+
+function getRequestDeliveryDays(request) {
+const deliveryStatus = String(
+request?.delivery_status || ""
+).trim().toLowerCase();
+
+if (deliveryStatus !== "delivered") {
+    return null;
+}
+
+const deliveryDateValue =
+    request?.delivery_date ||
+    request?.delivered_at ||
+    null;
+
+if (!deliveryDateValue) {
+    return null;
+}
+
+const deliveryDate = new Date(deliveryDateValue);
+
+if (Number.isNaN(deliveryDate.getTime())) {
+    return null;
+}
+
+const today = new Date();
+
+// Compare calendar dates without time-of-day differences.
+const deliveryDay = Date.UTC(
+    deliveryDate.getFullYear(),
+    deliveryDate.getMonth(),
+    deliveryDate.getDate()
+);
+
+const currentDay = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+);
+
+return Math.max(
+    0,
+    Math.floor((currentDay - deliveryDay) / 86400000)
+);
+
+}
+
+function calculateRequestExtraCharge(request) {
+const days = getRequestDeliveryDays(request);
+
+// Don't invent a charge if delivery date is unavailable.
+if (days === null || days <= 0) {
+    return null;
+}
+
+if (days <= 10) return 50;
+if (days <= 15) return 60;
+if (days <= 30) return 80;
+
+return 100;
+
+}
+
+function getRequestTotalAmount(request) {
+const amount = Number(
+request?.total_amount ??
+request?.cylinder_amount ??
+request?.amount ??
+890
+);
+
+return Number.isFinite(amount) && amount >= 0
+    ? amount
+    : 890;
+
+}
+
+function getRequestExtraCharge(request) {
+const calculatedCharge = calculateRequestExtraCharge(request);
+
+// Use delivery-based charge when delivery date is available.
+if (calculatedCharge !== null) {
+    return calculatedCharge;
+}
+
+// Preserve the existing saved charge if the delivery date
+// is missing or the cylinder has not been marked delivered.
+const savedCharge = Number(
+    request?.extra_charge ??
+    request?.charge_amount ??
+    0
+);
+
+return Number.isFinite(savedCharge) && savedCharge >= 0
+    ? savedCharge
+    : 0;
+
+}
+
+function getRequestTotalPayable(request) {
+return (
+getRequestTotalAmount(request) +
+getRequestExtraCharge(request)
+);
+}
+
+/* =====================================================
    NAVIGATION
 ===================================================== */
 
@@ -2590,32 +2700,42 @@ function renderDetails() {
         <section class="grid">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Financial Details</div>
-                    <div class="card-subtitle">Request amount and payment information</div>
-                </div>
+                   <div class="card-body"> <div class="detail-grid"> <div class="detail"> <div class="detail-label">Cylinder Amount</div> <div class="detail-value money"> ${formatMoney(getRequestTotalAmount(request))} </div> </div>
 
-                <div class="card-body">
-                    <div class="detail-grid">
-                        <div class="detail">
-                            <div class="detail-label">Total Amount</div>
-                            <div class="detail-value money">${formatMoney(request.total_amount)}</div>
-                        </div>
-                        <div class="detail">
-                            <div class="detail-label">Extra Charge</div>
-                            <div class="detail-value money">${formatMoney(request.extra_charge)}</div>
-                        </div>
-                        <div class="detail">
-                            <div class="detail-label">Payment Status</div>
-                            <div class="detail-value">${badgeHtml(request.payment_status)}</div>
-                        </div>
-                        <div class="detail">
-                            <div class="detail-label">Initial Payment</div>
-                            <div class="detail-value money">
-                                ${formatMoney(request.initial_payment ?? request.advance_amount ?? 200)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <div class="detail">
+        <div class="detail-label">Extra Charge</div>
+        <div class="detail-value money">
+            ${formatMoney(getRequestExtraCharge(request))}
+        </div>
+    </div>
+
+    <div class="detail">
+        <div class="detail-label">Total Payable</div>
+        <div class="detail-value money">
+            ${formatMoney(getRequestTotalPayable(request))}
+        </div>
+    </div>
+
+    <div class="detail">
+        <div class="detail-label">Payment Status</div>
+        <div class="detail-value">
+            ${badgeHtml(request.payment_status)}
+        </div>
+    </div>
+
+    <div class="detail">
+        <div class="detail-label">Initial Payment</div>
+        <div class="detail-value money">
+            ${formatMoney(
+                request.initial_payment ??
+                request.advance_amount ??
+                200
+            )}
+        </div>
+    </div>
+</div>
+
+</div>
             </div>
 
             <div class="card">

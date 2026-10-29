@@ -767,7 +767,7 @@
                     </div>
                     <div class="scheme-charge">
                         <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹35</span>
+                        <span class="charge-value">₹50</span>
                     </div>
                 </div>
 
@@ -780,7 +780,7 @@
                     </div>
                     <div class="scheme-charge">
                         <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹40</span>
+                        <span class="charge-value">₹60</span>
                     </div>
                 </div>
 
@@ -793,28 +793,15 @@
                     </div>
                     <div class="scheme-charge">
                         <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹50</span>
+                        <span class="charge-value">₹80</span>
                     </div>
                 </div>
 
                 <div class="scheme-row">
                     <div class="scheme-left">
-                        <div class="scheme-days">31–45 Days</div>
+                        <div class="scheme-days">31 Days or More</div>
                         <div class="scheme-description">
-                            A further 15-day period is available after the first 30 days.
-                        </div>
-                    </div>
-                    <div class="scheme-charge">
-                        <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹50</span>
-                    </div>
-                </div>
-
-                <div class="scheme-row">
-                    <div class="scheme-left">
-                        <div class="scheme-days">46 Days or More</div>
-                        <div class="scheme-description">
-                            After 46 days, the applicable extra charge is ₹100.
+                            After 31 days, the applicable extra charge is ₹100.
                         </div>
                     </div>
                     <div class="scheme-charge">
@@ -906,12 +893,15 @@
 
     let supabaseClient = null;
     let isSubmitting = false;
+    let paymentChargeRules = [];
 
     // ==========================================
     // PAGE UTILITIES
     // ==========================================
 
     function showMessage(text, type = "error") {
+        if (!message) return;
+
         message.className = "message " + type;
         message.textContent = text;
 
@@ -922,6 +912,8 @@
     }
 
     function clearMessage() {
+        if (!message) return;
+
         message.className = "message";
         message.textContent = "";
     }
@@ -929,13 +921,17 @@
     function setLoading(status) {
         isSubmitting = status;
 
-        loadingOverlay.classList.toggle("show", status);
-        loadingOverlay.setAttribute("aria-hidden", String(!status));
+        if (loadingOverlay) {
+            loadingOverlay.classList.toggle("show", status);
+            loadingOverlay.setAttribute("aria-hidden", String(!status));
+        }
 
-        continueBtn.disabled = status;
-        continueBtn.textContent = status
-            ? "SUBMITTING..."
-            : "REQUEST SUBMIT";
+        if (continueBtn) {
+            continueBtn.disabled = status;
+            continueBtn.textContent = status
+                ? "SUBMITTING..."
+                : "REQUEST SUBMIT";
+        }
     }
 
     function readJSONFromStorage(storage, key) {
@@ -993,6 +989,67 @@
         }
 
         return null;
+    }
+
+    // ==========================================
+    // REPAYMENT CHARGE RULES
+    // Reads active rules from Supabase.
+    // This page does not apply repayment charges.
+    // ==========================================
+
+    async function loadPaymentChargeRules() {
+        const { data, error } = await supabaseClient
+            .from("payment_charge_rules")
+            .select("min_days, max_days, extra_charge")
+            .eq("is_active", true)
+            .order("min_days", { ascending: true });
+
+        if (error) {
+            console.warn(
+                "Could not load payment charge rules:",
+                error.message
+            );
+
+            paymentChargeRules = [];
+            return [];
+        }
+
+        paymentChargeRules = (data || [])
+            .map(rule => ({
+                min_days: Number(rule.min_days),
+                max_days:
+                    rule.max_days === null
+                        ? null
+                        : Number(rule.max_days),
+                extra_charge: Number(rule.extra_charge)
+            }))
+            .filter(rule =>
+                Number.isFinite(rule.min_days) &&
+                (rule.max_days === null ||
+                 Number.isFinite(rule.max_days)) &&
+                Number.isFinite(rule.extra_charge)
+            );
+
+        console.log(
+            "EGC active payment charge rules loaded:",
+            paymentChargeRules
+        );
+
+        return paymentChargeRules;
+    }
+
+    // Available for future display if this page needs to show
+    // an applicable charge. It does not update database records.
+    function getExtraChargeForDays(days) {
+        const repaymentDays = Math.max(0, Number(days) || 0);
+
+        const rule = paymentChargeRules.find(item =>
+            repaymentDays >= item.min_days &&
+            (item.max_days === null ||
+             repaymentDays <= item.max_days)
+        );
+
+        return rule ? rule.extra_charge : null;
     }
 
     // ==========================================
@@ -1066,6 +1123,62 @@
     }
 
     // ==========================================
+    // SCHEME DATA
+    // ==========================================
+
+    function getSchemeData() {
+        const keys = [
+            "egc_scheme_data",
+            "egc_selected_scheme",
+            "egc_selected_scheme_data",
+            "egc_scheme",
+            "selectedScheme",
+            "selected_scheme",
+            "schemeData",
+            "scheme_data"
+        ];
+
+        for (const key of keys) {
+            const data = readJSON(key);
+
+            if (data && typeof data === "object" && !Array.isArray(data)) {
+                return data;
+            }
+
+            const storedValue = readStoredValue(key);
+
+            if (storedValue) {
+                return {
+                    scheme_name: storedValue.trim()
+                };
+            }
+        }
+
+        const schemeElement = document.querySelector(
+            '[name="scheme_name"], ' +
+            '[name="schemeName"], ' +
+            '#schemeName, ' +
+            '#scheme_name, ' +
+            '[data-scheme-name]'
+        );
+
+        if (schemeElement) {
+            const schemeName =
+                schemeElement.value ||
+                schemeElement.getAttribute("data-scheme-name") ||
+                schemeElement.textContent;
+
+            if (schemeName && schemeName.trim()) {
+                return {
+                    scheme_name: schemeName.trim()
+                };
+            }
+        }
+
+        return {};
+    }
+
+    // ==========================================
     // AGENCY ID
     // ==========================================
 
@@ -1084,8 +1197,11 @@
         for (const key of keys) {
             const value = obj[key];
 
-            if (value !== undefined && value !== null &&
-                String(value).trim() !== "") {
+            if (
+                value !== undefined &&
+                value !== null &&
+                String(value).trim() !== ""
+            ) {
                 return String(value).trim();
             }
         }
@@ -1215,61 +1331,58 @@
         const status = normalStatus(request.status);
         const approval = normalStatus(request.owner_approval);
 
-        return ["cancelled", "canceled", "rejected"].includes(status) ||
-               ["rejected", "cancelled", "canceled"].includes(approval);
+        return (
+            ["cancelled", "canceled", "rejected"].includes(status) ||
+            ["rejected", "cancelled", "canceled"].includes(approval)
+        );
     }
 
-   function isFullyCleared(request, verifiedPaidAmount = null) {
-if (!request) return false;
+    function isFullyCleared(request, verifiedPaidAmount = null) {
+        if (!request) return false;
 
-const remaining = Number(request.remaining_amount);
-const repaymentStatus = normalStatus(request.repayment_status);
+        const remaining = Number(request.remaining_amount);
+        const repaymentStatus = normalStatus(request.repayment_status);
 
-const completedStatuses = [
-    "completed",
-    "complete",
-    "paid",
-    "cleared",
-    "fully_paid",
-    "fully_cleared",
-    "paid_in_full",
-    "settled",
-    "clear"
-];
+        const completedStatuses = [
+            "completed",
+            "complete",
+            "paid",
+            "cleared",
+            "fully_paid",
+            "fully_cleared",
+            "paid_in_full",
+            "settled",
+            "clear"
+        ];
 
-// When verified payment records are available, use their calculated balance.
-if (
-    verifiedPaidAmount !== null &&
-    Number.isFinite(Number(verifiedPaidAmount))
-) {
-    const totalPaid = Number(verifiedPaidAmount);
-    const totalDue = Number(request.cylinder_amount || CYLINDER_AMOUNT);
+        if (
+            verifiedPaidAmount !== null &&
+            Number.isFinite(Number(verifiedPaidAmount))
+        ) {
+            const totalPaid = Number(verifiedPaidAmount);
+            const totalDue = Number(request.cylinder_amount || CYLINDER_AMOUNT);
 
-    return totalDue > 0 && totalPaid >= totalDue;
-}
+            return totalDue > 0 && totalPaid >= totalDue;
+        }
 
-return (
-    Number.isFinite(remaining) &&
-    remaining <= 0 &&
-    completedStatuses.includes(repaymentStatus)
-);
+        return (
+            Number.isFinite(remaining) &&
+            remaining <= 0 &&
+            completedStatuses.includes(repaymentStatus)
+        );
+    }
 
-}
+    function isActiveRequest(request) {
+        if (!request || isRejectedOrCancelled(request)) {
+            return false;
+        }
 
-function isActiveRequest(request) {
-if (!request || isRejectedOrCancelled(request)) {
-return false;
-}
+        if (isFullyCleared(request)) {
+            return false;
+        }
 
-// A fully repaid old request must not block a new request.
-if (isFullyCleared(request)) {
-    return false;
-}
-
-// Every other non-rejected request remains active.
-return true;
-
-}
+        return true;
+    }
 
     // ==========================================
     // AUTHENTICATED USER AND PROFILE
@@ -1301,7 +1414,9 @@ return true;
         }
 
         if (!data) {
-            throw new Error("Your EGC profile could not be found. Please complete your profile first.");
+            throw new Error(
+                "Your EGC profile could not be found. Please complete your profile first."
+            );
         }
 
         return data;
@@ -1363,129 +1478,123 @@ return true;
     }
 
     async function getVerifiedPaymentsForRequest(request) {
-const { data, error } = await supabaseClient
-.from("payments")
-.select("*")
-.eq("request_id", request.id);
+        const { data, error } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq("request_id", request.id);
 
-if (error) {
-    throw new Error(
-        "Unable to verify your previous payments: " + error.message
-    );
-}
-
-const approvedPayments = (data || []).filter(payment => {
-    const verificationStatus = normalStatus(
-        payment.verification_status
-    );
-
-    const paymentStatus = normalStatus(payment.payment_status);
-
-    return (
-        ["approved", "verified"].includes(verificationStatus) &&
-        ["paid", "approved", "verified", "completed"].includes(paymentStatus)
-    );
-});
-
-const totalPaid = approvedPayments.reduce((sum, payment) => {
-    return sum + Math.max(
-        0,
-        Number(payment.payment_amount || payment.amount || 0)
-    );
-}, 0);
-
-const cylinderAmount = Number(
-    request.cylinder_amount || request.total_amount || CYLINDER_AMOUNT
-);
-
-// Repayment notes may contain the approved extra charge.
-let extraCharge = Number(request.extra_charge || 0);
-
-for (const payment of approvedPayments) {
-    let notes = payment.notes;
-
-    if (typeof notes === "string") {
-        try {
-            notes = JSON.parse(notes);
-        } catch {
-            notes = null;
-        }
-    }
-
-    if (notes && typeof notes === "object") {
-        const paymentType = normalStatus(
-            notes.payment_type || notes.type
-        );
-
-        if (paymentType === "repayment") {
-            extraCharge = Math.max(
-                extraCharge,
-                Number(notes.extra_charge || 0)
+        if (error) {
+            throw new Error(
+                "Unable to verify your previous payments: " + error.message
             );
         }
-    }
-}
 
-const totalDue = cylinderAmount + extraCharge;
-const remaining = Math.max(0, totalDue - totalPaid);
+        const approvedPayments = (data || []).filter(payment => {
+            const verificationStatus = normalStatus(
+                payment.verification_status
+            );
 
-return {
-    approvedPayments,
-    totalPaid,
-    totalDue,
-    remaining,
-    fullyPaid: totalDue > 0 && remaining <= 0
-};
+            const paymentStatus = normalStatus(payment.payment_status);
 
-}
+            return (
+                ["approved", "verified"].includes(verificationStatus) &&
+                ["paid", "approved", "verified", "completed"].includes(paymentStatus)
+            );
+        });
 
- async function getExistingActiveRequest(userId) {
-const { data, error } = await supabaseClient
-.from("cylinder_requests")
-.select("*")
-.eq("user_id", userId)
-.order("created_at", { ascending: false })
-.limit(100);
+        const totalPaid = approvedPayments.reduce((sum, payment) => {
+            return sum + Math.max(
+                0,
+                Number(payment.payment_amount || payment.amount || 0)
+            );
+        }, 0);
 
-if (error) {
-    throw new Error(
-        "Unable to check your existing request: " + error.message
-    );
-}
+        const cylinderAmount = Number(
+            request.cylinder_amount || request.total_amount || CYLINDER_AMOUNT
+        );
 
-const requests = data || [];
+        let extraCharge = Number(request.extra_charge || 0);
 
-for (const request of requests) {
-    if (isRejectedOrCancelled(request)) {
-        continue;
-    }
+        for (const payment of approvedPayments) {
+            let notes = payment.notes;
 
-    const balance = await getVerifiedPaymentsForRequest(request);
+            if (typeof notes === "string") {
+                try {
+                    notes = JSON.parse(notes);
+                } catch {
+                    notes = null;
+                }
+            }
 
-    // A fully repaid request must not block a new request.
-    if (balance.fullyPaid) {
-        continue;
-    }
+            if (notes && typeof notes === "object") {
+                const paymentType = normalStatus(
+                    notes.payment_type || notes.type
+                );
 
-    // Any request with an outstanding balance blocks a new request.
-    if (balance.remaining > 0) {
+                if (paymentType === "repayment") {
+                    extraCharge = Math.max(
+                        extraCharge,
+                        Number(notes.extra_charge || 0)
+                    );
+                }
+            }
+        }
+
+        const totalDue = cylinderAmount + extraCharge;
+        const remaining = Math.max(0, totalDue - totalPaid);
+
         return {
-            ...request,
-            calculated_remaining_amount: balance.remaining,
-            calculated_total_paid: balance.totalPaid,
-            calculated_total_due: balance.totalDue
+            approvedPayments,
+            totalPaid,
+            totalDue,
+            remaining,
+            fullyPaid: totalDue > 0 && remaining <= 0
         };
     }
 
-    // Do not silently ignore an unresolved active request.
-    if (!isFullyCleared(request)) {
-        return request;
+    async function getExistingActiveRequest(userId) {
+        const { data, error } = await supabaseClient
+            .from("cylinder_requests")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(100);
+
+        if (error) {
+            throw new Error(
+                "Unable to check your existing request: " + error.message
+            );
+        }
+
+        const requests = data || [];
+
+        for (const request of requests) {
+            if (isRejectedOrCancelled(request)) {
+                continue;
+            }
+
+            const balance = await getVerifiedPaymentsForRequest(request);
+
+            if (balance.fullyPaid) {
+                continue;
+            }
+
+            if (balance.remaining > 0) {
+                return {
+                    ...request,
+                    calculated_remaining_amount: balance.remaining,
+                    calculated_total_paid: balance.totalPaid,
+                    calculated_total_due: balance.totalDue
+                };
+            }
+
+            if (!isFullyCleared(request)) {
+                return request;
+            }
+        }
+
+        return null;
     }
-}
-
-return null;
-
-}
 
     // ==========================================
     // VERIFY SELECTED AGENCY
@@ -1544,191 +1653,135 @@ return null;
     }
 
     // ==========================================
-    // REQUEST NUMBER
+    // CREATE REQUEST THROUGH SECURE RPC
     // ==========================================
 
-    function generateRequestNumber() {
-        const datePart = new Date()
-            .toISOString()
-            .slice(0, 10)
-            .replace(/-/g, "");
-
-        const randomPart = Math.floor(100000 + Math.random() * 900000);
-
-        return "EGC-" + datePart + "-" + randomPart;
-    }
-
-    // ==========================================
-    // CREATE REQUEST
-    // ==========================================
-
-    async function createRequest(user, profile, agency, lpgDetails, verificationData) {
-    if (!user || !user.id) {
-        throw new Error("User login is required to create a cylinder request.");
-    }
-
-    if (!agency || !agency.id) {
-        throw new Error("Please select a valid LPG agency.");
-    }
-
-    const company =
-        lpgDetails.lpg_company ||
-        lpgDetails.lpgCompany ||
-        lpgDetails.company ||
-        profile.lpg_company ||
-        agency.lpg_company ||
-        null;
-
-    const address = getAddress(verificationData, lpgDetails);
-    const personalDetails = verificationData.personal_details || verificationData.personalDetails || verificationData.personal || {}; const bookingNumber = String( verificationData.booking_number || verificationData.bookingNumber || personalDetails.booking_number || personalDetails.bookingNumber || localStorage.getItem("egc_booking_number") || "" ).trim();
-
-    // Generate a unique request number for every new request.
-    const requestNumber = generateRequestNumber();
-
-    // Every new request starts with fresh approval and payment statuses.
-    // Never copy approval or payment status from an older request.
-    const insertData = {
-        booking_number: bookingNumber || null,
-        user_id: user.id,
-        request_number: requestNumber,
-
-        quantity: 1,
-        total_amount: CYLINDER_AMOUNT,
-
-        status: "Pending",
-        notes: "Cylinder request submitted after repayment scheme agreement.",
-
-        agency_id: agency.id,
-        lpg_company: company,
-
-        // Owner must approve every new request separately.
-        owner_approval: "pending",
-        approved_by: null,
-        approved_at: null,
-        rejection_reason: null,
-        owner_note: null,
-        owner_rejected_at: null,
-
-        // Initial payment must be submitted and verified separately.
-        payment_status: "pending",
-        payment_verification_status: "pending",
-        payment_pending_clear: "pending",
-
-        payment_reference: null,
-        payment_transaction_id: null,
-        payment_method: null,
-        payment_submitted_at: null,
-        payment_verified_at: null,
-        payment_paid_at: null,
-
-        payment_screenshot_1: null,
-        payment_screenshot_2: null,
-        payment_screenshot_3: null,
-        payment_note: null,
-
-        // Agency cannot process the request before Owner approval
-        // and initial payment verification.
-        agency_status: "waiting",
-        agency_note: null,
-        agency_updated_at: null,
-
-        delivery_status: "pending",
-        delivery_note: null,
-        delivery_date: null,
-        delivered_at: null,
-
-        // Cylinder financial details.
-        cylinder_amount: CYLINDER_AMOUNT,
-        advance_amount: FIRST_PAYMENT,
-        remaining_amount: REMAINING_AMOUNT,
-        extra_charge: 0,
-        charge_amount: 0,
-
-        // This field represents the initial payment due in this workflow.
-        total_payable: FIRST_PAYMENT,
-
-        // Repayment remains separate from the initial payment.
-        repayment_days: null,
-        repayment_due_date: null,
-        repayment_status: "pending",
-
-        // Eligibility must not be granted automatically.
-        cylinder_hold_eligible: "hold",
-
-        user_status: "pending",
-        request_date: new Date().toISOString()
-    };
-
-    if (address) {
-        insertData.address = address;
-    }
-
-    if (lpgDetails.city || profile.city) {
-        insertData.city = lpgDetails.city || profile.city;
-    }
-
-    if (lpgDetails.state || profile.state) {
-        insertData.state = lpgDetails.state || profile.state;
-    }
-
-    if (lpgDetails.district || profile.district) {
-        insertData.district = lpgDetails.district || profile.district;
-    }
-
-    if (profile.full_name || profile.name) {
-        insertData.customer_name =
-            profile.full_name || profile.name;
-    }
-
-    if (profile.phone || profile.mobile || profile.mobile_number) {
-        insertData.customer_mobile =
-            profile.phone || profile.mobile || profile.mobile_number;
-    }
-
-    if (user.email || profile.email) {
-        insertData.customer_email = user.email || profile.email;
-    }
-
-    const { data, error } = await supabaseClient
-        .from("cylinder_requests")
-        .insert(insertData)
-        .select("*")
-        .single();
-
-    if (error) {
-        console.error("Request insert error:", error);
-
-        throw new Error(
-            "Request could not be saved. Database message: " +
-            error.message
-        );
-    }
-
-    if (!data || !data.id) {
-        throw new Error(
-            "The request was submitted, but its saved record could not be confirmed. Please check your request history before trying again."
-        );
-    }
-
-    // Verify the new record's Owner approval was not automatically approved.
-    if (
-        String(data.owner_approval || "").trim().toLowerCase() !== "pending"
+    async function createRequest(
+        user,
+        profile,
+        agency,
+        lpgDetails,
+        verificationData
     ) {
-        console.error(
-            "Unexpected Owner approval status on new request:",
-            data
-        );
+        if (!user || !user.id) {
+            throw new Error(
+                "User login is required to create a cylinder request."
+            );
+        }
 
-        throw new Error(
-            "The request was saved, but its Owner approval status is unexpected. Please contact support before submitting another request."
-        );
+        if (!agency || !agency.id) {
+            throw new Error("Please select a valid LPG agency.");
+        }
+
+        const company =
+            lpgDetails.lpg_company ||
+            lpgDetails.lpgCompany ||
+            lpgDetails.company ||
+            profile.lpg_company ||
+            agency.lpg_company ||
+            "";
+
+        if (!company || !String(company).trim()) {
+            throw new Error(
+                "LPG company was not found. Please return to LPG Details and select your company."
+            );
+        }
+
+        const schemeData = getSchemeData();
+
+        if (!schemeData.scheme_name) {
+            const personalDetails =
+                verificationData.personal_details ||
+                verificationData.personalDetails ||
+                verificationData.personal ||
+                {};
+
+            schemeData.scheme_name =
+                verificationData.scheme_name ||
+                verificationData.schemeName ||
+                personalDetails.scheme_name ||
+                personalDetails.schemeName ||
+                null;
+        }
+
+        const lpgData = {
+            ...lpgDetails,
+            agency_id: agency.id,
+            lpg_company: company
+        };
+
+        const { data: requestId, error: rpcError } =
+            await supabaseClient.rpc(
+                "egc_create_cylinder_request",
+                {
+                    p_agency_id: agency.id,
+                    p_lpg_company: String(company).trim(),
+                    p_quantity: 1,
+                    p_lpg_details: lpgData,
+                    p_verification_data: verificationData,
+                    p_scheme_data: schemeData,
+                    p_profile_data: profile
+                }
+            );
+
+        if (rpcError) {
+            console.error("EGC request RPC error:", rpcError);
+
+            throw new Error(
+                "Request could not be saved: " + rpcError.message
+            );
+        }
+
+        if (!requestId) {
+            throw new Error(
+                "The database did not return a request ID. Please check your request history before trying again."
+            );
+        }
+
+        const { data: request, error: fetchError } =
+            await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("id", requestId)
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+        if (fetchError) {
+            console.error("Saved request lookup error:", fetchError);
+
+            throw new Error(
+                "Your request may have been saved, but its details could not be retrieved. Check My Requests before submitting again. Database message: " +
+                fetchError.message
+            );
+        }
+
+        if (!request) {
+            throw new Error(
+                "The request was created, but its record could not be retrieved. Check My Requests before submitting again."
+            );
+        }
+
+        if (
+            String(request.owner_approval || "").trim().toLowerCase() !==
+            "pending"
+        ) {
+            console.error(
+                "Unexpected Owner approval status:",
+                request.owner_approval
+            );
+
+            throw new Error(
+                "The request was saved, but its approval status needs verification. Please contact support."
+            );
+        }
+
+        console.log("EGC request created successfully:", request);
+
+        return request;
     }
 
-    return data;
-}
     // ==========================================
     // SAVE REQUEST REFERENCE LOCALLY
-    // Database remains the source of truth.
     // ==========================================
 
     function saveCurrentRequest(request, user, agency) {
@@ -1744,7 +1797,7 @@ return null;
             first_payment: Number(request.advance_amount || FIRST_PAYMENT),
             remaining_amount: Number(request.remaining_amount ?? REMAINING_AMOUNT),
             extra_charge: Number(request.extra_charge || 0),
-            total_payable: Number(request.total_payable || FIRST_PAYMENT),
+            total_payable: Number(request.total_payable ?? CYLINDER_AMOUNT),
             status: request.status || "Pending",
             payment_status: request.payment_status || "pending",
             owner_approval: request.owner_approval || "pending",
@@ -1787,78 +1840,51 @@ return null;
     // ==========================================
 
     async function submitRequest() {
-const user = await getCurrentUser();
+        const user = await getCurrentUser();
 
-const lpgDetails = getLpgDetails();
-const verificationData = getVerificationData();
-const profile = await getProfile(user.id);
-const agency = await getVerifiedAgency(lpgDetails);
+        const lpgDetails = getLpgDetails();
+        const verificationData = getVerificationData();
+        const profile = await getProfile(user.id);
+        const agency = await getVerifiedAgency(lpgDetails);
 
-// Check the latest database records before creating a request.
-const existingRequest = await getExistingActiveRequest(user.id);
+        const existingRequest = await getExistingActiveRequest(user.id);
 
-if (existingRequest) {
-   if (existingRequest) {
-const remaining = Number(
-existingRequest.calculated_remaining_amount ??
-existingRequest.remaining_amount
-);
+        if (existingRequest) {
+            const remaining = Number(
+                existingRequest.calculated_remaining_amount ??
+                existingRequest.remaining_amount
+            );
 
-if (Number.isFinite(remaining) && remaining > 0) {
-    throw new Error(
-        "Aapki purani cylinder request ki ₹" +
-        remaining +
-        " repayment abhi baaki hai. Repayment poori hone ke baad hi nayi request kar sakte hain."
-    );
-}
+            if (Number.isFinite(remaining) && remaining > 0) {
+                throw new Error(
+                    "Aapki purani cylinder request ki ₹" +
+                    remaining +
+                    " repayment abhi baaki hai. Repayment poori hone ke baad hi nayi request kar sakte hain."
+                );
+            }
 
-if (!isFullyCleared(existingRequest)) {
-    throw new Error(
-        "Aapki purani cylinder request abhi active hai. Owner se repayment aur request status verify karwayein."
-    );
-}
+            if (!isFullyCleared(existingRequest)) {
+                throw new Error(
+                    "Aapki purani cylinder request abhi active hai. Owner se repayment aur request status verify karwayein."
+                );
+            }
+        }
 
-}
-    const repaymentStatus = normalStatus(
-        existingRequest.repayment_status || ""
-    );
-
-    if (
-        Number.isFinite(remaining) &&
-        remaining > 0
-    ) {
-        throw new Error(
-            "Aapki purani cylinder request ki ₹" +
-            remaining +
-            " repayment abhi baaki hai. Repayment poori hone ke baad hi nayi request kar sakte hain."
+        const request = await createRequest(
+            user,
+            profile,
+            agency,
+            lpgDetails,
+            verificationData
         );
+
+        saveCurrentRequest(request, user, agency);
+
+        return {
+            request,
+            reused: false
+        };
     }
-
-    if (!isFullyCleared(existingRequest)) {
-        throw new Error(
-            "Aapki purani cylinder request abhi active hai. Owner se repayment aur request status verify karwayein."
-        );
-    }
-}
-
-// Create a fresh database row with a new Request Number.
-// Never reuse an old request ID or Request Number.
-const request = await createRequest(
-    user,
-    profile,
-    agency,
-    lpgDetails,
-    verificationData
-);
-
-saveCurrentRequest(request, user, agency);
-
-return {
-    request,
-    reused: false
-};
-
-}
 
     // ==========================================
     // NAVIGATION
@@ -1868,13 +1894,17 @@ return {
         window.location.href = "request-status.html";
     }
 
-    backBtn.addEventListener("click", () => {
-        window.location.href = "verification.html";
-    });
+    if (backBtn) {
+        backBtn.addEventListener("click", () => {
+            window.location.href = "verification.html";
+        });
+    }
 
-    backStepBtn.addEventListener("click", () => {
-        window.location.href = "dashboard.html";
-    });
+    if (backStepBtn) {
+        backStepBtn.addEventListener("click", () => {
+            window.location.href = "dashboard.html";
+        });
+    }
 
     // ==========================================
     // DISPLAY PAYMENT AMOUNTS
@@ -1908,7 +1938,7 @@ return {
             "error"
         );
 
-        continueBtn.disabled = true;
+        if (continueBtn) continueBtn.disabled = true;
         return;
     }
 
@@ -1925,68 +1955,78 @@ return {
             "error"
         );
 
-        continueBtn.disabled = true;
+        if (continueBtn) continueBtn.disabled = true;
         return;
     }
+
+    // Load rules for consistency checks; the Scheme page does not charge
+    // users any repayment fee during initial request submission.
+    loadPaymentChargeRules().catch(error => {
+        console.warn("Payment charge rule loading failed:", error);
+    });
+
+    // Keep helper referenced for browser debugging without changing UI.
+    window.egcGetExtraChargeForDays = getExtraChargeForDays;
 
     // ==========================================
     // SUBMIT BUTTON
     // ==========================================
 
-    continueBtn.addEventListener("click", async () => {
-        if (isSubmitting) return;
+    if (continueBtn) {
+        continueBtn.addEventListener("click", async () => {
+            if (isSubmitting) return;
 
-        clearMessage();
+            clearMessage();
 
-        if (!agreeCheck.checked) {
-            showMessage(
-                "Please tick the agreement checkbox before submitting your request.",
-                "error"
-            );
-            return;
-        }
+            if (!agreeCheck || !agreeCheck.checked) {
+                showMessage(
+                    "Please tick the agreement checkbox before submitting your request.",
+                    "error"
+                );
+                return;
+            }
 
-        setLoading(true);
+            setLoading(true);
 
-        try {
-            const result = await submitRequest();
-            const request = result.request;
+            try {
+                const result = await submitRequest();
+                const request = result.request;
 
-            console.log(
-                result.reused
-                    ? "Existing active EGC request found:"
-                    : "New EGC request saved:",
-                request
-            );
+                console.log(
+                    result.reused
+                        ? "Existing active EGC request found:"
+                        : "New EGC request saved:",
+                    request
+                );
 
-            // Do not navigate until the database operation succeeds.
-            setLoading(false);
+                setLoading(false);
 
-            continueBtn.disabled = true;
-            continueBtn.textContent = "REQUEST SAVED";
+                continueBtn.disabled = true;
+                continueBtn.textContent = "REQUEST SAVED";
 
-            showMessage(
-                result.reused
-                    ? "You already have an active request. Opening its status page."
-                    : "Your cylinder request has been saved successfully. Opening request status.",
-                "success"
-            );
+                showMessage(
+                    result.reused
+                        ? "You already have an active request. Opening its status page."
+                        : "Your cylinder request has been saved successfully. Opening request status.",
+                    "success"
+                );
 
-            setTimeout(goToStatusPage, 1000);
+                setTimeout(goToStatusPage, 1000);
 
-        } catch (error) {
-            console.error("EGC scheme submission error:", error);
+            } catch (error) {
+                console.error("EGC scheme submission error:", error);
 
-            setLoading(false);
+                setLoading(false);
 
-            showMessage(
-                error && error.message
-                    ? error.message
-                    : "Unable to save your request. Please try again.",
-                "error"
-            );
-        }
-    });
+                showMessage(
+                    error && error.message
+                        ? error.message
+                        : "Unable to save your request. Please try again.",
+                    "error"
+                );
+            }
+        });
+    }
 
     console.log("EGC Scheme page initialized.");
 })();

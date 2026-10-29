@@ -715,6 +715,81 @@ function isRejectedPayment(payment) {
 }
 
 /* =========================================================
+EGC REPAYMENT EXTRA CHARGE
+Delivery day = Day 0
+========================================================= */
+
+function getDeliveryDate(request) {
+return firstValue(request, [
+"delivery_date",
+"delivered_at"
+]);
+}
+
+function getDaysAfterDelivery(request) {
+const deliveryStatus = normalizeStatus(
+firstValue(request, ["delivery_status"], "")
+);
+
+if (deliveryStatus !== "delivered") {
+    return null;
+}
+
+const value = getDeliveryDate(request);
+
+if (!value) {
+    return null;
+}
+
+const deliveryDate = new Date(value);
+
+if (Number.isNaN(deliveryDate.getTime())) {
+    return null;
+}
+
+const today = new Date();
+
+const deliveryDayUTC = Date.UTC(
+    deliveryDate.getFullYear(),
+    deliveryDate.getMonth(),
+    deliveryDate.getDate()
+);
+
+const todayUTC = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+);
+
+return Math.max(
+    0,
+    Math.floor(
+        (todayUTC - deliveryDayUTC) / 86400000
+    )
+);
+
+}
+
+function calculateExtraChargeFromDelivery(request) {
+const days = getDaysAfterDelivery(request);
+
+/*
+ * No delivery date means the charge cannot be
+ * calculated reliably. Do not invent a delivery date.
+ */
+if (days === null || days <= 0) {
+    return null;
+}
+
+if (days <= 10) return 50;
+if (days <= 15) return 60;
+if (days <= 30) return 80;
+
+return 100;
+
+}
+
+/* =========================================================
    MOBILE MENU + NOTIFICATIONS
 ========================================================= */
 
@@ -879,18 +954,28 @@ async function loadRepayments() {
                 "advance_amount"
             ], 0));
 
-            const extraCharge = num(firstValue(request, [
-                "extra_charge",
-                "charge_amount"
-            ], 0));
+            const savedExtraCharge = firstValue(request, [
+"extra_charge",
+"charge_amount"
+], null);
 
-            const totalPayableStored = num(firstValue(request, [
-                "total_payable"
-            ], 0));
+const calculatedExtraCharge =
+calculateExtraChargeFromDelivery(request);
 
-            const totalPayable = totalPayableStored > 0
-                ? totalPayableStored
-                : cylinderAmount + extraCharge;
+/*
+
+Prefer the delivery-based charge when the delivery date
+is available. Otherwise preserve the saved database charge.
+*/
+const extraCharge = calculatedExtraCharge !== null
+? calculatedExtraCharge
+: num(savedExtraCharge);
+
+const totalPayableStored = num(firstValue(request, [
+"total_payable"
+], 0));
+
+const totalPayable = cylinderAmount + extraCharge;
 
             const verifiedPayments = requestPayments.filter(isVerifiedPayment);
 

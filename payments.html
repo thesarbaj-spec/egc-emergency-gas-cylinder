@@ -1081,13 +1081,23 @@ function getInitialPayment(requestId) {
 
 /* =========================================================
    DELIVERY DAYS AND EXTRA CHARGES
+   EGC APPROVED CHARGE RULES
+
+   Day 0     = ₹0
+   Days 1–10 = ₹50
+   Days 11–15 = ₹60
+   Days 16–30 = ₹80
+   Day 31+   = ₹100
 ========================================================= */
 
 function dateOnly(value) {
   if (!value) return null;
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
 
   return new Date(
     date.getFullYear(),
@@ -1100,125 +1110,187 @@ function calculateDaysSinceDelivery(deliveryDate) {
   const delivery = dateOnly(deliveryDate);
   const today = dateOnly(new Date());
 
-  if (!delivery || !today) return null;
+  if (!delivery || !today) {
+    return null;
+  }
 
-  const difference = today.getTime() - delivery.getTime();
+  const difference =
+    today.getTime() - delivery.getTime();
 
-  if (difference < 0) return null;
+  if (difference < 0) {
+    return null;
+  }
 
-  return Math.floor(difference / 86400000);
+  return Math.floor(
+    difference / 86400000
+  );
 }
 
+/*
+ * Frontend display calculation only.
+ * Final payable amount must be validated by Supabase.
+ */
 function calculateExtraCharge(days) {
   if (
     days === null ||
     days === undefined ||
     !Number.isFinite(Number(days)) ||
-    Number(days) <= 0
+    Number(days) < 0
   ) {
     return 0;
   }
 
-  if (days <= 10) return 35;
-  if (days <= 15) return 40;
-  if (days <= 45) return 50;
+  const deliveryDays = Math.floor(Number(days));
 
+  // Delivery day
+  if (deliveryDays === 0) {
+    return 0;
+  }
+
+  // Days 1–10
+  if (deliveryDays <= 10) {
+    return 50;
+  }
+
+  // Days 11–15
+  if (deliveryDays <= 15) {
+    return 60;
+  }
+
+  // Days 16–30
+  if (deliveryDays <= 30) {
+    return 80;
+  }
+
+  // Day 31+
   return 100;
 }
 
 function calculateRemainingDaysToNextSlab(days) {
-  if (days === null || days === undefined) {
+  if (
+    days === null ||
+    days === undefined ||
+    !Number.isFinite(Number(days)) ||
+    Number(days) < 0
+  ) {
     return {
       value: "—",
       help: "Delivery date record hone ke baad calculate hoga."
     };
   }
 
-  if (days <= 0) {
+  const deliveryDays = Math.floor(Number(days));
+
+  if (deliveryDays === 0) {
     return {
-      value: "10",
-      help: "Pehle charge slab tak."
+      value: "1",
+      help: "Day 1 se ₹50 Extra Charge slab shuru hoga."
     };
   }
 
-  if (days < 10) {
+  if (deliveryDays < 10) {
     return {
-      value: String(10 - days),
-      help: "11वें दिन वाला slab लागू होने तक."
+      value: String(10 - deliveryDays),
+      help: "Day 11 par ₹60 Extra Charge slab lagu hoga."
     };
   }
 
-  if (days < 15) {
+  if (deliveryDays === 10) {
     return {
-      value: String(15 - days),
-      help: "16वें दिन वाला slab लागू होने तक."
+      value: "1",
+      help: "Day 11 par ₹60 Extra Charge slab lagu hoga."
     };
   }
 
-  if (days < 45) {
+  if (deliveryDays < 15) {
     return {
-      value: String(45 - days),
-      help: "46वें दिन वाला slab लागू होने तक."
+      value: String(15 - deliveryDays),
+      help: "Day 16 par ₹80 Extra Charge slab lagu hoga."
+    };
+  }
+
+  if (deliveryDays === 15) {
+    return {
+      value: "1",
+      help: "Day 16 par ₹80 Extra Charge slab lagu hoga."
+    };
+  }
+
+  if (deliveryDays < 30) {
+    return {
+      value: String(30 - deliveryDays),
+      help: "Day 31 par ₹100 Extra Charge slab lagu hoga."
+    };
+  }
+
+  if (deliveryDays === 30) {
+    return {
+      value: "1",
+      help: "Day 31 par ₹100 Extra Charge slab lagu hoga."
     };
   }
 
   return {
     value: "0",
-    help: "Sabse uncha charge slab lagu hai."
+    help: "₹100 ka highest Extra Charge slab lagu hai."
   };
 }
 
 /* =========================================================
    PAYMENT CALCULATION
+   EGC REPAYMENT BREAKDOWN
 ========================================================= */
 
 function calculateRequestPayment(request) {
   const total = getRequestTotal(request);
+
   const payments = getRequestPayments(request.id);
 
-  // केवल सफल और Owner-approved भुगतान गिनें।
+  // Sirf successful aur Owner-approved payments count honge.
   const paid = payments
     .filter(paymentIsSuccessful)
     .reduce(
-      (sum, payment) => sum + getPaymentAmount(payment),
+      (sum, payment) =>
+        sum + getPaymentAmount(payment),
       0
     );
 
   const initialPayment = getInitialPayment(request.id);
 
   const initialPaid =
-    initialPayment && paymentIsSuccessful(initialPayment)
+    initialPayment &&
+    paymentIsSuccessful(initialPayment)
       ? getPaymentAmount(initialPayment)
       : 0;
 
   const deliveryDate = getDeliveryDate(request);
 
-  // Days Since Delivery हमेशा चलता रहेगा।
   const days = deliveryDate
     ? calculateDaysSinceDelivery(deliveryDate)
     : null;
 
-  // सिलेंडर की मूल राशि का बकाया।
-  const baseRemaining = Math.max(0, total - paid);
+  // Cylinder ki original amount ka outstanding balance.
+  const baseRemaining = Math.max(
+    0,
+    total - paid
+  );
 
-  // Delivery-day slab के अनुसार लागू charge।
+  // Delivery date available hone par applicable charge calculate hoga.
   const applicableExtraCharge = deliveryDate
     ? calculateExtraCharge(days)
     : 0;
 
   /*
-   * महत्वपूर्ण:
-   * Extra Charge तभी बकाया होगा जब मूल राशि का
-   * कुछ हिस्सा अभी बाकी हो।
-   *
-   * जब मूल राशि पूरी चुक जाए, तो पुराना Extra Charge
-   * दोबारा बकाया नहीं दिखाया जाएगा।
+   * Existing EGC display rule:
+   * Jab original cylinder amount ka balance zero ho,
+   * tab extra charge ko outstanding nahi dikhana.
    */
   const extraCharge =
     baseRemaining > 0
       ? applicableExtraCharge
       : 0;
 
+  // Total outstanding = original balance + applicable charge.
   const remaining =
     baseRemaining > 0
       ? baseRemaining + extraCharge
@@ -1231,13 +1303,8 @@ function calculateRequestPayment(request) {
     initialPayment,
     deliveryDate,
     days,
-
-    // Current slab का charge, चाहे payment पूरी हो चुकी हो।
     applicableExtraCharge,
-
-    // केवल बकाया रहने पर लागू Extra Charge।
     extraCharge,
-
     baseRemaining,
     remaining
   };
@@ -1501,87 +1568,93 @@ function getPaymentEligibility(request) {
 ========================================================= */
 
 function renderPaymentBreakdown() {
-  const request = getSelectedPaymentRequest();
+const request = getSelectedPaymentRequest();
 
-  if (!request) {
-    setText("payRequestAmount", money(0));
-    setText("payPreviouslyPaid", money(0));
-    setText("payRemainingBalance", money(0));
-    setText("payExtraCharge", money(0));
-    setText("payTotalDue", money(0));
+if (!request) {
+setText("payRequestAmount", money(0));
+setText("payPreviouslyPaid", money(0));
+setText("payRemainingBalance", money(0));
+setText("payExtraCharge", money(0));
+setText("payTotalDue", money(0));
 
-    setText(
-      "paymentChoiceNote",
-      "Payment details will appear after an eligible request is selected."
-    );
-
-    return;
-  }
-
-  const c = calculateRequestPayment(request);
-  const eligibility = getPaymentEligibility(request);
-
-  const input = $("paymentAmountInput");
-  const inputAmount = Number(input?.value || 0);
-
-  const isOtherAmount =
-    getSelectedPaymentMode() === "partial";
-
-  setText("payRequestAmount", money(c.total));
-  setText("payPreviouslyPaid", money(c.paid));
-
-  const validOtherAmount =
-    Number.isFinite(inputAmount) &&
-    inputAmount > 0 &&
-    inputAmount <= eligibility.maximum;
-
-  let remainingBalance = c.baseRemaining;
-
-  if (
-    eligibility.allowed &&
-    eligibility.type === "repayment" &&
-    isOtherAmount &&
-    validOtherAmount
-  ) {
-    remainingBalance = Math.max(
-      0,
-      c.baseRemaining - inputAmount
-    );
-  }
-
-  setText("payRemainingBalance", money(remainingBalance));
-  setText(
-  "payExtraCharge",
-  money(c.extraCharge)
+setText(
+  "paymentChoiceNote",
+  "Payment details will appear after an eligible request is selected."
 );
 
-  let payableNow = 0;
+return;
 
-  if (eligibility.allowed) {
-    if (isOtherAmount) {
-      payableNow = validOtherAmount
-        ? inputAmount
-        : 0;
-    } else {
-      payableNow = eligibility.maximum;
-    }
-  }
+}
 
-  setText("payTotalDue", money(payableNow));
+const c = calculateRequestPayment(request);
+const eligibility = getPaymentEligibility(request);
 
-  if (!eligibility.allowed) {
-    setText("paymentChoiceNote", eligibility.message);
-  } else if (eligibility.type === "initial") {
-    setText(
-      "paymentChoiceNote",
-      "Initial payment due: ₹200. Previously approved payments are not charged again."
-    );
-  } else {
-    setText(
-      "paymentChoiceNote",
-      "Total due includes the remaining balance and current applicable extra charge."
-    );
-  }
+const input = $("paymentAmountInput");
+const inputAmount = Number(input?.value || 0);
+
+const isOtherAmount =
+getSelectedPaymentMode() === "partial";
+
+setText("payRequestAmount", money(c.total));
+setText("payPreviouslyPaid", money(c.paid));
+setText("payExtraCharge", money(c.extraCharge));
+
+const validOtherAmount =
+Number.isFinite(inputAmount) &&
+inputAmount > 0 &&
+inputAmount <= eligibility.maximum;
+
+// Remaining balance includes the applicable extra charge.
+let remainingBalance = c.remaining;
+
+// Preview the balance after the entered partial repayment.
+if (
+eligibility.allowed &&
+eligibility.type === "repayment" &&
+isOtherAmount &&
+validOtherAmount
+) {
+remainingBalance = Math.max(
+0,
+c.remaining - inputAmount
+);
+}
+
+setText(
+"payRemainingBalance",
+money(remainingBalance)
+);
+
+let payableNow = 0;
+
+if (eligibility.allowed) {
+if (isOtherAmount) {
+payableNow = validOtherAmount
+? inputAmount
+: 0;
+} else {
+payableNow = eligibility.maximum;
+}
+}
+
+setText("payTotalDue", money(payableNow));
+
+if (!eligibility.allowed) {
+setText(
+"paymentChoiceNote",
+eligibility.message
+);
+} else if (eligibility.type === "initial") {
+setText(
+"paymentChoiceNote",
+"Initial payment due: ₹200. Previously approved payments are not charged again."
+);
+} else {
+setText(
+"paymentChoiceNote",
+"Total due includes the remaining cylinder balance and current applicable extra charge."
+);
+}
 }
 
 /* =========================================================
@@ -1981,95 +2054,109 @@ async function verifyRequestBeforePayment(requestId) {
 ========================================================= */
 
 async function submitSelectedPayment(mode) {
-  if (pageBusy) return;
+if (pageBusy) return;
 
-  const selected = getSelectedPaymentRequest();
+const selected = getSelectedPaymentRequest();
 
-  if (!selected) {
-    toast("Please select a cylinder request.");
+if (!selected) {
+toast("Please select a cylinder request.");
+return;
+}
+
+pageBusy = true;
+
+const button =
+$("submitPaymentBtn") ||
+$("payFullBtn");
+
+if (button) button.disabled = true;
+
+try {
+const request = await verifyRequestBeforePayment(selected.id);
+
+if (!request) return;
+
+await loadRequests();
+await loadPayments();
+
+const freshRequest =
+  currentRequests.find(
+    r => String(r.id) === String(request.id)
+  ) || request;
+
+const eligibility = getPaymentEligibility(freshRequest);
+
+if (!eligibility.allowed) {
+  toast(eligibility.message);
+  renderAll();
+  return;
+}
+
+let amount = eligibility.maximum;
+
+if (mode === "partial") {
+  amount = Number($("paymentAmountInput")?.value);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    toast("Please enter a valid payment amount.");
+    $("paymentAmountInput")?.focus();
     return;
   }
 
-  pageBusy = true;
+  if (amount > eligibility.maximum + 0.000001) {
+    toast(
+      "Amount cannot exceed " +
+      money(eligibility.maximum) +
+      "."
+    );
 
-  const button =
-    $("submitPaymentBtn") ||
-    $("payFullBtn");
-
-  if (button) button.disabled = true;
-
-  try {
-    const request = await verifyRequestBeforePayment(selected.id);
-
-    if (!request) return;
-
-    await loadRequests();
-    await loadPayments();
-
-    const freshRequest =
-      currentRequests.find(
-        r => String(r.id) === String(request.id)
-      ) || request;
-
-    const eligibility = getPaymentEligibility(freshRequest);
-
-    if (!eligibility.allowed) {
-      toast(eligibility.message);
-      renderAll();
-      return;
-    }
-
-    let amount = eligibility.maximum;
-
-    if (mode === "partial") {
-      amount = Number($("paymentAmountInput")?.value);
-
-      if (!Number.isFinite(amount) || amount <= 0) {
-        toast("Please enter a valid payment amount.");
-        $("paymentAmountInput")?.focus();
-        return;
-      }
-
-      if (amount > eligibility.maximum + 0.000001) {
-        toast(
-          "Amount cannot exceed " +
-          money(eligibility.maximum) +
-          "."
-        );
-
-        $("paymentAmountInput")?.focus();
-        return;
-      }
-    }
-
-    if (
-      eligibility.type === "initial" &&
-      Math.abs(amount - INITIAL_PAYMENT_AMOUNT) > 0.000001
-    ) {
-      toast("The initial payment must be exactly ₹200.");
-      return;
-    }
-
-    const params = new URLSearchParams({
-      request_id: String(freshRequest.id),
-      payment_type: eligibility.type,
-      amount: amount.toFixed(2)
-    });
-
-    window.location.href =
-      "submit-payment.html?" + params.toString();
-  } catch (error) {
-    console.error("Payment submission error:", error);
-    toast("Could not open payment. Please try again.");
-  } finally {
-    pageBusy = false;
-
-    if (button) {
-      button.disabled = false;
-    }
-
-    updatePaymentForm();
+    $("paymentAmountInput")?.focus();
+    return;
   }
+}
+
+if (
+  eligibility.type === "initial" &&
+  Math.abs(amount - INITIAL_PAYMENT_AMOUNT) > 0.000001
+) {
+  toast("The initial payment must be exactly ₹200.");
+  return;
+}
+
+const paymentType =
+  eligibility.type === "initial"
+    ? "initial_payment"
+    : "repayment";
+
+const params = new URLSearchParams({
+  request_id: String(freshRequest.id),
+  payment_type: paymentType,
+  amount: String(amount)
+});
+
+window.location.href =
+  "submit-payment.html?" + params.toString();
+
+} catch (error) {
+console.error("Payment submission error:", error);
+console.error("Error message:", error?.message);
+console.error("Error stack:", error?.stack);
+
+toast(
+  "Payment error: " +
+  (error?.message || "Unknown error. Check browser console.")
+);
+
+} finally {
+pageBusy = false;
+
+if (button) {
+  button.disabled = false;
+}
+
+updatePaymentForm();
+
+}
 }
 
 /* =========================================================
@@ -2077,43 +2164,45 @@ async function submitSelectedPayment(mode) {
 ========================================================= */
 
 async function startInitialPayment(requestId) {
-  if (pageBusy) return;
+if (pageBusy) return;
 
-  pageBusy = true;
+pageBusy = true;
 
-  try {
-    const request = await verifyRequestBeforePayment(requestId);
-    if (!request) return;
+try {
+const request = await verifyRequestBeforePayment(requestId);
 
-    await loadPayments();
+if (!request) return;
 
-    const initial = getInitialPayment(requestId);
+await loadPayments();
 
-    if (initial && paymentIsSuccessful(initial)) {
-      toast("Initial payment is already approved.");
-      renderAll();
-      return;
-    }
+const initial = getInitialPayment(request.id);
 
-    if (initial && paymentIsPending(initial)) {
-      toast("Initial payment is awaiting Owner verification.");
-      return;
-    }
+if (initial && paymentIsSuccessful(initial)) {
+  toast("Initial payment is already approved.");
+  renderAll();
+  return;
+}
 
-    const params = new URLSearchParams({
-      request_id: String(requestId),
-      payment_type: "initial",
-      amount: String(INITIAL_PAYMENT_AMOUNT)
-    });
+if (initial && paymentIsPending(initial)) {
+  toast("Initial payment is awaiting Owner verification.");
+  return;
+}
 
-    window.location.href =
-      "submit-payment.html?" + params.toString();
-  } catch (error) {
-    console.error(error);
-    toast("Could not open payment. Please try again.");
-  } finally {
-    pageBusy = false;
-  }
+const params = new URLSearchParams({
+  request_id: String(request.id),
+  payment_type: "initial_payment",
+  amount: String(INITIAL_PAYMENT_AMOUNT)
+});
+
+window.location.href =
+  "submit-payment.html?" + params.toString();
+
+} catch (error) {
+console.error("Initial payment error:", error);
+toast("Could not open payment. Please try again.");
+} finally {
+pageBusy = false;
+}
 }
 
 /* =========================================================
@@ -2826,7 +2915,7 @@ async function requestCylinder() {
           "submit-payment.html?" +
           new URLSearchParams({
             request_id: String(request.id),
-            payment_type: "initial",
+            payment_type: "initial_payment",
             amount: String(INITIAL_PAYMENT_AMOUNT)
           }).toString();
         return;

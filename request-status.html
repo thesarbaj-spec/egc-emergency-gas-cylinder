@@ -451,54 +451,100 @@ function getInitialPaymentStatus(request) {
 
     const status = normalise(rawStatus);
 
-    if ([
-        "rejected",
-        "failed",
-        "declined"
-    ].includes(status)) {
+    const verificationStatus = normalise(
+        firstExistingValue(request, [
+            "payment_verification_status",
+            "verification_status"
+        ])
+    );
+
+    const ownerApproval = normalise(
+        firstExistingValue(request, [
+            "payment_owner_approval",
+            "owner_payment_approval"
+        ])
+    );
+
+    if (
+        ["rejected", "failed", "declined"].includes(status) ||
+        ["rejected", "failed", "declined"].includes(verificationStatus) ||
+        ["rejected", "declined"].includes(ownerApproval)
+    ) {
         return {
             key: "failed",
             label: "Initial Payment Rejected",
             description:
-                "The initial payment has not been approved. Please check the payment details or contact EGC support."
+                "Your initial payment was rejected. Please check the payment details or contact EGC support."
         };
     }
 
-    if ([
-        "verified",
+    const paidStatus = [
+        "paid",
         "success",
         "successful",
+        "completed",
         "approved",
-        "paid"
-    ].includes(status)) {
+        "verified"
+    ].includes(status);
+
+    const verifiedStatus = [
+        "approved",
+        "verified"
+    ].includes(verificationStatus);
+
+    const explicitlyApproved = [
+        "approved",
+        "verified"
+    ].includes(ownerApproval);
+
+    if (
+        paidStatus &&
+        (
+            verifiedStatus ||
+            explicitlyApproved
+        )
+    ) {
         return {
             key: "verified",
             label: "Initial Payment Verified",
             description:
-                "The initial payment is marked as verified."
+                "Your initial payment has been verified and approved."
         };
     }
 
-    if ([
-        "submitted",
-        "pending_verification",
-        "pending_approval",
-        "under_review",
-        "processing"
-    ].includes(status)) {
+    if (
+        [
+            "submitted",
+            "pending",
+            "pending_verification",
+            "verification_pending",
+            "pending_approval",
+            "under_review",
+            "processing",
+            "paid"
+        ].includes(status) ||
+        [
+            "submitted",
+            "pending",
+            "pending_verification",
+            "verification_pending",
+            "under_review",
+            "processing"
+        ].includes(verificationStatus)
+    ) {
         return {
             key: "pending",
             label: "Initial Payment Verification Pending",
             description:
-                "Your initial payment is waiting for verification by the EGC owner."
+                "Your initial payment is waiting for Owner verification. The request will proceed only after the payment is approved."
         };
     }
 
     return {
         key: "unpaid",
-        label: "Initial Payment Pending",
+        label: "Initial Payment Required",
         description:
-            "The initial payment is not yet marked as verified."
+            "Your request is approved. Please submit the initial payment."
     };
 }
 
@@ -670,6 +716,130 @@ function getPaymentStatus(request) {
         label: initial.label,
         description: initial.description
     };
+}
+
+function getRequestDeliveryDate(request) {
+    return firstExistingValue(request, [
+        "delivery_date",
+        "delivered_at"
+    ]);
+}
+
+function getDaysSinceDelivery(request) {
+    if (normalise(request.delivery_status) !== "delivered") {
+        return 0;
+    }
+
+    const deliveryDateValue = getRequestDeliveryDate(request);
+
+    if (!deliveryDateValue) {
+        return 0;
+    }
+
+    const deliveryDate = new Date(deliveryDateValue);
+
+    if (Number.isNaN(deliveryDate.getTime())) {
+        return 0;
+    }
+
+    const now = new Date();
+
+    const deliveryDay = Date.UTC(
+        deliveryDate.getFullYear(),
+        deliveryDate.getMonth(),
+        deliveryDate.getDate()
+    );
+
+    const today = Date.UTC(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+    );
+
+    return Math.max(
+        0,
+        Math.floor((today - deliveryDay) / 86400000)
+    );
+}
+
+function calculateRequestExtraCharge(request) {
+    if (!request || !isApproved(request)) {
+        return 0;
+    }
+
+    const days = getDaysSinceDelivery(request);
+
+    if (days <= 0) return 0;
+    if (days <= 10) return 50;
+    if (days <= 15) return 60;
+    if (days <= 30) return 80;
+
+    return 100;
+}
+
+function getRequestCylinderAmount(request) {
+    const amount = firstExistingValue(request, [
+        "cylinder_amount",
+        "request_amount",
+        "finance_amount"
+    ]);
+
+    if (amount === null) {
+        return 890;
+    }
+
+    const parsed = Number(amount);
+
+    return Number.isFinite(parsed) && parsed >= 0
+        ? parsed
+        : 890;
+}
+
+function getRequestInitialPaymentAmount(request) {
+    const amount = firstExistingValue(request, [
+        "advance_amount",
+        "first_payment"
+    ]);
+
+    if (amount === null) {
+        return 200;
+    }
+
+    const parsed = Number(amount);
+
+    return Number.isFinite(parsed) && parsed >= 0
+        ? parsed
+        : 200;
+}
+
+function getRequestRemainingAmount(request) {
+    const savedRemaining = firstExistingValue(request, [
+        "remaining_amount",
+        "balance_amount"
+    ]);
+
+    if (savedRemaining !== null) {
+        const parsed = Number(savedRemaining);
+
+        if (Number.isFinite(parsed) && parsed >= 0) {
+            return parsed;
+        }
+    }
+
+    const cylinderAmount = getRequestCylinderAmount(request);
+    const initialPayment = getRequestInitialPaymentAmount(request);
+
+    return Math.max(
+        0,
+        cylinderAmount - initialPayment
+    );
+}
+
+function getRequestTotalPayable(request) {
+    const remaining = getRequestRemainingAmount(request);
+    const extraCharge = calculateRequestExtraCharge(request);
+
+    return remaining + extraCharge;
 }
 
 function isInitialPaymentVerified(request) {
@@ -1266,44 +1436,21 @@ async function renderRequest(request, userId) {
         request.request_number || request.id || "---"
     );
 
-    const cylinderRaw = firstExistingValue(request, [
-        "cylinder_amount",
-        "total_amount"
-    ]);
+   const cylinder = getRequestCylinderAmount(request);
+const first = getRequestInitialPaymentAmount(request);
+const remaining = getRequestRemainingAmount(request);
+const extraCharge = calculateRequestExtraCharge(request);
+const totalPayable = getRequestTotalPayable(request);
 
-    const firstRaw = firstExistingValue(request, [
-        "advance_amount",
-        "first_payment"
-    ]);
+setText(cylinderAmount, money(cylinder));
+setText(firstPayment, money(first));
+setText(remainingAmount, money(remaining));
 
-    const remainingRaw = firstExistingValue(request, [
-        "remaining_amount",
-        "balance_amount"
-    ]);
+const extraChargeElement = document.getElementById("extraCharge");
+const totalPayableElement = document.getElementById("totalPayable");
 
-    const cylinder = cylinderRaw === null
-        ? 890
-        : Number(cylinderRaw);
-
-    const first = firstRaw === null
-        ? 200
-        : Number(firstRaw);
-
-    const remaining = remainingRaw === null
-        ? Math.max(0, cylinder - first)
-        : Number(remainingRaw);
-
-    setText(cylinderAmount, money(cylinder));
-    setText(firstPayment, money(first));
-
-    setText(
-        remainingAmount,
-        money(
-            Number.isFinite(remaining)
-                ? remaining
-                : Math.max(0, cylinder - first)
-        )
-    );
+setText(extraChargeElement, money(extraCharge));
+setText(totalPayableElement, money(totalPayable));
 
     setText(
         requestDate,

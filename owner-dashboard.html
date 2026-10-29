@@ -499,6 +499,8 @@ td{
             </div>
             <div class="stat-link" data-page="payments">View Payments →</div>
         </div>
+
+        <!-- TOTAL EXTRA CHARGES --> <div class="stat-card money-card"> <div class="stat-top"> <div> <div class="stat-name">TOTAL EXTRA CHARGES</div> <div class="stat-number" id="totalExtraCharges">₹0.00</div> </div> <div class="stat-icon">🧾</div> </div> <div class="stat-link" data-page="repayments">View Repayments →</div> </div> <!-- COLLECTED EXTRA CHARGES --> <div class="stat-card approved-card"> <div class="stat-top"> <div> <div class="stat-name">COLLECTED EXTRA CHARGES</div> <div class="stat-number" id="collectedExtraCharges">₹0.00</div> </div> <div class="stat-icon">✅</div> </div> <div class="stat-link" data-page="payments">View Payments →</div> </div> <!-- PENDING EXTRA CHARGES --> <div class="stat-card pending-card"> <div class="stat-top"> <div> <div class="stat-name">PENDING EXTRA CHARGES</div> <div class="stat-number" id="pendingExtraCharges">₹0.00</div> </div> <div class="stat-icon">⏳</div> </div> <div class="stat-link" data-page="repayments">View Pending Repayments →</div> </div>
     </section>
 
     <section class="content-grid">
@@ -673,6 +675,9 @@ const totalRequests = document.getElementById("totalRequests");
 const pendingRequests = document.getElementById("pendingRequests");
 const approvedRequests = document.getElementById("approvedRequests");
 const totalVerifiedPayments = document.getElementById("totalVerifiedPayments");
+const totalExtraCharges = document.getElementById("totalExtraCharges");
+const collectedExtraCharges = document.getElementById("collectedExtraCharges");
+const pendingExtraCharges = document.getElementById("pendingExtraCharges");
 const sidebarPendingBadge = document.getElementById("sidebarPendingBadge");
 const requestTableBody = document.getElementById("requestTableBody");
 const userPaymentTableBody = document.getElementById("userPaymentTableBody");
@@ -1189,6 +1194,196 @@ async function loadVerifiedPaymentTotals() {
 }
 
 /* =====================================================
+EXTRA CHARGES DASHBOARD
+Total Extra Charges
+Collected Extra Charges
+Pending Extra Charges
+===================================================== */
+
+function getPaymentNotes(payment) {
+if (!payment?.notes) return {};
+
+if (typeof payment.notes === "object") {
+    return payment.notes;
+}
+
+if (typeof payment.notes === "string") {
+    try {
+        const parsed = JSON.parse(payment.notes);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+return {};
+
+}
+
+function getPaymentExtraCharge(payment) {
+const notes = getPaymentNotes(payment);
+
+const value =
+    notes.extra_charge ??
+    notes.extraCharge ??
+    notes.extra_charge_amount ??
+    notes.extraChargeAmount;
+
+if (value === null || value === undefined || value === "") {
+    return 0;
+}
+
+return Math.max(0, numericAmount(value));
+
+}
+
+function isExtraChargePayment(payment) {
+const notes = getPaymentNotes(payment);
+
+const type = normalizeStatus(
+    notes.payment_type ??
+    notes.amount_type ??
+    notes.type ??
+    ""
+);
+
+return (
+    type.includes("extra charge") ||
+    type.includes("extra_charge") ||
+    type.includes("late charge") ||
+    type.includes("late fee")
+);
+
+}
+
+async function loadExtraCharges() {
+if (totalExtraCharges) totalExtraCharges.textContent = "Loading...";
+if (collectedExtraCharges) collectedExtraCharges.textContent = "Loading...";
+if (pendingExtraCharges) pendingExtraCharges.textContent = "Loading...";
+
+try {
+    const { data: requests, error: requestError } = await supabaseClient
+        .from("cylinder_requests")
+        .select("id,extra_charge");
+
+    if (requestError) throw requestError;
+
+    const requestExtraCharges = new Map();
+
+    (requests || []).forEach(request => {
+        const requestId = String(request.id || "");
+        const charge = Math.max(0, numericAmount(request.extra_charge));
+
+        if (requestId) {
+            requestExtraCharges.set(requestId, charge);
+        }
+    });
+
+    const payments = await fetchAllPayments();
+    const chargeByRequest = new Map();
+    const collectedByRequest = new Map();
+
+    payments.forEach(payment => {
+        if (!isVerifiedPayment(payment)) return;
+
+        const requestId = String(payment.request_id || "");
+        if (!requestId) return;
+
+        const notes = getPaymentNotes(payment);
+        let charge = Math.max(0, numericAmount(getPaymentExtraCharge(payment)));
+
+        // Read the extra charge from notes when the request table has zero.
+        if (charge <= 0 && notes && typeof notes === "object") {
+            charge = Math.max(
+                0,
+                numericAmount(
+                    notes.extra_charge ??
+                    notes.extraCharge ??
+                    notes.extra_charge_amount
+                )
+            );
+        }
+
+        if (charge <= 0) return;
+
+        // Count the charge only once per request, not once per payment.
+        chargeByRequest.set(
+            requestId,
+            Math.max(chargeByRequest.get(requestId) || 0, charge)
+        );
+
+        // Only verified/approved payments count as collected.
+        const alreadyCollected = collectedByRequest.get(requestId) || 0;
+        const requestCharge = requestExtraCharges.get(requestId) || 0;
+
+        /*
+         * If the request table has a recorded charge, cap collection at it.
+         * If it is zero, use the maximum charge recorded in payment notes.
+         * This prevents multiple partial repayments from multiplying the charge.
+         */
+        const allowedCharge = requestCharge > 0
+            ? requestCharge
+            : chargeByRequest.get(requestId);
+
+        collectedByRequest.set(
+            requestId,
+            Math.min(allowedCharge, alreadyCollected + charge)
+        );
+    });
+
+    let total = 0;
+    let collected = 0;
+
+    // Use request-table amounts where available; otherwise use payment notes.
+    requestExtraCharges.forEach((charge, requestId) => {
+        total += charge > 0
+            ? charge
+            : (chargeByRequest.get(requestId) || 0);
+    });
+
+    // Include charges from payments whose request is not in the fetched request list.
+    chargeByRequest.forEach((charge, requestId) => {
+        if (!requestExtraCharges.has(requestId)) {
+            total += charge;
+        }
+    });
+
+    collectedByRequest.forEach(amount => {
+        collected += amount;
+    });
+
+    collected = Math.min(total, collected);
+    const pending = Math.max(0, total - collected);
+
+    if (totalExtraCharges) {
+        totalExtraCharges.textContent = formatMoney(total);
+    }
+
+    if (collectedExtraCharges) {
+        collectedExtraCharges.textContent = formatMoney(collected);
+    }
+
+    if (pendingExtraCharges) {
+        pendingExtraCharges.textContent = formatMoney(pending);
+    }
+
+    console.log("EGC Extra Charges Summary:", {
+        totalExtraCharges: total,
+        collectedExtraCharges: collected,
+        pendingExtraCharges: pending
+    });
+
+} catch (error) {
+    console.error("Extra charges loading error:", error);
+
+    if (totalExtraCharges) totalExtraCharges.textContent = "—";
+    if (collectedExtraCharges) collectedExtraCharges.textContent = "—";
+    if (pendingExtraCharges) pendingExtraCharges.textContent = "—";
+}
+
+}
+
+/* =====================================================
    RECENT CYLINDER REQUESTS
 ===================================================== */
 
@@ -1571,16 +1766,17 @@ document.addEventListener("click", event => {
 ===================================================== */
 
 async function refreshDashboardData() {
-    await Promise.allSettled([
-        loadUserCount(),
-        loadAgencyCount(),
-        loadCompanyCount(),
-        loadRequestCount(),
-        loadApprovalCounts(),
-        loadRecentRequests(),
-        loadVerifiedPaymentTotals(),
-        loadAgencies()
-    ]);
+await Promise.allSettled([
+loadUserCount(),
+loadAgencyCount(),
+loadCompanyCount(),
+loadRequestCount(),
+loadApprovalCounts(),
+loadRecentRequests(),
+loadVerifiedPaymentTotals(),
+loadExtraCharges(),
+loadAgencies()
+]);
 }
 
 /* =====================================================
@@ -1777,6 +1973,7 @@ async function initDashboard() {
             loadApprovalCounts(),
             loadRecentRequests(),
             loadVerifiedPaymentTotals(),
+            loadExtraCharges(),
             loadAgencies(),
             loadExistingNotifications()
         ]);

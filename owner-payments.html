@@ -873,26 +873,36 @@ function badgeHtml(value) {
     `;
 }
 
+/* =====================================================
+   PAYMENT TYPE LABELS
+===================================================== */
+
 function paymentTypeLabel(type) {
-    return ({
-        initial: "Initial",
-        partial: "Partial",
-        full: "Full",
+    const labels = {
+        initial: "Initial Payment",
+        repayment: "Repayment",
+        partial: "Partial Payment",
+        full: "Full Payment",
         unclassified: "Unclassified"
-    })[type] || "Unclassified";
+    };
+
+    return labels[normalise(type)] || "Unclassified";
 }
 
 function typeBadge(type) {
+    const normalizedType = normalise(type);
+
     const classes = {
         initial: "type-initial",
+        repayment: "type-repayment",
         partial: "type-partial",
         full: "type-full",
         unclassified: "badge-gray"
     };
 
     return `
-        <span class="badge ${classes[type] || "badge-gray"}">
-            ${escapeHtml(paymentTypeLabel(type))}
+        <span class="badge ${classes[normalizedType] || "badge-gray"}">
+            ${escapeHtml(paymentTypeLabel(normalizedType))}
         </span>
     `;
 }
@@ -1205,7 +1215,7 @@ function getCylinderEligibility(group) {
 }
 
 /* =====================================================
-   CLASSIFY CHRONOLOGICAL PAYMENT RECORDS
+   CLASSIFY PAYMENTS USING payment_type
 ===================================================== */
 
 function classifyPayments() {
@@ -1413,6 +1423,61 @@ function buildUserGroups() {
                         ? "approved"
                         : "not recorded";
     });
+}
+
+/* =====================================================
+   PAYMENT HISTORY SUMMARY
+===================================================== */
+
+/*
+renderHistory(group) ke existing history-tools section mein
+Total recorded, Paid aur Remaining ke saath ye HTML add karein.
+*/
+
+function renderPaymentTypeSummary(group) {
+    return `
+        <span class="count-pill">
+            Initial Paid:
+            ${formatMoney(group.initialPaidAmount || 0)}
+        </span>
+
+        <span class="count-pill">
+            Repayment Paid:
+            ${formatMoney(group.repaymentPaidAmount || 0)}
+        </span>
+
+        <span class="count-pill">
+            Initial Pending:
+            ${formatMoney(group.initialPendingAmount || 0)}
+        </span>
+
+        <span class="count-pill">
+            Repayment Pending:
+            ${formatMoney(group.repaymentPendingAmount || 0)}
+        </span>
+    `;
+}
+
+
+/* =====================================================
+   OPTIONAL REPAYMENT COUNTER
+===================================================== */
+
+/*
+Agar owner-payments.html mein repaymentCount element hai,
+to updateCounters() function mein ye code add karein.
+*/
+
+function updateRepaymentCounter() {
+    const repaymentCountEl = $("repaymentCount");
+
+    if (!repaymentCountEl) return;
+
+    repaymentCountEl.textContent = String(
+        payments.filter(
+            payment => payment.paymentType === "repayment"
+        ).length
+    );
 }
 
 /* =====================================================
@@ -1711,34 +1776,57 @@ function renderCylinderEligibilityStatus(group) {
 ===================================================== */
 
 function renderStatusAction(group) {
-    const requestId = getRequestId(group);
+const requestId = getRequestId(group);
+const payment = group.latest || group.first;
+const paymentId = payment?.id || "";
 
-    const historyId = "history-" +
-        String(group.key).replace(/[^a-zA-Z0-9_-]/g, "");
+const historyId = "history-" +
+    String(group.key).replace(/[^a-zA-Z0-9_-]/g, "");
 
-    const status = getPaymentClearStatus(group);
+const status = getPaymentClearStatus(group);
 
-    return `
-        <div class="action-wrap">
+const viewUrl = new URL(
+    OWNER_PAGE_ROUTES["payment-details"],
+    window.location.href
+);
 
-            <button
-                type="button"
-                class="action-btn details-btn"
-                data-toggle-history="${escapeHtml(historyId)}"
-                aria-expanded="false">
-                👁 Details
-            </button>
+if (paymentId) {
+    viewUrl.searchParams.set("payment_id", paymentId);
+}
 
-            <button
-                type="button"
-                class="action-btn payment-clear-action"
-                data-open-status-popup="${escapeHtml(group.key)}"
-                ${!requestId ? "disabled" : ""}>
-                ${status === "clear" ? "✓ Clear" : "✓ Mark Clear"}
-            </button>
+if (requestId) {
+    viewUrl.searchParams.set("request_id", requestId);
+}
 
-        </div>
-    `;
+return `
+    <div class="action-wrap">
+
+        <button
+            type="button"
+            class="action-btn view-btn"
+            data-view-payment="${escapeHtml(viewUrl.href)}">
+            👁 View
+        </button>
+
+        <button
+            type="button"
+            class="action-btn details-btn"
+            data-toggle-history="${escapeHtml(historyId)}"
+            aria-expanded="false">
+            📋 Details
+        </button>
+
+        <button
+            type="button"
+            class="action-btn payment-clear-action"
+            data-open-status-popup="${escapeHtml(group.key)}"
+            ${!requestId ? "disabled" : ""}>
+            ${status === "clear" ? "✓ Clear" : "✓ Mark Clear"}
+        </button>
+
+    </div>
+`;
+
 }
 
 /* =====================================================
@@ -2175,62 +2263,74 @@ function closeStatusPopup() {
 ===================================================== */
 
 async function savePopupStatus(nextState) {
-    if (isSavingPopupStatus || !activeStatusGroupKey) {
-        return;
-    }
+if (isSavingPopupStatus || !activeStatusGroupKey) {
+return;
+}
 
-    if (!["clear", "pending"].includes(nextState)) {
-        showToast("Update Failed", "Invalid status.");
-        return;
-    }
+if (!["clear", "pending"].includes(nextState)) {
+    showToast("Update Failed", "Invalid status.");
+    return;
+}
 
-    const group = userGroups.find(
-        item => item.key === activeStatusGroupKey
+const group = userGroups.find(
+    item => item.key === activeStatusGroupKey
+);
+
+if (!group) {
+    showToast("Update Failed", "Payment group nahi mila.");
+    return;
+}
+
+const requestId = getRequestId(group);
+
+if (!requestId) {
+    showToast(
+        "Update Failed",
+        "Cylinder request ID nahi mila."
     );
+    return;
+}
 
-    if (!group) {
-        showToast("Update Failed", "Payment group nahi mila.");
-        return;
-    }
+const busyKey = String(requestId) + ":payment-cylinder";
 
-    const requestId = getRequestId(group);
+if (busyStatusUpdates.has(busyKey)) return;
 
-    if (!requestId) {
-        showToast("Update Failed", "Cylinder request ID nahi mila.");
-        return;
-    }
+const clearButton = $("statusPopupClear");
+const pendingButton = $("statusPopupPending");
+const message = $("statusPopupMessage");
 
-    const busyKey = String(requestId) + ":payment-cylinder";
+isSavingPopupStatus = true;
+busyStatusUpdates.add(busyKey);
 
-    if (busyStatusUpdates.has(busyKey)) return;
+clearButton.disabled = true;
+pendingButton.disabled = true;
 
-    const clearButton = $("statusPopupClear");
-    const pendingButton = $("statusPopupPending");
-    const message = $("statusPopupMessage");
+message.classList.remove("error");
+message.textContent = "Saving status...";
 
-    isSavingPopupStatus = true;
-    busyStatusUpdates.add(busyKey);
+try {
+    const nextPaymentStatus =
+        nextState === "clear" ? "paid" : "pending";
 
-    clearButton.disabled = true;
-    pendingButton.disabled = true;
-
-    message.classList.remove("error");
-    message.textContent = "Saving status...";
-
-    try {
-        const updateObject = nextState === "clear"
-            ? {
-                payment_pending_clear: "clear",
-                cylinder_hold_eligible: "eligible",
-                repayment_status: "clear"
-            }
-            : {
-                payment_pending_clear: "pending",
-                cylinder_hold_eligible: "hold",
-                repayment_status: "pending"
-            };
-
-        const { data, error } = await supabaseClient
+    const updateObject = nextState === "clear"
+? {
+payment_pending_clear: "clear",
+cylinder_hold_eligible: "eligible",
+repayment_status: "clear",
+payment_status: "paid"
+}
+: {
+payment_pending_clear: "pending",
+cylinder_hold_eligible: "hold",
+repayment_status: "pending",
+payment_status: "pending"
+};
+    /*
+     * STEP 1:
+     * Update cylinder request statuses.
+     */
+    const { data: requestData, error: requestError } =
+        await supabaseClient
             .from("cylinder_requests")
             .update(updateObject)
             .eq("id", requestId)
@@ -2241,75 +2341,92 @@ async function savePopupStatus(nextState) {
                 repayment_status
             `);
 
-        if (error) throw error;
+    if (requestError) throw requestError;
 
-        if (!data || data.length === 0) {
-            throw new Error(
-                "Database update nahi hua. Owner permissions aur RLS policies check karein."
-            );
-        }
-
-        const savedRequest = data[0];
-
-        payments = payments.map(payment => {
-            const linkedRequestId =
-                payment.request?.id ||
-                payment.request_id;
-
-            if (String(linkedRequestId) !== String(requestId)) {
-                return payment;
-            }
-
-            return {
-                ...payment,
-                request: {
-                    ...payment.request,
-                    payment_pending_clear:
-                        savedRequest.payment_pending_clear,
-                    cylinder_hold_eligible:
-                        savedRequest.cylinder_hold_eligible,
-                    repayment_status:
-                        savedRequest.repayment_status
-                }
-            };
-        });
-
-        classifyPayments();
-        buildUserGroups();
-        updateCounters();
-        renderPayments();
-
-        $("paymentStatusPopup")?.classList.remove("show");
-        activeStatusGroupKey = null;
-
-        showToast(
-            "Status Updated",
-            nextState === "clear"
-                ? "Payment Clear, Cylinder Eligible aur Repayment Clear save ho gaye."
-                : "Payment Pending, Cylinder Hold aur Repayment Pending save ho gaye."
+    if (!requestData || requestData.length === 0) {
+        throw new Error(
+            "Cylinder request update nahi hua. RLS policy aur Owner permissions check karein."
         );
-
-    } catch (error) {
-        console.error("Payment/cylinder status update error:", error);
-
-        message.textContent =
-            error.message ||
-            "Status save nahi hua. Database columns aur permissions check karein.";
-
-        message.classList.add("error");
-
-        showToast(
-            "Update Failed",
-            error.message || "Status save nahi hua."
-        );
-
-    } finally {
-        isSavingPopupStatus = false;
-        busyStatusUpdates.delete(busyKey);
-
-        clearButton.disabled = false;
-        pendingButton.disabled = false;
     }
+
+    /*
+     * STEP 2:
+     * Update payment_status for payment records
+     * belonging to this request.
+     */
+    const { data: paymentData, error: paymentError } =
+        await supabaseClient
+            .from("payments")
+            .update({
+                payment_status: nextPaymentStatus
+            })
+            .eq("request_id", requestId)
+            .select("id, payment_status");
+
+    if (paymentError) {
+        throw new Error(
+            "Cylinder status update ho gaya, lekin payment_status update nahi hua: " +
+            paymentError.message
+        );
+    }
+
+    if (!paymentData || paymentData.length === 0) {
+        throw new Error(
+            "Cylinder status update ho gaya, lekin linked payment records update nahi hue. Payments table ki RLS policy check karein."
+        );
+    }
+
+    /*
+     * STEP 3:
+     * Reload authoritative data from Supabase.
+     */
+    $("paymentStatusPopup").classList.remove("show");
+    activeStatusGroupKey = null;
+
+    await loadPayments();
+
+    showToast(
+        "Status Updated",
+        nextState === "clear"
+            ? "Payment Clear aur payment_status = paid save ho gaya. Cylinder Eligible hai."
+            : "Payment Pending aur payment_status = pending save ho gaya. Cylinder Hold hai."
+    );
+
+} catch (error) {
+    console.error(
+        "Payment/cylinder status update error:",
+        error
+    );
+
+    message.textContent =
+        error.message ||
+        "Status save nahi hua. Database permissions check karein.";
+
+    message.classList.add("error");
+
+    showToast(
+        "Update Failed",
+        error.message || "Status save nahi hua."
+    );
+
+    /*
+     * Reload database state because one update might
+     * have succeeded before another update failed.
+     */
+    try {
+        await loadPayments();
+    } catch (reloadError) {
+        console.error("Payment reload error:", reloadError);
+    }
+
+} finally {
+    isSavingPopupStatus = false;
+    busyStatusUpdates.delete(busyKey);
+
+    clearButton.disabled = false;
+    pendingButton.disabled = false;
+}
+
 }
 
 /* =====================================================
@@ -2317,6 +2434,7 @@ async function savePopupStatus(nextState) {
 ===================================================== */
 
 paymentTableBody.addEventListener("click", async event => {
+    const viewButton = event.target.closest("[data-view-payment]"); if (viewButton) { event.preventDefault(); const viewUrl = viewButton.dataset.viewPayment; if (viewUrl) { window.location.href = viewUrl; } return; }
     const statusButton = event.target.closest(
         "[data-open-status-popup]"
     );

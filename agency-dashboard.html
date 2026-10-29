@@ -1893,6 +1893,7 @@ td{
                         <th>Cylinders</th>
                         <th>Payment</th>
                         <th>Next Cylinder</th>
+                        <th>Booking Number</th>
                         <th>Last Request</th>
                     </tr>
                 </thead>
@@ -2951,6 +2952,14 @@ function latestRequest(item) {
     )[0] || null;
 }
 
+function getBookingNumber(request) {
+    return valueOf(request, [
+        "booking_number",
+        "bookingNumber",
+        "lpg_booking_number"
+    ], "Not provided");
+}
+
 function customerPaymentState(item) {
     const latest = latestRequest(item);
 
@@ -3298,9 +3307,7 @@ function renderCustomers() {
                     </span>
                 </td>
 
-                <td>
-                    ${escapeHtml(latest ? getRequestNumber(latest) : "—")}
-                </td>
+               <td> ${escapeHtml(latest ? getBookingNumber(latest) : "Not provided")} </td> <td> ${escapeHtml(latest ? getRequestNumber(latest) : "—")} </td>
             </tr>
         `;
     }).join("");
@@ -3810,7 +3817,7 @@ async function refreshDashboard(showMessageAfter = false) {
             if (customerTableBody) {
                 customerTableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="empty">
+                        <td colspan="10" class="empty">
                             Unable to load payment records.
                         </td>
                     </tr>
