@@ -172,6 +172,7 @@ button:disabled{cursor:not-allowed;opacity:.65}
 .request-id{font-size:14px}
 .detail-value{font-size:12px}
 }
+
 </style>
 </head>
 <body>
@@ -647,89 +648,95 @@ return true;
 /* AMOUNT CALCULATION */
 
 function getRequestAmount(item) {
-  return Math.max(
-    0,
-    Number(
-      getValue(item, [
-        "cylinder_amount",
-        "request_amount",
-        "finance_amount",
-        "total_amount"
-      ], 0)
-    ) || 0
-  );
+return Math.max(
+0,
+Number(
+getValue(item, [
+"cylinder_amount",
+"request_amount",
+"finance_amount",
+"total_amount"
+], 0)
+) || 0
+);
 }
 
 function getVerifiedInitialPaymentTotal(item) {
-  return getPaymentsForRequest(item.id)
-    .filter(payment =>
-      !isRepaymentRecord(payment) &&
-      isVerifiedPaymentRecord(payment)
-    )
-    .reduce((sum, payment) => {
-      return sum + Math.max(0, Number(payment.payment_amount) || 0);
-    }, 0);
+if (!item?.id) return 0;
+
+return getPaymentsForRequest(item.id)
+.filter(payment =>
+getPaymentType(payment) === "initial_payment" &&
+isVerifiedPaymentRecord(payment)
+)
+.reduce((sum, payment) => {
+return sum + Math.max(0, Number(payment.payment_amount) || 0);
+}, 0);
 }
 
 function getApprovedRepaymentTotal(item) {
-  return getRepaymentRecords(item)
-    .filter(isVerifiedPaymentRecord)
-    .reduce((sum, payment) => {
-      return sum + Math.max(0, Number(payment.payment_amount) || 0);
-    }, 0);
+if (!item?.id) return 0;
+
+return getRepaymentRecords(item)
+.filter(isVerifiedPaymentRecord)
+.reduce((sum, payment) => {
+return sum + Math.max(0, Number(payment.payment_amount) || 0);
+}, 0);
 }
 
 /*
-  Extra charge slabs:
-  Days 1-10  = ₹50
-  Days 11-15 = ₹60
-  Days 16-30 = ₹80
-  Days 31 more = ₹100
+Extra Charge:
+Days 1–10 = ₹50
+Days 11–15 = ₹60
+Days 16–30 = ₹80
+Days 31+ = ₹100 maximum
 
-  This applies one charge according to the current day slab.
-  The delivery date is treated as Day 1.
+Once repayment_cleared_at is saved by the database,
+the charge is locked permanently for this request.
 */
 
-function getDaysSinceDelivery(item) {
-  const deliveredAt =
-    item?.delivery_date ||
-    item?.delivered_at;
+function isRepaymentCleared(item) {
+if (!item) return false;
 
-  if (!deliveredAt) return 0;
-
-  const deliveredDate = new Date(deliveredAt);
-
-  if (Number.isNaN(deliveredDate.getTime())) return 0;
-
-  const now = new Date();
-
-  const deliveryDay = Date.UTC(
-    deliveredDate.getFullYear(),
-    deliveredDate.getMonth(),
-    deliveredDate.getDate()
-  );
-
-  const today = Date.UTC(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-
-  const difference = Math.floor(
-    (today - deliveryDay) / 86400000
-  );
-
-  return Math.max(0, difference);
+return Boolean(
+item.repayment_cleared_at ||
+normalizeStatus(item.repayment_status) === "clear"
+);
 }
 
-function getCalculatedExtraCharge(item) {
+function getDaysSinceDelivery(item) {
+const deliveredAt = item?.delivery_date || item?.delivered_at;
+
+if (!deliveredAt) return 0;
+
+const deliveredDate = new Date(deliveredAt);
+
+if (Number.isNaN(deliveredDate.getTime())) return 0;
+
+const now = new Date();
+
+const deliveryDay = Date.UTC(
+deliveredDate.getFullYear(),
+deliveredDate.getMonth(),
+deliveredDate.getDate()
+);
+
+const today = Date.UTC(
+now.getFullYear(),
+now.getMonth(),
+now.getDate()
+);
+
+return Math.max(
+0,
+Math.floor((today - deliveryDay) / 86400000)
+);
+}
+
+function getCurrentExtraChargeByDays(item) {
 if (!item || getDeliveryStatus(item) !== "delivered") {
 return 0;
 }
-
-const deliveredAt = item.delivery_date || item.delivered_at;
-
-if (!deliveredAt) return 0;
 
 const days = getDaysSinceDelivery(item);
 
@@ -741,8 +748,25 @@ if (days <= 30) return 80;
 return 100;
 }
 
-// Historical total payable: cylinder amount + assessed extra charge.
-// Payment complete hone par historical total ko ₹890 par reset nahi karna.
+function getCalculatedExtraCharge(item) {
+if (!item) return 0;
+
+/*
+After full payment, use the charge saved by the database.
+Do not recalculate it using later delivery days.
+*/
+if (isRepaymentCleared(item)) {
+return Math.max(0, Number(item.extra_charge) || 0);
+}
+
+/*
+Before repayment is cleared, calculate the current day slab.
+The database function will permanently lock the charge when
+the full amount has been approved.
+*/
+return getCurrentExtraChargeByDays(item);
+}
+
 function getTotalPayable(item) {
 if (!item) return 0;
 
@@ -752,11 +776,18 @@ const extraCharge = getCalculatedExtraCharge(item);
 return cylinderAmount + extraCharge;
 }
 
-// Remaining amount: verified payments ko total payable se minus karein.
 function getRemainingAmount(item) {
 if (!item) return 0;
 
 if (!isApproved(getOwnerApproval(item))) {
+return 0;
+}
+
+/*
+Once the database confirms full repayment, do not create
+another balance when the delivery date gets older.
+*/
+if (isRepaymentCleared(item)) {
 return 0;
 }
 
@@ -766,9 +797,16 @@ const verifiedPaid = getVerifiedPaidTotal(item);
 return Math.max(0, totalPayable - verifiedPaid);
 }
 
-// Sirf unpaid extra charge display karein.
 function getExtraChargeDue(item) {
 if (!item) return 0;
+
+/*
+The charge may remain visible in Total Payable as historical
+information, but no extra charge is due after repayment clears.
+*/
+if (isRepaymentCleared(item)) {
+return 0;
+}
 
 const assessedExtraCharge = getCalculatedExtraCharge(item);
 const remaining = getRemainingAmount(item);
