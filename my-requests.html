@@ -173,6 +173,61 @@ button:disabled{cursor:not-allowed;opacity:.65}
 .detail-value{font-size:12px}
 }
 
+/* =========================================
+   ALL CYLINDER REQUESTS — FIXED HEIGHT
+   INTERNAL SCROLL
+========================================= */
+
+/* Main Requests Box */
+.main > section.box {
+    height: 600px;
+    min-height: 600px;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Box Heading Fixed */
+.main > section.box > .box-title-row {
+    flex: 0 0 auto;
+}
+
+/* Requests List Scroll */
+#requestsArea {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar */
+#requestsArea::-webkit-scrollbar {
+    width: 5px;
+}
+
+#requestsArea::-webkit-scrollbar-thumb {
+    background: #c5d9e8;
+    border-radius: 10px;
+}
+
+#requestsArea::-webkit-scrollbar-track {
+    background: #f1f6fa;
+    border-radius: 10px;
+}
+
+/* Mobile */
+@media (max-width: 800px) {
+    .main > section.box {
+        height: 550px;
+        min-height: 550px;
+        max-height: 550px;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -1298,65 +1353,121 @@ function getDeliveryText(item) {
 
 /* WORKFLOW */
 
+/* =========================================
+   WORKFLOW — PAYMENT STEP FIX
+========================================= */
+
 function getWorkflowClass(item, step) {
-  const state = getOverallState(item);
+    const state = getOverallState(item);
 
-  if (state.key === "rejected") {
-    return step === "request" ? "failed" : "";
-  }
+    const agencyStatus = getAgencyStatus(item);
+    const deliveryStatus = getDeliveryStatus(item);
 
-  if (state.key === "payment_rejected") {
-    if (step === "request") return "done";
-    if (step === "payment") return "failed";
-    return "";
-  }
+    // Request rejected
+    if (state.key === "rejected") {
+        return step === "request" ? "failed" : "";
+    }
 
-  if (step === "request") {
-    return state.progress >= 20 ? "done" : "current";
-  }
+    // Payment rejected
+    if (state.key === "payment_rejected") {
+        if (step === "request") return "done";
+        if (step === "payment") return "failed";
+        return "";
+    }
 
-  if (step === "payment") {
-    if (isPaymentVerified(item)) return "done";
+    // Step 1: Request
+    if (step === "request") {
+        return state.progress >= 20 ? "done" : "current";
+    }
 
-    if (["payment_required", "payment_pending"].includes(state.key)) {
-      return "current";
+    // Step 2: Payment
+    if (step === "payment") {
+
+        const paymentCompleted =
+            isPaymentVerified(item) ||
+            [
+                "processing",
+                "assigned",
+                "ready"
+            ].includes(agencyStatus) ||
+            [
+                "processing",
+                "assigned",
+                "ready",
+                "out_for_delivery",
+                "delivered"
+            ].includes(deliveryStatus);
+
+        if (paymentCompleted) {
+            return "done";
+        }
+
+        if (
+            ["payment_required", "payment_pending"].includes(state.key)
+        ) {
+            return "current";
+        }
+
+        return "";
+    }
+
+    // Step 3: Agency
+    if (step === "agency") {
+
+        if (
+            [
+                "out_for_delivery",
+                "repayment_due",
+                "repayment_pending",
+                "completed"
+            ].includes(state.key) ||
+            [
+                "processing",
+                "assigned",
+                "ready"
+            ].includes(agencyStatus)
+        ) {
+            return "done";
+        }
+
+        if (state.key === "agency_processing") {
+            return "current";
+        }
+
+        return "";
+    }
+
+    // Step 4: Delivery
+    if (step === "delivery") {
+
+        if (deliveryStatus === "delivered") {
+            return "done";
+        }
+
+        if (deliveryStatus === "out_for_delivery") {
+            return "current";
+        }
+
+        return "";
+    }
+
+    // Step 5: Repayment
+    if (step === "repayment") {
+
+        if (state.key === "completed") {
+            return "done";
+        }
+
+        if (
+            ["repayment_due", "repayment_pending"].includes(state.key)
+        ) {
+            return "current";
+        }
+
+        return "";
     }
 
     return "";
-  }
-
-  if (step === "agency") {
-    if ([
-      "out_for_delivery",
-      "repayment_due",
-      "repayment_pending",
-      "completed"
-    ].includes(state.key)) {
-      return "done";
-    }
-
-    if (state.key === "agency_processing") return "current";
-
-    return "";
-  }
-
-  if (step === "delivery") {
-    if (getDeliveryStatus(item) === "delivered") return "done";
-    if (state.key === "out_for_delivery") return "current";
-    return "";
-  }
-
-  if (step === "repayment") {
-    if (state.key === "completed") return "done";
-
-    if (["repayment_due", "repayment_pending"].includes(state.key)) {
-      return "current";
-    }
-
-    return "";
-  }
-
-  return "";
 }
 
 /* PAYMENT + REPAYMENT STATUS DISPLAY */
