@@ -1333,44 +1333,23 @@ function startSlipsRealtime() {
    ========================================================= */
 
 function updateStats() {
-    const totalSlips = $("totalSlips");
-    const requestSlips = $("requestSlips");
-    const paymentSlips = $("paymentSlips");
-    const totalAmount = $("totalAmount");
 
-    // Safe array
-    const slips = Array.isArray(allSlips) ? allSlips : [];
+const approvedPaymentSlips = $("approvedPaymentSlips");
 
-    const requestCount = slips.length;
+const slips = Array.isArray(allSlips)
+    ? allSlips
+    : [];
 
-    const withPayments = slips.filter(slip => {
-        return Array.isArray(slip.approvedPayments) &&
-               slip.approvedPayments.length > 0;
-    }).length;
+// जिन Request Slips में Approved Payment है
+const approvedCount = slips.filter(slip =>
+    Array.isArray(slip.approvedPayments) &&
+    slip.approvedPayments.length > 0
+).length;
 
-    const paidAmount = slips.reduce((total, slip) => {
-        const amount = Number(slip.amount || 0);
+if (approvedPaymentSlips) {
+    approvedPaymentSlips.textContent = approvedCount;
+}
 
-        return total + (
-            Number.isFinite(amount) ? amount : 0
-        );
-    }, 0);
-
-    if (totalSlips) {
-        totalSlips.textContent = requestCount;
-    }
-
-    if (requestSlips) {
-        requestSlips.textContent = requestCount;
-    }
-
-    if (paymentSlips) {
-        paymentSlips.textContent = withPayments;
-    }
-
-    if (totalAmount) {
-        totalAmount.textContent = formatMoney(paidAmount);
-    }
 }
 
 /* =========================================================
@@ -1379,47 +1358,47 @@ function updateStats() {
 
 function updatePendingCount(requests = [], payments = []) {
 
-    const pendingStatuses = [
-        "pending",
-        "pending_approval",
-        "waiting",
-        "on_hold",
-        "hold",
-        "submitted",
-        "under_review",
-        "pending_verification"
-    ];
+const pendingStatuses = [
+    "pending",
+    "pending_approval",
+    "waiting",
+    "on_hold",
+    "hold",
+    "submitted",
+    "under_review",
+    "pending_verification"
+];
 
-    const safeRequests = Array.isArray(requests)
-        ? requests
-        : [];
+const safeRequests = Array.isArray(requests)
+    ? requests
+    : [];
 
-    const safePayments = Array.isArray(payments)
-        ? payments
-        : [];
+const safePayments = Array.isArray(payments)
+    ? payments
+    : [];
 
-    const pendingRequests = safeRequests.filter(request => {
-        return pendingStatuses.includes(
-            normalizeStatus(getRequestStatus(request))
-        );
-    }).length;
+const pendingRequests = safeRequests.filter(request =>
+    pendingStatuses.includes(
+        normalizeStatus(getRequestStatus(request))
+    )
+).length;
 
-    const pendingPayments = safePayments.filter(payment => {
-        return (
-            pendingStatuses.includes(
-                normalizeStatus(getPaymentStatus(payment))
-            ) ||
-            pendingStatuses.includes(
-                normalizeStatus(getPaymentApprovalStatus(payment))
-            )
-        );
-    }).length;
+const pendingPayments = safePayments.filter(payment =>
+    pendingStatuses.includes(
+        normalizeStatus(getPaymentStatus(payment))
+    ) ||
+    pendingStatuses.includes(
+        normalizeStatus(getPaymentApprovalStatus(payment))
+    )
+).length;
 
-    const count = $("pendingNavCount");
+const pendingCount = $("pendingSlips");
 
-    if (count) {
-        count.textContent = pendingRequests + pendingPayments;
-    }
+if (pendingCount) {
+    pendingCount.textContent =
+        pendingRequests + pendingPayments;
+}
+
 }
 
 /* =========================================================

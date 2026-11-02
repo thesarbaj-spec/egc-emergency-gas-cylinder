@@ -1853,64 +1853,48 @@ function customerFor(row){
    OWNER APPROVAL
    ========================================================= */
 
-function isOwnerApproved(row){
+/* =========================================================
+   OWNER APPROVAL — CORRECTED
+========================================================= */
 
-    const paymentStatus =
-        String(
-            row.payment_status || ""
-        ).toLowerCase();
+function isOwnerApproved(row) {
 
-    const requestStatus =
-        String(
-            row.status || ""
-        ).toLowerCase();
+    if (!row) return false;
 
+    const ownerApproval = String(
+        row.owner_approval || ""
+    ).trim().toLowerCase();
 
-    const rejected =
-        [
-            "rejected",
-            "cancelled"
-        ].includes(
-            paymentStatus
-        )
-        ||
-        [
-            "rejected",
-            "cancelled"
-        ].includes(
-            requestStatus
-        );
+    const requestStatus = String(
+        row.status || ""
+    ).trim().toLowerCase();
 
+    const agencyStatus = String(
+        row.agency_status || ""
+    ).trim().toLowerCase();
 
-    if(rejected){
+    // Rejected or cancelled requests are never eligible
+    if (
+        ["rejected", "cancelled", "canceled"].includes(ownerApproval) ||
+        ["rejected", "cancelled", "canceled"].includes(requestStatus)
+    ) {
         return false;
     }
 
-
-    if([
-        "approved",
-        "verified"
-    ].includes(paymentStatus)){
-
-        return true;
-
+    // Owner must explicitly approve the request
+    if (ownerApproval !== "approved") {
+        return false;
     }
 
-
-    if(row.payment_verified_at){
-        return true;
+    // Agency must also be approved for delivery processing
+    if (
+        agencyStatus !== "approved"
+    ) {
+        return false;
     }
 
-
-    if(requestStatus === "approved"){
-        return true;
-    }
-
-
-    return false;
-
+    return true;
 }
-
 
 /* =========================================================
    DELIVERY STATUS
@@ -3504,20 +3488,26 @@ async function load(){
     `;
 
 
-    const result =
-        await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq(
-                "agency_id",
-                agencyId
-            )
-            .order(
-                "created_at",
-                {
-                    ascending:false
-                }
-            );
+const result =
+    await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("agency_id", agencyId)
+        .order("created_at", {
+            ascending: false
+        });
+
+console.log("Agency ID:", agencyId);
+
+console.log(
+    "Delivery Query Result:",
+    result.data
+);
+
+console.log(
+    "Delivery Query Error:",
+    result.error
+);
 
 
     if(result.error){
@@ -3818,9 +3808,10 @@ const data =
                             <td>
 
                                 ${esc(
-                                    customer.mobile ||
-                                    row.mobile ||
-                                    "—"
+                                 customer.mobile ||
+row.customer_mobile ||
+row.mobile ||
+"—"
                                 )}
 
                             </td>
