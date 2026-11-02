@@ -2531,36 +2531,50 @@ function getDeliveryDayCount(request) {
 }
 
 function calculateTierExtraCharge(days) {
-const deliveryDays = Number(days);
+    const deliveryDays = Number(days);
 
-if (!Number.isFinite(deliveryDays) || deliveryDays <= 0) {
-return 0;
-}
+    if (!Number.isFinite(deliveryDays) || deliveryDays <= 0) {
+        return 0;
+    }
 
-if (deliveryDays <= 10) return 50;
-if (deliveryDays <= 15) return 60;
-if (deliveryDays <= 30) return 80;
+    if (deliveryDays <= 10) return 50;
+    if (deliveryDays <= 15) return 60;
+    if (deliveryDays <= 30) return 80;
 
-return 100;
+    return 100;
 }
 
 function getRequestExtraCharge(request) {
-if (!request || !isRequestApproved(request)) {
-return 0;
-}
+    if (!request || !isRequestApproved(request)) {
+        return 0;
+    }
 
-const deliveryDate = getDeliveryDate(request);
+    const deliveryDate = getDeliveryDate(request);
 
-// No confirmed delivery date means no extra charge.
-if (!deliveryDate) {
-return 0;
-}
+    // Delivery date record नहीं है तो कोई charge नहीं।
+    if (!deliveryDate) {
+        return 0;
+    }
 
-const days = getDeliveryDayCount(request);
+    const baseAmount = getRequestTotal(request);
 
-// Calculate from the current approved rate schedule.
-// Do not reuse a previously saved charge from an old slab.
-return calculateTierExtraCharge(days);
+    // केवल Owner-verified payments को count करो।
+    const verifiedPaid = getRequestVerifiedPayments(request.id);
+
+    // Base amount पूरा जमा हो गया तो Extra Charge बंद।
+    // ₹1 भी बाकी है तो applicable slab charge लगेगा।
+    if (verifiedPaid >= baseAmount) {
+        return 0;
+    }
+
+    const days = getDeliveryDayCount(request);
+
+    // Delivery वाले दिन कोई charge नहीं।
+    if (days <= 0) {
+        return 0;
+    }
+
+    return calculateTierExtraCharge(days);
 }
 /* =========================================================
    REQUEST FINANCIALS
