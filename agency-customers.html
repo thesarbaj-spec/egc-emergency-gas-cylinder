@@ -340,6 +340,57 @@ z-index:850;display:none
 .stat-icon{width:30px;height:30px;font-size:14px}
 .notification-btn{width:35px;height:35px}
 }
+/* =========================================
+   AGENCY CUSTOMERS — FIXED HEIGHT + SCROLL
+========================================= */
+
+.agency-customers-panel{
+    display:flex;
+    flex-direction:column;
+    height:520px;
+    max-height:520px;
+    min-height:0;
+}
+
+/* Header and Search fixed */
+.agency-customers-panel > .panel-header,
+.agency-customers-panel > .search{
+    flex:0 0 auto;
+}
+
+/* Customer list internal scrolling */
+.agency-customers-panel .customers-table-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+/* Sticky table heading */
+.agency-customers-panel .customers-table-wrap thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    background:#f7fafc;
+}
+
+/* Mobile */
+@media(max-width:800px){
+    .agency-customers-panel{
+        height:480px;
+        max-height:480px;
+    }
+}
+
+/* Small mobile */
+@media(max-width:500px){
+    .agency-customers-panel{
+        height:460px;
+        max-height:460px;
+    }
+}
 </style>
 </head>
 
@@ -381,15 +432,10 @@ z-index:850;display:none
     <button class="nav-btn" data-page="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</button>
     <button class="nav-btn active" data-page="agency-customers.html"><span class="nav-icon">👥</span>Customers</button>
     <button class="nav-btn" data-page="agency-cylinder-requests.html"><span class="nav-icon">🛢️</span>Cylinder Requests</button>
-    <button class="nav-btn" data-page="agency-request-details.html"><span class="nav-icon">📋</span>Request Details</button>
-    <button class="nav-btn" data-page="agency-processing.html"><span class="nav-icon">⚙️</span>Request Processing</button>
     <button class="nav-btn" data-page="agency-payments.html"><span class="nav-icon">💳</span>Payments</button>
-    <button class="nav-btn" data-page="agency-repayments.html"><span class="nav-icon">💰</span>Repayments</button>
     <button class="nav-btn" data-page="agency-deliveries.html"><span class="nav-icon">🚚</span>Deliveries</button>
-    <button class="nav-btn" data-page="agency-pending.html"><span class="nav-icon">⏳</span>Pending / On Hold</button>
-    <button class="nav-btn" data-page="agency-slips.html"><span class="nav-icon">🧾</span>Request / Payment Slips</button>
+    <button class="nav-btn" data-page="agency-slips.html"><span class="nav-icon">📄</span>Request / Payment Slips</button>
     <button class="nav-btn" data-page="agency-notifications.html"><span class="nav-icon">🔔</span>Notifications</button>
-    <button class="nav-btn" data-page="agency-reports.html"><span class="nav-icon">📈</span>Reports</button>
     <button class="nav-btn" data-page="agency-settings.html"><span class="nav-icon">⚙️</span>Settings</button>
     <button class="nav-btn" data-page="agency-about.html"><span class="nav-icon">ℹ️</span>About</button>
 
@@ -437,7 +483,7 @@ z-index:850;display:none
         </div>
     </section>
 
-    <section class="panel">
+    <section class="panel agency-customers-panel">
         <div class="panel-header">
             <div class="panel-title">👥 Agency Customers</div>
             <div class="panel-subtitle">Only customers assigned to the currently logged-in LPG agency are shown.</div>
@@ -460,7 +506,7 @@ z-index:850;display:none
             </select>
         </div>
 
-        <div class="table-wrap">
+        <div class="table-wrap customers-table-wrap">
             <table>
                 <thead>
                     <tr>
@@ -585,6 +631,108 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+/* =========================================================
+CUSTOMER PROFILE PHOTO LOADER
+Supports:
+users-documents
+profile-photos
+========================================================= */
+
+async function loadCustomerPhotos() {
+
+const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getSession();
+
+const agencyAuthId = sessionData?.session?.user?.id;
+
+console.log("Agency Auth ID:", agencyAuthId);
+
+if (sessionError || !agencyAuthId) {
+    console.error("Agency session missing:", sessionError);
+    return;
+}
+
+await Promise.all(customers.map(async customer => {
+
+    customer._photo_url = "";
+
+    const path = String(customer.profile_photo || "").trim();
+
+    if (!path) {
+        console.warn(
+            "Customer profile photo path missing:",
+            customer.full_name || customer.name
+        );
+        return;
+    }
+
+    /*
+      Bucket selection based on actual Storage records.
+      Sharik: users-documents
+      Sarbaj: profile-photos
+    */
+
+    const bucket =
+        path.includes("profile-1793370424251.jpg")
+            ? "profile-photos"
+            : "users-documents";
+
+    try {
+
+        console.log("Loading Customer Photo:", {
+            customer: customer.full_name || customer.name,
+            bucket,
+            path
+        });
+
+        const { data, error } = await supabaseClient.storage
+            .from(bucket)
+            .createSignedUrl(path, 3600);
+
+        if (error) {
+
+            console.error("Customer Photo Storage Error:", {
+                customer: customer.full_name || customer.name,
+                bucket,
+                path,
+                message: error.message,
+                status: error.statusCode,
+                name: error.name,
+                error: error
+            });
+
+            return;
+        }
+
+        if (!data?.signedUrl) {
+            console.error(
+                "Signed URL not generated:",
+                customer.full_name || customer.name
+            );
+            return;
+        }
+
+        customer._photo_url = data.signedUrl;
+
+        console.log(
+            "Customer Photo Loaded Successfully:",
+            customer.full_name || customer.name
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Customer Photo Exception:",
+            customer.full_name || customer.name,
+            error
+        );
+
+    }
+
+}));
+
 }
 
 function normal(value) {
@@ -951,6 +1099,61 @@ function customerRequests(customer) {
 }
 
 /* =========================================================
+   CUSTOMER LATEST ACTIVITY
+   Profile + Request + Payment activity
+========================================================= */
+
+function customerLatestActivity(customer) {
+
+    if (!customer) return 0;
+
+    const timestamps = [];
+
+    function addActivity(row) {
+        if (!row) return;
+
+        const fields = [
+            "updated_at",
+            "created_at",
+            "request_date",
+            "payment_date",
+            "delivery_date"
+        ];
+
+        fields.forEach(field => {
+            if (!row[field]) return;
+
+            const time = new Date(row[field]).getTime();
+
+            if (Number.isFinite(time)) {
+                timestamps.push(time);
+            }
+        });
+    }
+
+    // Customer profile activity
+    addActivity(customer);
+
+    // Customer's requests
+    const customerRequestList = customerRequests(customer);
+
+    customerRequestList.forEach(request => {
+        addActivity(request);
+    });
+
+    // Customer's payment activity
+    customerRequestList.forEach(request => {
+        paymentsFor(request).forEach(payment => {
+            addActivity(payment);
+        });
+    });
+
+    return timestamps.length
+        ? Math.max(...timestamps)
+        : 0;
+}
+
+/* =========================================================
    CYLINDER COUNT
 ========================================================= */
 
@@ -1287,6 +1490,8 @@ async function loadData() {
                 String(customer.id ?? "")
             )
         );
+// Generate signed URLs for customer profile photos
+await loadCustomerPhotos();
 
         console.log("Agency ID:", agencyId);
         console.log(
@@ -1372,7 +1577,13 @@ function render() {
     const paymentFilter = $("paymentFilter").value;
     const holdFilter = $("holdFilter").value;
 
-    const filtered = customers.filter(customer => {
+    // Sort customers by latest activity
+const sortedCustomers = [...customers].sort((a, b) => {
+    return customerLatestActivity(b) -
+           customerLatestActivity(a);
+});
+
+const filtered = sortedCustomers.filter(customer => {
         const state = getCustomerCylinderState(customer);
 
         const searchText = [
@@ -1429,7 +1640,7 @@ function render() {
             customer.auth_email ||
             "—";
 
-        const photo = customer.profile_photo || "";
+        const photo = customer._photo_url || "";
 
         return `
             <tr>
@@ -1522,9 +1733,9 @@ function openCustomer(id) {
         customer.auth_email ||
         "—";
 
-    $("customerModalPhoto").src =
-        customer.profile_photo ||
-        "assets/EGC - Emergency Gas Cylinder logo.png";
+$("customerModalPhoto").src =
+    customer._photo_url ||
+    "assets/EGC - Emergency Gas Cylinder logo.png";
 
     $("detailCustomerId").textContent =
         customer.user_code || "—";
@@ -1759,17 +1970,15 @@ function startRealtime() {
     realtimeChannel = supabaseClient
         .channel("agency-customers-" + String(agencyId))
 
-        .on(
-            "postgres_changes",
-            {
-                event: "*",
-                schema: "public",
-                table: "cylinder_requests",
-                filter: "agency_id=eq." + String(agencyId)
-            },
-            () => loadData()
-        )
-
+.on(
+    "postgres_changes",
+    {
+        event: "*",
+        schema: "public",
+        table: "profiles"
+    },
+    () => loadData()
+)
         .on(
             "postgres_changes",
             {

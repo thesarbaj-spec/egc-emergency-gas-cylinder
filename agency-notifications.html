@@ -1021,6 +1021,56 @@ button{
     background:#d8e7f0;
     border-radius:10px;
 }
+/* AGENCY NOTIFICATIONS — FIXED HEIGHT */
+.notification-card{
+    display:flex;
+    flex-direction:column;
+    height:600px;
+    max-height:600px;
+    min-height:0;
+}
+
+/* NOTIFICATION HEADER FIXED */
+.notification-card > .notification-top{
+    flex:0 0 auto;
+}
+
+/* NOTIFICATION LIST — INTERNAL SCROLL */
+.notification-card > .notification-list{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+/* SCROLLBAR */
+.notification-card > .notification-list::-webkit-scrollbar{
+    width:6px;
+}
+
+.notification-card > .notification-list::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+/* TABLET */
+@media(max-width:800px){
+    .notification-card{
+        height:550px;
+        max-height:550px;
+    }
+}
+
+/* MOBILE */
+@media(max-width:520px){
+    .notification-card{
+        height:500px;
+        max-height:500px;
+    }
+}
 </style>
 </head>
 
@@ -1132,26 +1182,10 @@ EXACT 15 MASTER BUTTONS
 
     <!-- 4. Request Details -->
 
-    <button
-        class="nav-btn"
-        id="requestDetailsBtn"
-        type="button"
-    >
-        <span class="nav-icon">📋</span>
-        <span>Request Details</span>
-    </button>
 
 
     <!-- 5. Request Processing -->
 
-    <button
-        class="nav-btn"
-        id="requestProcessingBtn"
-        type="button"
-    >
-        <span class="nav-icon">⚙️</span>
-        <span>Request Processing</span>
-    </button>
 
 
     <!-- 6. Payments -->
@@ -1168,14 +1202,6 @@ EXACT 15 MASTER BUTTONS
 
     <!-- 7. Repayments -->
 
-    <button
-        class="nav-btn"
-        id="repaymentsBtn"
-        type="button"
-    >
-        <span class="nav-icon">💰</span>
-        <span>Repayments</span>
-    </button>
 
 
     <!-- 8. Deliveries -->
@@ -1192,14 +1218,6 @@ EXACT 15 MASTER BUTTONS
 
     <!-- 9. Pending / On Hold -->
 
-    <button
-        class="nav-btn"
-        id="pendingBtn"
-        type="button"
-    >
-        <span class="nav-icon">⏳</span>
-        <span>Pending / On Hold</span>
-    </button>
 
 
     <!-- 10. Request / Payment Slips -->
@@ -1209,7 +1227,7 @@ EXACT 15 MASTER BUTTONS
         id="slipsBtn"
         type="button"
     >
-        <span class="nav-icon">🧾</span>
+        <span class="nav-icon">📄</span>
         <span>Request / Payment Slips</span>
     </button>
 
@@ -1238,14 +1256,6 @@ EXACT 15 MASTER BUTTONS
 
     <!-- 12. Reports -->
 
-    <button
-        class="nav-btn"
-        id="reportsBtn"
-        type="button"
-    >
-        <span class="nav-icon">📈</span>
-        <span>Reports</span>
-    </button>
 
 
     <!-- 13. Settings -->
@@ -1589,7 +1599,10 @@ let notifications = [];
 let selectedNotification = null;
 
 let realtimeChannel = null;
-
+// LATEST ACTIVITY + REALTIME
+let realtimeRefreshTimer = null;
+let notificationLoading = false;
+let notificationReloadPending = false;
 
 const $ = id =>
     document.getElementById(id);
@@ -1905,6 +1918,32 @@ function normalizeNotification(row){
 
 }
 
+/* =========================================================
+   LATEST ACTIVITY SORTING
+   ========================================================= */
+
+function getNotificationActivityTime(notification) {
+
+    if (!notification) return 0;
+
+    const timestamps = [
+        notification.updated_at,
+        notification.created_at,
+        notification.notification_date,
+        notification.sent_at,
+        notification.date,
+        notification.read_at
+    ];
+
+    const validTimes = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value => Number.isFinite(value));
+
+    return validTimes.length
+        ? Math.max(...validTimes)
+        : 0;
+}
 
 /* =========================
 ICON
@@ -2127,6 +2166,133 @@ async function loadNotifications(){
 
 }
 
+/* =========================================================
+   LOAD NOTIFICATIONS — LATEST ACTIVITY
+   ========================================================= */
+
+async function loadNotifications() {
+
+    if (!agencyId) return;
+
+    if (notificationLoading) {
+        notificationReloadPending = true;
+        return;
+    }
+
+    notificationLoading = true;
+
+    try {
+
+        $("notificationList").innerHTML = `
+            <div class="loading">
+                Loading agency notifications...
+            </div>
+        `;
+
+        /*
+           Primary agency-scoped query
+        */
+
+        let result = await supabaseClient
+            .from("notifications")
+            .select("*")
+            .eq("agency_id", agencyId)
+            .order("created_at", {
+                ascending: false
+            });
+
+        /*
+           Fallback for user-based notifications
+        */
+
+        if (result.error) {
+
+            console.warn(
+                "Agency notification query failed:",
+                result.error.message
+            );
+
+            result = await supabaseClient
+                .from("notifications")
+                .select("*")
+                .eq("user_id", currentUser.id)
+                .order("created_at", {
+                    ascending: false
+                });
+
+        }
+
+        if (result.error) {
+
+            console.error(
+                "Notification load error:",
+                result.error
+            );
+
+            $("notificationList").innerHTML = `
+                <div class="empty">
+                    <div class="empty-icon">🔔</div>
+                    Unable to load notifications.
+                    <br><br>
+                    ${esc(result.error.message)}
+                </div>
+            `;
+
+            return;
+        }
+
+        // Normalize notification records
+        notifications = (result.data || [])
+            .map(normalizeNotification);
+
+        // Latest Activity Sorting
+        notifications.sort((a, b) => {
+            return (
+                getNotificationActivityTime(b) -
+                getNotificationActivityTime(a)
+            );
+        });
+
+        updateUnreadCount();
+
+        renderNotifications();
+
+        console.log(
+            "[EGC Notifications] Loaded:",
+            notifications.length
+        );
+
+        console.log(
+            "[EGC Notifications] Latest Activity Sorting completed."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Notification loading failed:",
+            error
+        );
+
+        toast(
+            "Notification Error",
+            error.message || "Unable to load notifications."
+        );
+
+    } finally {
+
+        notificationLoading = false;
+
+        if (notificationReloadPending) {
+
+            notificationReloadPending = false;
+
+            setTimeout(() => {
+                loadNotifications();
+            }, 300);
+
+        }
+    }
+}
 
 /* =========================
 UNREAD COUNT
@@ -2198,8 +2364,17 @@ function renderNotifications(){
             .toLowerCase();
 
 
-    const filtered =
-        notifications.filter(
+    // Latest Activity Sorting
+const sortedNotifications = [...notifications].sort(
+    (a, b) => {
+        return (
+            getNotificationActivityTime(b) -
+            getNotificationActivityTime(a)
+        );
+    }
+);
+
+const filtered = sortedNotifications.filter(
             notification => {
 
                 const text =
@@ -3128,17 +3303,19 @@ $("logoutConfirm")
                 Remove realtime channel
                 before logout.
             */
+if(realtimeChannel){
 
-            if(realtimeChannel){
+    await supabaseClient
+        .removeChannel(
+            realtimeChannel
+        );
 
-                await supabaseClient
-                    .removeChannel(
-                        realtimeChannel
-                    );
+    realtimeChannel = null;
 
-                realtimeChannel = null;
+}
 
-            }
+// Stop pending realtime refresh
+clearTimeout(realtimeRefreshTimer);
 
 
             await supabaseClient
@@ -3235,88 +3412,110 @@ supabaseClient
 /* =========================
 REALTIME
 ========================= */
+/* =========================================================
+   REALTIME — AGENCY NOTIFICATIONS
+   ========================================================= */
 
-async function startRealtime(){
+function scheduleNotificationRefresh() {
 
-    /*
-        Prevent duplicate channels.
-    */
+    clearTimeout(realtimeRefreshTimer);
 
-    if(realtimeChannel){
+    realtimeRefreshTimer = setTimeout(() => {
 
-        try{
+        loadNotifications();
 
-            await supabaseClient
-                .removeChannel(
-                    realtimeChannel
-                );
+    }, 700);
 
-        }catch(error){
+}
+
+
+async function startRealtime() {
+
+    // Remove previous channel
+    if (realtimeChannel) {
+
+        try {
+
+            await supabaseClient.removeChannel(
+                realtimeChannel
+            );
+
+        } catch (error) {
 
             console.warn(
-                "Old realtime channel cleanup failed:",
+                "Realtime cleanup error:",
                 error
             );
 
         }
 
         realtimeChannel = null;
-
     }
 
+    if (!agencyId) return;
 
-    if(!agencyId){
+    try {
 
-        return;
+        realtimeChannel = supabaseClient
+            .channel(
+                "agency-notifications-" + agencyId
+            )
 
-    }
+            // Agency Notifications
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "notifications",
+                    filter: "agency_id=eq." + agencyId
+                },
+                payload => {
 
+                    console.log(
+                        "[EGC Notifications] Agency Event:",
+                        payload.eventType
+                    );
 
-    try{
+                    scheduleNotificationRefresh();
 
-        realtimeChannel =
-            supabaseClient
-                .channel(
-                    "agency-notifications-" +
-                    agencyId
-                )
-                .on(
-                    "postgres_changes",
-                    {
-                        event:"*",
-                        schema:"public",
-                        table:"notifications",
-                        filter:
-                            "agency_id=eq." +
-                            agencyId
-                    },
-                    payload => {
+                }
+            )
 
-                        console.log(
-                            "Agency notification realtime event:",
-                            payload.eventType
-                        );
+            // User Notifications
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "notifications",
+                    filter: "user_id=eq." + currentUser.id
+                },
+                payload => {
 
+                    console.log(
+                        "[EGC Notifications] User Event:",
+                        payload.eventType
+                    );
 
-                        loadNotifications();
+                    scheduleNotificationRefresh();
 
-                    }
-                )
-                .subscribe(
-                    status => {
+                }
+            )
 
-                        console.log(
-                            "Notification realtime status:",
-                            status
-                        );
+            .subscribe(status => {
 
-                    }
+                console.log(
+                    "[EGC Notifications] Realtime Status:",
+                    status
                 );
 
-    }catch(error){
+            });
 
-        console.warn(
-            "Realtime notification setup failed:",
+    } catch (error) {
+
+        console.error(
+            "Realtime setup failed:",
             error
         );
 

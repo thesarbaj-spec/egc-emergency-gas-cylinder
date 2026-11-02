@@ -3097,6 +3097,15 @@ let cameraStream = null;
 
 let currentCameraFacing = "environment";
 
+/* =====================================================
+   LATEST ACTIVITY + REALTIME STATE
+===================================================== */
+
+let companyRealtimeChannel = null;
+let companyRefreshTimer = null;
+let companyLoading = false;
+let companyReloadPending = false;
+
 
 /* =====================================================
    NAVIGATION
@@ -3217,6 +3226,63 @@ function showToast(
    ESCAPE HTML
 ===================================================== */
 
+/* =====================================================
+   LATEST COMPANY ACTIVITY SORTING
+===================================================== */
+
+function getCompanyActivityTimestamp(company) {
+
+    if (!company || typeof company !== "object") {
+        return 0;
+    }
+
+    const fields = [
+        "updated_at",
+        "created_at",
+        "company_updated_at",
+        "modified_at",
+        "joining_date"
+    ];
+
+    let latest = 0;
+
+    fields.forEach(field => {
+
+        if (!company[field]) return;
+
+        const timestamp = new Date(
+            company[field]
+        ).getTime();
+
+        if (Number.isFinite(timestamp)) {
+
+            latest = Math.max(
+                latest,
+                timestamp
+            );
+
+        }
+
+    });
+
+    return latest;
+}
+
+
+function sortCompaniesByLatestActivity(list) {
+
+    return [...(Array.isArray(list) ? list : [])]
+        .sort((a, b) => {
+
+            return (
+                getCompanyActivityTimestamp(b) -
+                getCompanyActivityTimestamp(a)
+            );
+
+        });
+
+}
+
 function escapeHtml(value){
 
     return String(
@@ -3326,70 +3392,94 @@ async function getDocumentUrl(path){
    LOAD COMPANIES
 ===================================================== */
 
-async function loadCompanies(){
+/* =====================================================
+   LOAD COMPANIES
+   LATEST ACTIVITY + SAFE REFRESH
+===================================================== */
 
-    companyTableBody.innerHTML = `
-        <tr>
-            <td colspan="9" class="empty">
-                Loading companies...
-            </td>
-        </tr>
-    `;
+async function loadCompanies() {
 
-    try{
+    if (companyLoading) {
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("lpg_companies")
-        .select("*")
-        .order(
-            "company_name",
-            {
-                ascending:true
-            }
-        );
+        companyReloadPending = true;
 
-        if(error){
-
-            console.error(
-                "Company loading error:",
-                error
-            );
-
-            companyTableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="empty">
-                        Unable to load companies.
-                        <br><br>
-                        ${escapeHtml(error.message)}
-                    </td>
-                </tr>
-            `;
-
-            return;
-
-        }
-
-        companies =
-        data || [];
-
-        renderCompanies();
+        return;
 
     }
-    catch(error){
 
-        console.error(error);
+    companyLoading = true;
+
+    if (companyTableBody) {
+
+        companyTableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty">
+                    Loading companies...
+                </td>
+            </tr>
+        `;
+
+    }
+
+    try {
+
+        do {
+
+            companyReloadPending = false;
+
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("lpg_companies")
+                .select("*");
+
+            if (error) {
+                throw error;
+            }
+
+            companies = Array.isArray(data)
+                ? data
+                : [];
+
+            /* LATEST ACTIVITY SORTING */
+
+            companies =
+                sortCompaniesByLatestActivity(
+                    companies
+                );
+
+            renderCompanies();
+
+            console.log(
+                "[EGC Companies] Latest activity sorting completed:",
+                companies.length
+            );
+
+        } while (companyReloadPending);
+
+    }
+    catch (error) {
+
+        console.error(
+            "[EGC Companies] Loading error:",
+            error
+        );
 
         companyTableBody.innerHTML = `
             <tr>
                 <td colspan="9" class="empty">
                     Unable to load companies.
+                    <br><br>
+                    ${escapeHtml(error.message)}
                 </td>
             </tr>
         `;
+
+    }
+    finally {
+
+        companyLoading = false;
 
     }
 
@@ -3407,8 +3497,11 @@ function renderCompanies(){
     .trim()
     .toLowerCase();
 
-    const filtered =
-    companies.filter(
+   const sortedCompanies =
+sortCompaniesByLatestActivity(companies);
+
+const filtered =
+sortedCompanies.filter(
         company => {
 
             const values = [
@@ -4829,7 +4922,9 @@ companyForm.addEventListener(
                     null,
 
                     pan_card_url:
-                    null
+                    null,
+
+                    updated_at: new Date().toISOString()
 
                 };
 
@@ -4999,7 +5094,9 @@ companyForm.addEventListener(
                 aadharBackPath,
 
                 pan_card_url:
-                panCardPath
+                panCardPath,
+
+                updated_at: new Date().toISOString()
 
             };
 
@@ -5931,7 +6028,187 @@ document.addEventListener(
    INITIALIZE
 ===================================================== */
 
-loadCompanies();
+/* =====================================================
+   COMPANY REALTIME UPDATE
+===================================================== */
+
+function scheduleCompanyRefresh() {
+
+    clearTimeout(companyRefreshTimer);
+
+    companyRefreshTimer = setTimeout(() => {
+
+        companyRefreshTimer = null;
+
+        loadCompanies();
+
+    }, 700);
+
+}
+
+
+/* =====================================================
+   STOP REALTIME
+===================================================== */
+
+async function stopCompanyRealtime() {
+
+    if (companyRefreshTimer) {
+
+        clearTimeout(companyRefreshTimer);
+
+        companyRefreshTimer = null;
+
+    }
+
+    if (!companyRealtimeChannel) {
+        return;
+    }
+
+    const channel = companyRealtimeChannel;
+
+    companyRealtimeChannel = null;
+
+    try {
+
+        await supabaseClient.removeChannel(
+            channel
+        );
+
+        console.log(
+            "[EGC Companies] Realtime stopped."
+        );
+
+    }
+    catch (error) {
+
+        console.warn(
+            "[EGC Companies] Realtime cleanup error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   START REALTIME
+===================================================== */
+
+function startCompanyRealtime() {
+
+    if (companyRealtimeChannel) {
+        return;
+    }
+
+    try {
+
+        const channel = supabaseClient.channel(
+            "owner-companies-realtime"
+        );
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "lpg_companies"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Companies] Company activity:",
+                    payload.eventType,
+                    payload.new?.id || payload.old?.id
+                );
+
+                scheduleCompanyRefresh();
+
+            }
+        );
+
+        channel.subscribe((status, error) => {
+
+            console.log(
+                "[EGC Companies] Realtime status:",
+                status
+            );
+
+            if (error) {
+
+                console.error(
+                    "[EGC Companies] Realtime error:",
+                    error
+                );
+
+            }
+
+        });
+
+        companyRealtimeChannel = channel;
+
+    }
+    catch (error) {
+
+        console.error(
+            "[EGC Companies] Realtime startup error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   INITIALIZE COMPANY PAGE
+===================================================== */
+
+async function initializeCompanyPage() {
+
+    await loadCompanies();
+
+    startCompanyRealtime();
+
+}
+
+
+/* =====================================================
+   PAGE CLEANUP
+===================================================== */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        stopCompanyRealtime();
+
+    }
+);
+
+
+window.addEventListener(
+    "pageshow",
+    event => {
+
+        if (event.persisted) {
+
+            loadCompanies();
+
+            startCompanyRealtime();
+
+        }
+
+    }
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+initializeCompanyPage();
 
 </script>
 

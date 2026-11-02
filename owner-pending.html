@@ -2174,6 +2174,20 @@ let pendingAction = null;
 
 let notifications = [];
 
+/* =====================================================
+   LATEST ACTIVITY + REALTIME STATE
+===================================================== */
+
+let requestActivityMap = new Map();
+
+let requestsRealtimeChannel = null;
+
+let requestsRefreshTimer = null;
+
+let requestsLoading = false;
+
+let requestsReloadPending = false;
+
 
 /* ================= NAVIGATION ================= */
 
@@ -2300,6 +2314,102 @@ function formatDate(value){
 
 }
 
+/* =====================================================
+   LATEST REQUEST ACTIVITY SORTING
+===================================================== */
+
+function getRequestActivityTimestamp(row) {
+
+    if (!row || typeof row !== "object") {
+        return 0;
+    }
+
+    const fields = [
+
+        "updated_at",
+        "created_at",
+        "submitted_at",
+        "request_date",
+        "requested_at",
+        "status_updated_at",
+        "approved_at",
+        "rejected_at",
+        "verified_at",
+        "payment_date",
+        "paid_at",
+        "payment_verified_at",
+        "agency_updated_at",
+        "delivery_updated_at",
+        "delivered_at",
+        "repayment_at",
+        "repayment_date"
+
+    ];
+
+    let latest = 0;
+
+    fields.forEach(field => {
+
+        const value = row[field];
+
+        if (!value) return;
+
+        const timestamp = new Date(value).getTime();
+
+        if (Number.isFinite(timestamp)) {
+
+            latest = Math.max(
+                latest,
+                timestamp
+            );
+
+        }
+
+    });
+
+    return latest;
+
+}
+
+
+function getLatestRequestActivity(request) {
+
+    const requestId = String(
+        request?.id || ""
+    );
+
+    return Math.max(
+
+        getRequestActivityTimestamp(request),
+
+        requestActivityMap.get(requestId) || 0
+
+    );
+
+}
+
+
+function sortRequestsByLatestActivity(list) {
+
+    return [...(Array.isArray(list) ? list : [])]
+        .sort((a, b) => {
+
+            const difference =
+                getLatestRequestActivity(b) -
+                getLatestRequestActivity(a);
+
+            if (difference !== 0) {
+                return difference;
+            }
+
+            return (
+                getRequestActivityTimestamp(b) -
+                getRequestActivityTimestamp(a)
+            );
+
+        });
+
+}
 
 /* ================= STATUS ================= */
 
@@ -2531,90 +2641,162 @@ function getRequestNumber(request){
 
 /* ================= FETCH REQUESTS ================= */
 
-async function loadRequests(){
+/* =====================================================
+   FETCH REQUESTS
+   LATEST ACTIVITY + PAYMENT ACTIVITY
+   SAFE REALTIME REFRESH
+===================================================== */
 
-    requestTableBody.innerHTML = `
-        <tr>
-            <td
-                colspan="7"
-                class="empty"
-            >
-                Loading requests...
-            </td>
-        </tr>
-    `;
+async function loadRequests() {
 
-    try{
+    if (requestsLoading) {
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*")
-        .order(
-            "created_at",
-            {
-                ascending:false
-            }
-        );
+        requestsReloadPending = true;
 
-
-        if(error){
-
-            console.error(
-                "Request loading error:",
-                error
-            );
-
-            requests = [];
-
-            requestTableBody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="7"
-                        class="empty"
-                    >
-                        Unable to load cylinder requests.<br>
-                        <small>${escapeHtml(error.message)}</small>
-                    </td>
-                </tr>
-            `;
-
-            updateStats();
-
-            return;
-
-        }
-
-
-        requests =
-        data ||
-        [];
-
-
-        populateCompanyFilter();
-
-        updateStats();
-
-        renderRequests();
+        return;
 
     }
-    catch(error){
 
-        console.error(error);
+    requestsLoading = true;
+
+    if (requestTableBody) {
 
         requestTableBody.innerHTML = `
             <tr>
-                <td
-                    colspan="7"
-                    class="empty"
-                >
-                    Unable to load requests.
+                <td colspan="7" class="empty">
+                    Loading requests...
                 </td>
             </tr>
         `;
+
+    }
+
+    try {
+
+        do {
+
+            requestsReloadPending = false;
+
+            /* LOAD CYLINDER REQUESTS */
+
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("cylinder_requests")
+                .select("*");
+
+            if (error) {
+                throw error;
+            }
+
+            requests = Array.isArray(data)
+                ? data
+                : [];
+
+            requestActivityMap = new Map();
+
+
+            /* REQUEST IDS */
+
+            const requestIds = requests
+                .map(request => String(request.id || ""))
+                .filter(Boolean);
+
+
+            /* LOAD RELATED PAYMENTS */
+
+            if (requestIds.length) {
+
+                const {
+                    data: paymentRows,
+                    error: paymentError
+                } = await supabaseClient
+                    .from("payments")
+                    .select("*")
+                    .in("request_id", requestIds);
+
+                if (paymentError) {
+
+                    console.warn(
+                        "[EGC Requests] Payment activity error:",
+                        paymentError.message
+                    );
+
+                } else {
+
+                    (paymentRows || []).forEach(payment => {
+
+                        const requestId = String(
+                            payment.request_id || ""
+                        );
+
+                        if (!requestId) return;
+
+                        const timestamp =
+                            getRequestActivityTimestamp(payment);
+
+                        const previous =
+                            requestActivityMap.get(requestId) || 0;
+
+                        requestActivityMap.set(
+                            requestId,
+                            Math.max(previous, timestamp)
+                        );
+
+                    });
+
+                }
+
+            }
+
+
+            /* SORT BY LATEST ACTIVITY */
+
+            requests = sortRequestsByLatestActivity(
+                requests
+            );
+
+
+            /* UPDATE EXISTING UI */
+
+            populateCompanyFilter();
+
+            updateStats();
+
+            renderRequests();
+
+
+            console.log(
+                "[EGC Requests] Latest activity sorting completed:",
+                requests.length
+            );
+
+
+        } while (requestsReloadPending);
+
+    }
+    catch (error) {
+
+        console.error(
+            "[EGC Requests] Loading error:",
+            error
+        );
+
+        requestTableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty">
+                    Unable to load cylinder requests.
+                    <br>
+                    <small>${escapeHtml(error.message)}</small>
+                </td>
+            </tr>
+        `;
+
+    }
+    finally {
+
+        requestsLoading = false;
 
     }
 
@@ -2844,13 +3026,74 @@ function getFilteredRequests(){
 
 }
 
+/* =====================================================
+   FILTER SORTED REQUESTS
+===================================================== */
+
+function getFilteredRequestsFromList(list) {
+
+    const search = searchInput.value
+        .trim()
+        .toLowerCase();
+
+    const selectedStatus = statusFilter.value;
+
+    const selectedCompany = companyFilter.value;
+
+    return list.filter(request => {
+
+        const userName =
+            getUserName(request).toLowerCase();
+
+        const egcId =
+            getEgcUserId(request).toLowerCase();
+
+        const city =
+            String(request.city || "").toLowerCase();
+
+        const requestNumber =
+            getRequestNumber(request).toLowerCase();
+
+        const company =
+            getCompany(request);
+
+        const status =
+            normalizeStatus(request.status);
+
+        const searchMatch =
+            !search ||
+            userName.includes(search) ||
+            egcId.includes(search) ||
+            city.includes(search) ||
+            requestNumber.includes(search);
+
+        const statusMatch =
+            selectedStatus === "all" ||
+            status === selectedStatus;
+
+        const companyMatch =
+            selectedCompany === "all" ||
+            company === selectedCompany;
+
+        return (
+            searchMatch &&
+            statusMatch &&
+            companyMatch
+        );
+
+    });
+
+}
 
 /* ================= RENDER ================= */
 
 function renderRequests(){
 
-    const filtered =
-    getFilteredRequests();
+ const sortedRequests =
+sortRequestsByLatestActivity(requests);
+
+const filtered =
+getFilteredRequestsFromList(sortedRequests);
 
 
     if(
@@ -3801,12 +4044,13 @@ async function updateRequestStatus(
         } =
         await supabaseClient
         .from("cylinder_requests")
-        .update({
+    .update({
 
-            status:
-            newStatus
+    status: newStatus,
 
-        })
+    updated_at: new Date().toISOString()
+
+})
         .eq(
             "id",
             request.id
@@ -4174,123 +4418,60 @@ async function loadExistingNotifications(){
 
 
 /* ================= REALTIME ================= */
+/* =====================================================
+   REQUEST REALTIME REFRESH
+===================================================== */
 
-function startRealtime(){
+function scheduleRequestsRefresh() {
 
-    try{
+    clearTimeout(requestsRefreshTimer);
 
-        const channel =
-        supabaseClient
-        .channel(
-            "owner-requests-realtime"
-        );
+    requestsRefreshTimer = setTimeout(() => {
 
+        requestsRefreshTimer = null;
 
-        channel.on(
-            "postgres_changes",
-            {
-                event:"INSERT",
-                schema:"public",
-                table:"cylinder_requests"
-            },
-            payload => {
+        loadRequests();
 
-                console.log(
-                    "New request:",
-                    payload
-                );
+    }, 700);
+
+}
 
 
-                addLocalNotification({
+/* =====================================================
+   STOP REQUEST REALTIME
+===================================================== */
 
-                    title:
-                    "New Cylinder Request",
+async function stopRequestsRealtime() {
 
-                    text:
-                    "A new user cylinder request has been received."
+    if (requestsRefreshTimer) {
 
-                });
+        clearTimeout(requestsRefreshTimer);
 
-
-                loadRequests();
-
-            }
-        );
-
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"UPDATE",
-                schema:"public",
-                table:"cylinder_requests"
-            },
-            payload => {
-
-                console.log(
-                    "Request updated:",
-                    payload
-                );
-
-
-                loadRequests();
-
-            }
-        );
-
-
-        channel.on(
-            "postgres_changes",
-            {
-                event:"INSERT",
-                schema:"public",
-                table:"notifications"
-            },
-            payload => {
-
-                const notification =
-                payload.new || {};
-
-
-                addLocalNotification({
-
-                    title:
-                    notification.title ||
-                    notification.notification_title ||
-                    "New Notification",
-
-                    text:
-                    notification.message ||
-                    notification.text ||
-                    notification.body ||
-                    "A new notification has been received."
-
-                });
-
-            }
-        );
-
-
-        channel.subscribe(
-            status => {
-
-                console.log(
-                    "Owner Requests realtime:",
-                    status
-                );
-
-            }
-        );
-
-
-        window.egcRequestsRealtime =
-        channel;
+        requestsRefreshTimer = null;
 
     }
-    catch(error){
 
-        console.error(
-            "Realtime error:",
+    if (!requestsRealtimeChannel) {
+        return;
+    }
+
+    const channel = requestsRealtimeChannel;
+
+    requestsRealtimeChannel = null;
+
+    try {
+
+        await supabaseClient.removeChannel(channel);
+
+        console.log(
+            "[EGC Requests] Realtime stopped."
+        );
+
+    }
+    catch (error) {
+
+        console.warn(
+            "[EGC Requests] Realtime cleanup error:",
             error
         );
 
@@ -4298,6 +4479,148 @@ function startRealtime(){
 
 }
 
+
+/* =====================================================
+   START REQUEST REALTIME
+===================================================== */
+
+function startRealtime() {
+
+    if (requestsRealtimeChannel) {
+        return;
+    }
+
+    try {
+
+        const channel = supabaseClient.channel(
+            "owner-requests-realtime"
+        );
+
+
+        /* CYLINDER REQUESTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Requests] Request activity:",
+                    payload.eventType
+                );
+
+                scheduleRequestsRefresh();
+
+                if (payload.eventType === "INSERT") {
+
+                    addLocalNotification({
+
+                        title: "New Cylinder Request",
+
+                        text: "A new user cylinder request has been received."
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        /* PAYMENTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Requests] Payment activity:",
+                    payload.eventType
+                );
+
+                scheduleRequestsRefresh();
+
+            }
+        );
+
+
+        /* NOTIFICATIONS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "notifications"
+            },
+            payload => {
+
+                const notification = payload.new || {};
+
+                addLocalNotification({
+
+                    title:
+                        notification.title ||
+                        notification.notification_title ||
+                        "New Notification",
+
+                    text:
+                        notification.message ||
+                        notification.text ||
+                        notification.body ||
+                        "A new notification has been received."
+
+                });
+
+            }
+        );
+
+
+        /* SUBSCRIBE */
+
+        channel.subscribe((status, error) => {
+
+            console.log(
+                "[EGC Requests] Realtime status:",
+                status
+            );
+
+            if (error) {
+
+                console.error(
+                    "[EGC Requests] Realtime error:",
+                    error
+                );
+
+            }
+
+        });
+
+
+        requestsRealtimeChannel = channel;
+
+        window.egcRequestsRealtime = channel;
+
+    }
+    catch (error) {
+
+        console.error(
+            "[EGC Requests] Realtime startup error:",
+            error
+        );
+
+    }
+
+}
 
 /* ================= FILTER EVENTS ================= */
 
@@ -4522,7 +4845,7 @@ logoutConfirm.addEventListener(
         logoutConfirm.textContent =
         "Logging out...";
 
-
+await stopRequestsRealtime();
         try{
 
             const {
@@ -4638,7 +4961,11 @@ function requestNotificationPermission(){
 
 /* ================= INIT ================= */
 
-async function init(){
+/* =====================================================
+   INITIALIZE OWNER REQUESTS
+===================================================== */
+
+async function init() {
 
     await Promise.all([
 
@@ -4648,12 +4975,41 @@ async function init(){
 
     ]);
 
-
     startRealtime();
 
     requestNotificationPermission();
 
 }
+
+
+/* =====================================================
+   PAGE CLEANUP
+===================================================== */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        stopRequestsRealtime();
+
+    }
+);
+
+
+window.addEventListener(
+    "pageshow",
+    event => {
+
+        if (event.persisted) {
+
+            loadRequests();
+
+            startRealtime();
+
+        }
+
+    }
+);
 
 
 init();

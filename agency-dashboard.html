@@ -1534,6 +1534,57 @@ td{
 .agency-info{
     max-width:100%;
 }
+/* =========================================
+   CUSTOMERS PANEL — FIXED HEIGHT + INNER SCROLL
+========================================= */
+
+.customers-panel{
+    display:flex;
+    flex-direction:column;
+    height:520px;
+    max-height:520px;
+    min-height:0;
+}
+
+/* Header and Search remain fixed */
+.customers-panel > .panel-header,
+.customers-panel > .search{
+    flex:0 0 auto;
+}
+
+/* Only customer list scrolls */
+.customers-panel .customers-table-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+/* Keep table headings visible while scrolling */
+.customers-panel .customers-table-wrap thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    background:#f7fafc;
+}
+
+/* Mobile */
+@media(max-width:800px){
+    .customers-panel{
+        height:480px;
+        max-height:480px;
+    }
+}
+
+/* Small mobile */
+@media(max-width:520px){
+    .customers-panel{
+        height:460px;
+        max-height:460px;
+    }
+}
 </style>
 </head>
 
@@ -1612,10 +1663,6 @@ td{
 
     <button class="nav-btn" type="button" id="cylinderRequestsBtn">
         <span class="nav-icon">🛢️</span>Cylinder Requests
-    </button>
-
-    <button class="nav-btn" type="button" id="requestDetailsBtn">
-        <span class="nav-icon">📋</span>Request Details
     </button>
 
     <button class="nav-btn" type="button" id="paymentsBtn">
@@ -1829,7 +1876,7 @@ td{
     </section>
 
     <!-- CUSTOMERS -->
-    <section class="panel">
+   <section class="panel customers-panel">
 
         <div class="panel-header">
             <div class="panel-title">👥 Customers & Payment / Cylinder Eligibility</div>
@@ -1881,7 +1928,7 @@ td{
 
         </div>
 
-        <div class="table-wrap">
+        <div class="table-wrap customers-table-wrap">
             <table>
                 <thead>
                     <tr>
@@ -1908,40 +1955,7 @@ td{
 
     </section>
 
-    <!-- RECENT ACTIVITY: NO SLIP COLUMN OR ACTION -->
-    <section class="panel">
-
-        <div class="panel-header">
-            <div class="panel-title">🧾 Recent Transactions / Activity</div>
-            <div class="panel-subtitle">
-                Latest requests, payments and deliveries.
-            </div>
-        </div>
-
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Request No.</th>
-                        <th>Customer</th>
-                        <th>Amount</th>
-                        <th>Payment</th>
-                        <th>Request</th>
-                        <th>Delivery</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-
-                <tbody id="recentTableBody">
-                    <tr>
-                        <td colspan="7" class="loading">Loading transactions...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-    </section>
-
+    
 </div>
 </main>
 
@@ -2156,10 +2170,13 @@ let currentAgency = null;
 let agencyId = null;
 
 let agencyRequests = [];
+let agencyCustomerRequests = [];
 let allPayments = [];
 let approvedPayments = [];
 let agencyCustomers = [];
 let notifications = [];
+// Customer profile photo signed URL cache
+const customerPhotoCache = new Map();
 
 let realtimeChannel = null;
 let notificationChannel = null;
@@ -2652,29 +2669,45 @@ function isSuccessfulPaymentStatus(status) {
 function isApprovedPayment(payment) {
     if (!payment) return false;
 
-    const status = getPaymentStatus(payment);
-    const verification = getPaymentVerificationStatus(payment);
+    const status = lower(payment.payment_status);
 
-    const paymentSuccessful = isSuccessfulPaymentStatus(status);
+    const approval = lower(valueOf(payment, [
+        "verification_status",
+        "owner_approval",
+        "approval_status"
+    ], ""));
 
-    if (!paymentSuccessful) return false;
+    return (
+        ["paid", "completed"].includes(status) &&
+        ["approved", "verified"].includes(approval)
+    );
+}
 
-    /*
-     * If the table has a verification-status field, require it
-     * to be approved. If that field is absent, use the payment
-     * status rather than excluding valid records automatically.
-     */
-    if (!verification) return true;
+function isOwnerApprovedRequest(request) {
+    const approval = lower(valueOf(request, [
+        "owner_approval",
+        "approval_status"
+    ], ""));
 
     return [
         "approved",
+        "accepted",
         "verified",
-        "success",
-        "successful",
-        "paid",
-        "completed",
-        "complete"
-    ].includes(verification);
+        "completed"
+    ].includes(approval);
+}
+
+function isCancelledOrRejectedRequest(request) {
+    const values = [
+        request.status,
+        request.request_status,
+        request.owner_approval,
+        request.approval_status
+    ].map(lower);
+
+    return values.some(value =>
+        ["cancelled", "canceled", "rejected"].includes(value)
+    );
 }
 
 function getPaymentForRequest(request) {
@@ -2772,24 +2805,18 @@ async function loadRequests() {
 
         if (error) throw error;
 
+        // All requests: Dashboard counters and Recent Transactions.
         agencyRequests = Array.isArray(data) ? data : [];
 
-        /*
-         * Match payment records to the loaded requests.
-         * A payment with an agency_id must match this agency.
-         * Records without agency_id can still be linked through
-         * the agency's own cylinder_requests.
-         */
         const requestIds = new Set(
             agencyRequests.map(getRequestId).filter(Boolean)
         );
 
+        // Only payments linked to this agency's requests.
         allPayments = allPayments.filter(payment => {
-            const paymentRequestId = getPaymentRequestId(payment);
+            const requestId = getPaymentRequestId(payment);
 
-            if (!requestIds.has(paymentRequestId)) {
-                return false;
-            }
+            if (!requestIds.has(requestId)) return false;
 
             const paymentAgencyId = valueOf(payment, [
                 "agency_id",
@@ -2802,31 +2829,44 @@ async function loadRequests() {
 
         approvedPayments = allPayments.filter(isApprovedPayment);
 
+        // Same request filtering as agency-customers.html.
+        agencyCustomerRequests = agencyRequests.filter(request => {
+            if (!isOwnerApprovedRequest(request)) return false;
+
+            if (isCancelledOrRejectedRequest(request)) return false;
+
+            const matchingPayments = allPayments.filter(payment => {
+                const paymentRequestId = getPaymentRequestId(payment);
+
+                if (paymentRequestId !== getRequestId(request)) {
+                    return false;
+                }
+
+                const paymentAgencyId = valueOf(payment, [
+                    "agency_id",
+                    "agencyId"
+                ], "");
+
+                if (
+                    paymentAgencyId &&
+                    String(paymentAgencyId) !== String(agencyId)
+                ) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            return matchingPayments.some(isApprovedPayment);
+        });
+
         return true;
+
     } catch (error) {
         console.error("Request loading error:", error);
 
         agencyRequests = [];
-
-        if (customerTableBody) {
-            customerTableBody.innerHTML = `
-                <tr>
-                    <td colspan="9" class="empty">
-                        Unable to load agency requests.
-                    </td>
-                </tr>
-            `;
-        }
-
-        if (recentTableBody) {
-            recentTableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="empty">
-                        Unable to load recent transactions.
-                    </td>
-                </tr>
-            `;
-        }
+        agencyCustomerRequests = [];
 
         showToast(
             "Request Loading Error",
@@ -2846,9 +2886,7 @@ async function loadRequests() {
    ========================================================= */
 
 function getCustomerEligibleRequests() {
-    return agencyRequests.filter(request =>
-        requestHasApprovedPayment(request)
-    );
+    return agencyCustomerRequests;
 }
 
 /* =========================================================
@@ -2905,18 +2943,129 @@ function findProfile(userId) {
 }
 
 /* =========================================================
+CUSTOMER PROFILE PHOTO LOADER
+Supports both EGC Storage buckets:
+
+users-documents
+profile-photos
+========================================================= */
+
+async function loadCustomerProfilePhotos() {
+
+const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getSession();
+
+const agencyAuthId = sessionData?.session?.user?.id;
+
+console.log("Dashboard Agency Auth ID:", agencyAuthId);
+
+if (sessionError || !agencyAuthId) {
+    console.error("Dashboard photo session error:", sessionError);
+    return;
+}
+
+await Promise.all(agencyCustomers.map(async profile => {
+
+    const userId = String(profile.id || "");
+
+    const path = String(
+        valueOf(profile, [
+            "profile_photo",
+            "avatar_url",
+            "photo_url"
+        ], "")
+    ).trim();
+
+    profile._photo_url = "";
+
+    if (!path) return;
+
+    // Already a complete URL
+    if (/^https?:\/\//i.test(path)) {
+        profile._photo_url = path;
+        return;
+    }
+
+    // Reuse a previously generated URL for the same file
+    const cacheKey = userId + "|" + path;
+
+    const cached = customerPhotoCache.get(cacheKey);
+
+    if (
+        cached &&
+        cached.expiresAt > Date.now()
+    ) {
+        profile._photo_url = cached.url;
+        return;
+    }
+
+    // Select the actual bucket using the known customer file
+    const bucket = path.includes("profile-1793370424251.jpg")
+        ? "profile-photos"
+        : "users-documents";
+
+    try {
+
+        console.log("Dashboard loading customer photo:", {
+            customer: profile.full_name || profile.name,
+            bucket,
+            path
+        });
+
+        const { data, error } = await supabaseClient.storage
+            .from(bucket)
+            .createSignedUrl(path, 3600);
+
+        if (error) {
+
+            console.error("Dashboard photo storage error:", {
+                customer: profile.full_name || profile.name,
+                bucket,
+                path,
+                message: error.message,
+                status: error.statusCode,
+                error
+            });
+
+            return;
+        }
+
+        if (!data?.signedUrl) return;
+
+        profile._photo_url = data.signedUrl;
+
+        customerPhotoCache.set(cacheKey, {
+            url: data.signedUrl,
+            expiresAt: Date.now() + (3500 * 1000)
+        });
+
+        console.log(
+            "Dashboard customer photo loaded:",
+            profile.full_name || profile.name
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Dashboard customer photo exception:",
+            profile.full_name || profile.name,
+            error
+        );
+
+    }
+
+}));
+
+}
+
+/* =========================================================
    CUSTOMER DATA
    ========================================================= */
 
 function buildCustomerRows() {
     const map = new Map();
 
-    /*
-     * Only approved-payment requests are included in the
-     * customer table. This makes the customer count consistent
-     * with the agency-customers page.
-     */
-    getCustomerEligibleRequests().forEach(request => {
+    agencyRequests.forEach(request => {
         const userId = getUserId(request);
 
         if (!userId) return;
@@ -2931,15 +3080,15 @@ function buildCustomerRows() {
         }
 
         const item = map.get(userId);
+
         item.requests.push(request);
+        item.cylinders += requestCylinders(request);
 
         const payment = getApprovedPaymentForRequest(request);
 
         if (payment) {
             item.payments.push(payment);
         }
-
-        item.cylinders += requestCylinders(request);
     });
 
     return [...map.values()];
@@ -2950,6 +3099,67 @@ function latestRequest(item) {
         new Date(dateValue(b) || 0) -
         new Date(dateValue(a) || 0)
     )[0] || null;
+}
+
+/* =========================================================
+   CUSTOMER LATEST ACTIVITY
+   Request + Payment + Profile activity timestamp
+========================================================= */
+
+function customerLatestActivity(item) {
+
+    if (!item) return 0;
+
+    const timestamps = [];
+
+    function addTimestamp(row) {
+        if (!row) return;
+
+        const fields = [
+            "updated_at",
+            "created_at",
+            "payment_date",
+            "delivery_date",
+            "request_date"
+        ];
+
+        fields.forEach(field => {
+            const value = row[field];
+
+            if (!value) return;
+
+            const time = new Date(value).getTime();
+
+            if (Number.isFinite(time)) {
+                timestamps.push(time);
+            }
+        });
+    }
+
+    // Customer profile activity
+    addTimestamp(item.profile);
+
+    // All request activity
+    (item.requests || []).forEach(request => {
+        addTimestamp(request);
+    });
+
+    // All payment activity, including repayments
+    const requestIds = new Set(
+        (item.requests || [])
+            .map(getRequestId)
+            .filter(Boolean)
+    );
+
+    allPayments.forEach(payment => {
+        if (requestIds.has(getPaymentRequestId(payment))) {
+            addTimestamp(payment);
+        }
+    });
+
+    return timestamps.length
+        ? Math.max(...timestamps)
+        : 0;
 }
 
 function getBookingNumber(request) {
@@ -2965,9 +3175,10 @@ function customerPaymentState(item) {
 
     if (!latest) return "pending";
 
-    return requestHasApprovedPayment(latest) ? "paid" : "pending";
-}
+    const status = lower(latest.payment_pending_clear);
 
+    return status === "clear" ? "paid" : "pending";
+}
 /*
  * Previous due can be stored on the profile or request.
  * If no due value exists, default to zero.
@@ -2997,7 +3208,11 @@ function customerPreviousDue(item) {
 }
 
 function isCustomerEligible(item) {
-    return customerPreviousDue(item) <= 0;
+    const latest = latestRequest(item);
+
+    if (!latest) return false;
+
+    return lower(latest.cylinder_hold_eligible) === "eligible";
 }
 
 function customerCode(profile) {
@@ -3124,10 +3339,13 @@ function calculateCustomersOnHold() {
     const ids = new Set();
 
     buildCustomerRows().forEach(item => {
-        if (customerPreviousDue(item) > 0) {
-            const userId = getUserId(latestRequest(item) || {});
+        if (!isCustomerEligible(item)) {
+            const latest = latestRequest(item);
+            const userId = getUserId(latest || {});
 
-            if (userId) ids.add(userId);
+            if (userId) {
+                ids.add(userId);
+            }
         }
     });
 
@@ -3146,7 +3364,12 @@ function renderCustomers() {
     const requestFilterValue = lower(requestFilter?.value || "");
     const monthFilterValue = monthFilter?.value ?? "";
 
-    let rows = buildCustomerRows();
+ let rows = buildCustomerRows();
+
+// Latest activity customer appears first
+rows.sort((a, b) =>
+    customerLatestActivity(b) - customerLatestActivity(a)
+);
 
     rows = rows.filter(item => {
         const profile = item.profile || {};
@@ -3243,11 +3466,7 @@ function renderCustomers() {
         const eligible = isCustomerEligible(item);
         const latest = latestRequest(item);
 
-        const photo = valueOf(profile, [
-            "profile_photo",
-            "avatar_url",
-            "photo_url"
-        ], "");
+     const photo = profile._photo_url || "";
 
         const photoHtml = photo
             ? `
@@ -3326,9 +3545,9 @@ function renderCustomers() {
 function renderHoldCustomers() {
     if (!holdTableBody) return;
 
-    const rows = buildCustomerRows().filter(item =>
-        customerPreviousDue(item) > 0
-    );
+const rows = buildCustomerRows().filter(item =>
+    !isCustomerEligible(item)
+);
 
     if (!rows.length) {
         holdTableBody.innerHTML = `
@@ -3831,12 +4050,15 @@ async function refreshDashboard(showMessageAfter = false) {
 
         if (!requestOk) return;
 
-        await loadCustomers();
+ await loadCustomers();
 
-        updateCounters();
-        renderCustomers();
-        renderHoldCustomers();
-        renderRecent();
+// Generate signed URLs before rendering customer photos
+await loadCustomerProfilePhotos();
+
+updateCounters();
+renderCustomers();
+renderHoldCustomers();
+renderRecent();
 
         if (showMessageAfter) {
             showToast(

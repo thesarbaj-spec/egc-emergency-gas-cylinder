@@ -704,6 +704,9 @@ let dashboardInitialized = false;
 let realtimeStarting = false;
 let notificationPermissionRequested = false;
 let refreshTimer = null;
+let realtimeRefreshTimer = null;
+let dashboardRefreshRunning = false;
+let dashboardRefreshPending = false;
 
 const OWNER_PAGE_ROUTES = Object.freeze({
     dashboard: "owner-dashboard.html",
@@ -806,6 +809,57 @@ function statusClass(value) {
 
 function statusBadge(value) {
     return `<span class="status ${statusClass(value)}">${escapeHtml(formatStatus(value))}</span>`;
+}
+
+/* =====================================================
+   LATEST ACTIVITY SORTING
+===================================================== */
+
+function getLatestActivityTimestamp(row, extraRows = []) {
+    const timestamps = [];
+
+    const timestampFields = [
+        "updated_at",
+        "created_at",
+        "request_date",
+        "requested_at",
+        "submitted_at",
+        "payment_date",
+        "paid_at",
+        "payment_verified_at",
+        "verified_at",
+        "approved_at",
+        "delivery_date",
+        "delivered_at",
+        "delivery_updated_at",
+        "agency_updated_at",
+        "repayment_date",
+        "repayment_at",
+        "read_at"
+    ];
+
+    [row, ...extraRows].forEach(item => {
+        if (!item || typeof item !== "object") return;
+
+        timestampFields.forEach(field => {
+            const value = item[field];
+            if (!value) return;
+
+            const time = new Date(value).getTime();
+
+            if (Number.isFinite(time)) {
+                timestamps.push(time);
+            }
+        });
+    });
+
+    return timestamps.length ? Math.max(...timestamps) : 0;
+}
+
+function sortByLatestActivity(rows, getTimestamp) {
+    return [...(Array.isArray(rows) ? rows : [])].sort((a, b) => {
+        return getTimestamp(b) - getTimestamp(a);
+    });
 }
 
 function formatDate(value) {
@@ -1387,7 +1441,14 @@ try {
    RECENT CYLINDER REQUESTS
 ===================================================== */
 
+/* =====================================================
+   RECENT CYLINDER REQUESTS
+   LATEST ACTIVITY SORTING
+===================================================== */
+
 async function loadRecentRequests() {
+    if (!requestTableBody) return;
+
     requestTableBody.innerHTML =
         '<tr><td colspan="16" class="empty">Loading cylinder requests...</td></tr>';
 
@@ -1396,7 +1457,7 @@ async function loadRecentRequests() {
             .from("cylinder_requests")
             .select("*")
             .order("created_at", { ascending: false })
-            .limit(20);
+            .limit(100);
 
         if (error) throw error;
 
@@ -1414,8 +1475,15 @@ async function loadRecentRequests() {
             requests.map(request => String(request.agency_id || "")).filter(Boolean)
         )];
 
+        const requestIds = requests
+            .map(request => request.id)
+            .filter(Boolean);
+
         const profileMap = new Map();
         const agencyMap = new Map();
+        const paymentMap = new Map();
+
+        /* CUSTOMER PROFILES */
 
         if (userIds.length) {
             const { data: profiles, error: profileError } = await supabaseClient
@@ -1427,12 +1495,22 @@ async function loadRecentRequests() {
                 console.warn("Profile lookup failed:", profileError.message);
             } else {
                 (profiles || []).forEach(profile => {
-                    if (profile.id) profileMap.set(String(profile.id), profile);
-                    if (profile.user_id) profileMap.set(String(profile.user_id), profile);
-                    if (profile.auth_user_id) profileMap.set(String(profile.auth_user_id), profile);
+                    if (profile.id) {
+                        profileMap.set(String(profile.id), profile);
+                    }
+
+                    if (profile.user_id) {
+                        profileMap.set(String(profile.user_id), profile);
+                    }
+
+                    if (profile.auth_user_id) {
+                        profileMap.set(String(profile.auth_user_id), profile);
+                    }
                 });
             }
         }
+
+        /* LPG AGENCIES */
 
         if (agencyIds.length) {
             const { data: agencies, error: agencyError } = await supabaseClient
@@ -1444,39 +1522,59 @@ async function loadRecentRequests() {
                 console.warn("Agency lookup failed:", agencyError.message);
             } else {
                 (agencies || []).forEach(agency => {
-                    if (agency.id) agencyMap.set(String(agency.id), agency);
+                    if (agency.id) {
+                        agencyMap.set(String(agency.id), agency);
+                    }
                 });
             }
         }
 
-        /*
-          Latest payment record per request is used to display its actual
-          payment status and verification status where available.
-        */
-        const requestIds = requests.map(request => request.id).filter(Boolean);
-        const paymentMap = new Map();
+        /* PAYMENT RECORDS */
 
         if (requestIds.length) {
             const { data: paymentRows, error: paymentError } = await supabaseClient
                 .from("payments")
-                .select("id,request_id,payment_status,verification_status,payment_amount,created_at,payment_date")
-                .in("request_id", requestIds)
-                .order("created_at", { ascending: false });
+                .select("*")
+                .in("request_id", requestIds);
 
             if (paymentError) {
                 console.warn("Request payment lookup error:", paymentError.message);
             } else {
                 (paymentRows || []).forEach(payment => {
                     const key = String(payment.request_id || "");
-                    if (key && !paymentMap.has(key)) paymentMap.set(key, payment);
+
+                    if (!key) return;
+
+                    if (!paymentMap.has(key)) {
+                        paymentMap.set(key, []);
+                    }
+
+                    paymentMap.get(key).push(payment);
                 });
             }
         }
 
+        /* LATEST ACTIVITY SORTING */
+
+        const sortedRequests = sortByLatestActivity(
+            requests,
+            request => {
+                const userId = String(request.user_id || "");
+                const profile = profileMap.get(userId) || {};
+                const payments = paymentMap.get(String(request.id)) || [];
+
+                return getLatestActivityTimestamp(
+                    request,
+                    [profile, ...payments]
+                );
+            }
+        );
+
         requestTableBody.innerHTML = "";
 
-        requests.forEach(request => {
+        sortedRequests.forEach(request => {
             const tr = document.createElement("tr");
+
             const requestIdText = String(
                 firstAvailable(request, ["request_number", "id"], "—")
             );
@@ -1486,43 +1584,66 @@ async function loadRecentRequests() {
                 : requestIdText;
 
             const userId = String(request.user_id || "");
-            const profile = userId ? profileMap.get(userId) : null;
+            const profile = profileMap.get(userId) || {};
 
             const customerName = firstAvailable(
-                request, ["customer_name"],
+                request,
+                ["customer_name"],
                 firstAvailable(profile, ["full_name", "name", "display_name"])
             );
 
             const egcUserId = firstAvailable(
-                request, ["egc_user_code"],
-                firstAvailable(profile, ["egc_user_code", "egc_user_id", "user_code", "customer_code"])
+                request,
+                ["egc_user_code"],
+                firstAvailable(profile, [
+                    "egc_user_code",
+                    "egc_user_id",
+                    "user_code",
+                    "customer_code"
+                ])
             );
 
             const email = firstAvailable(
-                request, ["customer_email"],
+                request,
+                ["customer_email"],
                 firstAvailable(profile, ["email"])
             );
 
             const mobile = firstAvailable(
-                request, ["customer_mobile"],
+                request,
+                ["customer_mobile"],
                 firstAvailable(profile, ["mobile", "phone", "phone_number"])
             );
 
             const company = firstAvailable(request, ["lpg_company"], "—");
+
             const agencyId = String(request.agency_id || "");
-            const agency = agencyId ? agencyMap.get(agencyId) : null;
+            const agency = agencyMap.get(agencyId) || null;
 
             const agencyName = firstAvailable(
-                agency, ["agency_name", "name", "title"],
+                agency,
+                ["agency_name", "name", "title"],
                 agencyId ? "Agency ID: " + agencyId.slice(0, 8) : "—"
             );
 
             const city = firstAvailable(request, ["city"], "—");
-            const date = formatDate(request.request_date || request.created_at);
+
+            const date = formatDate(
+                request.request_date || request.created_at
+            );
+
             const quantity = firstAvailable(request, ["quantity"], "—");
             const amount = formatMoney(request.total_payable);
 
-            const latestPayment = paymentMap.get(String(request.id)) || {};
+            const linkedPayments =
+                paymentMap.get(String(request.id)) || [];
+
+            const latestPayment = linkedPayments.length
+                ? [...linkedPayments].sort((a, b) =>
+                    getLatestActivityTimestamp(b) -
+                    getLatestActivityTimestamp(a)
+                )[0]
+                : {};
 
             const paymentStatus = firstAvailable(
                 latestPayment,
@@ -1536,9 +1657,23 @@ async function loadRecentRequests() {
                 firstAvailable(request, ["payment_verification_status"], "—")
             );
 
-            const ownerApproval = firstAvailable(request, ["owner_approval"], "—");
-            const agencyStatus = firstAvailable(request, ["agency_status"], "—");
-            const deliveryStatus = firstAvailable(request, ["delivery_status"], "—");
+            const ownerApproval = firstAvailable(
+                request,
+                ["owner_approval"],
+                "—"
+            );
+
+            const agencyStatus = firstAvailable(
+                request,
+                ["agency_status"],
+                "—"
+            );
+
+            const deliveryStatus = firstAvailable(
+                request,
+                ["delivery_status"],
+                "—"
+            );
 
             const requestStatus = firstAvailable(
                 request,
@@ -1573,16 +1708,31 @@ async function loadRecentRequests() {
                 <td>${statusBadge(requestStatus)}</td>
             `;
 
-            tr.querySelector(".request-id-button")?.addEventListener("click", event => {
-                event.preventDefault();
-                sessionStorage.setItem("egc_selected_request_id", String(request.id));
-                openPage("request-details");
-            });
+            tr.querySelector(".request-id-button")?.addEventListener(
+                "click",
+                event => {
+                    event.preventDefault();
+
+                    sessionStorage.setItem(
+                        "egc_selected_request_id",
+                        String(request.id)
+                    );
+
+                    openPage("request-details");
+                }
+            );
 
             requestTableBody.appendChild(tr);
         });
+
+        console.log(
+            "[EGC Owner] Recent requests sorted by latest activity:",
+            sortedRequests.length
+        );
+
     } catch (error) {
         console.error("Recent request loading error:", error);
+
         requestTableBody.innerHTML =
             '<tr><td colspan="16" class="empty">Unable to load requests. Check browser console and Supabase permissions.</td></tr>';
     }
@@ -1765,34 +1915,288 @@ document.addEventListener("click", event => {
    REFRESH DASHBOARD DATA
 ===================================================== */
 
+/* =====================================================
+   SMART DASHBOARD REFRESH
+===================================================== */
+
 async function refreshDashboardData() {
-await Promise.allSettled([
-loadUserCount(),
-loadAgencyCount(),
-loadCompanyCount(),
-loadRequestCount(),
-loadApprovalCounts(),
-loadRecentRequests(),
-loadVerifiedPaymentTotals(),
-loadExtraCharges(),
-loadAgencies()
-]);
+
+    if (dashboardRefreshRunning) {
+        dashboardRefreshPending = true;
+        return;
+    }
+
+    dashboardRefreshRunning = true;
+
+    try {
+        do {
+            dashboardRefreshPending = false;
+
+            await Promise.allSettled([
+                loadUserCount(),
+                loadAgencyCount(),
+                loadCompanyCount(),
+                loadRequestCount(),
+                loadApprovalCounts(),
+                loadRecentRequests(),
+                loadVerifiedPaymentTotals(),
+                loadExtraCharges(),
+                loadAgencies()
+            ]);
+
+        } while (dashboardRefreshPending);
+
+    } finally {
+        dashboardRefreshRunning = false;
+    }
+}
+
+/* DEBOUNCED REALTIME REFRESH */
+
+function scheduleDashboardRefresh() {
+
+    clearTimeout(realtimeRefreshTimer);
+
+    realtimeRefreshTimer = setTimeout(() => {
+        realtimeRefreshTimer = null;
+        refreshDashboardData();
+    }, 700);
 }
 
 /* =====================================================
-   REALTIME
+   EGC OWNER DASHBOARD REALTIME
 ===================================================== */
 
 async function stopRealtimeNotifications() {
+
     if (!egcRealtimeChannel) return;
 
     const channel = egcRealtimeChannel;
+
     egcRealtimeChannel = null;
+    window.egcRealtimeChannel = null;
 
     try {
         await supabaseClient.removeChannel(channel);
+        console.log("[EGC Owner] Realtime stopped.");
     } catch (error) {
         console.warn("Realtime cleanup error:", error);
+    }
+}
+
+async function startRealtimeNotifications() {
+
+    if (realtimeStarting || egcRealtimeChannel) return;
+
+    realtimeStarting = true;
+
+    try {
+
+        const channel = supabaseClient.channel(
+            "owner-dashboard-realtime"
+        );
+
+        /* CYLINDER REQUESTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+
+                const request = payload.new || payload.old || {};
+
+                if (payload.eventType !== "DELETE") {
+
+                    addNotification({
+                        title: payload.eventType === "INSERT"
+                            ? "New Cylinder Request"
+                            : "Cylinder Request Updated",
+
+                        text: [
+                            request.request_number || "",
+                            request.city || "",
+                            "Owner approval:",
+                            formatStatus(request.owner_approval)
+                        ].filter(Boolean).join(" "),
+
+                        time: formatNotificationTime(
+                            request.updated_at || request.created_at
+                        )
+                    });
+                }
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        /* PAYMENTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+
+                const payment = payload.new || payload.old || {};
+
+                if (payload.eventType !== "DELETE") {
+
+                    addNotification({
+                        title: payload.eventType === "INSERT"
+                            ? "New Payment Submitted"
+                            : "Payment Record Updated",
+
+                        text:
+                            `Payment status: ${formatStatus(payment.payment_status)}; verification: ${formatStatus(payment.verification_status)}`,
+
+                        time: formatNotificationTime(
+                            payment.updated_at ||
+                            payment.payment_date ||
+                            payment.created_at
+                        )
+                    });
+                }
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        /* CUSTOMER PROFILES */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Owner] Customer profile activity:",
+                    payload.eventType
+                );
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        /* AGENCIES */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "agencies"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Owner] Agency activity:",
+                    payload.eventType
+                );
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        /* LPG COMPANIES */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "lpg_companies"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Owner] LPG company activity:",
+                    payload.eventType
+                );
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        /* NOTIFICATIONS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "notifications"
+            },
+            payload => {
+
+                if (payload.eventType === "DELETE") {
+                    scheduleDashboardRefresh();
+                    return;
+                }
+
+                const notification = payload.new || {};
+
+                addNotification({
+                    title: firstAvailable(
+                        notification,
+                        ["title", "notification_title"],
+                        "New Notification"
+                    ),
+
+                    text: firstAvailable(
+                        notification,
+                        ["message", "text", "body", "description"],
+                        "You have received a new notification."
+                    ),
+
+                    time: formatNotificationTime(
+                        notification.updated_at ||
+                        notification.created_at
+                    )
+                });
+
+                scheduleDashboardRefresh();
+            }
+        );
+
+        channel.subscribe((status, error) => {
+
+            console.log(
+                "[EGC Owner] Realtime status:",
+                status
+            );
+
+            if (error) {
+                console.error(
+                    "[EGC Owner] Realtime error:",
+                    error
+                );
+            }
+        });
+
+        egcRealtimeChannel = channel;
+        window.egcRealtimeChannel = channel;
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Owner] Realtime startup error:",
+            error
+        );
+
+    } finally {
+
+        realtimeStarting = false;
     }
 }
 
@@ -1906,6 +2310,11 @@ logoutConfirm?.addEventListener("click", async () => {
             clearInterval(refreshTimer);
             refreshTimer = null;
         }
+
+        if (realtimeRefreshTimer) {
+    clearTimeout(realtimeRefreshTimer);
+    realtimeRefreshTimer = null;
+}
 
         await stopRealtimeNotifications();
 

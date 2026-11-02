@@ -1951,6 +1951,8 @@ let realtimeChannel = null;
 
 let toastTimer = null;
 let isLoading = false;
+let notificationReloadQueued = false;
+let realtimeReloadTimer = null;
 let isSigningOut = false;
 let authSubscription = null;
 
@@ -2142,6 +2144,37 @@ function getNotificationType(type) {
 }
 
 /* =========================================================
+   LATEST ACTIVITY SORTING
+========================================================= */
+
+function getNotificationActivityTimestamp(notification) {
+    if (!notification) return 0;
+
+    const timestamps = [
+        notification.updated_at,
+        notification.created_at
+    ];
+
+    const validTimes = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value => Number.isFinite(value) && value > 0);
+
+    return validTimes.length
+        ? Math.max(...validTimes)
+        : 0;
+}
+
+function sortNotificationsByLatestActivity(list) {
+    return [...list].sort((a, b) => {
+        return (
+            getNotificationActivityTimestamp(b) -
+            getNotificationActivityTimestamp(a)
+        );
+    });
+}
+
+/* =========================================================
    UPDATE COUNTS
 ========================================================= */
 
@@ -2196,29 +2229,31 @@ function getFilteredNotifications() {
         ? typeFilter.value
         : "all";
 
-    return notifications.filter(notification => {
-        const notificationType = getNotificationType(
-            notification.notification_type
-        );
+    return sortNotificationsByLatestActivity(
+        notifications.filter(notification => {
+            const notificationType = getNotificationType(
+                notification.notification_type
+            );
 
-        const combined = [
-            notification.title,
-            notification.message,
-            notification.notification_type
-        ]
-            .map(value => String(value || ""))
-            .join(" ")
-            .toLowerCase();
+            const combined = [
+                notification.title,
+                notification.message,
+                notification.notification_type
+            ]
+                .map(value => String(value || ""))
+                .join(" ")
+                .toLowerCase();
 
-        const matchesSearch =
-            !search || combined.includes(search);
+            const matchesSearch =
+                !search || combined.includes(search);
 
-        const matchesType =
-            selectedType === "all" ||
-            notificationType === selectedType;
+            const matchesType =
+                selectedType === "all" ||
+                notificationType === selectedType;
 
-        return matchesSearch && matchesType;
-    });
+            return matchesSearch && matchesType;
+        })
+    );
 }
 
 /* =========================================================
@@ -2362,6 +2397,7 @@ function renderNotifications() {
 
 async function loadNotifications() {
     if (isLoading) {
+        notificationReloadQueued = true;
         return;
     }
 
@@ -2435,8 +2471,16 @@ async function loadNotifications() {
             </div>
         `;
     } finally {
-        isLoading = false;
+    isLoading = false;
+
+    if (notificationReloadQueued) {
+        notificationReloadQueued = false;
+
+        setTimeout(() => {
+            loadNotifications();
+        }, 150);
     }
+}
 }
 
 /* =========================================================
@@ -2755,6 +2799,116 @@ function subscribeToNotifications() {
 }
 
 /* =========================================================
+   REALTIME SUBSCRIPTION + AUTO REFRESH
+========================================================= */
+
+function unsubscribeFromNotifications() {
+    if (realtimeReloadTimer) {
+        clearTimeout(realtimeReloadTimer);
+        realtimeReloadTimer = null;
+    }
+
+    if (!realtimeChannel) {
+        return;
+    }
+
+    const channel = realtimeChannel;
+    realtimeChannel = null;
+
+    supabaseClient.removeChannel(channel).catch(error => {
+        console.warn(
+            "Realtime channel removal:",
+            error
+        );
+    });
+}
+
+function scheduleNotificationRefresh() {
+    clearTimeout(realtimeReloadTimer);
+
+    realtimeReloadTimer = setTimeout(() => {
+        realtimeReloadTimer = null;
+
+        if (!currentSession) return;
+
+        loadNotifications();
+
+    }, 600);
+}
+
+function subscribeToNotifications() {
+    if (!currentSession) {
+        console.warn(
+            "Cannot start notifications realtime: no Owner session."
+        );
+        return;
+    }
+
+    unsubscribeFromNotifications();
+
+    const ownerId = currentSession.user.id;
+
+    console.log(
+        "Starting Owner Notifications Realtime:",
+        ownerId
+    );
+
+    realtimeChannel = supabaseClient
+        .channel("owner-notifications-" + ownerId)
+
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "notifications",
+                filter: "user_id=eq." + ownerId
+            },
+            function (payload) {
+                console.log(
+                    "Notification Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
+                scheduleNotificationRefresh();
+            }
+        )
+
+        .subscribe(function (status, error) {
+            console.log(
+                "Notification Realtime Status:",
+                status
+            );
+
+            if (status === "SUBSCRIBED") {
+                console.log(
+                    "✅ Owner Notifications Realtime Connected"
+                );
+            }
+
+            if (status === "CHANNEL_ERROR") {
+                console.error(
+                    "❌ Notification Realtime Channel Error:",
+                    error
+                );
+            }
+
+            if (status === "TIMED_OUT") {
+                console.warn(
+                    "⚠️ Notification Realtime Timed Out"
+                );
+            }
+
+            if (status === "CLOSED") {
+                console.warn(
+                    "Notification Realtime Channel Closed"
+                );
+            }
+        });
+}
+
+/* =========================================================
    AUTH STATE CHANGES
 ========================================================= */
 
@@ -2883,9 +3037,8 @@ async function initializeNotificationsPage() {
 }
 
 initializeNotificationsPage();
-
 /* =========================================================
-   CLEANUP
+   CLEANUP + PAGE RESTORE
 ========================================================= */
 
 window.addEventListener("pagehide", function () {
@@ -2897,6 +3050,39 @@ window.addEventListener("pagehide", function () {
     }
 
     clearTimeout(toastTimer);
+});
+
+window.addEventListener("pageshow", async function (event) {
+
+    if (event.persisted) {
+        console.log(
+            "Notifications page restored from BFCache."
+        );
+
+        currentSession = await getOwnerSession();
+
+        if (!currentSession) {
+            window.location.replace("owner-login.html");
+            return;
+        }
+
+        await loadNotifications();
+
+        subscribeToNotifications();
+    }
+});
+
+document.addEventListener("visibilitychange", function () {
+
+    if (document.visibilityState !== "visible") {
+        return;
+    }
+
+    if (!currentSession) {
+        return;
+    }
+
+    loadNotifications();
 });
 </script>
 </body>

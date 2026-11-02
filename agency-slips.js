@@ -62,6 +62,10 @@ let selectedSlip = null;
 let pageInitialized = false;
 let loadingSlips = false;
 let signingOut = false;
+// LATEST ACTIVITY + REALTIME
+let slipsRealtimeChannel = null;
+let realtimeRefreshTimer = null;
+let realtimeReloadPending = false;
 
 /* =========================================================
    HELPERS
@@ -607,6 +611,68 @@ function getPaymentsForRequest(request) {
 }
 
 /* =========================================================
+   LATEST ACTIVITY SORTING
+
+   Request + Customer Profile + Payments
+   Latest activity वाला Slip सबसे ऊपर रहेगा.
+   ========================================================= */
+
+function getLatestSlipActivity(request) {
+    if (!request) return 0;
+
+    const profile = getCustomerProfile(request);
+    const linkedPayments = getPaymentsForRequest(request);
+
+    const timestamps = [];
+
+    function collectTimestamps(record) {
+        if (!record) return;
+
+        const fields = [
+            "updated_at",
+            "created_at",
+            "request_date",
+            "requested_at",
+            "submitted_at",
+            "payment_date",
+            "paid_at",
+            "payment_verified_at",
+            "verified_at",
+            "approved_at",
+            "delivery_date",
+            "delivered_at",
+            "delivery_updated_at",
+            "agency_updated_at",
+            "repayment_date",
+            "repayment_at"
+        ];
+
+        fields.forEach(field => {
+            const timestamp = getTimestamp(record[field]);
+
+            if (timestamp > 0) {
+                timestamps.push(timestamp);
+            }
+        });
+    }
+
+    // Request activity
+    collectTimestamps(request);
+
+    // Customer profile activity
+    collectTimestamps(profile);
+
+    // All linked payment activities
+    linkedPayments.forEach(payment => {
+        collectTimestamps(payment);
+    });
+
+    return timestamps.length
+        ? Math.max(...timestamps)
+        : getTimestamp(getRequestDate(request));
+}
+
+/* =========================================================
    AUTHENTICATION AND AGENCY
    ========================================================= */
 
@@ -912,10 +978,17 @@ function isSlipEligible(request) {
    BUILD ONE SLIP PER REQUEST
    ========================================================= */
 
+/* =========================================================
+   BUILD ONE SLIP PER REQUEST
+   LATEST ACTIVITY SORTING
+   ========================================================= */
+
 function buildCustomerSlips(requests) {
+
     const uniqueRequests = new Map();
 
-    (requests || []).forEach(request => {
+    (Array.isArray(requests) ? requests : []).forEach(request => {
+
         if (!request?.id) return;
 
         const key = normalizedIdentifier(request.id);
@@ -928,22 +1001,27 @@ function buildCustomerSlips(requests) {
     const slips = [];
 
     uniqueRequests.forEach(request => {
+
         const linkedPayments = getPaymentsForRequest(request);
 
         const approvedPayments = linkedPayments.filter(
             isPaymentApproved
         );
 
-        /*
-           Keep only owner-approved requests with at least
-           one approved payment, matching the main agency
-           requests page's payment-approval gate.
-        */
+        console.log("SLIP ELIGIBILITY CHECK:", {
+            requestId: request.id,
+            ownerApproval: request.owner_approval,
+            isOwnerApproved: isOwnerApproved(request),
+            linkedPayments: linkedPayments.length,
+            approvedPayments: approvedPayments.length
+        });
 
+        // Existing EGC approval conditions
         if (
             !isOwnerApproved(request) ||
             !approvedPayments.length
         ) {
+            console.warn("SLIP SKIPPED:", request.id);
             return;
         }
 
@@ -955,31 +1033,58 @@ function buildCustomerSlips(requests) {
             }, 0);
 
         slips.push({
+
             id: String(request.id),
+
             type: "request",
+
             slipNumber: getRequestSlipNumber(request),
+
             requestNumber: getRequestNumber(request),
+
             customerName: getCustomerName(request),
+
             customerCode: getCustomerEGCCode(request),
+
             customerMobile: getCustomerMobile(request),
+
             customerEmail: getCustomerEmail(request),
+
             amount: totalApprovedPaymentAmount,
+
             status: getRequestStatus(request),
+
             agencyStatus: getAgencyStatus(request),
+
             deliveryStatus: getDeliveryStatus(request),
+
             date: getRequestDate(request),
+
             raw: request,
+
             payments: linkedPayments,
-            approvedPayments,
-            latestPayment,
+
+            approvedPayments: approvedPayments,
+
+            latestPayment: latestPayment,
+
             paymentCount: linkedPayments.length
+
         });
+
     });
 
-    slips.sort((a, b) =>
-        getTimestamp(b.date) - getTimestamp(a.date)
-    );
+    // Latest Activity Sorting
+    slips.sort((a, b) => {
 
+        return (
+            getLatestSlipActivity(b.raw) -
+            getLatestSlipActivity(a.raw)
+        );
+
+    });
+
+    // IMPORTANT: Return slips array
     return slips;
 }
 
@@ -1027,7 +1132,35 @@ async function loadSlips() {
         profileMap = createProfileMap(profiles);
         paymentRecords = payments || [];
 
-        allSlips = buildCustomerSlips(requestRecords);
+        const builtSlips = buildCustomerSlips(requestRecords);
+
+        console.log("========== EGC SLIP DEBUG ==========");
+
+console.table(requestRecords.map(request => ({
+    request_id: request.id,
+    request_number: getRequestNumber(request),
+    owner_approval: request.owner_approval,
+    request_status: request.status,
+    linked_payments: getPaymentsForRequest(request).length,
+    approved_payments: getPaymentsForRequest(request).filter(isPaymentApproved).length
+})));
+
+console.table(paymentRecords.map(payment => ({
+    payment_id: payment.id,
+    request_id: getPaymentRequestId(payment),
+    request_number: getPaymentRequestNumber(payment),
+    payment_status: getPaymentStatus(payment),
+    approval_status: getPaymentApprovalStatus(payment),
+    is_approved: isPaymentApproved(payment)
+})));
+
+console.log("===================================");
+
+allSlips = Array.isArray(builtSlips)
+    ? builtSlips
+    : [];
+
+console.log("[EGC] Built slips:", allSlips);
 
         updateStats();
         updatePendingCount(requestRecords, paymentRecords);
@@ -1039,16 +1172,22 @@ async function loadSlips() {
         console.info("[EGC] Payments loaded:", paymentRecords.length);
         console.info("[EGC] Eligible slips:", allSlips.length);
 
-        console.table(allSlips.map(slip => ({
-            request_number: slip.requestNumber,
-            slip_number: slip.slipNumber,
-            customer: slip.customerName,
-            egc_user_id: slip.customerCode,
-            mobile: slip.customerMobile,
-            email: slip.customerEmail,
-            payment_count: slip.paymentCount,
-            approved_payment_count: slip.approvedPayments.length
-        })));
+console.table(
+    (Array.isArray(allSlips) ? allSlips : []).map(slip => ({
+        request_number: slip.requestNumber || "—",
+        slip_number: slip.slipNumber || "—",
+        customer: slip.customerName || "—",
+        egc_user_id: slip.customerCode || "—",
+        mobile: slip.customerMobile || "—",
+        email: slip.customerEmail || "—",
+        payment_count: Array.isArray(slip.payments)
+            ? slip.payments.length
+            : 0,
+        approved_payment_count: Array.isArray(slip.approvedPayments)
+            ? slip.approvedPayments.length
+            : 0
+    }))
+);
 
     } catch (error) {
         console.error("Unable to load slips:", error);
@@ -1071,13 +1210,126 @@ async function loadSlips() {
             "error"
         );
 
-    } finally {
-        loadingSlips = false;
+} finally {
+    loadingSlips = false;
+
+    // अगर loading के दौरान कोई नया database update आया हो
+    if (realtimeReloadPending) {
+        realtimeReloadPending = false;
+
+        setTimeout(() => {
+            loadSlips();
+        }, 300);
     }
+}
+}
+
+/* =========================================================
+   REALTIME UPDATE — AGENCY SLIPS
+
+   Listen to:
+   1. cylinder_requests
+   2. payments
+   3. profiles
+
+   Database changes पर Slips automatically reload होंगे.
+   ========================================================= */
+
+function scheduleSlipsRealtimeRefresh() {
+    clearTimeout(realtimeRefreshTimer);
+
+    realtimeRefreshTimer = setTimeout(() => {
+        if (loadingSlips) {
+            realtimeReloadPending = true;
+            return;
+        }
+
+        loadSlips();
+    }, 700);
+}
+
+
+function startSlipsRealtime() {
+    if (!agencyId) return;
+
+    // Existing channel को पहले बंद करें
+    if (slipsRealtimeChannel) {
+        supabaseClient.removeChannel(slipsRealtimeChannel);
+        slipsRealtimeChannel = null;
+    }
+
+    slipsRealtimeChannel = supabaseClient
+        .channel("egc-agency-slips-realtime-" + agencyId)
+
+        // New / Updated / Deleted Requests
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests",
+                filter: "agency_id=eq." + String(agencyId)
+            },
+            payload => {
+                console.log(
+                    "[EGC Slips] Request activity:",
+                    payload.eventType
+                );
+
+                scheduleSlipsRealtimeRefresh();
+            }
+        )
+
+        // New / Updated / Deleted Payments
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+                console.log(
+                    "[EGC Slips] Payment activity:",
+                    payload.eventType
+                );
+
+                scheduleSlipsRealtimeRefresh();
+            }
+        )
+
+        // Customer Profile Updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+                console.log(
+                    "[EGC Slips] Customer profile activity:",
+                    payload.eventType
+                );
+
+                scheduleSlipsRealtimeRefresh();
+            }
+        )
+
+        .subscribe(status => {
+            console.log(
+                "[EGC Slips] Realtime status:",
+                status
+            );
+        });
 }
 
 /* =========================================================
    STATISTICS
+   ========================================================= */
+
+/* =========================================================
+   STATISTICS — ERROR FIX
    ========================================================= */
 
 function updateStats() {
@@ -1086,23 +1338,47 @@ function updateStats() {
     const paymentSlips = $("paymentSlips");
     const totalAmount = $("totalAmount");
 
-    const requestCount = allSlips.length;
+    // Safe array
+    const slips = Array.isArray(allSlips) ? allSlips : [];
 
-    const withPayments = allSlips.filter(
-        slip => slip.approvedPayments.length > 0
-    ).length;
+    const requestCount = slips.length;
 
-    const paidAmount = allSlips.reduce((total, slip) => {
-        return total + slip.amount;
+    const withPayments = slips.filter(slip => {
+        return Array.isArray(slip.approvedPayments) &&
+               slip.approvedPayments.length > 0;
+    }).length;
+
+    const paidAmount = slips.reduce((total, slip) => {
+        const amount = Number(slip.amount || 0);
+
+        return total + (
+            Number.isFinite(amount) ? amount : 0
+        );
     }, 0);
 
-    if (totalSlips) totalSlips.textContent = requestCount;
-    if (requestSlips) requestSlips.textContent = requestCount;
-    if (paymentSlips) paymentSlips.textContent = withPayments;
-    if (totalAmount) totalAmount.textContent = formatMoney(paidAmount);
+    if (totalSlips) {
+        totalSlips.textContent = requestCount;
+    }
+
+    if (requestSlips) {
+        requestSlips.textContent = requestCount;
+    }
+
+    if (paymentSlips) {
+        paymentSlips.textContent = withPayments;
+    }
+
+    if (totalAmount) {
+        totalAmount.textContent = formatMoney(paidAmount);
+    }
 }
 
-function updatePendingCount(requests, payments) {
+/* =========================================================
+   PENDING COUNT — FIX
+   ========================================================= */
+
+function updatePendingCount(requests = [], payments = []) {
+
     const pendingStatuses = [
         "pending",
         "pending_approval",
@@ -1114,17 +1390,28 @@ function updatePendingCount(requests, payments) {
         "pending_verification"
     ];
 
-    const pendingRequests = (requests || []).filter(request => {
+    const safeRequests = Array.isArray(requests)
+        ? requests
+        : [];
+
+    const safePayments = Array.isArray(payments)
+        ? payments
+        : [];
+
+    const pendingRequests = safeRequests.filter(request => {
         return pendingStatuses.includes(
             normalizeStatus(getRequestStatus(request))
         );
     }).length;
 
-    const pendingPayments = (payments || []).filter(payment => {
-        return pendingStatuses.includes(
-            normalizeStatus(getPaymentStatus(payment))
-        ) || pendingStatuses.includes(
-            normalizeStatus(getPaymentApprovalStatus(payment))
+    const pendingPayments = safePayments.filter(payment => {
+        return (
+            pendingStatuses.includes(
+                normalizeStatus(getPaymentStatus(payment))
+            ) ||
+            pendingStatuses.includes(
+                normalizeStatus(getPaymentApprovalStatus(payment))
+            )
         );
     }).length;
 
@@ -1139,7 +1426,12 @@ function updatePendingCount(requests, payments) {
    SEARCH + FILTERS
    ========================================================= */
 
+/* =========================================================
+   SEARCH + FILTERS — SAFE VERSION
+   ========================================================= */
+
 function applyFilters() {
+
     const search = String(
         $("searchInput")?.value || ""
     ).trim().toLowerCase();
@@ -1147,35 +1439,57 @@ function applyFilters() {
     const type = $("typeFilter")?.value || "all";
     const status = $("statusFilter")?.value || "all";
 
-    filteredSlips = allSlips.filter(slip => {
+    // Ensure allSlips is always an array
+    const safeSlips = Array.isArray(allSlips)
+        ? allSlips
+        : [];
+
+    // Latest Activity Sorting
+    const sortedSlips = [...safeSlips].sort((a, b) => {
+        return (
+            getLatestSlipActivity(b?.raw) -
+            getLatestSlipActivity(a?.raw)
+        );
+    });
+
+    filteredSlips = sortedSlips.filter(slip => {
+
+        const approvedPayments = Array.isArray(
+            slip?.approvedPayments
+        ) ? slip.approvedPayments : [];
+
+        const payments = Array.isArray(
+            slip?.payments
+        ) ? slip.payments : [];
+
         if (
             type === "payment" &&
-            !slip.approvedPayments.length
+            approvedPayments.length === 0
         ) {
             return false;
         }
 
-        if (type === "request" && !slip.id) {
+        if (type === "request" && !slip?.id) {
             return false;
         }
 
         if (status !== "all") {
+
             const wanted = normalizeStatus(status);
 
             const requestMatches =
-                normalizeStatus(slip.status) === wanted;
+                normalizeStatus(slip?.status) === wanted;
 
             const agencyMatches =
-                normalizeStatus(slip.agencyStatus) === wanted;
+                normalizeStatus(slip?.agencyStatus) === wanted;
 
             const deliveryMatches =
-                normalizeStatus(slip.deliveryStatus) === wanted;
+                normalizeStatus(slip?.deliveryStatus) === wanted;
 
-            const paymentMatches =
-                slip.approvedPayments.some(payment =>
-                    normalizeStatus(getPaymentStatus(payment)) === wanted ||
-                    normalizeStatus(getPaymentApprovalStatus(payment)) === wanted
-                );
+            const paymentMatches = approvedPayments.some(payment =>
+                normalizeStatus(getPaymentStatus(payment)) === wanted ||
+                normalizeStatus(getPaymentApprovalStatus(payment)) === wanted
+            );
 
             if (
                 !requestMatches &&
@@ -1188,18 +1502,19 @@ function applyFilters() {
         }
 
         if (search) {
+
             const searchableValues = [
-                slip.slipNumber,
-                slip.requestNumber,
-                slip.customerName,
-                slip.customerCode,
-                slip.customerMobile,
-                slip.customerEmail,
-                slip.status,
-                slip.agencyStatus,
-                slip.deliveryStatus,
-                ...slip.payments.map(getPaymentSlipNumber),
-                ...slip.payments.map(getPaymentStatus)
+                slip?.slipNumber,
+                slip?.requestNumber,
+                slip?.customerName,
+                slip?.customerCode,
+                slip?.customerMobile,
+                slip?.customerEmail,
+                slip?.status,
+                slip?.agencyStatus,
+                slip?.deliveryStatus,
+                ...payments.map(getPaymentSlipNumber),
+                ...payments.map(getPaymentStatus)
             ];
 
             const searchable = searchableValues
@@ -1982,13 +2297,18 @@ async function initializePage() {
     setupEventListeners();
 
     try {
-        const authenticated = await loadAgency();
+     const authenticated = await loadAgency();
 
-        if (!authenticated) return;
+if (!authenticated) return;
 
-        loadNotifications();
+loadNotifications();
 
-        await loadSlips();
+// Start Realtime Updates
+startSlipsRealtime();
+
+// Initial Slips Load
+await loadSlips();
+
     } catch (error) {
         console.error("Agency slips initialization failed:", error);
 

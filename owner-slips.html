@@ -2043,6 +2043,8 @@ let currentPage = 1;
 let currentPayment = null;
 let paymentsRealtimeChannel = null;
 let isLoadingPayments = false;
+let paymentsReloadQueued = false;
+let paymentsRealtimeTimer = null;
 let isSigningOut = false;
 let isPrinting = false;
 let activePrintWindow = null;
@@ -2202,6 +2204,66 @@ function getPaymentMethod(payment) {
         ["payment_method", "method", "mode"],
         "UPI"
     );
+}
+
+/* =========================================================
+   LATEST ACTIVITY SORTING
+========================================================= */
+
+function getLatestActivityTimestamp(payment) {
+    if (!payment) return 0;
+
+    const request = payment.__request || {};
+
+    const timestamps = [
+        // Payment activity
+        payment.updated_at,
+        payment.verified_at,
+        payment.owner_approved_at,
+        payment.approved_at,
+        payment.paid_at,
+        payment.payment_date,
+        payment.created_at,
+
+        // Related request activity
+        request.updated_at,
+        request.approved_at,
+        request.owner_rejected_at,
+        request.agency_updated_at,
+        request.delivered_at,
+        request.delivery_date,
+        request.created_at,
+        request.request_date
+    ];
+
+    const validTimes = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value =>
+            Number.isFinite(value) && value > 0
+        );
+
+    return validTimes.length
+        ? Math.max(...validTimes)
+        : 0;
+}
+
+function sortPaymentsByLatestActivity(list) {
+    return [...list].sort((a, b) => {
+        return (
+            getLatestActivityTimestamp(b) -
+            getLatestActivityTimestamp(a)
+        );
+    });
+}
+
+function sortGroupsByLatestActivity(groups) {
+    return [...groups].sort((a, b) => {
+        return (
+            (b.latestActivity || 0) -
+            (a.latestActivity || 0)
+        );
+    });
 }
 
 /* =========================================================
@@ -2617,7 +2679,12 @@ async function enrichPayments(payments) {
 ========================================================= */
 
 async function loadPayments() {
-    if (isLoadingPayments || !paymentsBody) return;
+    if (isLoadingPayments) {
+        paymentsReloadQueued = true;
+        return;
+    }
+
+    if (!paymentsBody) return;
 
     isLoadingPayments = true;
 
@@ -2686,8 +2753,16 @@ async function loadPayments() {
         renderPagination();
 
     } finally {
-        isLoadingPayments = false;
+    isLoadingPayments = false;
+
+    if (paymentsReloadQueued) {
+        paymentsReloadQueued = false;
+
+        setTimeout(() => {
+            loadPayments();
+        }, 150);
     }
+}
 }
 
 /* =========================================================
@@ -2745,7 +2820,7 @@ function groupPaymentsByUser(payments) {
         }
     });
 
-    return [...groups.values()].map(group => {
+    const result = [...groups.values()].map(group => {
         const firstPayment = group.payments[0];
 
         const paidList = group.payments.filter(
@@ -2765,19 +2840,29 @@ function groupPaymentsByUser(payments) {
             0
         );
 
-        return {
-            ...group,
-            name: getFinalCustomerName(firstPayment),
-            phone: getFinalCustomerPhone(firstPayment),
-            readableId: getReadableUserId(firstPayment),
-            totalCount: group.payments.length,
-            paidCount: paidList.length,
-            pendingCount: pendingList.length,
-            failedCount: failedList.length,
-            paidTotal,
-            firstDate: getPaymentDate(firstPayment)
-        };
+return {
+    ...group,
+    name: getFinalCustomerName(firstPayment),
+    phone: getFinalCustomerPhone(firstPayment),
+    readableId: getReadableUserId(firstPayment),
+    totalCount: group.payments.length,
+    paidCount: paidList.length,
+    pendingCount: pendingList.length,
+    failedCount: failedList.length,
+    paidTotal,
+    firstDate: getPaymentDate(firstPayment),
+
+    latestActivity: Math.max(
+        ...group.payments.map(payment =>
+            getLatestActivityTimestamp(payment)
+        )
+    )
+};
     });
+
+    return sortGroupsByLatestActivity(
+        result
+    );
 }
 
 /* =========================================================
@@ -2820,8 +2905,8 @@ function applyFilters() {
         return searchable.includes(search);
     });
 
-    filteredGroups = groups;
-    currentPage = 1;
+filteredGroups = sortGroupsByLatestActivity(groups);
+currentPage = 1;
 
     renderPayments();
     updateStats();
@@ -3629,23 +3714,61 @@ async function performLogout() {
 }
 
 /* =========================================================
-   REALTIME
+   REALTIME — PAYMENTS + REQUESTS + PROFILES
 ========================================================= */
 
 function stopPaymentsRealtime() {
+
+    if (paymentsRealtimeTimer) {
+        clearTimeout(paymentsRealtimeTimer);
+        paymentsRealtimeTimer = null;
+    }
+
     if (!paymentsRealtimeChannel) return;
 
     const channel = paymentsRealtimeChannel;
     paymentsRealtimeChannel = null;
 
-    supabaseClient.removeChannel(channel).catch(console.warn);
+    supabaseClient.removeChannel(channel).catch(error => {
+        console.warn(
+            "Payments Realtime removal error:",
+            error
+        );
+    });
+}
+
+function schedulePaymentsRefresh() {
+
+    clearTimeout(paymentsRealtimeTimer);
+
+    paymentsRealtimeTimer = setTimeout(() => {
+
+        paymentsRealtimeTimer = null;
+
+        if (isSigningOut) return;
+
+        console.log(
+            "Refreshing Owner Slips after latest activity..."
+        );
+
+        loadPayments();
+
+    }, 700);
 }
 
 function startPaymentsRealtime() {
+
     stopPaymentsRealtime();
 
+    console.log(
+        "Starting Owner Slips Realtime..."
+    );
+
     paymentsRealtimeChannel = supabaseClient
-        .channel("owner-payments-realtime")
+
+        .channel("owner-slips-realtime")
+
+        // Payment INSERT / UPDATE / DELETE
         .on(
             "postgres_changes",
             {
@@ -3653,15 +3776,95 @@ function startPaymentsRealtime() {
                 schema: "public",
                 table: PAYMENT_TABLE
             },
-            () => {
-                loadPayments();
+            payload => {
+
+                console.log(
+                    "Payments Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
+                schedulePaymentsRefresh();
             }
         )
-        .subscribe(status => {
-            console.log("EGC Owner payment updates:", status);
+
+        // Request INSERT / UPDATE / DELETE
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: REQUEST_TABLE
+            },
+            payload => {
+
+                console.log(
+                    "Request Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
+                schedulePaymentsRefresh();
+            }
+        )
+
+        // Customer Profile changes
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: PROFILE_TABLE
+            },
+            payload => {
+
+                console.log(
+                    "Profile Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
+                schedulePaymentsRefresh();
+            }
+        )
+
+        .subscribe((status, error) => {
+
+            console.log(
+                "EGC Owner Slips Realtime Status:",
+                status
+            );
+
+            if (status === "SUBSCRIBED") {
+
+                console.log(
+                    "✅ Owner Slips Realtime Connected"
+                );
+            }
+
+            if (status === "CHANNEL_ERROR") {
+
+                console.error(
+                    "❌ Owner Slips Realtime Error:",
+                    error
+                );
+            }
+
+            if (status === "TIMED_OUT") {
+
+                console.warn(
+                    "⚠️ Owner Slips Realtime Timed Out"
+                );
+            }
+
+            if (status === "CLOSED") {
+
+                console.warn(
+                    "Owner Slips Realtime Channel Closed"
+                );
+            }
         });
 }
-
 /* =========================================================
    AUTH STATE
 ========================================================= */
@@ -3712,19 +3915,53 @@ async function initOwnerSlips() {
 initOwnerSlips();
 
 /* =========================================================
-   CLEANUP
+   CLEANUP + PAGE RESTORE
 ========================================================= */
 
 window.addEventListener("pagehide", () => {
+
     stopPaymentsRealtime();
 
     authListener?.subscription?.unsubscribe();
 
-    if (activePrintWindow && !activePrintWindow.closed) {
+    if (
+        activePrintWindow &&
+        !activePrintWindow.closed
+    ) {
         try {
             activePrintWindow.close();
         } catch {}
     }
+});
+
+window.addEventListener("pageshow", async event => {
+
+    if (!event.persisted) return;
+
+    console.log(
+        "Owner Slips page restored from BFCache."
+    );
+
+    const sessionOK = await checkOwnerSession();
+
+    if (!sessionOK) return;
+
+    await loadPayments();
+
+    startPaymentsRealtime();
+});
+
+document.addEventListener("visibilitychange", () => {
+
+    if (
+        document.visibilityState !== "visible" ||
+        !paymentsRealtimeChannel ||
+        isSigningOut
+    ) {
+        return;
+    }
+
+    loadPayments();
 });
 </script>
 

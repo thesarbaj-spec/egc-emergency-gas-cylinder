@@ -566,6 +566,7 @@ let filteredRecords = [];
 let currentPage = 1;
 const rowsPerPage = 10;
 let isLoading = false;
+let repaymentReloadQueued = false;
 let toastTimer = null;
 
 /* =========================================================
@@ -712,6 +713,43 @@ function isRejectedPayment(payment) {
     [
         "rejected", "failed"
     ].includes(normalizeStatus(payment.verification_status));
+}
+
+/* =========================================================
+   LATEST ACTIVITY SORTING
+========================================================= */
+
+function getLatestActivityTimestamp(request, payments = []) {
+    const timestamps = [
+        request?.updated_at,
+        request?.agency_updated_at,
+        request?.delivered_at,
+        request?.delivery_date,
+        request?.created_at,
+        request?.request_date,
+        ...payments.flatMap(payment => [
+            payment?.updated_at,
+            payment?.verified_at,
+            payment?.owner_approved_at,
+            payment?.payment_date,
+            payment?.created_at
+        ])
+    ];
+
+    const validTimes = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value => Number.isFinite(value) && value > 0);
+
+    return validTimes.length
+        ? Math.max(...validTimes)
+        : 0;
+}
+
+function sortRepaymentsByLatestActivity(records) {
+    return [...records].sort((a, b) => {
+        return (b.latestActivity || 0) - (a.latestActivity || 0);
+    });
 }
 
 /* =========================================================
@@ -892,7 +930,10 @@ async function fetchAllRows(table, columns = "*", orderColumn = "created_at") {
 }
 
 async function loadRepayments() {
-    if (isLoading) return;
+    if (isLoading) {
+    repaymentReloadQueued = true;
+    return;
+}
 
     isLoading = true;
     $("refreshBtn").disabled = true;
@@ -932,7 +973,8 @@ async function loadRepayments() {
             paymentsByRequest.get(key).push(payment);
         });
 
-        requestRecords = requestsResult.map(request => {
+        requestRecords = sortRepaymentsByLatestActivity(
+    requestsResult.map(request => {
             const profile = profileMap.get(String(request.user_id)) || {};
             const agency = agencyMap.get(String(request.agency_id)) || {};
 
@@ -943,6 +985,11 @@ async function loadRepayments() {
                 const dateB = new Date(b.payment_date || b.created_at || 0).getTime();
                 return dateA - dateB;
             });
+
+            const latestActivity = getLatestActivityTimestamp(
+    request,
+    requestPayments
+);
 
             const cylinderAmount = num(firstValue(request, [
                 "cylinder_amount",
@@ -1046,6 +1093,7 @@ const totalPayable = cylinderAmount + extraCharge;
 
             return {
                 id: request.id,
+                latestActivity,
                 userId: request.user_id,
                 name: customerName,
                 mobile: customerMobile,
@@ -1067,8 +1115,9 @@ const totalPayable = cylinderAmount + extraCharge;
                 paymentHistory: requestPayments,
                 verifiedPayments,
                 request
-            };
-        });
+               };
+    })
+);
 
         /*
          * Requests are the primary rows, so requests without any payments
@@ -1096,10 +1145,19 @@ const totalPayable = cylinderAmount + extraCharge;
 
         showToast("Loading Failed", error.message || "Could not load repayment records.");
     } finally {
-        isLoading = false;
-        $("refreshBtn").disabled = false;
-        $("refreshBtn").textContent = "↻ Refresh";
+    isLoading = false;
+
+    $("refreshBtn").disabled = false;
+    $("refreshBtn").textContent = "↻ Refresh";
+
+    if (repaymentReloadQueued) {
+        repaymentReloadQueued = false;
+
+        setTimeout(() => {
+            loadRepayments();
+        }, 150);
     }
+}
 }
 
 /* =========================================================
@@ -1155,42 +1213,47 @@ function updateSummary(records) {
 /* =========================================================
    FILTERS
 ========================================================= */
-
 function applyFilters() {
     const search = $("searchInput").value.trim().toLowerCase();
     const status = $("statusFilter").value;
 
-    filteredRecords = requestRecords.filter(record => {
-        const text = [
-            record.name,
-            record.mobile,
-            record.email,
-            record.userCode,
-            record.requestNumber,
-            record.id,
-            record.company,
-            record.agencyName
-        ].join(" ").toLowerCase();
+    filteredRecords = sortRepaymentsByLatestActivity(
+        requestRecords.filter(record => {
+            const text = [
+                record.name,
+                record.mobile,
+                record.email,
+                record.userCode,
+                record.requestNumber,
+                record.id,
+                record.company,
+                record.agencyName
+            ].join(" ").toLowerCase();
 
-        const matchesSearch = !search || text.includes(search);
+            const matchesSearch = !search || text.includes(search);
 
-        let matchesStatus = status === "all";
+            let matchesStatus = status === "all";
 
-        if (status === "pending") {
-            matchesStatus = record.remaining > 0 && record.deposited <= 0;
-        } else if (status === "partial") {
-            matchesStatus = record.remaining > 0 && record.deposited > 0;
-        } else if (status === "paid") {
-            matchesStatus = record.remaining <= 0 && record.totalPayable > 0;
-        }
+            if (status === "pending") {
+                matchesStatus =
+                    record.remaining > 0 && record.deposited <= 0;
 
-        return matchesSearch && matchesStatus;
-    });
+            } else if (status === "partial") {
+                matchesStatus =
+                    record.remaining > 0 && record.deposited > 0;
+
+            } else if (status === "paid") {
+                matchesStatus =
+                    record.remaining <= 0 && record.totalPayable > 0;
+            }
+
+            return matchesSearch && matchesStatus;
+        })
+    );
 
     currentPage = 1;
     renderTable();
 }
-
 /* =========================================================
    TABLE
 ========================================================= */
@@ -1461,6 +1524,166 @@ $("exportBtn").addEventListener("click", () => {
 });
 
 /* =========================================================
+   EGC OWNER REPAYMENTS - SUPABASE REALTIME
+========================================================= */
+
+let repaymentRealtimeChannel = null;
+let repaymentRealtimeTimer = null;
+let repaymentRealtimeActive = false;
+
+function scheduleRepaymentRealtimeRefresh() {
+    clearTimeout(repaymentRealtimeTimer);
+
+    repaymentRealtimeTimer = setTimeout(() => {
+        if (!document.hidden) {
+            loadRepayments();
+        }
+    }, 700);
+}
+
+function stopRepaymentRealtime() {
+    repaymentRealtimeActive = false;
+
+    clearTimeout(repaymentRealtimeTimer);
+
+    if (repaymentRealtimeChannel) {
+        supabaseClient.removeChannel(repaymentRealtimeChannel);
+        repaymentRealtimeChannel = null;
+    }
+}
+
+function startRepaymentRealtime() {
+    if (!supabaseClient) return;
+
+    stopRepaymentRealtime();
+
+    const channel = supabaseClient
+        .channel("egc-owner-repayments-realtime")
+
+        // Request updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+                console.log(
+                    "Repayment Request Activity:",
+                    payload.eventType
+                );
+
+                scheduleRepaymentRealtimeRefresh();
+            }
+        )
+
+        // Payment and repayment updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+                console.log(
+                    "Repayment Payment Activity:",
+                    payload.eventType
+                );
+
+                scheduleRepaymentRealtimeRefresh();
+            }
+        )
+
+        // Customer profile updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+                console.log(
+                    "Repayment Profile Activity:",
+                    payload.eventType
+                );
+
+                scheduleRepaymentRealtimeRefresh();
+            }
+        )
+
+        // Agency updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "agencies"
+            },
+            payload => {
+                console.log(
+                    "Repayment Agency Activity:",
+                    payload.eventType
+                );
+
+                scheduleRepaymentRealtimeRefresh();
+            }
+        );
+
+    repaymentRealtimeChannel = channel;
+
+    channel.subscribe(status => {
+        console.log(
+            "EGC Owner Repayments Realtime:",
+            status
+        );
+
+        if (status === "SUBSCRIBED") {
+            repaymentRealtimeActive = true;
+
+            console.log(
+                "EGC Owner Repayments Realtime Connected Successfully."
+            );
+        }
+
+        if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+        ) {
+            repaymentRealtimeActive = false;
+
+            console.warn(
+                "EGC Repayments Realtime Disconnected:",
+                status
+            );
+        }
+    });
+}
+
+// Stop subscription when leaving the page
+window.addEventListener("pagehide", () => {
+    stopRepaymentRealtime();
+});
+
+// Restore subscription after BFCache navigation
+window.addEventListener("pageshow", event => {
+    if (event.persisted) {
+        startRepaymentRealtime();
+        loadRepayments();
+    }
+});
+
+// Refresh when returning to the browser tab
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        loadRepayments();
+    }
+});
+
+/* =========================================================
    LOGOUT
 ========================================================= */
 
@@ -1548,9 +1771,12 @@ document.addEventListener("keydown", event => {
 
 (async function initOwnerRepayments() {
     const authenticated = await checkOwnerSession();
+
     if (!authenticated) return;
 
     await loadRepayments();
+
+    startRepaymentRealtime();
 })();
 </script>
 </body>

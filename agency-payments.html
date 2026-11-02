@@ -337,6 +337,59 @@ button{cursor:pointer}
 .sidebar::-webkit-scrollbar-thumb,.notification-list::-webkit-scrollbar-thumb{background:#d8e7f0;border-radius:10px}
 .table-wrap::-webkit-scrollbar{height:7px}
 .table-wrap::-webkit-scrollbar-thumb{background:#d5e5ee;border-radius:10px}
+/* INITIAL PAYMENT RECORDS — FIXED HEIGHT */
+.table-card{
+    display:flex;
+    flex-direction:column;
+    height:550px;
+    max-height:550px;
+    min-height:0;
+}
+
+.table-card > .table-top{
+    flex:0 0 auto;
+}
+
+.table-card > .table-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+.table-card .request-table thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    background:#f7fafc;
+}
+
+.table-card > .table-wrap::-webkit-scrollbar{
+    width:6px;
+    height:7px;
+}
+
+.table-card > .table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+@media(max-width:800px){
+    .table-card{
+        height:500px;
+        max-height:500px;
+    }
+}
+
+@media(max-width:520px){
+    .table-card{
+        height:460px;
+        max-height:460px;
+    }
+}
+
 </style>
 </head>
 
@@ -381,14 +434,10 @@ button{cursor:pointer}
     <button class="nav-btn" id="dashboardBtn"><span class="nav-icon">📊</span><span>Dashboard</span></button>
     <button class="nav-btn" id="customersBtn"><span class="nav-icon">👥</span><span>Customers</span></button>
     <button class="nav-btn" id="requestsBtn"><span class="nav-icon">🛢️</span><span>Cylinder Requests</span></button>
-    <button class="nav-btn" id="requestDetailsBtn"><span class="nav-icon">📋</span><span>Request Details</span></button>
     <button class="nav-btn active" id="paymentsBtn"><span class="nav-icon">💳</span><span>Payments</span></button>
-    <button class="nav-btn" id="repaymentsBtn"><span class="nav-icon">💰</span><span>Repayments</span></button>
     <button class="nav-btn" id="deliveriesBtn"><span class="nav-icon">🚚</span><span>Deliveries</span></button>
-    <button class="nav-btn" id="pendingBtn"><span class="nav-icon">⏳</span><span>Pending / On Hold</span></button>
-    <button class="nav-btn" id="slipsBtn"><span class="nav-icon">🧾</span><span>Request / Payment Slips</span></button>
+    <button class="nav-btn" id="slipsBtn"><span class="nav-icon">📄</span><span>Request / Payment Slips</span></button>
     <button class="nav-btn" id="notificationsBtn"><span class="nav-icon">🔔</span><span>Notifications</span></button>
-    <button class="nav-btn" id="reportsBtn"><span class="nav-icon">📈</span><span>Reports</span></button>
     <button class="nav-btn" id="settingsBtn"><span class="nav-icon">⚙️</span><span>Settings</span></button>
     <button class="nav-btn" id="aboutBtn"><span class="nav-icon">ℹ️</span><span>About</span></button>
 
@@ -1036,6 +1085,55 @@ function paymentDate(request) {
     );
 }
 
+/* =========================================
+   LATEST ACTIVITY SORTING
+========================================= */
+
+function latestActivityTimestamp(request) {
+    const timestamps = [];
+
+    function addDates(obj) {
+        if (!obj) return;
+
+        [
+            "updated_at",
+            "created_at",
+            "request_date",
+            "payment_date",
+            "payment_verified_at",
+            "verified_at",
+            "paid_at",
+            "payment_submitted_at",
+            "agency_updated_at",
+            "delivered_at",
+            "delivery_date"
+        ].forEach(key => {
+            const value = obj[key];
+            if (!value) return;
+
+            const time = new Date(value).getTime();
+
+            if (Number.isFinite(time)) {
+                timestamps.push(time);
+            }
+        });
+    }
+
+    // Request activity
+    addDates(request);
+
+    // Customer profile activity
+    const customer = customerFor(request);
+    addDates(customer);
+
+    // Payment activity
+    paymentsFor(request).forEach(payment => {
+        addDates(payment);
+    });
+
+    return timestamps.length ? Math.max(...timestamps) : 0;
+}
+
 /* ---------------- OWNER APPROVAL ---------------- */
 
 function isOwnerApproved(request) {
@@ -1331,7 +1429,12 @@ function render() {
     const statusFilter = normalize(paymentFilter?.value || "");
     const monthValue = monthFilter?.value ?? "";
 
-    const filtered = requests.filter(request => {
+    // Latest Activity वाली Request सबसे ऊपर
+const sortedRequests = [...requests].sort((a, b) => {
+    return latestActivityTimestamp(b) - latestActivityTimestamp(a);
+});
+
+const filtered = sortedRequests.filter(request => {
         /*
           Preserve the original Owner approval filter.
         */
@@ -2109,15 +2212,35 @@ document.addEventListener("keydown", event => {
 
 /* ---------------- REALTIME REQUEST UPDATES ---------------- */
 
+/* =========================================
+   REALTIME REQUEST + PAYMENT + PROFILE
+========================================= */
+
+let realtimeRefreshTimer = null;
+
+function scheduleRealtimeRefresh(source = "database") {
+    console.log("[EGC Realtime] Update:", source);
+
+    clearTimeout(realtimeRefreshTimer);
+
+    realtimeRefreshTimer = setTimeout(() => {
+        void load();
+    }, 500);
+}
+
+
 function subscribeRequestUpdates() {
     if (!agencyId) return;
 
     if (requestChannel) {
         supabaseClient.removeChannel(requestChannel);
+        requestChannel = null;
     }
 
     requestChannel = supabaseClient
         .channel(`agency-payment-status-${agencyId}`)
+
+        // Request updates
         .on(
             "postgres_changes",
             {
@@ -2127,11 +2250,49 @@ function subscribeRequestUpdates() {
                 filter: `agency_id=eq.${agencyId}`
             },
             () => {
-                void load();
+                scheduleRealtimeRefresh("cylinder_requests");
             }
         )
+
+        // Payment updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            () => {
+                scheduleRealtimeRefresh("payments");
+            }
+        )
+
+        // Customer profile updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            () => {
+                scheduleRealtimeRefresh("profiles");
+            }
+        )
+
         .subscribe(status => {
-            console.log("Payment status realtime:", status);
+            console.log("[EGC Realtime] Payment page:", status);
+
+            if (status === "SUBSCRIBED") {
+                console.log("[EGC Realtime] Successfully connected.");
+            }
+
+            if (
+                status === "CHANNEL_ERROR" ||
+                status === "TIMED_OUT"
+            ) {
+                console.error("[EGC Realtime] Connection error:", status);
+            }
         });
 }
 

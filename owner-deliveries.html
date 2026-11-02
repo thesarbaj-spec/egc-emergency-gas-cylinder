@@ -388,6 +388,7 @@ let filteredDeliveries = [];
 let selectedDelivery = null;
 let toastTimer = null;
 let isLoading = false;
+let deliveryReloadQueued = false;
 let isSaving = false;
 let currentOwnerId = null;
 
@@ -602,6 +603,40 @@ function statusBadge(status, fallback = "pending") {
   return `<span class="status ${getStatusClass(normalized)}">${escapeHtml(formatStatus(normalized))}</span>`;
 }
 
+/* =========================================================
+   LATEST ACTIVITY SORTING
+========================================================= */
+
+function getDeliveryActivityTimestamp(row) {
+    if (!row) return 0;
+
+    const timestamps = [
+        row.updated_at,
+        row.agency_updated_at,
+        row.delivered_at,
+        row.delivery_date,
+        row.created_at
+    ];
+
+    const validTimes = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value => Number.isFinite(value) && value > 0);
+
+    return validTimes.length
+        ? Math.max(...validTimes)
+        : 0;
+}
+
+function sortDeliveriesByLatestActivity(list) {
+    return [...list].sort((a, b) => {
+        return (
+            getDeliveryActivityTimestamp(b.raw) -
+            getDeliveryActivityTimestamp(a.raw)
+        );
+    });
+}
+
 /*
   IMPORTANT CUSTOMER FIX:
   Do not use "Customer" as a fallback name.
@@ -679,7 +714,10 @@ async function loadProfilesForRequests(requests) {
 
 /* LOAD RECORDS */
 async function loadDeliveries() {
-  if (isLoading) return;
+ if (isLoading) {
+    deliveryReloadQueued = true;
+    return;
+}
 
   isLoading = true;
   $("refreshBtn").disabled = true;
@@ -705,10 +743,12 @@ async function loadDeliveries() {
     const requestRows = [...uniqueRequests.values()];
     const profilesById = await loadProfilesForRequests(requestRows);
 
-    allDeliveries = requestRows.map(row => {
-      const profile = profilesById.get(String(row.user_id)) || null;
-      return normalizeDelivery(row, profile);
-    });
+allDeliveries = sortDeliveriesByLatestActivity(
+    requestRows.map(row => {
+        const profile = profilesById.get(String(row.user_id)) || null;
+        return normalizeDelivery(row, profile);
+    })
+);
 
     populateAgencyFilter();
     updateStats();
@@ -729,9 +769,18 @@ async function loadDeliveries() {
     showToast("Unable to load delivery records.");
   } finally {
     isLoading = false;
+
     $("refreshBtn").disabled = false;
     $("refreshBtn").textContent = "↻ Refresh";
-  }
+
+    if (deliveryReloadQueued) {
+        deliveryReloadQueued = false;
+
+        setTimeout(() => {
+            loadDeliveries();
+        }, 100);
+    }
+}
 }
 
 async function loadPendingCount() {
@@ -786,28 +835,34 @@ function populateAgencyFilter() {
 
 /* FILTERING */
 function applyFilters() {
-  const search = $("searchInput").value.trim().toLowerCase();
-  const status = $("statusFilter").value;
-  const agency = $("agencyFilter").value;
+    const search = $("searchInput").value.trim().toLowerCase();
+    const status = $("statusFilter").value;
+    const agency = $("agencyFilter").value;
 
-  filteredDeliveries = allDeliveries.filter(item => {
-    const searchable = [
-      item.requestNumber, item.customer, item.mobile, item.email,
-      item.egcUserCode, item.company, item.agency, item.agencyId, item.city
-    ].join(" ").toLowerCase();
+    filteredDeliveries = sortDeliveriesByLatestActivity(
+        allDeliveries.filter(item => {
+            const searchable = [
+                item.requestNumber,
+                item.customer,
+                item.mobile,
+                item.email,
+                item.egcUserCode,
+                item.company,
+                item.agency,
+                item.agencyId,
+                item.city
+            ].join(" ").toLowerCase();
 
-    return (!search || searchable.includes(search)) &&
-      (status === "all" || item.deliveryStatus === status) &&
-      (agency === "all" || item.agency === agency);
-  });
+            return (
+                (!search || searchable.includes(search)) &&
+                (status === "all" || item.deliveryStatus === status) &&
+                (agency === "all" || item.agency === agency)
+            );
+        })
+    );
 
-  renderDeliveries();
+    renderDeliveries();
 }
-
-$("filterBtn").addEventListener("click", applyFilters);
-$("searchInput").addEventListener("input", applyFilters);
-$("statusFilter").addEventListener("change", applyFilters);
-$("agencyFilter").addEventListener("change", applyFilters);
 
 /* CUSTOMER PHOTO HELPERS */
 function getCustomerInitial(name) {
@@ -1027,6 +1082,130 @@ async function saveDeliveryUpdate() {
 
 $("saveDelivery").addEventListener("click", saveDeliveryUpdate);
 
+/* =========================================================
+   EGC OWNER DELIVERIES - SUPABASE REALTIME
+========================================================= */
+
+let deliveryRealtimeChannel = null;
+let deliveryRealtimeTimer = null;
+let deliveryRealtimeActive = false;
+
+function scheduleDeliveryRealtimeRefresh() {
+    clearTimeout(deliveryRealtimeTimer);
+
+    deliveryRealtimeTimer = setTimeout(() => {
+        if (!document.hidden) {
+            loadDeliveries();
+        }
+    }, 700);
+}
+
+function stopDeliveryRealtime() {
+    deliveryRealtimeActive = false;
+
+    clearTimeout(deliveryRealtimeTimer);
+
+    if (deliveryRealtimeChannel) {
+        supabaseClient.removeChannel(deliveryRealtimeChannel);
+        deliveryRealtimeChannel = null;
+    }
+}
+
+function startDeliveryRealtime() {
+    if (!supabaseClient) return;
+
+    stopDeliveryRealtime();
+
+    const channel = supabaseClient
+        .channel("egc-owner-deliveries-realtime")
+
+        // New, updated or deleted delivery requests
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+                console.log(
+                    "Delivery Request Activity:",
+                    payload.eventType
+                );
+
+                scheduleDeliveryRealtimeRefresh();
+            }
+        )
+
+        // Customer profile changes
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+                console.log(
+                    "Customer Profile Activity:",
+                    payload.eventType
+                );
+
+                scheduleDeliveryRealtimeRefresh();
+            }
+        );
+
+    deliveryRealtimeChannel = channel;
+
+    channel.subscribe(status => {
+        console.log(
+            "EGC Deliveries Realtime Status:",
+            status
+        );
+
+        if (status === "SUBSCRIBED") {
+            deliveryRealtimeActive = true;
+
+            console.log(
+                "EGC Deliveries Realtime Connected Successfully."
+            );
+        }
+
+        if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+        ) {
+            deliveryRealtimeActive = false;
+
+            console.warn(
+                "EGC Deliveries Realtime Disconnected:",
+                status
+            );
+        }
+    });
+}
+
+// Stop Realtime when page is closed
+window.addEventListener("pagehide", () => {
+    stopDeliveryRealtime();
+});
+
+// Restart after browser restores page from BFCache
+window.addEventListener("pageshow", event => {
+    if (event.persisted) {
+        startDeliveryRealtime();
+        loadDeliveries();
+    }
+});
+
+// Refresh when returning to this tab
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        loadDeliveries();
+    }
+});
+
 /* REFRESH */
 $("refreshBtn").addEventListener("click", async () => {
   await loadDeliveries();
@@ -1069,15 +1248,17 @@ document.addEventListener("keydown", event => {
 
 /* INITIALIZE */
 (async function initOwnerDeliveries() {
-  if (!window.supabase) {
-    showToast("Supabase library could not be loaded.");
-    return;
-  }
+    if (!window.supabase) {
+        showToast("Supabase library could not be loaded.");
+        return;
+    }
 
-  const authenticated = await checkOwnerSession();
-  if (!authenticated) return;
+    const authenticated = await checkOwnerSession();
+    if (!authenticated) return;
 
-  await loadDeliveries();
+    await loadDeliveries();
+
+    startDeliveryRealtime();
 })();
 </script>
 </body>

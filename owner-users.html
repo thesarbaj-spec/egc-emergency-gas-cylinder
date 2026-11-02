@@ -2477,6 +2477,13 @@ let isDeletingUser = false;
 let isLoggingOut = false;
 let realtimeChannel = null;
 let authCheckInProgress = false;
+/* LATEST ACTIVITY + REALTIME STATE */
+
+let realtimeRefreshTimer = null;
+let usersLoading = false;
+let usersReloadPending = false;
+
+let userActivityMap = new Map();
 
 function createEmptyEditDocuments() {
     return {
@@ -2500,6 +2507,78 @@ function escapeHtml(value) {
 }
 
 /* USER HELPERS */
+/* =====================================================
+   LATEST CUSTOMER ACTIVITY
+===================================================== */
+
+function getActivityTimestamp(row) {
+
+    if (!row || typeof row !== "object") return 0;
+
+    const fields = [
+        "updated_at",
+        "created_at",
+        "request_date",
+        "requested_at",
+        "submitted_at",
+        "payment_date",
+        "paid_at",
+        "payment_verified_at",
+        "verified_at",
+        "approved_at",
+        "delivery_date",
+        "delivered_at",
+        "delivery_updated_at",
+        "agency_updated_at",
+        "repayment_date",
+        "repayment_at"
+    ];
+
+    let latest = 0;
+
+    fields.forEach(field => {
+
+        const value = row[field];
+
+        if (!value) return;
+
+        const timestamp = new Date(value).getTime();
+
+        if (Number.isFinite(timestamp)) {
+            latest = Math.max(latest, timestamp);
+        }
+    });
+
+    return latest;
+}
+
+function getCustomerLatestActivity(user) {
+
+    const userId = String(user?.id || "");
+
+    return Math.max(
+        getActivityTimestamp(user),
+        userActivityMap.get(userId) || 0
+    );
+}
+
+function sortCustomersByLatestActivity(users) {
+
+    return [...(Array.isArray(users) ? users : [])].sort((a, b) => {
+
+        const activityDifference =
+            getCustomerLatestActivity(b) -
+            getCustomerLatestActivity(a);
+
+        if (activityDifference !== 0) {
+            return activityDifference;
+        }
+
+        // Same activity time: newest account first.
+        return getActivityTimestamp(b) - getActivityTimestamp(a);
+    });
+}
+
 function getUserId(user) {
     if (user?.user_code) return String(user.user_code).trim();
     return user?.id ? String(user.id) : "—";
@@ -2660,7 +2739,20 @@ async function checkOwnerSession() {
 }
 
 /* LOAD CUSTOMERS */
+/* =====================================================
+   LOAD CUSTOMERS
+   LATEST ACTIVITY SORTING
+===================================================== */
+
 async function loadUsers() {
+
+    if (usersLoading) {
+        usersReloadPending = true;
+        return;
+    }
+
+    usersLoading = true;
+
     if (refreshBtn) {
         refreshBtn.disabled = true;
         refreshBtn.classList.add("loading");
@@ -2680,26 +2772,118 @@ async function loadUsers() {
     }
 
     try {
-        const { data, error } = await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("role", "customer")
-            .order("created_at", { ascending: false });
 
-        if (error) throw error;
+        do {
 
-        allUsers = Array.isArray(data)
-            ? data.filter(user =>
-                String(user.role || "").toLowerCase() === "customer"
-            )
-            : [];
+            usersReloadPending = false;
 
-        applySearch();
+            const { data, error } = await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("role", "customer")
+                .order("created_at", { ascending: false });
+
+            if (error) throw error;
+
+            allUsers = Array.isArray(data)
+                ? data.filter(user =>
+                    String(user.role || "").toLowerCase() === "customer"
+                )
+                : [];
+
+            userActivityMap = new Map();
+
+            const userIds = allUsers
+                .map(user => String(user.id || ""))
+                .filter(Boolean);
+
+            if (userIds.length) {
+
+                /* CUSTOMER REQUEST ACTIVITY */
+
+                const { data: requests, error: requestError } =
+                    await supabaseClient
+                        .from("cylinder_requests")
+                        .select("*")
+                        .in("user_id", userIds);
+
+                if (requestError) {
+                    console.warn(
+                        "[EGC Users] Request activity error:",
+                        requestError.message
+                    );
+                } else {
+
+                    (requests || []).forEach(request => {
+
+                        const userId = String(request.user_id || "");
+
+                        if (!userId) return;
+
+                        const timestamp = getActivityTimestamp(request);
+
+                        const previous = userActivityMap.get(userId) || 0;
+
+                        userActivityMap.set(
+                            userId,
+                            Math.max(previous, timestamp)
+                        );
+                    });
+                }
+
+                /* CUSTOMER PAYMENT ACTIVITY */
+
+                const { data: payments, error: paymentError } =
+                    await supabaseClient
+                        .from("payments")
+                        .select("*")
+                        .in("user_id", userIds);
+
+                if (paymentError) {
+                    console.warn(
+                        "[EGC Users] Payment activity error:",
+                        paymentError.message
+                    );
+                } else {
+
+                    (payments || []).forEach(payment => {
+
+                        const userId = String(payment.user_id || "");
+
+                        if (!userId) return;
+
+                        const timestamp = getActivityTimestamp(payment);
+
+                        const previous = userActivityMap.get(userId) || 0;
+
+                        userActivityMap.set(
+                            userId,
+                            Math.max(previous, timestamp)
+                        );
+                    });
+                }
+            }
+
+            /* SORT CUSTOMERS */
+
+            allUsers = sortCustomersByLatestActivity(allUsers);
+
+            applySearch();
+
+            console.log(
+                "[EGC Users] Customers sorted by latest activity:",
+                allUsers.length
+            );
+
+        } while (usersReloadPending);
+
     } catch (error) {
+
         console.error("Customer loading error:", error);
 
         allUsers = [];
         filteredUsers = [];
+        userActivityMap.clear();
 
         if (userTableBody) {
             userTableBody.innerHTML = `
@@ -2715,7 +2899,11 @@ async function loadUsers() {
         }
 
         updateCounters();
+
     } finally {
+
+        usersLoading = false;
+
         if (refreshBtn) {
             refreshBtn.disabled = false;
             refreshBtn.classList.remove("loading");
@@ -3982,8 +4170,11 @@ logoutConfirm?.addEventListener("click", async () => {
     logoutConfirm.disabled = true;
     logoutConfirm.textContent = "Logging out...";
 
-    try {
-        const { error } = await supabaseClient.auth.signOut();
+try {
+
+    await stopUserRealtime();
+
+    const { error } = await supabaseClient.auth.signOut();
 
         if (error) throw error;
 
@@ -4032,83 +4223,149 @@ document.addEventListener("keydown", event => {
 });
 
 /* REALTIME CUSTOMER UPDATES */
-function startUserRealtime() {
+/* =====================================================
+   REALTIME CUSTOMER UPDATES
+   PROFILES + REQUESTS + PAYMENTS
+===================================================== */
+
+function scheduleUserRealtimeRefresh() {
+
+    clearTimeout(realtimeRefreshTimer);
+
+    realtimeRefreshTimer = setTimeout(() => {
+
+        realtimeRefreshTimer = null;
+
+        loadUsers();
+
+    }, 700);
+}
+
+
+async function stopUserRealtime() {
+
+    if (realtimeRefreshTimer) {
+        clearTimeout(realtimeRefreshTimer);
+        realtimeRefreshTimer = null;
+    }
+
+    if (!realtimeChannel) return;
+
+    const channel = realtimeChannel;
+
+    realtimeChannel = null;
+
     try {
-        if (realtimeChannel) {
-            supabaseClient.removeChannel(realtimeChannel);
-            realtimeChannel = null;
-        }
 
-        realtimeChannel = supabaseClient
-            .channel("owner-customers-realtime")
-            .on("postgres_changes", {
-                event: "*",
-                schema: "public",
-                table: "profiles"
-            }, payload => {
-                const newUser = payload.new || null;
-                const oldUser = payload.old || null;
-                const changedId = newUser?.id || oldUser?.id;
+        await supabaseClient.removeChannel(channel);
 
-                if (!changedId) {
-                    loadUsers();
-                    return;
-                }
+        console.log("[EGC Users] Realtime stopped.");
 
-                if (payload.eventType === "DELETE") {
-                    allUsers = allUsers.filter(
-                        user => String(user.id) !== String(changedId)
-                    );
-                    applySearch();
-                    return;
-                }
-
-                const isCustomer =
-                    String(newUser?.role || "").toLowerCase() === "customer";
-
-                const index = allUsers.findIndex(
-                    user => String(user.id) === String(changedId)
-                );
-
-                if (!isCustomer) {
-                    if (index !== -1) allUsers.splice(index, 1);
-                    applySearch();
-                    return;
-                }
-
-                if (index !== -1) {
-                    allUsers[index] = newUser;
-                } else {
-                    allUsers.unshift(newUser);
-                }
-
-                allUsers.sort((a, b) =>
-                    new Date(b.created_at || 0) - new Date(a.created_at || 0)
-                );
-
-                applySearch();
-            })
-            .subscribe((status, error) => {
-                console.log("EGC Customer realtime:", status);
-
-                if (error) {
-                    console.warn("Customer realtime detail:", error);
-                }
-            });
     } catch (error) {
-        console.warn("Realtime initialization error:", error);
+
+        console.warn(
+            "[EGC Users] Realtime cleanup error:",
+            error
+        );
     }
 }
 
-/* AUTH STATE
-   Do not redirect on INITIAL_SESSION or TOKEN_REFRESHED.
-   Explicit sign-out should return the user to login.
-*/
-supabaseClient.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_OUT") {
-        window.location.replace("owner-login.html");
+
+function startUserRealtime() {
+
+    if (realtimeChannel) return;
+
+    try {
+
+        const channel = supabaseClient.channel(
+            "owner-customers-realtime"
+        );
+
+        /* CUSTOMER PROFILES */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Users] Profile activity:",
+                    payload.eventType
+                );
+
+                scheduleUserRealtimeRefresh();
+            }
+        );
+
+        /* CYLINDER REQUESTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Users] Request activity:",
+                    payload.eventType
+                );
+
+                scheduleUserRealtimeRefresh();
+            }
+        );
+
+        /* PAYMENTS */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Users] Payment activity:",
+                    payload.eventType
+                );
+
+                scheduleUserRealtimeRefresh();
+            }
+        );
+
+        channel.subscribe((status, error) => {
+
+            console.log(
+                "[EGC Users] Realtime status:",
+                status
+            );
+
+            if (error) {
+                console.error(
+                    "[EGC Users] Realtime error:",
+                    error
+                );
+            }
+        });
+
+        realtimeChannel = channel;
+
+    } catch (error) {
+
+        console.warn(
+            "[EGC Users] Realtime initialization error:",
+            error
+        );
     }
-});
+}
 
 /* INITIALIZE */
 async function initUsersPage() {
@@ -4119,6 +4376,28 @@ async function initUsersPage() {
     await loadUsers();
     startUserRealtime();
 }
+
+/* =====================================================
+   PAGE CLEANUP
+===================================================== */
+
+window.addEventListener("pagehide", () => {
+    stopUserRealtime();
+});
+
+window.addEventListener("pageshow", event => {
+
+    if (event.persisted) {
+
+        checkOwnerSession().then(sessionOK => {
+
+            if (!sessionOK) return;
+
+            startUserRealtime();
+            loadUsers();
+        });
+    }
+});
 
 initUsersPage();
 

@@ -1023,6 +1023,69 @@ td strong{
     }
 
 }
+/* DELIVERY UPDATE / CONFIRMATION — FIXED HEIGHT */
+.panel{
+    display:flex;
+    flex-direction:column;
+    height:600px;
+    max-height:600px;
+    min-height:0;
+}
+
+/* PANEL HEADER FIXED */
+.panel > .panel-header{
+    flex:0 0 auto;
+}
+
+/* FILTER SECTION FIXED */
+.panel > .search{
+    flex:0 0 auto;
+}
+
+/* DELIVERY TABLE INTERNAL SCROLL */
+.panel > .table-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+/* STICKY TABLE HEADER */
+.panel > .table-wrap thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    background:#f7fafc;
+}
+
+/* SCROLLBAR */
+.panel > .table-wrap::-webkit-scrollbar{
+    width:6px;
+    height:7px;
+}
+
+.panel > .table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+/* TABLET */
+@media(max-width:800px){
+    .panel{
+        height:550px;
+        max-height:550px;
+    }
+}
+
+/* MOBILE */
+@media(max-width:520px){
+    .panel{
+        height:500px;
+        max-height:500px;
+    }
+}
 
 </style>
 
@@ -1199,24 +1262,10 @@ td strong{
 
     <!-- 4. REQUEST DETAILS -->
 
-    <a
-        class="nav-btn"
-        href="agency-request-details.html"
-    >
-        <span class="nav-icon">📋</span>
-        <span>Request Details</span>
-    </a>
+
 
 
     <!-- 5. REQUEST PROCESSING -->
-
-    <a
-        class="nav-btn"
-        href="agency-processing.html"
-    >
-        <span class="nav-icon">⚙️</span>
-        <span>Request Processing</span>
-    </a>
 
 
     <!-- 6. PAYMENTS -->
@@ -1232,13 +1281,6 @@ td strong{
 
     <!-- 7. REPAYMENTS -->
 
-    <a
-        class="nav-btn"
-        href="agency-repayments.html"
-    >
-        <span class="nav-icon">💰</span>
-        <span>Repayments</span>
-    </a>
 
 
     <!-- 8. DELIVERIES - ACTIVE -->
@@ -1254,22 +1296,13 @@ td strong{
 
     <!-- 9. PENDING / ON HOLD -->
 
-    <a
-        class="nav-btn"
-        href="agency-pending.html"
-    >
-        <span class="nav-icon">⏳</span>
-        <span>Pending / On Hold</span>
-    </a>
-
-
     <!-- 10. REQUEST / PAYMENT SLIPS -->
 
     <a
         class="nav-btn"
         href="agency-slips.html"
     >
-        <span class="nav-icon">🧾</span>
+        <span class="nav-icon">📄</span>
         <span>Request / Payment Slips</span>
     </a>
 
@@ -1286,14 +1319,6 @@ td strong{
 
 
     <!-- 12. REPORTS -->
-
-    <a
-        class="nav-btn"
-        href="agency-reports.html"
-    >
-        <span class="nav-icon">📈</span>
-        <span>Reports</span>
-    </a>
 
 
     <!-- 13. SETTINGS -->
@@ -1900,6 +1925,51 @@ function deliveryStatus(row){
 
 }
 
+/* =========================================
+   LATEST ACTIVITY SORTING
+========================================= */
+
+function latestActivityTimestamp(row) {
+
+    const timestamps = [];
+
+    function addDates(obj) {
+        if (!obj) return;
+
+        [
+            "updated_at",
+            "created_at",
+            "request_date",
+            "agency_updated_at",
+            "delivery_updated_at",
+            "delivered_at",
+            "delivery_date"
+        ].forEach(key => {
+
+            const value = obj[key];
+
+            if (!value) return;
+
+            const time = new Date(value).getTime();
+
+            if (Number.isFinite(time)) {
+                timestamps.push(time);
+            }
+
+        });
+    }
+
+    // Request activity
+    addDates(row);
+
+    // Customer profile activity
+    const customer = customerFor(row);
+    addDates(customer);
+
+    return timestamps.length
+        ? Math.max(...timestamps)
+        : 0;
+}
 
 /* =========================================================
    DELIVERY CONTROL
@@ -2846,91 +2916,143 @@ function subscribeNotifications(){
    REALTIME DELIVERY REQUESTS
    ========================================================= */
 
-function subscribeDeliveryRealtime(){
+/* =========================================
+   REALTIME DELIVERY + PROFILE UPDATES
+========================================= */
 
-    if(!agencyId){
-        return;
-    }
+let deliveryRefreshTimer = null;
+let deliveryRefreshRunning = false;
+let deliveryRefreshPending = false;
 
+function scheduleDeliveryRefresh(source = "database") {
 
-    if(deliveryChannel){
+    console.log(
+        "[EGC Delivery Realtime] Update:",
+        source
+    );
 
-        supabaseClient
-            .removeChannel(
-                deliveryChannel
-            );
+    clearTimeout(deliveryRefreshTimer);
 
-    }
+    deliveryRefreshTimer = setTimeout(async () => {
 
+        if (deliveryRefreshRunning) {
+            deliveryRefreshPending = true;
+            return;
+        }
 
-    deliveryChannel =
-        supabaseClient
-            .channel(
-                "agency-delivery-requests-" +
-                agencyId
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event:"INSERT",
-                    schema:"public",
-                    table:"cylinder_requests",
-                    filter:
-                        "agency_id=eq." +
-                        agencyId
-                },
-                async payload => {
+        deliveryRefreshRunning = true;
 
-                    console.log(
-                        "New agency request:",
-                        payload.new
-                    );
+        try {
 
+            await load();
 
-                    await load();
+        } finally {
 
+            deliveryRefreshRunning = false;
 
-                    toast(
-                        "New cylinder request received."
-                    );
+            if (deliveryRefreshPending) {
 
-                }
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event:"UPDATE",
-                    schema:"public",
-                    table:"cylinder_requests",
-                    filter:
-                        "agency_id=eq." +
-                        agencyId
-                },
-                async payload => {
+                deliveryRefreshPending = false;
 
-                    console.log(
-                        "Agency request updated:",
-                        payload.new
-                    );
+                scheduleDeliveryRefresh(
+                    "pending-update"
+                );
 
+            }
 
-                    await load();
+        }
 
-                }
-            )
-            .subscribe(
-                status => {
-
-                    console.log(
-                        "Agency delivery realtime:",
-                        status
-                    );
-
-                }
-            );
+    }, 500);
 
 }
 
+
+function subscribeDeliveryRealtime() {
+
+    if (!agencyId) return;
+
+    if (deliveryChannel) {
+        supabaseClient.removeChannel(deliveryChannel);
+        deliveryChannel = null;
+    }
+
+    deliveryChannel = supabaseClient
+
+        .channel(
+            "agency-delivery-realtime-" + agencyId
+        )
+
+        // Cylinder Request INSERT / UPDATE / DELETE
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests",
+                filter: "agency_id=eq." + agencyId
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Realtime] Request:",
+                    payload.eventType
+                );
+
+                scheduleDeliveryRefresh(
+                    "cylinder_requests"
+                );
+
+            }
+        )
+
+        // Customer Profile Updates
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Realtime] Customer Profile:",
+                    payload.eventType
+                );
+
+                scheduleDeliveryRefresh(
+                    "profiles"
+                );
+
+            }
+        )
+
+        .subscribe(status => {
+
+            console.log(
+                "[EGC Delivery Realtime] Status:",
+                status
+            );
+
+            if (status === "SUBSCRIBED") {
+                console.log(
+                    "[EGC Delivery Realtime] Connected successfully."
+                );
+            }
+
+            if (
+                status === "CHANNEL_ERROR" ||
+                status === "TIMED_OUT"
+            ) {
+                console.error(
+                    "[EGC Delivery Realtime] Connection error:",
+                    status
+                );
+            }
+
+        });
+
+}
 
 /* =========================================================
    FIRST USER INTERACTION
@@ -3044,12 +3166,10 @@ async function updateDeliveryStatus(
 
 
     /* UPDATE DATA */
-
-    const updateData = {
-        delivery_status:
-            newStatus
-    };
-
+const updateData = {
+    delivery_status: newStatus,
+    agency_updated_at: new Date().toISOString()
+};
 
     /* PENDING */
 
@@ -3466,9 +3586,9 @@ async function load(){
         const customerResult =
             await supabaseClient
                 .from("profiles")
-                .select(
-                    "id,full_name,mobile,email"
-                )
+  .select(
+    "id,full_name,mobile,email,updated_at,created_at"
+)
                 .in(
                     "id",
                     ids
@@ -3532,9 +3652,17 @@ function render(){
             .value;
 
 
-    const data =
-        rows.filter(
-            row => {
+// Latest Activity वाली Request सबसे ऊपर
+const sortedRows = [...rows].sort((a, b) => {
+
+    return latestActivityTimestamp(b) -
+           latestActivityTimestamp(a);
+
+});
+
+const data =
+    sortedRows.filter(
+        row => {
 
                 const customer =
                     customerFor(row);

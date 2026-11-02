@@ -1926,6 +1926,40 @@ function formatDateTime(value) {
     });
 }
 
+/* =====================================================
+   LATEST ACTIVITY
+===================================================== */
+
+function getRequestLatestActivity(request) {
+    if (!request) return null;
+
+    const timestamps = [
+        request.updated_at,
+        request.approved_at,
+        request.owner_rejected_at,
+        request.delivered_at,
+        request.delivery_date,
+        request.created_at
+    ];
+
+    const validDates = timestamps
+        .filter(Boolean)
+        .map(value => new Date(value).getTime())
+        .filter(value => Number.isFinite(value) && value > 0);
+
+    if (!validDates.length) return null;
+
+    return new Date(Math.max(...validDates)).toISOString();
+}
+
+function getLatestActivityLabel(request) {
+    const activity = getRequestLatestActivity(request);
+
+    return activity
+        ? formatDateTime(activity)
+        : "Not Available";
+}
+
 function formatMoney(value) {
     if (
         value === null ||
@@ -2441,66 +2475,112 @@ function extractCity(address) {
    LOAD REQUEST
 ===================================================== */
 
-async function loadRequest() {
+/* =====================================================
+   LOAD REQUEST + SAFE REALTIME REFRESH
+===================================================== */
+
+let requestLoading = false;
+let requestReloadQueued = false;
+
+async function loadRequest(options = {}) {
+
+    const silent = options.silent === true;
+
+    if (requestLoading) {
+        requestReloadQueued = true;
+        return;
+    }
+
+    requestLoading = true;
+
     const requestId = getRequestId();
 
     if (!requestId) {
+
         pageContent.innerHTML = `
             <div class="error-box">
                 <strong>Request ID Missing</strong>
                 Please open this page from the Cylinder Requests page.
             </div>
         `;
+
+        requestLoading = false;
         return;
     }
 
-    pageContent.innerHTML = `
-        <div class="loading">Loading request details...</div>
-    `;
-
-    try {
-        const { data, error } = await supabaseClient
-            .from("cylinder_requests")
-            .select("*")
-            .eq("id", requestId)
-            .maybeSingle();
-
-        if (error) {
-            console.error("Request details error:", error);
-
-            pageContent.innerHTML = `
-                <div class="error-box">
-                    <strong>Unable to Load Request</strong>
-                    ${escapeHtml(error.message)}
-                </div>
-            `;
-            return;
-        }
-
-        if (!data) {
-            pageContent.innerHTML = `
-                <div class="error-box">
-                    <strong>Request Not Found</strong>
-                    This request does not exist or is not accessible.
-                </div>
-            `;
-            return;
-        }
-
-        currentRequest = data;
-
-        await attachRelatedData();
-
-        renderDetails();
-    } catch (error) {
-        console.error("Load request error:", error);
-
+    if (!silent) {
         pageContent.innerHTML = `
-            <div class="error-box">
-                <strong>Something Went Wrong</strong>
-                Unable to load request details. Please try again.
+            <div class="loading">
+                Loading request details...
             </div>
         `;
+    }
+
+    try {
+
+        do {
+
+            requestReloadQueued = false;
+
+            const { data, error } = await supabaseClient
+                .from("cylinder_requests")
+                .select("*")
+                .eq("id", requestId)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (!data) {
+
+                if (!currentRequest || !silent) {
+                    pageContent.innerHTML = `
+                        <div class="error-box">
+                            <strong>Request Not Found</strong>
+                            This request does not exist or is not accessible.
+                        </div>
+                    `;
+                }
+
+                return;
+            }
+
+            currentRequest = data;
+
+            await attachRelatedData();
+
+            renderDetails();
+
+        } while (requestReloadQueued);
+
+    } catch (error) {
+
+        console.error(
+            "Load request error:",
+            error
+        );
+
+        if (!currentRequest || !silent) {
+
+            pageContent.innerHTML = `
+                <div class="error-box">
+                    <strong>Something Went Wrong</strong>
+                    ${escapeHtml(error.message || "Unable to load request details.")}
+                </div>
+            `;
+
+        } else {
+
+            showToast(
+                "Refresh Failed",
+                error.message || "Unable to refresh request."
+            );
+
+        }
+
+    } finally {
+
+        requestLoading = false;
+
     }
 }
 
@@ -2539,9 +2619,13 @@ function renderDetails() {
                     <div class="request-number">
                         ${escapeHtml(request.request_number || request.id || "Cylinder Request")}
                     </div>
-                    <div class="request-date">
-                        Requested on ${escapeHtml(formatDateTime(request.created_at))}
-                    </div>
+                   <div class="request-date">
+    Requested on ${escapeHtml(formatDateTime(request.created_at))}
+</div>
+
+<div class="request-date">
+    Latest Activity: ${escapeHtml(getLatestActivityLabel(request))}
+</div>
                 </div>
 
                 <div class="status-wrap">
@@ -3107,6 +3191,237 @@ document.addEventListener("keydown", function (event) {
 });
 
 /* =====================================================
+   OWNER REQUEST DETAILS REALTIME
+===================================================== */
+
+let requestRealtimeChannel = null;
+let requestRealtimeTimer = null;
+let requestRealtimeStatus = "CLOSED";
+
+function scheduleRequestRealtimeRefresh() {
+
+    if (requestRealtimeTimer) {
+        clearTimeout(requestRealtimeTimer);
+    }
+
+    requestRealtimeTimer = setTimeout(async () => {
+
+        requestRealtimeTimer = null;
+
+        await loadRequest({
+            silent: true
+        });
+
+    }, 500);
+
+}
+
+
+function startRequestRealtime() {
+
+    if (requestRealtimeChannel) return;
+
+    if (!currentRequest) return;
+
+    const requestId = currentRequest.id;
+    const userId = currentRequest.user_id;
+    const agencyId = currentRequest.agency_id;
+
+    let channel = supabaseClient
+        .channel("owner-request-details-" + requestId);
+
+
+    // REQUEST UPDATES
+
+    channel = channel.on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "cylinder_requests",
+            filter: "id=eq." + requestId
+        },
+        payload => {
+
+            console.log(
+                "Request Details Realtime:",
+                payload.eventType,
+                payload
+            );
+
+            scheduleRequestRealtimeRefresh();
+
+        }
+    );
+
+
+    // PAYMENT AND REPAYMENT UPDATES
+
+    channel = channel.on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "payments",
+            filter: "request_id=eq." + requestId
+        },
+        payload => {
+
+            console.log(
+                "Request Payment Realtime:",
+                payload.eventType,
+                payload
+            );
+
+            scheduleRequestRealtimeRefresh();
+
+        }
+    );
+
+
+    // CUSTOMER PROFILE UPDATES
+
+    if (userId) {
+
+        channel = channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "profiles",
+                filter: "id=eq." + userId
+            },
+            payload => {
+
+                console.log(
+                    "Customer Profile Realtime:",
+                    payload.eventType,
+                    payload
+                );
+
+                scheduleRequestRealtimeRefresh();
+
+            }
+        );
+
+    }
+
+
+    // AGENCY UPDATES
+
+    if (agencyId) {
+
+        channel = channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "agencies",
+                filter: "id=eq." + agencyId
+            },
+            payload => {
+
+                console.log(
+                    "Agency Realtime:",
+                    payload.eventType,
+                    payload
+                );
+
+                scheduleRequestRealtimeRefresh();
+
+            }
+        );
+
+    }
+
+
+    requestRealtimeChannel = channel;
+
+    requestRealtimeChannel.subscribe(status => {
+
+        requestRealtimeStatus = status;
+
+        console.log(
+            "EGC Request Details Realtime Status:",
+            status
+        );
+
+        if (status === "SUBSCRIBED") {
+
+            console.log(
+                "EGC Request Details: Realtime Connected Successfully."
+            );
+
+        }
+
+        if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT"
+        ) {
+
+            console.error(
+                "EGC Request Details Realtime Connection Problem:",
+                status
+            );
+
+        }
+
+    });
+
+}
+
+
+/* STOP REALTIME */
+
+function stopRequestRealtime() {
+
+    if (requestRealtimeTimer) {
+
+        clearTimeout(requestRealtimeTimer);
+
+        requestRealtimeTimer = null;
+
+    }
+
+    if (requestRealtimeChannel) {
+
+        const channel = requestRealtimeChannel;
+
+        requestRealtimeChannel = null;
+
+        supabaseClient.removeChannel(channel);
+
+    }
+
+    requestRealtimeStatus = "CLOSED";
+
+}
+
+
+/* PAGE CLEANUP */
+
+window.addEventListener("pagehide", () => {
+
+    stopRequestRealtime();
+
+});
+
+
+/* RESTORE PAGE */
+
+window.addEventListener("pageshow", event => {
+
+    if (event.persisted && currentRequest) {
+
+        startRequestRealtime();
+
+        scheduleRequestRealtimeRefresh();
+
+    }
+
+});
+
+/* =====================================================
    INITIALIZATION
 ===================================================== */
 
@@ -3129,7 +3444,13 @@ async function init() {
 
         await loadRequest();
 
-        console.log("EGC Owner Request Details initialized successfully.");
+if (currentRequest) {
+    startRequestRealtime();
+}
+
+console.log(
+    "EGC Owner Request Details initialized successfully."
+);;
     } catch (error) {
         console.error("EGC Owner Request Details initialization error:", error);
         showToast("Initialization Error", "Unable to initialize this page.");

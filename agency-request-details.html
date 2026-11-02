@@ -2009,21 +2009,22 @@ function bindClick(id, callback) {
 function statusClass(value) {
     const status = normalizeStatus(value);
 
-    if ([
-        "approved",
-        "paid",
-        "verified",
-        "completed",
-        "delivered",
-        "success",
-        "successful",
-        "active",
-        "available",
-        "eligible",
-        "repaid"
-    ].includes(status)) {
-        return "green";
-    }
+if ([
+    "approved",
+    "paid",
+    "verified",
+    "completed",
+    "delivered",
+    "success",
+    "successful",
+    "active",
+    "available",
+    "eligible",
+    "repaid",
+    "clear"
+].includes(status)) {
+    return "green";
+}
 
     if ([
         "rejected",
@@ -2618,7 +2619,67 @@ async function resolveStorageUrl(rawValue, bucketName = DOCUMENTS_BUCKET) {
 async function getProfilePhotoUrl(value) {
     if (!value) return null;
 
-    return resolveStorageUrl(value, PROFILE_PHOTOS_BUCKET);
+    const parsed = parseStorageReference(
+        value,
+        PROFILE_PHOTOS_BUCKET
+    );
+
+    if (!parsed) return null;
+
+    // Direct image URL को सीधे इस्तेमाल करें
+    if (parsed.type === "direct" || parsed.type === "signed") {
+        return parsed.url || null;
+    }
+
+    if (!parsed.path) return null;
+
+    // अगर path में bucket पहले से दिया है तो उसी को इस्तेमाल करें
+    const buckets = value.startsWith(DOCUMENTS_BUCKET + "/")
+        ? [DOCUMENTS_BUCKET]
+        : value.startsWith(PROFILE_PHOTOS_BUCKET + "/")
+            ? [PROFILE_PHOTOS_BUCKET]
+            : [DOCUMENTS_BUCKET, PROFILE_PHOTOS_BUCKET];
+
+    for (const bucket of buckets) {
+        const cacheKey = bucket + "/" + parsed.path;
+
+        const cached = signedUrlCache.get(cacheKey);
+
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.url;
+        }
+
+        try {
+            const { data, error } = await supabaseClient.storage
+                .from(bucket)
+                .createSignedUrl(parsed.path, SIGNED_URL_TTL);
+
+            if (!error && data?.signedUrl) {
+                signedUrlCache.set(cacheKey, {
+                    url: data.signedUrl,
+                    expiresAt: Date.now() +
+                        (SIGNED_URL_TTL - 60) * 1000
+                });
+
+                console.log("Profile photo loaded:", bucket, parsed.path);
+
+                return data.signedUrl;
+            }
+
+            console.warn(
+                "Profile photo bucket lookup:",
+                bucket,
+                error?.message
+            );
+
+        } catch (error) {
+            console.warn("Profile photo loading error:", bucket, error);
+        }
+    }
+
+    console.error("Profile photo not found:", value);
+
+    return null;
 }
 
 /* =========================================================
@@ -2709,14 +2770,17 @@ async function renderDocuments() {
     const c = customer || {};
 
     const definitions = [
-        {
-            title: "Profile Photo",
-            value: firstValue(c, [
-                "profile_photo", "photo_url", "avatar_url", "profile_image"
-            ]) || firstValue(r, ["profile_photo"]),
-            bucket: PROFILE_PHOTOS_BUCKET,
-            icon: "👤"
-        },
+   {
+    title: "Profile Photo",
+    value: firstValue(c, [
+        "profile_photo",
+        "photo_url",
+        "avatar_url",
+        "profile_image"
+    ]) || firstValue(r, ["profile_photo"]),
+    bucket: null,
+    icon: "👤"
+},
         {
             title: "Aadhaar Card — Front",
             value: firstValue(r, ["aadhaar_front_photo"]) ||
@@ -2749,7 +2813,9 @@ async function renderDocuments() {
 
     const cards = await Promise.all(
         definitions.map(async item => {
-            const url = await resolveStorageUrl(item.value, item.bucket);
+            const url = item.title === "Profile Photo"
+    ? await getProfilePhotoUrl(item.value)
+    : await resolveStorageUrl(item.value, item.bucket);
             return makeDocument(item.title, url, item.icon);
         })
     );
@@ -3200,33 +3266,33 @@ function getTransactionId() {
    NEXT CYLINDER — ELIGIBLE / HOLD
 ========================================================= */
 
+/* =========================================================
+   OWNER-CONTROLLED CUSTOMER STATUS
+   EXACT SAME LOGIC AS agency-customers.html
+========================================================= */
+
+function getOwnerPaymentStatus() {
+    const value = normalizeStatus(
+        request?.payment_pending_clear
+    );
+
+    if (value === "clear") {
+        return "Clear";
+    }
+
+    return "Pending";
+}
+
 function getNextCylinderStatus() {
-    const ownerApproved = statusIs(
-        request?.owner_approval,
-        ["approved"]
+    const value = normalizeStatus(
+        request?.cylinder_hold_eligible
     );
 
-    const paymentApproved = statusIs(
-        getPaymentApprovalStatus(),
-        ["approved", "verified"]
-    );
+    if (value === "eligible") {
+        return "Eligible";
+    }
 
-    const deliveryCompleted = statusIs(
-        request?.delivery_status,
-        ["delivered", "completed"]
-    );
-
-    const repaymentCompleted = statusIs(
-        request?.repayment_status,
-        ["paid", "completed", "repaid"]
-    );
-
-    return (
-        ownerApproved &&
-        paymentApproved &&
-        deliveryCompleted &&
-        repaymentCompleted
-    ) ? "Eligible" : "Hold";
+    return "Hold";
 }
 
 /* =========================================================
@@ -3590,8 +3656,10 @@ async function loadRequest() {
             repayment_days,
             repayment_due_date,
             repayment_status,
-            owner_note,
-            owner_rejected_at,
+payment_pending_clear,
+cylinder_hold_eligible,
+owner_note,
+owner_rejected_at,
             agency_note,
             agency_updated_at,
             user_status,

@@ -165,6 +165,65 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .sidebar::-webkit-scrollbar-thumb,.notification-list::-webkit-scrollbar-thumb{background:#d8e7f0;border-radius:10px}
 .table-wrap::-webkit-scrollbar{height:7px}
 .table-wrap::-webkit-scrollbar-thumb{background:#d5e5ee;border-radius:10px}
+/* =========================================
+   OWNER-APPROVED REQUESTS — FIXED HEIGHT
+========================================= */
+
+.table-card{
+    display:flex;
+    flex-direction:column;
+    height:550px;
+    max-height:550px;
+    min-height:0;
+}
+
+/* Heading fixed */
+.table-card > .table-top{
+    flex:0 0 auto;
+}
+
+/* Requests table internal scrolling */
+.table-card > .table-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+}
+
+/* Sticky table headings */
+.table-card .request-table thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    background:#f7fafc;
+}
+
+/* Scrollbar */
+.table-card > .table-wrap::-webkit-scrollbar{
+    width:6px;
+    height:7px;
+}
+
+.table-card > .table-wrap::-webkit-scrollbar-thumb{
+    background:#d5e5ee;
+    border-radius:10px;
+}
+
+@media(max-width:800px){
+    .table-card{
+        height:500px;
+        max-height:500px;
+    }
+}
+
+@media(max-width:520px){
+    .table-card{
+        height:460px;
+        max-height:460px;
+    }
+}
 </style>
 </head>
 
@@ -195,15 +254,10 @@ button:disabled{opacity:.55;cursor:not-allowed}
  <button class="nav-btn" data-page="agency-dashboard.html"><span class="nav-icon">📊</span>Dashboard</button>
  <button class="nav-btn" data-page="agency-customers.html"><span class="nav-icon">👥</span>Customers</button>
  <button class="nav-btn active" data-page="agency-cylinder-requests.html"><span class="nav-icon">🛢️</span>Cylinder Requests</button>
- <button class="nav-btn" data-page="agency-request-details.html"><span class="nav-icon">📋</span>Request Details</button>
- <button class="nav-btn" data-page="agency-processing.html"><span class="nav-icon">⚙️</span>Request Processing</button>
  <button class="nav-btn" data-page="agency-payments.html"><span class="nav-icon">💳</span>Payments</button>
- <button class="nav-btn" data-page="agency-repayments.html"><span class="nav-icon">💰</span>Repayments</button>
  <button class="nav-btn" data-page="agency-deliveries.html"><span class="nav-icon">🚚</span>Deliveries</button>
- <button class="nav-btn" data-page="agency-pending.html"><span class="nav-icon">⏳</span>Pending / On Hold</button>
- <button class="nav-btn" data-page="agency-slips.html"><span class="nav-icon">🧾</span>Request / Payment Slips</button>
+ <button class="nav-btn" data-page="agency-slips.html"><span class="nav-icon">📄</span>Request / Payment Slips</button>
  <button class="nav-btn" data-page="agency-notifications.html"><span class="nav-icon">🔔</span>Notifications</button>
- <button class="nav-btn" data-page="agency-reports.html"><span class="nav-icon">📈</span>Reports</button>
  <button class="nav-btn" data-page="agency-settings.html"><span class="nav-icon">⚙️</span>Settings</button>
  <button class="nav-btn" data-page="agency-about.html"><span class="nav-icon">ℹ️</span>About</button>
  <div class="sidebar-bottom"></div>
@@ -342,6 +396,11 @@ let notifications = [];
 let agencies = [];
 let loadingRequests = false;
 let signingOut = false;
+// REALTIME UPDATE
+let realtimeChannel = null;
+let realtimeRefreshTimer = null;
+let realtimeReloadPending = false;
+let realtimeStarted = false;
 
 const signedUrlCache = new Map();
 
@@ -487,6 +546,51 @@ function paymentApproved(payment) {
 function paymentFor(req) {
   const rows = paymentsFor(req);
   return rows.find(paymentApproved) || rows[0] || null;
+}
+
+// =====================================
+// LATEST ACTIVITY SORTING
+// =====================================
+
+function latestActivityTimestamp(req) {
+  const timestamps = [];
+
+  function addDates(obj) {
+    if (!obj) return;
+
+    [
+      "updated_at",
+      "created_at",
+      "request_date",
+      "payment_date",
+      "agency_updated_at",
+      "delivered_at",
+      "delivery_date"
+    ].forEach(key => {
+      const value = obj[key];
+      if (!value) return;
+
+      const time = new Date(value).getTime();
+
+      if (Number.isFinite(time)) {
+        timestamps.push(time);
+      }
+    });
+  }
+
+  // Request activity
+  addDates(req);
+
+  // Customer profile activity
+  const customer = customerFor(req);
+  addDates(customer);
+
+  // Payment and repayment activity stored in payments table
+  paymentsFor(req).forEach(payment => {
+    addDates(payment);
+  });
+
+  return timestamps.length ? Math.max(...timestamps) : 0;
 }
 
 function paymentStatus(payment) {
@@ -682,6 +786,111 @@ function renderDocumentCards(docs) {
   }).join("");
 }
 
+// =====================================
+// EGC AGENCY REALTIME REFRESH
+// =====================================
+
+function scheduleRealtimeRefresh(source = "database") {
+  console.log("[EGC Realtime] Update received:", source);
+
+  clearTimeout(realtimeRefreshTimer);
+
+  realtimeRefreshTimer = setTimeout(async () => {
+    if (loadingRequests) {
+      realtimeReloadPending = true;
+      return;
+    }
+
+    console.log("[EGC Realtime] Refreshing agency data...");
+    await load();
+
+  }, 500);
+}
+
+
+function startRealtime() {
+  if (realtimeStarted || !agencyId || !currentUser) return;
+
+  realtimeStarted = true;
+
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+  }
+
+  realtimeChannel = supabaseClient
+    .channel("egc-agency-realtime-" + agencyId)
+
+    // Agency की assigned requests में बदलाव
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "cylinder_requests",
+        filter: "agency_id=eq." + String(agencyId)
+      },
+      payload => {
+        console.log("[EGC Realtime] Cylinder request:", payload.eventType);
+        scheduleRealtimeRefresh("cylinder_requests");
+      }
+    )
+
+    // Payment insert/update/delete
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "payments"
+      },
+      payload => {
+        console.log("[EGC Realtime] Payment:", payload.eventType);
+        scheduleRealtimeRefresh("payments");
+      }
+    )
+
+    // Customer profile/photo updates
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "profiles"
+      },
+      payload => {
+        console.log("[EGC Realtime] Customer profile:", payload.eventType);
+        scheduleRealtimeRefresh("profiles");
+      }
+    )
+
+    // Agency की notifications
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "notifications",
+        filter: "user_id=eq." + String(currentUser.id)
+      },
+      async payload => {
+        console.log("[EGC Realtime] Notification:", payload.eventType);
+        await loadNotifications();
+      }
+    )
+
+    .subscribe((status, error) => {
+      console.log("[EGC Realtime] Subscription:", status);
+
+      if (status === "SUBSCRIBED") {
+        console.log("[EGC Realtime] Successfully connected.");
+      }
+
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("[EGC Realtime] Connection error:", error || status);
+      }
+    });
+}
+
 async function load() {
   if (loadingRequests) return;
   loadingRequests = true;
@@ -736,9 +945,14 @@ async function load() {
     $("requestCount").textContent = "Error";
     tableMessage("Unable to load requests: " + (error.message || "Unknown error"), "empty error-message");
     toast("Request Load Failed", error.message || "Check connection and Supabase permissions.");
-  } finally {
-    loadingRequests = false;
+} finally {
+  loadingRequests = false;
+
+  if (realtimeReloadPending) {
+    realtimeReloadPending = false;
+    scheduleRealtimeRefresh("pending-realtime-update");
   }
+}
 }
 
 function lpgCompany(req) {
@@ -786,7 +1000,12 @@ function render() {
   const pf = normal($("paymentFilter").value);
   const df = normal($("deliveryFilter").value);
 
-  const filtered = requests.filter(req => {
+  // Latest Activity वाली Request सबसे ऊपर
+const sortedRequests = [...requests].sort((a, b) => {
+  return latestActivityTimestamp(b) - latestActivityTimestamp(a);
+});
+
+const filtered = sortedRequests.filter(req => {
     const customer = customerFor(req);
     const payment = paymentFor(req);
     const searchText = [
@@ -1137,8 +1356,11 @@ async function init() {
   try {
     if (!(await session())) return;
     if (!(await profile())) return;
-    await loadAgencyInfo();
-    await load();
+await loadAgencyInfo();
+await load();
+
+// Start Realtime after initial data load
+startRealtime();
   } catch (error) {
     console.error("Agency panel initialization failed:", error);
     $("requestCount").textContent = "Error";

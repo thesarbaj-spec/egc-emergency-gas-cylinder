@@ -3002,10 +3002,17 @@ document.getElementById("aadhaarBackFile");
 const panFile =
 document.getElementById("panFile");
 
-
 let agencies = [];
 let editingAgency = null;
 let agencyToDelete = null;
+
+/* LATEST ACTIVITY + REALTIME STATE */
+
+let agencyActivityMap = new Map();
+let agencyRealtimeChannel = null;
+let agencyRefreshTimer = null;
+let agencyLoading = false;
+let agencyReloadPending = false;
 
 
 /* ================= DOCUMENT STATE ================= */
@@ -3107,6 +3114,81 @@ if(overlay){
 
 /* ================= SAFE HTML ================= */
 
+/* =====================================================
+   LATEST AGENCY ACTIVITY SORTING
+===================================================== */
+
+function getAgencyActivityTimestamp(row) {
+
+    if (!row || typeof row !== "object") return 0;
+
+    const fields = [
+        "updated_at",
+        "created_at",
+        "joining_date",
+        "request_date",
+        "requested_at",
+        "submitted_at",
+        "payment_date",
+        "paid_at",
+        "payment_verified_at",
+        "verified_at",
+        "approved_at",
+        "delivery_date",
+        "delivered_at",
+        "delivery_updated_at",
+        "agency_updated_at",
+        "repayment_date",
+        "repayment_at"
+    ];
+
+    let latest = 0;
+
+    fields.forEach(field => {
+
+        const value = row[field];
+
+        if (!value) return;
+
+        const timestamp = new Date(value).getTime();
+
+        if (Number.isFinite(timestamp)) {
+            latest = Math.max(latest, timestamp);
+        }
+    });
+
+    return latest;
+}
+
+
+function getAgencyLatestActivity(agency) {
+
+    const agencyId = String(agency?.id || "");
+
+    return Math.max(
+        getAgencyActivityTimestamp(agency),
+        agencyActivityMap.get(agencyId) || 0
+    );
+}
+
+
+function sortAgenciesByLatestActivity(list) {
+
+    return [...(Array.isArray(list) ? list : [])].sort((a, b) => {
+
+        const difference =
+            getAgencyLatestActivity(b) -
+            getAgencyLatestActivity(a);
+
+        if (difference !== 0) {
+            return difference;
+        }
+
+        return getAgencyActivityTimestamp(b) -
+               getAgencyActivityTimestamp(a);
+    });
+}
+
 function escapeHtml(value){
 
     return String(value ?? "")
@@ -3159,76 +3241,204 @@ async function getOwnerSession(){
 }
 
 
-/* ================= LOAD AGENCIES ================= */
+/* =====================================================
+   LOAD AGENCIES
+   LATEST ACTIVITY + REQUESTS + PAYMENTS
+===================================================== */
 
-async function loadAgencies(){
+async function loadAgencies() {
 
-    agencyTableBody.innerHTML = `
-        <tr>
-            <td colspan="12" class="empty">
-                Loading agencies...
-            </td>
-        </tr>
-    `;
+    if (agencyLoading) {
+        agencyReloadPending = true;
+        return;
+    }
 
-    try{
+    agencyLoading = true;
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient
-        .from("agencies")
-        .select("*")
-        .order(
-            "created_at",
-            {
-                ascending:false
-            }
-        );
+    if (agencyTableBody) {
+        agencyTableBody.innerHTML = `
+            <tr>
+                <td colspan="12" class="empty">
+                    Loading agencies...
+                </td>
+            </tr>
+        `;
+    }
 
-        if(error){
+    try {
 
-            console.error(
-                "Agency loading error:",
+        do {
+
+            agencyReloadPending = false;
+
+            /* LOAD AGENCIES */
+
+            const {
+                data,
                 error
+            } = await supabaseClient
+                .from("agencies")
+                .select("*")
+                .order("created_at", {
+                    ascending: false
+                });
+
+            if (error) throw error;
+
+            agencies = Array.isArray(data) ? data : [];
+
+            agencyActivityMap = new Map();
+
+            const agencyIds = agencies
+                .map(agency => String(agency.id || ""))
+                .filter(Boolean);
+
+            /* LOAD AGENCY REQUEST ACTIVITY */
+
+            let requests = [];
+
+            if (agencyIds.length) {
+
+                const {
+                    data: requestRows,
+                    error: requestError
+                } = await supabaseClient
+                    .from("cylinder_requests")
+                    .select("*")
+                    .in("agency_id", agencyIds);
+
+                if (requestError) {
+
+                    console.warn(
+                        "[EGC Agencies] Request activity error:",
+                        requestError.message
+                    );
+
+                } else {
+
+                    requests = requestRows || [];
+
+                    requests.forEach(request => {
+
+                        const id = String(request.agency_id || "");
+
+                        if (!id) return;
+
+                        const timestamp =
+                            getAgencyActivityTimestamp(request);
+
+                        const previous =
+                            agencyActivityMap.get(id) || 0;
+
+                        agencyActivityMap.set(
+                            id,
+                            Math.max(previous, timestamp)
+                        );
+
+                    });
+                }
+            }
+
+            /* MAP REQUEST ID TO AGENCY ID */
+
+            const requestAgencyMap = new Map();
+
+            requests.forEach(request => {
+
+                if (request.id && request.agency_id) {
+
+                    requestAgencyMap.set(
+                        String(request.id),
+                        String(request.agency_id)
+                    );
+
+                }
+
+            });
+
+            /* LOAD RELATED PAYMENTS */
+
+            const requestIds = requests
+                .map(request => String(request.id || ""))
+                .filter(Boolean);
+
+            if (requestIds.length) {
+
+                const {
+                    data: payments,
+                    error: paymentError
+                } = await supabaseClient
+                    .from("payments")
+                    .select("*")
+                    .in("request_id", requestIds);
+
+                if (paymentError) {
+
+                    console.warn(
+                        "[EGC Agencies] Payment activity error:",
+                        paymentError.message
+                    );
+
+                } else {
+
+                    (payments || []).forEach(payment => {
+
+                        const agencyId = requestAgencyMap.get(
+                            String(payment.request_id || "")
+                        );
+
+                        if (!agencyId) return;
+
+                        const timestamp =
+                            getAgencyActivityTimestamp(payment);
+
+                        const previous =
+                            agencyActivityMap.get(agencyId) || 0;
+
+                        agencyActivityMap.set(
+                            agencyId,
+                            Math.max(previous, timestamp)
+                        );
+
+                    });
+                }
+            }
+
+            /* SORT AGENCIES */
+
+            agencies = sortAgenciesByLatestActivity(agencies);
+
+            renderAgencies();
+
+            console.log(
+                "[EGC Agencies] Latest activity sorting completed:",
+                agencies.length
             );
 
-            agencyTableBody.innerHTML = `
-                <tr>
-                    <td colspan="12" class="empty">
-                        Unable to load agencies.<br>
-                        ${escapeHtml(error.message)}
-                    </td>
-                </tr>
-            `;
+        } while (agencyReloadPending);
 
-            return;
+    } catch (error) {
 
-        }
-
-        agencies =
-        data || [];
-
-        renderAgencies();
-
-    }
-    catch(error){
-
-        console.error(error);
+        console.error(
+            "Agency loading error:",
+            error
+        );
 
         agencyTableBody.innerHTML = `
             <tr>
                 <td colspan="12" class="empty">
-                    Unable to load agencies.
+                    Unable to load agencies.<br>
+                    ${escapeHtml(error.message)}
                 </td>
             </tr>
         `;
 
+    } finally {
+
+        agencyLoading = false;
+
     }
-
 }
-
 
 /* ================= DOCUMENT EXISTS ================= */
 
@@ -3255,8 +3465,11 @@ function renderAgencies(){
     .trim()
     .toLowerCase();
 
-    const filtered =
-    agencies.filter(
+const sortedAgencies =
+    sortAgenciesByLatestActivity(agencies);
+
+const filtered =
+    sortedAgencies.filter(
         agency => {
 
             const combined =
@@ -4758,44 +4971,30 @@ agencyForm.addEventListener(
 
             const record = {
 
-                agency_name:name,
+    agency_name: name,
+    owner_name: owner,
 
-                owner_name:owner,
+    mobile_number: mobile || null,
+    email: email.value.trim() || null,
+    agency_code: codeValue,
 
-                mobile_number:
-                mobile || null,
+    lpg_company: lpgCompany.value || null,
 
-                email:
-                email.value.trim() || null,
+    state: state.value.trim() || null,
+    district: district.value.trim() || null,
+    city: city.value.trim() || null,
 
-                agency_code:
-                codeValue,
+    joining_date: joiningDate.value || null,
+    address: address.value.trim() || null,
 
-                lpg_company:
-                lpgCompany.value || null,
+    is_active: isActive.checked,
 
-                state:
-                state.value.trim() || null,
+    documents: finalDocuments,
 
-                district:
-                district.value.trim() || null,
+    // IMPORTANT: Latest Activity Timestamp
+    updated_at: new Date().toISOString()
 
-                city:
-                city.value.trim() || null,
-
-                joining_date:
-                joiningDate.value || null,
-
-                address:
-                address.value.trim() || null,
-
-                is_active:
-                isActive.checked,
-
-                documents:
-                finalDocuments
-
-            };
+};
 
             let savedAgencyId =
             null;
@@ -4903,10 +5102,13 @@ agencyForm.addEventListener(
                     } =
                     await supabaseClient
                     .from("agencies")
-                    .update({
-                        owner_photo_url:
-                        photoUrl
-                    })
+              .update({
+
+    owner_photo_url: photoUrl,
+
+    updated_at: new Date().toISOString()
+
+})
                     .eq(
                         "id",
                         savedAgencyId
@@ -5010,12 +5212,13 @@ agencyForm.addEventListener(
                 } =
                 await supabaseClient
                 .from("agencies")
-                .update({
+       .update({
 
-                    documents:
-                    finalDocuments
+    documents: finalDocuments,
 
-                })
+    updated_at: new Date().toISOString()
+
+})
                 .eq(
                     "id",
                     savedAgencyId
@@ -5545,32 +5748,216 @@ supabaseClient.auth.onAuthStateChange(
 
 /* ================= INITIALIZE ================= */
 
-async function initializeAgencyPage(){
+async function initializeAgencyPage() {
 
-    const session =
-    await getOwnerSession();
+    const session = await getOwnerSession();
 
-    if(!session){
+    if (!session) {
 
         console.warn(
             "No authenticated owner session found."
         );
 
-    }
-    else{
-
-        console.log(
-            "Owner session active:",
-            session.user.id
-        );
+        return;
 
     }
+
+    console.log(
+        "Owner session active:",
+        session.user.id
+    );
 
     await loadAgencies();
 
+    startAgencyRealtime();
+
 }
 
+
+/* ================= PAGE CLEANUP ================= */
+
+window.addEventListener("pagehide", () => {
+
+    stopAgencyRealtime();
+
+});
+
+
+window.addEventListener("pageshow", event => {
+
+    if (event.persisted) {
+
+        getOwnerSession().then(session => {
+
+            if (!session) return;
+
+            startAgencyRealtime();
+
+            loadAgencies();
+
+        });
+
+    }
+
+});
+
+
 initializeAgencyPage();
+
+/* =====================================================
+   OWNER AGENCIES REALTIME
+===================================================== */
+
+function scheduleAgencyRefresh() {
+
+    clearTimeout(agencyRefreshTimer);
+
+    agencyRefreshTimer = setTimeout(() => {
+
+        agencyRefreshTimer = null;
+
+        loadAgencies();
+
+    }, 700);
+}
+
+
+async function stopAgencyRealtime() {
+
+    if (agencyRefreshTimer) {
+
+        clearTimeout(agencyRefreshTimer);
+
+        agencyRefreshTimer = null;
+    }
+
+    if (!agencyRealtimeChannel) return;
+
+    const channel = agencyRealtimeChannel;
+
+    agencyRealtimeChannel = null;
+
+    try {
+
+        await supabaseClient.removeChannel(channel);
+
+        console.log("[EGC Agencies] Realtime stopped.");
+
+    } catch (error) {
+
+        console.warn(
+            "[EGC Agencies] Realtime cleanup error:",
+            error
+        );
+    }
+}
+
+
+function startAgencyRealtime() {
+
+    if (agencyRealtimeChannel) return;
+
+    try {
+
+        const channel = supabaseClient.channel(
+            "owner-agencies-realtime"
+        );
+
+        /* AGENCY INSERT / UPDATE / DELETE */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "agencies"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Agencies] Agency activity:",
+                    payload.eventType
+                );
+
+                scheduleAgencyRefresh();
+
+            }
+        );
+
+
+        /* CYLINDER REQUEST ACTIVITY */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "cylinder_requests"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Agencies] Request activity:",
+                    payload.eventType
+                );
+
+                scheduleAgencyRefresh();
+
+            }
+        );
+
+
+        /* PAYMENT ACTIVITY */
+
+        channel.on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "payments"
+            },
+            payload => {
+
+                console.log(
+                    "[EGC Agencies] Payment activity:",
+                    payload.eventType
+                );
+
+                scheduleAgencyRefresh();
+
+            }
+        );
+
+
+        channel.subscribe((status, error) => {
+
+            console.log(
+                "[EGC Agencies] Realtime status:",
+                status
+            );
+
+            if (error) {
+
+                console.error(
+                    "[EGC Agencies] Realtime error:",
+                    error
+                );
+
+            }
+
+        });
+
+        agencyRealtimeChannel = channel;
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Agencies] Realtime startup error:",
+            error
+        );
+
+    }
+}
 
 </script>
 

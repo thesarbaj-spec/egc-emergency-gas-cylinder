@@ -477,7 +477,7 @@ background: #d9efff;
                 <input type="search" id="historySearchInput" placeholder="Search payment ID, transaction ID or amount..." aria-label="Search payment history">
                 <select id="historyTypeFilter" aria-label="Filter payment type">
                     <option value="">All Payment Types</option>
-                    <option value="initial">Initial Payment</option>
+                    <option value="payment">Initial Payment</option>
                     <option value="repayment">Repayments</option>
                 </select>
                 <select id="historyApprovalFilter" aria-label="Filter payment approval">
@@ -653,6 +653,12 @@ let redirectStarted = false;
 let historyEventsBound = false;
 
 const signedUrlCache = new Map();
+// Latest Activity + Realtime State
+let requestsRealtimeRefreshTimer = null;
+let requestsRealtimeChannel = null;
+let realtimeRefreshRunning = false;
+let realtimeRefreshQueued = false;
+let realtimeSubscriptionStatus = "CLOSED";
 
 const requestTableBody =
     $("requestTableBody") ||
@@ -710,7 +716,8 @@ function formatDateTime(value) {
     if (!value) return "—";
 
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
+
+    if (isNaN(date.getTime())) return "—";
 
     return date.toLocaleString("en-IN", {
         day: "2-digit",
@@ -720,6 +727,73 @@ function formatDateTime(value) {
         minute: "2-digit",
         hour12: true
     });
+}
+
+/* =========================================================
+   LATEST ACTIVITY SORTING
+   Requests + Payments + Repayments
+   ========================================================= */
+
+function getActivityTimestamp(row) {
+    if (!row) return 0;
+
+    const fields = [
+        "updated_at",
+        "owner_approved_at",
+        "owner_rejected_at",
+        "verified_at",
+        "approved_at",
+        "payment_date",
+        "submitted_at",
+        "created_at",
+        "delivered_at",
+        "delivery_updated_at",
+        "agency_updated_at",
+        "repayment_date",
+        "paid_at"
+    ];
+
+    let latest = 0;
+
+    fields.forEach(field => {
+        const value = row[field];
+        if (!value) return;
+
+        const timestamp = new Date(value).getTime();
+
+        if (
+            Number.isFinite(timestamp) &&
+            timestamp > latest
+        ) {
+            latest = timestamp;
+        }
+    });
+
+    return latest;
+}
+
+function getRequestLatestActivity(request) {
+    const requestTime = getActivityTimestamp(request);
+
+    const paymentTime = getActivityTimestamp(
+        request.latest_payment
+    );
+
+    return Math.max(requestTime, paymentTime);
+}
+
+function sortRequestsByLatestActivity(list) {
+    return [...(list || [])].sort((a, b) =>
+        getRequestLatestActivity(b) -
+        getRequestLatestActivity(a)
+    );
+}
+
+function sortPaymentHistoryByLatestActivity(list) {
+    return [...(list || [])].sort((a, b) =>
+        getActivityTimestamp(b) -
+        getActivityTimestamp(a)
+    );
 }
 
 function formatMoney(value) {
@@ -1384,12 +1458,17 @@ async function attachRelatedData() {
         }
     }
 
-    if (requestIds.length) {
-        const { data, error } = await supabaseClient
-            .from("payments")
-            .select("*")
-            .in("request_id", requestIds)
-            .order("created_at", { ascending: false });
+if (requestIds.length) {
+    const { data, error } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .in("request_id", requestIds);
+
+    if (error) {
+        console.error("Payment loading failed:", error);
+    } else {
+        payments = sortPaymentHistoryByLatestActivity(data || []);
+    }
 
         if (error) {
             console.error("Payment loading failed:", error);
@@ -1534,7 +1613,9 @@ function renderRequests() {
     const search = ($("searchInput")?.value || "").trim().toLowerCase();
     const filter = ($("statusFilter")?.value || "").trim().toLowerCase();
 
-    const filtered = requests.filter(request => {
+   const sortedRequests = sortRequestsByLatestActivity(requests);
+
+const filtered = sortedRequests.filter(request => {
         const text = [
             getUserId(request),
             request.request_number,
@@ -1896,10 +1977,11 @@ async function saveRequestApproval(request, decision) {
     if (otherButton) otherButton.disabled = true;
 
     try {
-        const payload = {
-            owner_approval: decision,
-            owner_note: note || null
-        };
+     const payload = {
+    owner_approval: decision,
+    owner_note: note || null,
+    updated_at: new Date().toISOString()
+};
 
         if (decision === "approved") {
             payload.approved_by = currentOwnerId;
@@ -2033,14 +2115,37 @@ function historyRequestNumber(payment) {
 }
 
 function historyProofReference(payment) {
-    const screenshot = String(payment.screenshot_path || "").trim();
+    if (!payment) return "";
 
-    if (screenshot) return screenshot;
+    const fields = [
+        payment.screenshot_path,
+        payment.payment_screenshot,
+        payment.screenshot_url,
+        payment.payment_screenshot_url,
+        payment.payment_proof,
+        payment.payment_proof_url,
+        payment.proof_url,
+        payment.proof_path,
+        payment.receipt_url,
+        payment.receipt_path,
+        payment.payment_reference
+    ];
 
-    const reference = String(payment.payment_reference || "").trim();
+    for (const value of fields) {
+        if (typeof value !== "string") continue;
 
-    if (/^https?:\/\//i.test(reference)) return reference;
-    if (reference.includes("/") && !reference.includes(" ")) return reference;
+        const reference = value.trim();
+
+        if (!reference) continue;
+
+        if (
+            /^https?:\/\//i.test(reference) ||
+            /^data:/i.test(reference) ||
+            reference.includes("/")
+        ) {
+            return reference;
+        }
+    }
 
     return "";
 }
@@ -2076,9 +2181,10 @@ async function loadPaymentHistory() {
 
         if (error) throw error;
 
-        allPaymentHistory = data || [];
+        allPaymentHistory = sortPaymentHistoryByLatestActivity(data || []);
 
-        renderPaymentHistory();
+renderPaymentHistory();
+
     } catch (error) {
         console.error("Payment history loading failed:", error);
 
@@ -2433,7 +2539,17 @@ rows.forEach(payment => {
     groups.get(key).records.push(payment);
 });
 
-const grouped = [...groups.values()];
+const grouped = [...groups.values()].sort((a, b) => {
+    const latestA = Math.max(
+        ...a.records.map(payment => getActivityTimestamp(payment))
+    );
+
+    const latestB = Math.max(
+        ...b.records.map(payment => getActivityTimestamp(payment))
+    );
+
+    return latestB - latestA;
+});
 
 // The count represents the number of individual repayment records.
 if (count) count.textContent = String(rows.length);
@@ -3056,9 +3172,19 @@ document.addEventListener("click", async event => {
             return;
         }
 
-        const menuId = "repayment-actions-" + groupKey;
+    const row = button.closest("tr");
 
-        let menu = document.getElementById(menuId);
+const menu = row?.querySelector(
+    ".repayment-action-menu"
+);
+
+if (!menu) {
+    showToast(
+        "Menu Not Found",
+        "Repayment actions menu could not be found."
+    );
+    return;
+}
 
         // Fallback: find the menu within the same repayment row.
         if (!menu) {
@@ -3187,38 +3313,49 @@ document.addEventListener("click", async event => {
     // 5. INDIVIDUAL PAYMENT PROOF
     // --------------------------------------------------
     if (action === "proof") {
-        const reference = button.dataset.proof;
+    const reference = button.dataset.proof;
 
-        if (!reference) {
+    if (!reference) {
+        showToast(
+            "Proof Unavailable",
+            "No payment proof reference was found."
+        );
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        // Payment proofs should use payment-screenshots bucket.
+        const url = await resolveStorageUrl(
+            reference,
+            EGC_PAYMENT_BUCKET
+        );
+
+        if (!url) {
             showToast(
                 "Proof Unavailable",
-                "No payment proof reference was found."
+                "Proof could not be opened. Check the payment-screenshots bucket, file path and Storage permissions."
             );
             return;
         }
 
-        try {
-            const url = await resolveStorageUrl(reference);
+        showImagePreview(url);
 
-            if (url) {
-                showImagePreview(url);
-            } else {
-                showToast(
-                    "Proof Unavailable",
-                    "The saved proof could not be opened. Check Storage path and permissions."
-                );
-            }
-        } catch (error) {
-            console.error("Payment proof opening failed:", error);
+    } catch (error) {
+        console.error("Payment proof opening failed:", error);
 
-            showToast(
-                "Proof Error",
-                error.message || "Could not open the payment proof."
-            );
-        }
+        showToast(
+            "Proof Error",
+            error.message || "Could not open payment proof."
+        );
 
-        return;
+    } finally {
+        button.disabled = false;
     }
+
+    return;
+}
 
     // --------------------------------------------------
     // 6. INDIVIDUAL PAYMENT REVIEW / DETAILS
@@ -4054,7 +4191,7 @@ function openEditModal(request) {
                 <div class="form-field">
                     <label for="edit_agency_status">Agency Status</label>
                     <select id="edit_agency_status">
-                        ${["waiting", "assigned", "processing", "ready", "out_for_delivery", "delivered"].map(status => `
+                        ${["waiting", "Approved", "Pending", "Processing", "Ready", "Rejected", "On Hold",  "Assigned"].map(status => `
                             <option value="${status}" ${String(request.agency_status || "waiting").toLowerCase() === status ? "selected" : ""}>${displayStatusText(status)}</option>
                         `).join("")}
                     </select>
@@ -4285,6 +4422,7 @@ $("logoutConfirm")?.addEventListener("click", async () => {
     button.disabled = true;
 
     try {
+        await stopRequestsRealtime();
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
 
@@ -4300,11 +4438,86 @@ $("logoutConfirm")?.addEventListener("click", async () => {
    REALTIME
    ========================================================= */
 
-function startRealtime() {
-    if (realtimeChannel) return;
+/* =========================================================
+   EGC OWNER REQUESTS — REALTIME UPDATE
+   Requests + Payments + Notifications
+   Debounced Refresh + Safe Cleanup
+   ========================================================= */
 
-    realtimeChannel = supabaseClient
-        .channel("owner-requests-live")
+function scheduleRequestsRealtimeRefresh() {
+    clearTimeout(requestsRealtimeRefreshTimer);
+
+    requestsRealtimeRefreshTimer = setTimeout(() => {
+        void refreshRequestsRealtimeData();
+    }, 700);
+}
+
+async function refreshRequestsRealtimeData() {
+    if (realtimeRefreshRunning) {
+        realtimeRefreshQueued = true;
+        return;
+    }
+
+    realtimeRefreshRunning = true;
+
+    try {
+        do {
+            realtimeRefreshQueued = false;
+
+            signedUrlCache.clear();
+
+            await Promise.all([
+                loadRequests(),
+                loadPaymentHistory(),
+                loadNotifications()
+            ]);
+
+        } while (realtimeRefreshQueued);
+
+    } catch (error) {
+        console.error(
+            "EGC Realtime Refresh Error:",
+            error
+        );
+    } finally {
+        realtimeRefreshRunning = false;
+
+        if (realtimeRefreshQueued) {
+            scheduleRequestsRealtimeRefresh();
+        }
+    }
+}
+
+async function stopRequestsRealtime() {
+    clearTimeout(requestsRealtimeRefreshTimer);
+
+    requestsRealtimeRefreshTimer = null;
+
+    if (requestsRealtimeChannel) {
+        const channel = requestsRealtimeChannel;
+
+        requestsRealtimeChannel = null;
+
+        try {
+            await supabaseClient.removeChannel(channel);
+        } catch (error) {
+            console.warn(
+                "Realtime cleanup error:",
+                error
+            );
+        }
+    }
+
+    realtimeSubscriptionStatus = "CLOSED";
+}
+
+function startRealtime() {
+    if (requestsRealtimeChannel) return;
+
+    requestsRealtimeChannel = supabaseClient
+        .channel("egc-owner-requests-live")
+
+        // Cylinder Requests
         .on(
             "postgres_changes",
             {
@@ -4312,15 +4525,25 @@ function startRealtime() {
                 schema: "public",
                 table: "cylinder_requests"
             },
-            async payload => {
+            payload => {
+                console.log(
+                    "EGC Request Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
                 if (payload.eventType === "INSERT") {
-                    showToast("New Cylinder Request", "A new request was received.");
+                    showToast(
+                        "New Cylinder Request",
+                        "A new cylinder request was received."
+                    );
                 }
 
-                signedUrlCache.clear();
-                await loadRequests();
+                scheduleRequestsRealtimeRefresh();
             }
         )
+
+        // Payments + Repayments
         .on(
             "postgres_changes",
             {
@@ -4328,7 +4551,13 @@ function startRealtime() {
                 schema: "public",
                 table: "payments"
             },
-            async payload => {
+            payload => {
+                console.log(
+                    "EGC Payment Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
                 if (payload.eventType === "INSERT") {
                     showToast(
                         "New Payment / Repayment",
@@ -4336,32 +4565,74 @@ function startRealtime() {
                     );
                 }
 
-                signedUrlCache.clear();
-
-                await Promise.all([
-                    loadRequests(),
-                    loadPaymentHistory(),
-                    loadNotifications()
-                ]);
+                scheduleRequestsRealtimeRefresh();
             }
         )
+
+        // Notifications
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "notifications"
+            },
+            payload => {
+                console.log(
+                    "EGC Notification Realtime Event:",
+                    payload.eventType,
+                    payload
+                );
+
+                scheduleRequestsRealtimeRefresh();
+            }
+        )
+
         .subscribe(status => {
-            console.log("EGC Owner Requests Realtime:", status);
+            realtimeSubscriptionStatus = status;
+
+            console.log(
+                "EGC Owner Requests Realtime Status:",
+                status
+            );
+
+            if (status === "SUBSCRIBED") {
+                console.log(
+                    "EGC Owner Requests: Realtime Connected Successfully."
+                );
+            }
+
+            if (
+                status === "CHANNEL_ERROR" ||
+                status === "TIMED_OUT"
+            ) {
+                console.error(
+                    "EGC Realtime Connection Problem:",
+                    status
+                );
+            }
         });
 }
 
-/* =========================================================
-   AUTH STATE
-   ========================================================= */
-
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT" && !redirectStarted) {
-        redirectToOwnerLogin("Your session has ended. Please log in again.");
-        return;
+window.egcOwnerRequestsRealtime = {
+    start: startRealtime,
+    stop: stopRequestsRealtime,
+    refresh: refreshRequestsRealtimeData,
+    get status() {
+        return realtimeSubscriptionStatus;
     }
+};
 
-    if (event === "TOKEN_REFRESHED" && session?.user) {
-        currentOwnerId = session.user.id;
+// Browser tab cleanup
+window.addEventListener("pagehide", () => {
+    void stopRequestsRealtime();
+});
+
+// Restore connection when returning through browser cache
+window.addEventListener("pageshow", event => {
+    if (event.persisted && currentOwnerId) {
+        void refreshRequestsRealtimeData();
+        startRealtime();
     }
 });
 
@@ -4369,13 +4640,19 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
    INITIALIZE
    ========================================================= */
 
+/* =========================================================
+   INITIALIZE OWNER REQUESTS
+   ========================================================= */
+
 async function init() {
     if (pageInitialized) return;
+
     pageInitialized = true;
 
     bindPaymentHistoryEvents();
 
     const owner = await requireOwner();
+
     if (!owner) return;
 
     await Promise.all([

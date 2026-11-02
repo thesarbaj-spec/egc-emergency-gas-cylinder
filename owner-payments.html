@@ -779,6 +779,42 @@ function normalise(value) {
     return String(value ?? "").trim().toLowerCase();
 }
 
+function getActivityTimestamp(payment) {
+if (!payment) return 0;
+
+const timestamps = [
+    payment.updated_at,
+    payment.verified_at,
+    payment.owner_approved_at,
+    payment.payment_date,
+    payment.created_at,
+    payment.request?.updated_at,
+    payment.request?.created_at
+];
+
+return Math.max(
+    ...timestamps.map(value => getTime(value))
+);
+
+}
+
+function sortPaymentsByLatestActivity(list) {
+return [...list].sort(
+(a, b) =>
+getActivityTimestamp(b) -
+getActivityTimestamp(a)
+);
+}
+
+function sortGroupsByLatestActivity() {
+userGroups.sort((a, b) => {
+return (
+(b.latestActivity || 0) -
+(a.latestActivity || 0)
+);
+});
+}
+
 /* =====================================================
    PAYMENT STATUS HELPERS
 ===================================================== */
@@ -1370,8 +1406,26 @@ function buildUserGroups() {
         group.advance = advanceAmount(group.first);
         group.extra = extraCharge(group.first);
 
-        group.latest =
-            group.records[group.records.length - 1];
+        group.latest = group.records.reduce(
+    (latest, payment) => {
+        if (!latest) return payment;
+
+        return getActivityTimestamp(payment) >
+            getActivityTimestamp(latest)
+            ? payment
+            : latest;
+    },
+    null
+);
+
+
+group.latestActivity = Math.max(
+    ...group.records.map(payment =>
+        getActivityTimestamp(payment)
+    ),
+    getTime(group.first.request?.updated_at),
+    getTime(group.first.request?.created_at)
+);
 
         group.types = new Set(
             group.records.map(payment => payment.paymentType)
@@ -1424,6 +1478,8 @@ function buildUserGroups() {
                         : "not recorded";
     });
 }
+
+sortGroupsByLatestActivity();
 
 /* =====================================================
    PAYMENT HISTORY SUMMARY
@@ -1836,7 +1892,12 @@ return `
 function renderPayments() {
     if (!paymentTableBody) return;
 
-    const filtered = userGroups.filter(groupMatches);
+    const filtered = userGroups
+    .filter(groupMatches)
+    .sort((a, b) =>
+        (b.latestActivity || 0) -
+        (a.latestActivity || 0)
+    );
 
     if (!filtered.length) {
         paymentTableBody.innerHTML = `
@@ -2693,53 +2754,160 @@ document.addEventListener("keydown", event => {
    REALTIME SUBSCRIPTIONS
 ===================================================== */
 
+let realtimeRefreshTimer = null;
+let realtimeRefreshRunning = false;
+let realtimeRefreshQueued = false;
+let realtimeSubscriptionStatus = "CLOSED";
+
+function schedulePaymentsRealtimeRefresh() {
+if (realtimeRefreshTimer) {
+clearTimeout(realtimeRefreshTimer);
+}
+
+realtimeRefreshTimer = setTimeout(async () => {
+    realtimeRefreshTimer = null;
+
+    if (realtimeRefreshRunning) {
+        realtimeRefreshQueued = true;
+        return;
+    }
+
+    realtimeRefreshRunning = true;
+
+    try {
+        do {
+            realtimeRefreshQueued = false;
+
+            await loadPayments();
+
+        } while (realtimeRefreshQueued);
+
+    } catch (error) {
+        console.error(
+            "Realtime payment refresh error:",
+            error
+        );
+    } finally {
+        realtimeRefreshRunning = false;
+    }
+}, 500);
+
+}
+
 function startRealtime() {
-    if (realtimeChannel) return;
+if (realtimeChannel) return;
 
-    realtimeChannel = supabaseClient
-        .channel("owner-payments-realtime")
+realtimeChannel = supabaseClient
+    .channel("owner-payments-realtime-v2")
 
-        .on(
-            "postgres_changes",
-            {
-                event: "*",
-                schema: "public",
-                table: "payments"
-            },
-            async payload => {
-                console.log("Payment changed:", payload);
+    // PAYMENT RECORD CHANGES
+    .on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "payments"
+        },
+        payload => {
+            console.log(
+                "EGC Payments Realtime:",
+                payload.eventType,
+                payload
+            );
 
-                if (payload.eventType === "INSERT") {
-                    showToast(
-                        "New Payment",
-                        "A new payment record has been submitted."
-                    );
-                }
-
-                await loadPayments();
-            }
-        )
-
-        .on(
-            "postgres_changes",
-            {
-                event: "*",
-                schema: "public",
-                table: "cylinder_requests"
-            },
-            async payload => {
-                console.log(
-                    "Cylinder request changed:",
-                    payload
+            if (payload.eventType === "INSERT") {
+                showToast(
+                    "New Payment",
+                    "A new payment record has been submitted."
                 );
-
-                await loadPayments();
             }
-        )
 
-        .subscribe(status => {
-            console.log("EGC Payment Realtime:", status);
-        });
+            schedulePaymentsRealtimeRefresh();
+        }
+    )
+
+    // CYLINDER REQUEST CHANGES
+    .on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "cylinder_requests"
+        },
+        payload => {
+            console.log(
+                "EGC Request Realtime:",
+                payload.eventType,
+                payload
+            );
+
+            schedulePaymentsRealtimeRefresh();
+        }
+    )
+
+    // PROFILE CHANGES
+    .on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "profiles"
+        },
+        payload => {
+            console.log(
+                "EGC Profile Realtime:",
+                payload.eventType,
+                payload
+            );
+
+            schedulePaymentsRealtimeRefresh();
+        }
+    )
+
+    // AGENCY CHANGES
+    .on(
+        "postgres_changes",
+        {
+            event: "*",
+            schema: "public",
+            table: "agencies"
+        },
+        payload => {
+            console.log(
+                "EGC Agency Realtime:",
+                payload.eventType,
+                payload
+            );
+
+            schedulePaymentsRealtimeRefresh();
+        }
+    )
+
+    .subscribe(status => {
+        realtimeSubscriptionStatus = status;
+
+        console.log(
+            "EGC Owner Payments Realtime Status:",
+            status
+        );
+
+        if (status === "SUBSCRIBED") {
+            console.log(
+                "EGC Owner Payments: Realtime Connected Successfully."
+            );
+        }
+
+        if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT"
+        ) {
+            console.error(
+                "EGC Payments Realtime Connection Problem:",
+                status
+            );
+        }
+    });
+
 }
 
 /* =====================================================
@@ -2802,14 +2970,33 @@ async function initPayments() {
    CLEANUP
 ===================================================== */
 
+function stopPaymentsRealtime() {
+if (realtimeRefreshTimer) {
+clearTimeout(realtimeRefreshTimer);
+realtimeRefreshTimer = null;
+}
+
+if (realtimeChannel) {
+    const channel = realtimeChannel;
+
+    realtimeChannel = null;
+
+    supabaseClient.removeChannel(channel);
+}
+
+realtimeSubscriptionStatus = "CLOSED";
+
+}
+
 window.addEventListener("pagehide", () => {
-    if (realtimeChannel) {
-        const channel = realtimeChannel;
+stopPaymentsRealtime();
+});
 
-        realtimeChannel = null;
-
-        supabaseClient.removeChannel(channel);
-    }
+window.addEventListener("pageshow", event => {
+if (event.persisted) {
+startRealtime();
+schedulePaymentsRealtimeRefresh();
+}
 });
 
 /* =====================================================

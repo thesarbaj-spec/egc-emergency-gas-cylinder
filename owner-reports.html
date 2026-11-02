@@ -2928,6 +2928,55 @@ function getRequestDate(request){
 
 }
 
+/* ================= LATEST ACTIVITY SORTING ================= */
+
+function getLatestPaymentActivity(requestId) {
+    const relatedPayments = paymentRecords.filter(
+        payment =>
+            String(payment.request_id) === String(requestId)
+    );
+
+    if (!relatedPayments.length) return 0;
+
+    return Math.max(
+        ...relatedPayments.map(payment =>
+            Math.max(
+                new Date(payment.updated_at || 0).getTime() || 0,
+                new Date(payment.verified_at || 0).getTime() || 0,
+                new Date(payment.owner_approved_at || 0).getTime() || 0,
+                new Date(payment.payment_date || 0).getTime() || 0,
+                new Date(payment.created_at || 0).getTime() || 0
+            )
+        )
+    );
+}
+
+function getLatestRequestActivity(request) {
+    if (!request) return 0;
+
+    const requestActivity = Math.max(
+        new Date(request.updated_at || 0).getTime() || 0,
+        new Date(request.delivered_at || 0).getTime() || 0,
+        new Date(request.request_date || 0).getTime() || 0,
+        new Date(request.created_at || 0).getTime() || 0
+    );
+
+    const paymentActivity =
+        getLatestPaymentActivity(request.id);
+
+    return Math.max(
+        requestActivity,
+        paymentActivity
+    );
+}
+
+function sortRequestsByLatestActivity(list) {
+    return [...list].sort(
+        (a, b) =>
+            getLatestRequestActivity(b) -
+            getLatestRequestActivity(a)
+    );
+}
 
 function getProfile(userId){
 
@@ -3312,135 +3361,169 @@ overlay.addEventListener(
 
 /* ================= LOAD DATABASE ================= */
 
-async function loadReports(){
+/* ================= LOAD DATABASE ================= */
 
-    try{
+let reportsLoading = false;
+let reportsReloadRequested = false;
 
-        const requestsResponse =
-        await supabaseClient
-        .from("cylinder_requests")
-        .select("*")
-        .order(
-            "created_at",
-            {
-                ascending:false
+async function loadReports() {
+
+    if (reportsLoading) {
+        reportsReloadRequested = true;
+        return;
+    }
+
+    reportsLoading = true;
+
+    try {
+
+        do {
+
+            reportsReloadRequested = false;
+
+            /* LOAD CYLINDER REQUESTS */
+
+            const requestsResponse =
+                await supabaseClient
+                    .from("cylinder_requests")
+                    .select("*");
+
+            if (requestsResponse.error) {
+                throw requestsResponse.error;
             }
-        );
 
-        if(requestsResponse.error){
-
-            throw requestsResponse.error;
-
-        }
-
-        requests =
-        requestsResponse.data || [];
+            requests = requestsResponse.data || [];
 
 
-        const paymentsResponse =
-        await supabaseClient
-        .from("payments")
-        .select("*")
-        .order(
-            "payment_date",
-            {
-                ascending:false
+            /* LOAD PAYMENTS */
+
+            const paymentsResponse =
+                await supabaseClient
+                    .from("payments")
+                    .select("*");
+
+            if (paymentsResponse.error) {
+
+                console.warn(
+                    "Payments table:",
+                    paymentsResponse.error.message
+                );
+
+                paymentRecords = [];
+
+            } else {
+
+                paymentRecords =
+                    paymentsResponse.data || [];
+
             }
-        );
-
-        if(paymentsResponse.error){
-
-            console.warn(
-                "Payments table:",
-                paymentsResponse.error.message
-            );
-
-            paymentRecords = [];
-
-        }
-        else{
-
-            paymentRecords =
-            paymentsResponse.data || [];
-
-        }
 
 
-        const userIds =
-        [
-            ...new Set(
-                requests
-                .map(item => item.user_id)
-                .filter(Boolean)
-            )
-        ];
+            /* SORT PAYMENT RECORDS */
+
+            paymentRecords.sort((a, b) => {
+
+                const timeA = Math.max(
+                    new Date(a.updated_at || 0).getTime() || 0,
+                    new Date(a.verified_at || 0).getTime() || 0,
+                    new Date(a.payment_date || 0).getTime() || 0,
+                    new Date(a.created_at || 0).getTime() || 0
+                );
+
+                const timeB = Math.max(
+                    new Date(b.updated_at || 0).getTime() || 0,
+                    new Date(b.verified_at || 0).getTime() || 0,
+                    new Date(b.payment_date || 0).getTime() || 0,
+                    new Date(b.created_at || 0).getTime() || 0
+                );
+
+                return timeB - timeA;
+
+            });
 
 
-        if(userIds.length){
+            /* LOAD PROFILES */
 
-            const profileResponse =
-            await supabaseClient
-            .from("profiles")
-            .select("*")
-            .in(
-                "id",
-                userIds
-            );
+            const userIds = [
+                ...new Set(
+                    requests
+                        .map(item => item.user_id)
+                        .filter(Boolean)
+                )
+            ];
 
-            if(!profileResponse.error){
+            profiles = [];
+
+            if (userIds.length) {
+
+                const profileResponse =
+                    await supabaseClient
+                        .from("profiles")
+                        .select("*")
+                        .in("id", userIds);
+
+                if (profileResponse.error) {
+                    throw profileResponse.error;
+                }
 
                 profiles =
-                profileResponse.data || [];
+                    profileResponse.data || [];
 
             }
 
-        }
 
+            /* LOAD AGENCIES */
 
-        const agencyIds =
-        [
-            ...new Set(
-                requests
-                .map(item => item.agency_id)
-                .filter(Boolean)
-            )
-        ];
+            const agencyIds = [
+                ...new Set(
+                    requests
+                        .map(item => item.agency_id)
+                        .filter(Boolean)
+                )
+            ];
 
+            agencies = [];
 
-        if(agencyIds.length){
+            if (agencyIds.length) {
 
-            const agencyResponse =
-            await supabaseClient
-            .from("agencies")
-            .select("*")
-            .in(
-                "id",
-                agencyIds
-            );
+                const agencyResponse =
+                    await supabaseClient
+                        .from("agencies")
+                        .select("*")
+                        .in("id", agencyIds);
 
-            if(!agencyResponse.error){
+                if (agencyResponse.error) {
+                    throw agencyResponse.error;
+                }
 
                 agencies =
-                agencyResponse.data || [];
+                    agencyResponse.data || [];
 
             }
 
-        }
+
+            /* LATEST ACTIVITY SORTING */
+
+            requests = sortRequestsByLatestActivity(requests);
 
 
-        populateYears();
+            /* UPDATE REPORTS */
 
-        calculateOverview();
+            populateYears();
 
-        renderMonthlySummary();
+            calculateOverview();
 
-        renderYearlySummary();
+            renderMonthlySummary();
 
-        renderTransactions();
+            renderYearlySummary();
 
+            renderTransactions();
+
+        } while (reportsReloadRequested);
 
     }
-    catch(error){
+
+    catch(error) {
 
         console.error(
             "Reports error:",
@@ -3465,8 +3548,13 @@ async function loadReports(){
 
     }
 
-}
+    finally {
 
+        reportsLoading = false;
+
+    }
+
+}
 
 /* ================= OVERVIEW ================= */
 
@@ -4280,19 +4368,9 @@ function renderTransactions(){
     });
 
 
-    const latest =
+const latest = sortRequestsByLatestActivity(
     filtered
-    .slice()
-    .sort(
-        (a,b) =>
-        new Date(
-            getRequestDate(b)
-        ) -
-        new Date(
-            getRequestDate(a)
-        )
-    )
-    .slice(0,50);
+).slice(0, 50);
 
 
     if(!latest.length){
@@ -4454,90 +4532,290 @@ logoutBtn.addEventListener(
 );
 
 
-/* ================= REALTIME ================= */
+/* ================= REALTIME UPDATE ================= */
 
-function startRealtime(){
+let reportsRealtimeChannel = null;
 
-    const channel =
-    supabaseClient
-    .channel(
-        "owner-reports-live"
-    );
+let reportsRealtimeTimer = null;
 
+let reportsRealtimeRunning = false;
 
-    channel.on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"cylinder_requests"
-        },
-        async function(){
+let reportsRealtimeQueued = false;
 
-            await loadReports();
-
-        }
-    );
+let reportsRealtimeStatus = "CLOSED";
 
 
-    channel.on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"payments"
-        },
-        async function(){
+/* DEBOUNCED REFRESH */
 
-            await loadReports();
+function scheduleReportsRefresh() {
+
+    if (reportsRealtimeTimer) {
+        clearTimeout(reportsRealtimeTimer);
+    }
+
+    reportsRealtimeTimer = setTimeout(async () => {
+
+        reportsRealtimeTimer = null;
+
+        if (reportsRealtimeRunning) {
+
+            reportsRealtimeQueued = true;
+
+            return;
 
         }
-    );
 
+        reportsRealtimeRunning = true;
 
-    channel.on(
-        "postgres_changes",
-        {
-            event:"*",
-            schema:"public",
-            table:"profiles"
-        },
-        async function(){
+        try {
 
-            await loadReports();
+            do {
+
+                reportsRealtimeQueued = false;
+
+                await loadReports();
+
+            } while (reportsRealtimeQueued);
 
         }
-    );
 
+        catch(error) {
 
-    channel.subscribe(
-        function(status){
-
-            console.log(
-                "EGC Reports Realtime:",
-                status
+            console.error(
+                "Reports Realtime Refresh Error:",
+                error
             );
 
         }
-    );
+
+        finally {
+
+            reportsRealtimeRunning = false;
+
+        }
+
+    }, 500);
+
+}
+
+
+/* START REALTIME */
+
+function startRealtime() {
+
+    if (reportsRealtimeChannel) return;
+
+    reportsRealtimeChannel =
+        supabaseClient
+            .channel("owner-reports-live-v2")
+
+
+            /* CYLINDER REQUESTS */
+
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "cylinder_requests"
+                },
+                payload => {
+
+                    console.log(
+                        "Reports Request Realtime:",
+                        payload.eventType,
+                        payload
+                    );
+
+                    scheduleReportsRefresh();
+
+                }
+            )
+
+
+            /* PAYMENTS */
+
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "payments"
+                },
+                payload => {
+
+                    console.log(
+                        "Reports Payment Realtime:",
+                        payload.eventType,
+                        payload
+                    );
+
+                    scheduleReportsRefresh();
+
+                }
+            )
+
+
+            /* PROFILES */
+
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "profiles"
+                },
+                payload => {
+
+                    console.log(
+                        "Reports Profile Realtime:",
+                        payload.eventType,
+                        payload
+                    );
+
+                    scheduleReportsRefresh();
+
+                }
+            )
+
+
+            /* AGENCIES */
+
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "agencies"
+                },
+                payload => {
+
+                    console.log(
+                        "Reports Agency Realtime:",
+                        payload.eventType,
+                        payload
+                    );
+
+                    scheduleReportsRefresh();
+
+                }
+            )
+
+
+            .subscribe(status => {
+
+                reportsRealtimeStatus = status;
+
+                console.log(
+                    "EGC Reports Realtime Status:",
+                    status
+                );
+
+                if (status === "SUBSCRIBED") {
+
+                    console.log(
+                        "EGC Reports: Realtime Connected Successfully."
+                    );
+
+                }
+
+                if (
+                    status === "CHANNEL_ERROR" ||
+                    status === "TIMED_OUT"
+                ) {
+
+                    console.error(
+                        "EGC Reports Realtime Connection Problem:",
+                        status
+                    );
+
+                }
+
+            });
 
 
     window.egcReportsRealtime =
-    channel;
+        reportsRealtimeChannel;
 
 }
 
+
+/* STOP REALTIME */
+
+function stopReportsRealtime() {
+
+    if (reportsRealtimeTimer) {
+
+        clearTimeout(reportsRealtimeTimer);
+
+        reportsRealtimeTimer = null;
+
+    }
+
+    if (reportsRealtimeChannel) {
+
+        const channel = reportsRealtimeChannel;
+
+        reportsRealtimeChannel = null;
+
+        supabaseClient.removeChannel(channel);
+
+    }
+
+    reportsRealtimeStatus = "CLOSED";
+
+}
+
+
+/* PAGE CLEANUP */
+
+window.addEventListener("pagehide", () => {
+
+    stopReportsRealtime();
+
+});
+
+
+/* RESTORE PAGE */
+
+window.addEventListener("pageshow", event => {
+
+    if (event.persisted) {
+
+        startRealtime();
+
+        scheduleReportsRefresh();
+
+    }
+
+});
 
 /* ================= INITIALIZE ================= */
 
-async function init(){
+async function init() {
 
-    await loadReports();
+    try {
 
-    startRealtime();
+        await loadReports();
+
+        startRealtime();
+
+        console.log(
+            "EGC Owner Reports Initialized Successfully."
+        );
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "Reports Initialization Error:",
+            error
+        );
+
+    }
 
 }
-
 
 init();
 
