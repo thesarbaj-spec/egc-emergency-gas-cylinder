@@ -1614,6 +1614,252 @@ tr.user-row:hover td{
     }
 }
 
+/* =========================================================
+   LATEST ACTIVITY + ACCOUNT DELETION REQUESTS
+========================================================= */
+
+.egc-activity-section{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+}
+
+.egc-activity-panel{
+    background:rgba(255,255,255,.97);
+    border:1px solid rgba(220,230,239,.95);
+    border-radius:18px;
+    box-shadow:0 8px 28px rgba(50,80,110,.07);
+    overflow:hidden;
+    min-width:0;
+}
+
+.egc-activity-header{
+    padding:19px 21px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+}
+
+.egc-activity-title{
+    font-size:17px;
+    font-weight:800;
+    color:#06477f;
+}
+
+.egc-activity-subtitle{
+    font-size:11px;
+    color:#8799a9;
+    margin-top:5px;
+}
+
+.egc-activity-count{
+    min-width:30px;
+    height:30px;
+    padding:0 9px;
+    border-radius:20px;
+    background:#eef7ff;
+    color:#0871c3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:900;
+}
+
+.egc-activity-scroll{
+    height:310px;
+    max-height:310px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+}
+
+.egc-activity-scroll::-webkit-scrollbar{
+    width:6px;
+}
+
+.egc-activity-scroll::-webkit-scrollbar-thumb{
+    background:#cbdce9;
+    border-radius:10px;
+}
+
+.egc-activity-empty{
+    min-height:150px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:25px;
+    color:#91a1af;
+    font-size:12px;
+}
+
+.egc-activity-item{
+    padding:15px 20px;
+    border-bottom:1px solid #edf2f6;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.egc-activity-item:last-child{
+    border-bottom:0;
+}
+
+.egc-activity-item:hover{
+    background:#fbfdff;
+}
+
+.egc-activity-info{
+    min-width:0;
+    flex:1;
+}
+
+.egc-activity-name{
+    color:#24526f;
+    font-size:13px;
+    font-weight:800;
+    word-break:break-word;
+}
+
+.egc-activity-detail{
+    color:#8295a4;
+    font-size:11px;
+    margin-top:5px;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.egc-activity-time{
+    color:#9aaab6;
+    font-size:10px;
+    margin-top:6px;
+}
+
+.egc-deletion-status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:900;
+    white-space:nowrap;
+    text-transform:capitalize;
+}
+
+.egc-status-pending{
+    background:#fff5df;
+    color:#a96a00;
+}
+
+.egc-status-approved{
+    background:#eaf4ff;
+    color:#0871c3;
+}
+
+.egc-status-rejected{
+    background:#fff0f0;
+    color:#c72e2e;
+}
+
+.egc-status-blocked{
+    background:#f2edff;
+    color:#7045b5;
+}
+
+.egc-status-completed{
+    background:#eaf9ef;
+    color:#18803d;
+}
+
+.egc-deletion-actions{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-top:11px;
+    flex-wrap:wrap;
+}
+
+.egc-deletion-btn{
+    min-height:34px;
+    padding:0 12px;
+    border:1px solid transparent;
+    border-radius:8px;
+    font-size:10px;
+    font-weight:900;
+    cursor:pointer;
+}
+
+.egc-deletion-btn:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+.egc-approve-btn{
+    background:#eaf9ef;
+    color:#18803d;
+    border-color:#ccebd5;
+}
+
+.egc-reject-btn{
+    background:#fff0f0;
+    color:#c72e2e;
+    border-color:#f2caca;
+}
+
+.egc-deletion-reason{
+    margin-top:7px;
+    padding:9px 11px;
+    border-radius:8px;
+    background:#f7fafc;
+    color:#71889a;
+    font-size:10px;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.egc-deletion-actions button:hover{
+    filter:brightness(.97);
+}
+
+@media(max-width:760px){
+    .egc-activity-section{
+        margin-top:17px;
+        gap:15px;
+    }
+
+    .egc-activity-header{
+        padding:15px;
+    }
+
+    .egc-activity-title{
+        font-size:15px;
+    }
+
+    .egc-activity-scroll{
+        height:300px;
+        max-height:300px;
+    }
+
+    .egc-activity-item{
+        padding:13px 14px;
+        gap:8px;
+    }
+
+    .egc-activity-name{
+        font-size:12px;
+    }
+
+    .egc-deletion-status{
+        font-size:9px;
+        padding:5px 8px;
+    }
+}
+
 </style>
 </head>
 
@@ -2231,6 +2477,88 @@ tr.user-row:hover td{
 
     </section>
 
+    <!-- =====================================================
+     LATEST ACTIVITY
+===================================================== -->
+
+<section class="egc-activity-section">
+
+    <div class="egc-activity-panel">
+
+        <div class="egc-activity-header">
+
+            <div>
+                <div class="egc-activity-title">
+                    🕒 Latest Activity
+                </div>
+
+                <div class="egc-activity-subtitle">
+                    Latest customer and account deletion activity
+                </div>
+            </div>
+
+            <span class="egc-activity-count" id="latestActivityCount">
+                0
+            </span>
+
+        </div>
+
+        <div
+            class="egc-activity-scroll"
+            id="latestActivityList"
+        >
+
+            <div class="egc-activity-empty">
+                Loading latest activity...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ACCOUNT DELETION REQUESTS
+    ===================================================== -->
+
+    <div class="egc-activity-panel">
+
+        <div class="egc-activity-header">
+
+            <div>
+                <div class="egc-activity-title">
+                    🗑️ Account Deletion Requests
+                </div>
+
+                <div class="egc-activity-subtitle">
+                    Review and manage customer account deletion requests
+                </div>
+            </div>
+
+            <span
+                class="egc-activity-count"
+                id="deletionRequestCount"
+            >
+                0
+            </span>
+
+        </div>
+
+        <div
+            class="egc-activity-scroll"
+            id="deletionRequestsList"
+        >
+
+            <div class="egc-activity-empty">
+                Loading deletion requests...
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
 </main>
 
 </div>
@@ -2385,6 +2713,7 @@ tr.user-row:hover td{
     </div>
 
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
@@ -2475,6 +2804,29 @@ let usersReloadPending = false;
 
 let userActivityMap = new Map();
 
+/* =========================================================
+   ACCOUNT DELETION REQUESTS
+========================================================= */
+
+const DELETION_FUNCTION_NAME = "owner-account-deletion";
+
+let deletionRequests = [];
+let deletionLoading = false;
+let deletionActionInProgress = false;
+let deletionRealtimeRefreshTimer = null;
+
+const latestActivityList =
+    document.getElementById("latestActivityList");
+
+const latestActivityCount =
+    document.getElementById("latestActivityCount");
+
+const deletionRequestsList =
+    document.getElementById("deletionRequestsList");
+
+const deletionRequestCount =
+    document.getElementById("deletionRequestCount");
+
 function createEmptyEditDocuments() {
     return {
         "aadhaar-front": { file: null, existingPath: null, remove: false },
@@ -2497,6 +2849,618 @@ function escapeHtml(value) {
 }
 
 /* USER HELPERS */
+
+/* =========================================================
+   ACCOUNT DELETION — EDGE FUNCTION
+========================================================= */
+
+function getDeletionStatus(status) {
+    const value = String(status || "pending").toLowerCase().trim();
+
+    const allowed = [
+        "pending",
+        "approved",
+        "rejected",
+        "blocked",
+        "completed"
+    ];
+
+    return allowed.includes(value) ? value : "pending";
+}
+
+function getDeletionStatusLabel(status) {
+    const labels = {
+        pending: "Pending",
+        approved: "Approved",
+        rejected: "Rejected",
+        blocked: "Blocked",
+        completed: "Completed"
+    };
+
+    return labels[getDeletionStatus(status)];
+}
+
+function getDeletionTimestamp(request) {
+    const value =
+        request?.updated_at ||
+        request?.completed_at ||
+        request?.reviewed_at ||
+        request?.requested_at ||
+        request?.created_at;
+
+    if (!value) return 0;
+
+    const timestamp = new Date(value).getTime();
+
+    return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function formatActivityDate(value) {
+    if (!value) return "Date unavailable";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "Date unavailable";
+    }
+
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+/* CALL EDGE FUNCTION */
+
+async function callDeletionFunction(payload) {
+
+    const {
+        data,
+        error
+    } = await supabaseClient.functions.invoke(
+        DELETION_FUNCTION_NAME,
+        {
+            body: payload
+        }
+    );
+
+    if (error) {
+
+        let message = error.message || "Edge Function failed.";
+
+        if (error.context) {
+            try {
+                const response = await error.context.json();
+
+                message =
+                    response?.error ||
+                    response?.message ||
+                    message;
+
+            } catch (_) {}
+        }
+
+        throw new Error(message);
+    }
+
+    if (!data) {
+        throw new Error("Empty response received from server.");
+    }
+
+    if (data.success === false) {
+        throw new Error(
+            data.message ||
+            data.error ||
+            "Account deletion operation failed."
+        );
+    }
+
+    return data;
+}
+
+
+/* LOAD DELETION REQUESTS */
+
+async function loadDeletionRequests() {
+
+    if (deletionLoading) return;
+
+    deletionLoading = true;
+
+    if (deletionRequestsList) {
+        deletionRequestsList.innerHTML = `
+            <div class="egc-activity-empty">
+                <div>
+                    <div class="spinner"></div>
+                    Loading deletion requests...
+                </div>
+            </div>`;
+    }
+
+    try {
+
+        const result = await callDeletionFunction({
+            action: "list"
+        });
+
+        const rows =
+            result.requests ||
+            result.data?.requests ||
+            result.data ||
+            [];
+
+        deletionRequests = Array.isArray(rows)
+            ? rows.map(item => ({
+                ...item,
+                status: getDeletionStatus(item.status)
+            }))
+            : [];
+
+        deletionRequests.sort((a, b) =>
+            getDeletionTimestamp(b) -
+            getDeletionTimestamp(a)
+        );
+
+        renderDeletionRequests();
+        renderLatestActivity();
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Deletion] Loading failed:",
+            error
+        );
+
+        if (deletionRequestsList) {
+            deletionRequestsList.innerHTML = `
+                <div class="egc-activity-empty">
+                    Unable to load deletion requests.<br><br>
+                    ${escapeHtml(error.message)}
+                </div>`;
+        }
+
+        if (deletionRequestCount) {
+            deletionRequestCount.textContent = "!";
+        }
+
+        renderLatestActivity();
+
+    } finally {
+
+        deletionLoading = false;
+    }
+}
+
+
+/* RENDER DELETION REQUESTS */
+
+function renderDeletionRequests() {
+
+    if (!deletionRequestsList) return;
+
+    if (deletionRequestCount) {
+        deletionRequestCount.textContent =
+            deletionRequests.length;
+    }
+
+    if (!deletionRequests.length) {
+
+        deletionRequestsList.innerHTML = `
+            <div class="egc-activity-empty">
+                <div>
+                    <div style="font-size:28px;margin-bottom:9px">
+                        📭
+                    </div>
+                    No account deletion requests found.
+                </div>
+            </div>`;
+
+        return;
+    }
+
+    deletionRequestsList.innerHTML = "";
+
+    deletionRequests.forEach(request => {
+
+        const status = getDeletionStatus(request.status);
+
+        const customerName =
+            request.customer_name ||
+            request.full_name ||
+            request.name ||
+            "Customer";
+
+        const userCode =
+            request.user_code ||
+            request.customer_code ||
+            "—";
+
+        const phone =
+            request.mobile ||
+            request.customer_mobile ||
+            "—";
+
+        const reason =
+            request.reason ||
+            "No reason provided.";
+
+        const timestamp =
+            request.requested_at ||
+            request.created_at;
+
+        const item = document.createElement("div");
+
+        item.className = "egc-activity-item";
+
+        item.innerHTML = `
+
+            <div class="egc-activity-info">
+
+                <div class="egc-activity-name">
+                    ${escapeHtml(customerName)}
+                </div>
+
+                <div class="egc-activity-detail">
+                    User ID: ${escapeHtml(userCode)}
+                    <br>
+                    Phone: ${escapeHtml(phone)}
+                </div>
+
+                <div class="egc-deletion-reason">
+                    <strong>Reason:</strong>
+                    ${escapeHtml(reason)}
+                </div>
+
+                <div class="egc-activity-time">
+                    Requested:
+                    ${escapeHtml(formatActivityDate(timestamp))}
+                </div>
+
+                <div class="egc-deletion-actions"></div>
+
+            </div>
+
+            <span class="egc-deletion-status egc-status-${status}">
+                ${getDeletionStatusLabel(status)}
+            </span>
+        `;
+
+        const actions =
+            item.querySelector(".egc-deletion-actions");
+
+        if (status === "pending") {
+
+            const approveButton =
+                document.createElement("button");
+
+            approveButton.type = "button";
+            approveButton.className =
+                "egc-deletion-btn egc-approve-btn";
+
+            approveButton.textContent = "✓ Approve";
+
+            approveButton.addEventListener("click", () => {
+                approveDeletionRequest(request);
+            });
+
+
+            const rejectButton =
+                document.createElement("button");
+
+            rejectButton.type = "button";
+            rejectButton.className =
+                "egc-deletion-btn egc-reject-btn";
+
+            rejectButton.textContent = "✕ Reject";
+
+            rejectButton.addEventListener("click", () => {
+                rejectDeletionRequest(request);
+            });
+
+            actions.append(
+                approveButton,
+                rejectButton
+            );
+
+        } else if (status === "approved") {
+
+            const retryButton =
+                document.createElement("button");
+
+            retryButton.type = "button";
+            retryButton.className =
+                "egc-deletion-btn egc-approve-btn";
+
+            retryButton.textContent =
+                "↻ Complete Deletion";
+
+            retryButton.addEventListener("click", () => {
+                approveDeletionRequest(request, true);
+            });
+
+            actions.appendChild(retryButton);
+
+        } else if (status === "blocked") {
+
+            const note = document.createElement("div");
+
+            note.className = "egc-activity-detail";
+
+            note.textContent =
+                request.owner_note ||
+                "Deletion is blocked. Outstanding activity must be resolved.";
+
+            actions.appendChild(note);
+
+        } else if (status === "rejected") {
+
+            const note = document.createElement("div");
+
+            note.className = "egc-activity-detail";
+
+            note.textContent =
+                request.owner_note ||
+                "Request rejected.";
+
+            actions.appendChild(note);
+
+        }
+
+        deletionRequestsList.appendChild(item);
+    });
+}
+
+
+/* APPROVE DELETION */
+
+async function approveDeletionRequest(request, retry = false) {
+
+    if (!request || deletionActionInProgress) return;
+
+    if (!request.id) {
+        showMessage("Deletion request ID missing.");
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Approve Account Deletion?\n\n" +
+        "Customer: " +
+        (request.customer_name || request.full_name || request.user_code) +
+        "\nUser ID: " + (request.user_code || "—") +
+        "\n\n" +
+        "The system will recheck outstanding requests and payments.\n\n" +
+        "If eligible, the customer's Auth account will be deleted " +
+        "and personal information anonymized.\n\n" +
+        "Financial history, requests, payments and slips will be preserved.\n\n" +
+        "This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    deletionActionInProgress = true;
+
+    try {
+
+        renderDeletionRequests();
+
+        const result = await callDeletionFunction({
+            action: "approve",
+            request_id: request.id
+        });
+
+        showMessage(
+            result.message ||
+            (
+                result.status === "completed"
+                    ? "Customer account successfully deleted and personal data anonymized."
+                    : "Deletion operation updated. Check the request status."
+            )
+        );
+
+        await loadDeletionRequests();
+        await loadUsers();
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Deletion] Approval error:",
+            error
+        );
+
+        showMessage(
+            "Account deletion could not be completed.\n\n" +
+            error.message
+        );
+
+        await loadDeletionRequests();
+
+    } finally {
+
+        deletionActionInProgress = false;
+
+        renderDeletionRequests();
+    }
+}
+
+
+/* REJECT DELETION */
+
+async function rejectDeletionRequest(request) {
+
+    if (!request || deletionActionInProgress) return;
+
+    const reason = window.prompt(
+        "Enter the reason for rejecting this account deletion request:"
+    );
+
+    if (reason === null) return;
+
+    if (!reason.trim()) {
+
+        showMessage(
+            "Rejection reason is required."
+        );
+
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Reject this account deletion request?"
+    );
+
+    if (!confirmed) return;
+
+    deletionActionInProgress = true;
+
+    try {
+
+        await callDeletionFunction({
+            action: "reject",
+            request_id: request.id,
+            reason: reason.trim()
+        });
+
+        showMessage(
+            "Account deletion request rejected successfully."
+        );
+
+        await loadDeletionRequests();
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Deletion] Rejection error:",
+            error
+        );
+
+        showMessage(
+            "Request reject nahi ho payi.\n\n" +
+            error.message
+        );
+
+    } finally {
+
+        deletionActionInProgress = false;
+
+        renderDeletionRequests();
+    }
+}
+
+/* =========================================================
+   LATEST ACTIVITY RENDERER
+========================================================= */
+
+function renderLatestActivity() {
+
+    if (!latestActivityList) return;
+
+    const activities = [];
+
+    /* CUSTOMER ACTIVITY */
+
+    allUsers.forEach(user => {
+
+        const timestamp = getCustomerLatestActivity(user);
+
+        if (!timestamp) return;
+
+        activities.push({
+            type: "customer",
+            timestamp,
+            name: getUserName(user),
+            detail: "Customer account activity · " + getUserId(user)
+        });
+    });
+
+
+    /* ACCOUNT DELETION ACTIVITY */
+
+    deletionRequests.forEach(request => {
+
+        const timestamp = getDeletionTimestamp(request);
+
+        activities.push({
+            type: "deletion",
+            timestamp,
+            name:
+                request.customer_name ||
+                request.full_name ||
+                request.user_code ||
+                "Customer",
+            detail:
+                "Account deletion request · " +
+                (request.user_code || "—"),
+            status: getDeletionStatus(request.status)
+        });
+    });
+
+
+    activities.sort((a, b) =>
+        b.timestamp - a.timestamp
+    );
+
+    if (latestActivityCount) {
+        latestActivityCount.textContent =
+            activities.length;
+    }
+
+    if (!activities.length) {
+
+        latestActivityList.innerHTML = `
+            <div class="egc-activity-empty">
+                No recent activity available.
+            </div>`;
+
+        return;
+    }
+
+    latestActivityList.innerHTML = "";
+
+    activities.slice(0, 50).forEach(activity => {
+
+        const item = document.createElement("div");
+
+        item.className = "egc-activity-item";
+
+        const statusHTML = activity.status
+            ? `
+                <span class="egc-deletion-status egc-status-${activity.status}">
+                    ${getDeletionStatusLabel(activity.status)}
+                </span>
+              `
+            : "";
+
+        item.innerHTML = `
+
+            <div class="egc-activity-info">
+
+                <div class="egc-activity-name">
+                    ${activity.type === "deletion" ? "🗑️ " : "👤 "}
+                    ${escapeHtml(activity.name)}
+                </div>
+
+                <div class="egc-activity-detail">
+                    ${escapeHtml(activity.detail)}
+                </div>
+
+                <div class="egc-activity-time">
+                    ${escapeHtml(
+                        formatActivityDate(activity.timestamp)
+                    )}
+                </div>
+
+            </div>
+
+            ${statusHTML}
+        `;
+
+        latestActivityList.appendChild(item);
+    });
+}
+
 /* =====================================================
    LATEST CUSTOMER ACTIVITY
 ===================================================== */
@@ -2867,6 +3831,7 @@ async function loadUsers() {
             allUsers = sortCustomersByLatestActivity(allUsers);
 
             applySearch();
+            renderLatestActivity();
 
             console.log(
                 "[EGC Users] Customers sorted by latest activity:",
@@ -4066,89 +5031,23 @@ async function deleteAllUserDocuments(user) {
     }
 }
 
-/* DELETE CUSTOMER PROFILE */
-async function deleteUser(user) {
-    if (!user || isDeletingUser) return;
+/* =========================================================
+   SAFE CUSTOMER DELETION
+   DIRECT PROFILE DELETION DISABLED
+========================================================= */
 
-    const confirmed = window.confirm(
-        "Delete Customer?\n\n" +
-        "Name: " + getUserName(user) + "\n" +
-        "User ID: " + getUserId(user) + "\n\n" +
-        "Customer profile aur uploaded documents permanently delete honge.\n\n" +
-        "This action cannot be undone."
+async function deleteUser(user) {
+
+    if (!user) return;
+
+    showMessage(
+        "Direct customer deletion is disabled.\n\n" +
+        "Customer account deletion must be submitted through " +
+        "the secure Account Deletion Request workflow.\n\n" +
+        "The Owner can review the request in the Account Deletion Requests section."
     );
 
-    if (!confirmed) return;
-
-    isDeletingUser = true;
-
-    try {
-        const documentsDeleted = await deleteAllUserDocuments(user);
-
-        const { error } = await supabaseClient
-            .from("profiles")
-            .delete()
-            .eq("id", user.id);
-
-        if (error) throw error;
-
-        allUsers = allUsers.filter(
-            item => String(item.id) !== String(user.id)
-        );
-
-        const totalPages = Math.max(
-            1,
-            Math.ceil(allUsers.length / USERS_PER_PAGE)
-        );
-
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        applySearch();
-
-        if (documentsDeleted) {
-            showMessage("Customer profile successfully deleted.");
-        } else {
-            showMessage(
-                "Customer profile delete ho gaya hai, lekin kuch documents remove nahi ho paaye. Storage check karein."
-            );
-        }
-    } catch (error) {
-        console.error("Customer delete error:", error);
-
-        showMessage(
-            "Customer delete nahi ho paya.\n\n" +
-            (error?.message || "Unknown error")
-        );
-    } finally {
-        isDeletingUser = false;
-    }
 }
-
-/* SEARCH EVENTS */
-searchInput?.addEventListener("input", applySearch);
-
-clearSearch?.addEventListener("click", () => {
-    if (!searchInput) return;
-
-    searchInput.value = "";
-    applySearch();
-    searchInput.focus();
-});
-
-refreshBtn?.addEventListener("click", loadUsers);
-
-backBtn?.addEventListener("click", () => {
-    window.location.href = "owner-dashboard.html";
-});
-
-/* LOGOUT */
-logoutBtn?.addEventListener("click", () => {
-    sidebar?.classList.remove("open");
-    overlay?.classList.remove("show");
-
-    logoutModal?.classList.add("show");
-    document.body.style.overflow = "hidden";
-});
 
 function closeLogoutModal() {
     logoutModal?.classList.remove("show");
@@ -4237,10 +5136,29 @@ function scheduleUserRealtimeRefresh() {
         loadUsers();
 
     }, 700);
+
+
+    clearTimeout(deletionRealtimeRefreshTimer);
+
+    deletionRealtimeRefreshTimer = setTimeout(() => {
+
+        deletionRealtimeRefreshTimer = null;
+
+        loadDeletionRequests();
+
+    }, 700);
 }
 
 
 async function stopUserRealtime() {
+
+    if (deletionRealtimeRefreshTimer) {
+
+    clearTimeout(deletionRealtimeRefreshTimer);
+
+    deletionRealtimeRefreshTimer = null;
+
+}
 
     if (realtimeRefreshTimer) {
         clearTimeout(realtimeRefreshTimer);
@@ -4298,6 +5216,26 @@ function startUserRealtime() {
                 scheduleUserRealtimeRefresh();
             }
         );
+        /* ACCOUNT DELETION REQUESTS */
+
+channel.on(
+    "postgres_changes",
+    {
+        event: "*",
+        schema: "public",
+        table: "account_deletion_requests"
+    },
+    payload => {
+
+        console.log(
+            "[EGC Users] Account deletion activity:",
+            payload.eventType
+        );
+
+        scheduleUserRealtimeRefresh();
+
+    }
+);
 
         /* CYLINDER REQUESTS */
 
@@ -4367,12 +5305,18 @@ function startUserRealtime() {
 
 /* INITIALIZE */
 async function initUsersPage() {
+
     const sessionOK = await checkOwnerSession();
 
     if (!sessionOK) return;
 
-    await loadUsers();
+    await Promise.all([
+        loadUsers(),
+        loadDeletionRequests()
+    ]);
+
     startUserRealtime();
+
 }
 
 /* =====================================================

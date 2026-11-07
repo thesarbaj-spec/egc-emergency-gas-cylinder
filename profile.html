@@ -89,6 +89,30 @@ button{cursor:pointer}
 .camera-capture{border:0;background:#0754a9;color:#fff}
 .camera-switch{width:100%;height:43px;margin-top:10px;border:1px solid #cfe2ef;background:#f5fbff;color:#0754a9;border-radius:11px;font-size:13px;font-weight:900}
 .camera-hint{margin-top:9px;color:#8497a6;font-size:11px}
+
+/* DELETE ACCOUNT */
+.danger-box{border:1px solid #f4d5d5}
+.danger-box .box-title{color:#c62828}
+.delete-account-btn{width:100%;height:47px;border:1px solid #e53935;background:#fff;color:#d32f2f;border-radius:11px;font-size:13px;font-weight:900;margin-top:15px}
+.delete-account-btn:hover{background:#fff1f1}
+.delete-overlay{display:none;position:fixed;inset:0;background:rgba(20,15,20,.65);backdrop-filter:blur(5px);z-index:10002;align-items:center;justify-content:center;padding:18px}
+.delete-overlay.show{display:flex}
+.delete-popup{width:100%;max-width:430px;background:#fff;border-radius:22px;padding:25px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.delete-icon{width:58px;height:58px;border-radius:17px;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:27px;margin:0 auto 15px}
+.delete-title{text-align:center;color:#b71c1c;font-size:21px;font-weight:900;margin-bottom:10px}
+.delete-description{color:#687f91;font-size:13px;line-height:1.65;text-align:center;margin-bottom:18px}
+.delete-warning{background:#fff5f5;border:1px solid #ffd9d9;color:#b32626;padding:13px;border-radius:12px;font-size:12px;line-height:1.55;margin-bottom:17px}
+.delete-label{display:block;font-size:12px;font-weight:800;color:#536d82;margin-bottom:8px}
+.delete-input{width:100%;height:47px;border:1px solid #d9e2e9;border-radius:11px;padding:0 13px;font-size:14px;outline:none;margin-bottom:17px}
+.delete-input:focus{border-color:#e53935;box-shadow:0 0 0 3px rgba(229,57,53,.09)}
+.delete-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.delete-cancel,.delete-confirm{height:47px;border-radius:11px;font-size:13px;font-weight:900}
+.delete-cancel{background:#fff;border:1px solid #d7e2ea;color:#31526d}
+.delete-confirm{background:#d32f2f;border:1px solid #d32f2f;color:#fff}
+.delete-confirm:disabled{opacity:.5;cursor:not-allowed}
+.delete-status{font-size:12px;color:#b32626;margin-top:12px;line-height:1.5;display:none}
+.delete-status.show{display:block}
+
 @media(max-width:1000px){.grid{grid-template-columns:1fr}}
 @media(max-width:800px){
 .sidebar{display:none}
@@ -119,6 +143,7 @@ button{cursor:pointer}
 .info-value{text-align:left}
 .camera-card{padding:15px}
 .profile-name-mini{font-size:12px}
+.delete-popup{padding:20px}
 }
 </style>
 </head>
@@ -129,7 +154,6 @@ button{cursor:pointer}
     <img src="assets/EGC - Emergency Gas Cylinder logo.png" alt="EGC">
     <div class="brand-text">Emergency Gas Cylinder</div>
   </div>
-
   <div class="profile-mini">
     <div>
       <div class="profile-name-mini" id="topName">Loading...</div>
@@ -172,15 +196,12 @@ button{cursor:pointer}
             <img id="profilePhoto" class="avatar" src="" alt="Profile photo">
             <button class="camera-btn" onclick="openCamera()" title="Take profile photo">📷</button>
           </div>
-
           <div id="profileNameLarge" class="profile-name-large">Loading...</div>
           <div id="profileEmailLarge" class="profile-email-large">Loading...</div>
-
           <div class="photo-buttons">
             <button class="photo-btn primary" onclick="choosePhoto()">📁 Upload Photo</button>
             <button class="photo-btn" onclick="openCamera()">📷 Camera</button>
           </div>
-
           <input type="file" id="photoInput" accept="image/*" hidden>
         </div>
       </div>
@@ -225,6 +246,15 @@ button{cursor:pointer}
           <div class="security-text">Keep your recovery email updated so you can recover access to your EGC account if you forget your MPIN.</div>
         </div>
       </div>
+
+      <div class="box danger-box">
+        <div class="box-title">⚠️ Delete Account</div>
+        <div class="security-text">
+          You can request permanent deletion of your EGC account and associated personal data.
+          This action cannot be undone. Some transaction records may need to be retained where required by law.
+        </div>
+        <button class="delete-account-btn" onclick="openDeleteAccountPopup()">🗑️ DELETE MY ACCOUNT</button>
+      </div>
     </div>
   </div>
 </main>
@@ -250,27 +280,40 @@ button{cursor:pointer}
   </div>
 </div>
 
+<div class="delete-overlay" id="deleteOverlay" onclick="closeDeleteAccountPopup(event)">
+  <div class="delete-popup" onclick="event.stopPropagation()">
+    <div class="delete-icon">🗑️</div>
+    <div class="delete-title">Delete EGC Account?</div>
+    <div class="delete-description">
+      You are about to permanently delete your EGC customer account.
+      Please read the warning carefully before continuing.
+    </div>
+    <div class="delete-warning">
+      <strong>Important:</strong> Your profile and associated personal data may be permanently deleted.
+      This action cannot be undone. Certain financial or transaction records may be retained where legally required.
+    </div>
+    <label class="delete-label" for="deleteConfirmInput">Type DELETE to confirm</label>
+    <input id="deleteConfirmInput" class="delete-input" type="text" placeholder="Type DELETE here" autocomplete="off">
+    <div class="delete-buttons">
+      <button type="button" class="delete-cancel" onclick="closeDeleteAccountPopup()">Cancel</button>
+      <button type="button" class="delete-confirm" id="deleteConfirmBtn" onclick="confirmDeleteAccount()" disabled>DELETE ACCOUNT</button>
+    </div>
+    <div class="delete-status" id="deleteStatus"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
 "use strict";
 
-/* =========================================================
-   EGC PROFILE — SUPABASE CONFIGURATION
-========================================================= */
-
-const SUPABASE_URL =
-"https://szefvmvokkhvnzryodqu.supabase.co";
-
-const SUPABASE_ANON_KEY =
-"sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
-
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 const PHOTO_BUCKET = "profile-photos";
+const DELETE_ACCOUNT_FUNCTION = "request-account-deletion";
 
 if (!window.supabase) {
-    throw new Error(
-        "Supabase JS library is not loaded. Load the Supabase CDN before this script."
-    );
+    throw new Error("Supabase JS library is not loaded.");
 }
 
 const supabaseClient = window.supabase.createClient(
@@ -278,43 +321,26 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_ANON_KEY
 );
 
-/* =========================================================
-   GLOBAL VARIABLES
-========================================================= */
-
 let currentUser = null;
 let currentProfile = null;
 let toastTimer = null;
 let cameraStream = null;
 let currentCameraFacing = "user";
 let isLoggingOut = false;
+let isDeletingAccount = false;
 
 let currentRequests = [];
 let currentPayments = [];
 let requestDataError = false;
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
 function $(id) {
     return document.getElementById(id);
-}
-
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
 }
 
 function formatDate(value) {
     if (!value) return "—";
 
     const date = new Date(value);
-
     if (Number.isNaN(date.getTime())) return "—";
 
     return date.toLocaleDateString("en-IN", {
@@ -338,7 +364,6 @@ function showMessage(message, type = "success") {
 
 function clearMessage() {
     const element = $("message");
-
     if (!element) return;
 
     element.className = "message";
@@ -364,16 +389,10 @@ function toast(message) {
 }
 
 function avatarUrl(name) {
-    return (
-        "https://ui-avatars.com/api/?name=" +
+    return "https://ui-avatars.com/api/?name=" +
         encodeURIComponent(name || "EGC Customer") +
-        "&background=eaf5fc&color=0754a9&size=256"
-    );
+        "&background=eaf5fc&color=0754a9&size=256";
 }
-
-/* =========================================================
-   COMMON STATUS HELPERS
-========================================================= */
 
 function normalizeStatus(value) {
     return String(value || "")
@@ -398,12 +417,6 @@ function getFirstValue(object, keys) {
     return null;
 }
 
-/* =========================================================
-   EGC USER ID
-
-   Keep the Supabase Auth UUID unchanged.
-========================================================= */
-
 function getEGCUserId(profile) {
     if (!profile) return "Not assigned";
 
@@ -417,21 +430,15 @@ function getEGCUserId(profile) {
 
 function displayEGCUserId() {
     const element = $("accountId");
-
-    if (!element) return;
-
-    element.textContent = getEGCUserId(currentProfile);
+    if (element) element.textContent = getEGCUserId(currentProfile);
 }
 
-/* =========================================================
-   PROFILE PHOTO URL
-========================================================= */
+/* PROFILE PHOTO */
 
 async function resolvePhotoUrl(photoValue) {
     if (!photoValue) return "";
 
     const value = String(photoValue).trim();
-
     if (!value) return "";
 
     if (/^(https?:\/\/|data:image\/)/i.test(value)) {
@@ -469,16 +476,15 @@ async function refreshProfilePhotos() {
         currentUser?.user_metadata?.full_name ||
         "EGC Customer";
 
-    const storedPhoto = currentProfile?.profile_photo || "";
-    const resolvedUrl = await resolvePhotoUrl(storedPhoto);
+    const resolvedUrl = await resolvePhotoUrl(
+        currentProfile?.profile_photo || ""
+    );
 
     setImageWithFallback($("profilePhoto"), resolvedUrl, name);
     setImageWithFallback($("topPhoto"), resolvedUrl, name);
 }
 
-/* =========================================================
-   LOAD PROFILE
-========================================================= */
+/* LOAD PROFILE */
 
 async function loadProfile() {
     if (!currentUser?.id) return;
@@ -502,8 +508,6 @@ async function loadProfile() {
 
     currentProfile = result.data || null;
 
-    /* Create a profile row if one does not exist. */
-
     if (!currentProfile) {
         const newProfile = {
             id: currentUser.id,
@@ -519,19 +523,14 @@ async function loadProfile() {
             .maybeSingle();
 
         if (insertResult.error) {
-            console.error(
-                "Profile create error:",
-                insertResult.error
-            );
-
+            console.error("Profile create error:", insertResult.error);
             currentProfile = newProfile;
 
             showMessage(
-                "Profile could not be created in the database: " +
+                "Profile could not be created: " +
                 insertResult.error.message,
                 "error"
             );
-
         } else {
             currentProfile = insertResult.data || newProfile;
         }
@@ -553,8 +552,7 @@ async function loadProfile() {
         "";
 
     if ($("fullName")) {
-        $("fullName").value =
-            name === "EGC Customer" ? "" : name;
+        $("fullName").value = name === "EGC Customer" ? "" : name;
     }
 
     if ($("mobile")) {
@@ -570,8 +568,7 @@ async function loadProfile() {
     }
 
     if ($("profileEmailLarge")) {
-        $("profileEmailLarge").textContent =
-            email || "No email available";
+        $("profileEmailLarge").textContent = email || "No email available";
     }
 
     if ($("topName")) {
@@ -579,8 +576,7 @@ async function loadProfile() {
     }
 
     if ($("topEmail")) {
-        $("topEmail").textContent =
-            email || "No email available";
+        $("topEmail").textContent = email || "No email available";
     }
 
     displayEGCUserId();
@@ -595,19 +591,10 @@ async function loadProfile() {
         $("accountEmail").textContent = email || "—";
     }
 
-    if ($("authReference")) {
-        $("authReference").textContent =
-            currentUser.id
-                ? currentUser.id.substring(0, 8) + "..."
-                : "—";
-    }
-
     await refreshProfilePhotos();
 }
 
-/* =========================================================
-   REQUEST OWNER APPROVAL
-========================================================= */
+/* REQUEST HELPERS */
 
 function getOwnerApproval(request) {
     return normalizeStatus(
@@ -621,10 +608,7 @@ function getOwnerApproval(request) {
 
 function isRequestCancelled(request) {
     const status = normalizeStatus(
-        getFirstValue(request, [
-            "status",
-            "request_status"
-        ]) || ""
+        getFirstValue(request, ["status", "request_status"]) || ""
     );
 
     const approval = getOwnerApproval(request);
@@ -651,10 +635,6 @@ function isRequestApproved(request) {
     ].includes(getOwnerApproval(request));
 }
 
-/* =========================================================
-   REQUEST AMOUNT
-========================================================= */
-
 function getRequestTotal(request) {
     const value = Number(
         getFirstValue(request, [
@@ -667,23 +647,14 @@ function getRequestTotal(request) {
         ]) || 890
     );
 
-    return Number.isFinite(value) && value > 0
-        ? value
-        : 890;
+    return Number.isFinite(value) && value > 0 ? value : 890;
 }
 
-/* =========================================================
-   PAYMENT VERIFICATION
-
-   Only successful AND Owner-approved payments count.
-========================================================= */
+/* PAYMENT HELPERS */
 
 function getPaymentState(payment) {
     const paymentStatus = normalizeStatus(
-        getFirstValue(payment, [
-            "payment_status",
-            "status"
-        ]) || ""
+        getFirstValue(payment, ["payment_status", "status"]) || ""
     );
 
     const approval = normalizeStatus(
@@ -748,10 +719,6 @@ function getPaymentState(payment) {
     return { key: "unknown" };
 }
 
-/* =========================================================
-   LINK PAYMENT TO REQUEST
-========================================================= */
-
 function getPaymentRequestId(payment) {
     return String(
         getFirstValue(payment, [
@@ -765,9 +732,7 @@ function getVerifiedPaymentsForRequest(requestId) {
     if (!requestId) return 0;
 
     return currentPayments.reduce(function (total, payment) {
-        if (
-            getPaymentRequestId(payment) !== String(requestId)
-        ) {
+        if (getPaymentRequestId(payment) !== String(requestId)) {
             return total;
         }
 
@@ -784,22 +749,12 @@ function getVerifiedPaymentsForRequest(requestId) {
         );
 
         return total + (
-            Number.isFinite(amount) && amount > 0
-                ? amount
-                : 0
+            Number.isFinite(amount) && amount > 0 ? amount : 0
         );
     }, 0);
 }
 
-/* =========================================================
-   DELIVERY DATE AND EXTRA CHARGE
-
-   Current Dashboard slabs:
-   1-10 days  = ₹35
-   11-15 days = ₹40
-   16-45 days = ₹50
-   46+ days   = ₹100
-========================================================= */
+/* DELIVERY EXTRA CHARGE - EXISTING PROFILE DISPLAY LOGIC */
 
 function getDeliveryDate(request) {
     const value = getFirstValue(request, [
@@ -815,9 +770,7 @@ function getDeliveryDate(request) {
 
     const date = new Date(value);
 
-    return Number.isNaN(date.getTime())
-        ? null
-        : date;
+    return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function getDeliveryDayCount(request) {
@@ -857,13 +810,8 @@ function calculateTierExtraCharge(days) {
 }
 
 function getRequestExtraCharge(request) {
-    if (!request || !isRequestApproved(request)) {
-        return 0;
-    }
-
-    if (!getDeliveryDate(request)) {
-        return 0;
-    }
+    if (!request || !isRequestApproved(request)) return 0;
+    if (!getDeliveryDate(request)) return 0;
 
     const savedCharge = Number(
         getFirstValue(request, [
@@ -873,36 +821,20 @@ function getRequestExtraCharge(request) {
         ]) || 0
     );
 
-    if (savedCharge > 0) {
-        return savedCharge;
-    }
+    if (savedCharge > 0) return savedCharge;
 
-    return calculateTierExtraCharge(
-        getDeliveryDayCount(request)
-    );
+    return calculateTierExtraCharge(getDeliveryDayCount(request));
 }
-
-/* =========================================================
-   REQUEST FINANCIALS
-========================================================= */
 
 function getRequestFinancials(request) {
     const baseAmount = getRequestTotal(request);
     const extraCharge = getRequestExtraCharge(request);
     const totalPayable = baseAmount + extraCharge;
 
-    const requestId = getFirstValue(request, [
-        "id",
-        "request_id"
-    ]);
+    const requestId = getFirstValue(request, ["id", "request_id"]);
+    const verifiedPaid = getVerifiedPaymentsForRequest(requestId);
 
-    const verifiedPaid =
-        getVerifiedPaymentsForRequest(requestId);
-
-    const remaining = Math.max(
-        0,
-        totalPayable - verifiedPaid
-    );
+    const remaining = Math.max(0, totalPayable - verifiedPaid);
 
     return {
         baseAmount,
@@ -914,9 +846,7 @@ function getRequestFinancials(request) {
 }
 
 function isRequestFullyPaid(request) {
-    if (!request || !isRequestApproved(request)) {
-        return false;
-    }
+    if (!request || !isRequestApproved(request)) return false;
 
     const financials = getRequestFinancials(request);
 
@@ -925,10 +855,6 @@ function isRequestFullyPaid(request) {
         financials.remaining <= 0
     );
 }
-
-/* =========================================================
-   LATEST ACTIVE REQUEST
-========================================================= */
 
 function getLatestRequest() {
     const sorted = [...currentRequests].sort(function (a, b) {
@@ -958,12 +884,6 @@ function getLatestRequest() {
     );
 }
 
-/* =========================================================
-   REQUEST CYLINDER BUTTON STATE
-
-   Same navigation state as Dashboard.
-========================================================= */
-
 function getRequestNavigationState(request) {
     if (!request || isRequestCancelled(request)) {
         return {
@@ -982,21 +902,14 @@ function getRequestNavigationState(request) {
     }
 
     const requestId = String(
-        getFirstValue(request, [
-            "id",
-            "request_id"
-        ]) || ""
+        getFirstValue(request, ["id", "request_id"]) || ""
     );
 
-    const hasPendingPayment = currentPayments.some(
-        function (payment) {
-            if (getPaymentRequestId(payment) !== requestId) {
-                return false;
-            }
+    const hasPendingPayment = currentPayments.some(function (payment) {
+        if (getPaymentRequestId(payment) !== requestId) return false;
 
-            return getPaymentState(payment).key === "pending";
-        }
-    );
+        return getPaymentState(payment).key === "pending";
+    });
 
     if (hasPendingPayment) {
         return {
@@ -1021,14 +934,6 @@ function getRequestNavigationState(request) {
     };
 }
 
-/* =========================================================
-   UPDATE OPTIONAL REQUEST BUTTON
-
-   Optional HTML IDs:
-   requestCylinderBtn
-   requestCylinderNote
-========================================================= */
-
 function updateRequestButton() {
     const button = $("requestCylinderBtn");
     const note = $("requestCylinderNote");
@@ -1047,9 +952,7 @@ function updateRequestButton() {
         return;
     }
 
-    const state = getRequestNavigationState(
-        getLatestRequest()
-    );
+    const state = getRequestNavigationState(getLatestRequest());
 
     if (button) {
         button.textContent = state.label;
@@ -1062,49 +965,29 @@ function updateRequestButton() {
     }
 }
 
-/* =========================================================
-   LOAD REQUESTS
-========================================================= */
-
 async function loadRequests() {
     const result = await supabaseClient
         .from("cylinder_requests")
         .select("*")
         .eq("user_id", currentUser.id)
-        .order("created_at", {
-            ascending: false
-        });
+        .order("created_at", { ascending: false });
 
-    if (result.error) {
-        throw result.error;
-    }
+    if (result.error) throw result.error;
 
     currentRequests = result.data || [];
 }
-
-/* =========================================================
-   LOAD PAYMENTS
-========================================================= */
 
 async function loadPayments() {
     const result = await supabaseClient
         .from("payments")
         .select("*")
         .eq("user_id", currentUser.id)
-        .order("created_at", {
-            ascending: false
-        });
+        .order("created_at", { ascending: false });
 
-    if (result.error) {
-        throw result.error;
-    }
+    if (result.error) throw result.error;
 
     currentPayments = result.data || [];
 }
-
-/* =========================================================
-   REFRESH REQUEST STATUS
-========================================================= */
 
 async function refreshRequestNavigation() {
     requestDataError = false;
@@ -1114,22 +997,15 @@ async function refreshRequestNavigation() {
             loadRequests(),
             loadPayments()
         ]);
-
     } catch (error) {
         requestDataError = true;
-
-        console.error(
-            "Request eligibility load error:",
-            error
-        );
+        console.error("Request eligibility load error:", error);
     }
 
     updateRequestButton();
 }
 
-/* =========================================================
-   SAVE PROFILE
-========================================================= */
+/* SAVE PROFILE */
 
 async function saveProfile() {
     if (!currentUser?.id) {
@@ -1143,14 +1019,6 @@ async function saveProfile() {
     const nameInput = $("fullName");
     const mobileInput = $("mobile");
 
-    if (!nameInput || !mobileInput) {
-        showMessage(
-            "Profile form fields are missing from the page.",
-            "error"
-        );
-        return;
-    }
-
     const fullName = nameInput.value.trim();
     const mobile = mobileInput.value.trim();
 
@@ -1163,60 +1031,35 @@ async function saveProfile() {
     if (mobile) {
         const cleanMobile = mobile.replace(/\D/g, "");
 
-        if (
-            cleanMobile.length < 10 ||
-            cleanMobile.length > 15
-        ) {
-            showMessage(
-                "Please enter a valid mobile number.",
-                "error"
-            );
-
+        if (cleanMobile.length < 10 || cleanMobile.length > 15) {
+            showMessage("Please enter a valid mobile number.", "error");
             mobileInput.focus();
             return;
         }
     }
 
-    if (button) {
-        button.disabled = true;
-        button.textContent = "SAVING...";
-    }
+    button.disabled = true;
+    button.textContent = "SAVING...";
 
     try {
-        const updateData = {
-            full_name: fullName,
-            mobile: mobile || null,
-            updated_at: new Date().toISOString()
-        };
-
         const result = await supabaseClient
             .from("profiles")
-            .update(updateData)
+            .update({
+                full_name: fullName,
+                mobile: mobile || null,
+                updated_at: new Date().toISOString()
+            })
             .eq("id", currentUser.id)
             .select("*")
             .maybeSingle();
 
-        if (result.error) {
-            console.error(
-                "Profile update error:",
-                result.error
-            );
-
-            showMessage(
-                "Unable to update profile: " +
-                result.error.message,
-                "error"
-            );
-
-            return;
-        }
+        if (result.error) throw result.error;
 
         if (!result.data) {
             showMessage(
                 "No profile row was updated. Check your profiles table and RLS policies.",
                 "error"
             );
-
             return;
         }
 
@@ -1234,14 +1077,9 @@ async function saveProfile() {
         }
 
         displayEGCUserId();
-
         await refreshProfilePhotos();
 
-        showMessage(
-            "✓ Profile updated successfully.",
-            "success"
-        );
-
+        showMessage("✓ Profile updated successfully.", "success");
         toast("Profile updated successfully.");
 
     } catch (error) {
@@ -1253,69 +1091,41 @@ async function saveProfile() {
         );
 
     } finally {
-        if (button) {
-            button.disabled = false;
-            button.textContent = "SAVE PROFILE";
-        }
+        button.disabled = false;
+        button.textContent = "SAVE PROFILE";
     }
 }
 
-/* =========================================================
-   PHOTO SELECT
-========================================================= */
+/* PHOTO UPLOAD */
 
 function choosePhoto() {
-    const input = $("photoInput");
-
-    if (input) {
-        input.click();
-    }
+    $("photoInput")?.click();
 }
 
-const photoInput = $("photoInput");
+$("photoInput")?.addEventListener("change", async function (event) {
+    const file = event.target.files?.[0];
 
-if (photoInput) {
-    photoInput.addEventListener("change", async function (event) {
-        const file = event.target.files?.[0];
+    if (!file) return;
 
-        if (!file) return;
-
-        if (!file.type.startsWith("image/")) {
-            showMessage(
-                "Please select an image file.",
-                "error"
-            );
-
-            event.target.value = "";
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            showMessage(
-                "Profile photo must be smaller than 5 MB.",
-                "error"
-            );
-
-            event.target.value = "";
-            return;
-        }
-
-        await uploadProfilePhoto(file);
+    if (!file.type.startsWith("image/")) {
+        showMessage("Please select an image file.", "error");
         event.target.value = "";
-    });
-}
+        return;
+    }
 
-/* =========================================================
-   UPLOAD PROFILE PHOTO
-========================================================= */
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage("Profile photo must be smaller than 5 MB.", "error");
+        event.target.value = "";
+        return;
+    }
+
+    await uploadProfilePhoto(file);
+    event.target.value = "";
+});
 
 async function uploadProfilePhoto(file) {
     if (!currentUser?.id) {
-        showMessage(
-            "Please sign in again before uploading a photo.",
-            "error"
-        );
-
+        showMessage("Please sign in again before uploading a photo.", "error");
         return;
     }
 
@@ -1323,16 +1133,13 @@ async function uploadProfilePhoto(file) {
     toast("Uploading profile photo...");
 
     try {
-        const extensionFromName =
-            file.name?.split(".").pop()?.toLowerCase();
+        const extensionFromName = file.name?.split(".").pop()?.toLowerCase();
 
         const allowedExtensions = [
             "jpg", "jpeg", "png", "webp", "gif"
         ];
 
-        const extension = allowedExtensions.includes(
-            extensionFromName
-        )
+        const extension = allowedExtensions.includes(extensionFromName)
             ? extensionFromName
             : (
                 file.type === "image/png" ? "png" :
@@ -1356,20 +1163,7 @@ async function uploadProfilePhoto(file) {
                 cacheControl: "3600"
             });
 
-        if (uploadResult.error) {
-            console.error(
-                "Photo upload error:",
-                uploadResult.error
-            );
-
-            showMessage(
-                "Photo upload failed: " +
-                uploadResult.error.message,
-                "error"
-            );
-
-            return;
-        }
+        if (uploadResult.error) throw uploadResult.error;
 
         const updateResult = await supabaseClient
             .from("profiles")
@@ -1381,27 +1175,13 @@ async function uploadProfilePhoto(file) {
             .select("*")
             .maybeSingle();
 
-        if (updateResult.error) {
-            console.error(
-                "Photo profile update error:",
-                updateResult.error
-            );
-
-            showMessage(
-                "Photo uploaded, but the profile database could not be updated: " +
-                updateResult.error.message,
-                "error"
-            );
-
-            return;
-        }
+        if (updateResult.error) throw updateResult.error;
 
         if (!updateResult.data) {
             showMessage(
                 "Photo uploaded, but no profile row was updated. Check profiles RLS policies.",
                 "error"
             );
-
             return;
         }
 
@@ -1424,15 +1204,13 @@ async function uploadProfilePhoto(file) {
         console.error("Photo upload exception:", error);
 
         showMessage(
-            error.message || "Unable to upload profile photo.",
+            "Photo upload failed: " + (error.message || "Unknown error"),
             "error"
         );
     }
 }
 
-/* =========================================================
-   CAMERA
-========================================================= */
+/* CAMERA */
 
 async function openCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -1440,7 +1218,6 @@ async function openCamera() {
             "Camera is not supported. Try HTTPS or localhost.",
             "error"
         );
-
         return;
     }
 
@@ -1454,15 +1231,9 @@ async function startCamera() {
     try {
         cameraStream = await navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: {
-                    ideal: currentCameraFacing
-                },
-                width: {
-                    ideal: 1280
-                },
-                height: {
-                    ideal: 1280
-                }
+                facingMode: { ideal: currentCameraFacing },
+                width: { ideal: 1280 },
+                height: { ideal: 1280 }
             },
             audio: false
         });
@@ -1520,9 +1291,7 @@ function createCameraModal() {
     const hint = document.createElement("div");
     hint.className = "camera-hint";
     hint.textContent =
-        currentCameraFacing === "user"
-            ? "Front camera"
-            : "Back camera";
+        currentCameraFacing === "user" ? "Front camera" : "Back camera";
 
     controls.append(cancel, capture);
     card.append(title, video, controls, switchCamera, hint);
@@ -1531,9 +1300,7 @@ function createCameraModal() {
 
     switchCamera.addEventListener("click", async function () {
         currentCameraFacing =
-            currentCameraFacing === "user"
-                ? "environment"
-                : "user";
+            currentCameraFacing === "user" ? "environment" : "user";
 
         await startCamera();
     });
@@ -1607,14 +1374,10 @@ function closeCamera() {
 
     const modal = $("cameraModal");
 
-    if (modal) {
-        modal.remove();
-    }
+    if (modal) modal.remove();
 }
 
-/* =========================================================
-   NAVIGATION
-========================================================= */
+/* NAVIGATION */
 
 function changeMPIN() {
     window.location.href = "forgot-mpin.html";
@@ -1636,22 +1399,6 @@ function goNotifications() {
     window.location.href = "notifications.html";
 }
 
-/* =========================================================
-   REQUEST CYLINDER — SAME AS DASHBOARD
-
-   New/cancelled/fully-paid:
-       request-cylinder.html
-
-   Owner approval pending:
-       request-status.html
-
-   Payment verification pending:
-       request-status.html
-
-   Approved but payment due:
-       submit-payment.html
-========================================================= */
-
 async function requestCylinder() {
     if (!currentUser?.id) {
         window.location.href = "login.html";
@@ -1664,18 +1411,13 @@ async function requestCylinder() {
         toast(
             "Unable to verify your request status. Please refresh and try again."
         );
-
         return;
     }
 
     const request = getLatestRequest();
-
     const state = getRequestNavigationState(request);
 
-    const requestId = getFirstValue(request, [
-        "id",
-        "request_id"
-    ]);
+    const requestId = getFirstValue(request, ["id", "request_id"]);
 
     if (
         state.state === "new_request" ||
@@ -1690,10 +1432,7 @@ async function requestCylinder() {
         state.state === "payment_pending"
     ) {
         if (!requestId) {
-            toast(
-                "Request ID not found. Please contact support."
-            );
-
+            toast("Request ID not found. Please contact support.");
             return;
         }
 
@@ -1706,10 +1445,7 @@ async function requestCylinder() {
 
     if (state.state === "payment_due") {
         if (!requestId) {
-            toast(
-                "Request ID not found. Please contact support."
-            );
-
+            toast("Request ID not found. Please contact support.");
             return;
         }
 
@@ -1731,9 +1467,7 @@ function goHelpSupport() {
     window.location.href = "help-support.html";
 }
 
-/* =========================================================
-   LOGOUT POPUP
-========================================================= */
+/* LOGOUT */
 
 function openLogoutPopup() {
     const overlay = $("logoutOverlay");
@@ -1753,12 +1487,7 @@ function closeLogoutPopup(event) {
         return;
     }
 
-    const overlay = $("logoutOverlay");
-
-    if (overlay) {
-        overlay.classList.remove("show");
-    }
-
+    $("logoutOverlay")?.classList.remove("show");
     document.body.style.overflow = "";
 }
 
@@ -1779,9 +1508,7 @@ async function confirmLogout() {
 
         const result = await supabaseClient.auth.signOut();
 
-        if (result.error) {
-            throw result.error;
-        }
+        if (result.error) throw result.error;
 
         window.location.replace("login.html");
 
@@ -1799,31 +1526,191 @@ async function confirmLogout() {
     }
 }
 
-/* =========================================================
-   AUTH STATE
-========================================================= */
+/* DELETE ACCOUNT - OWNER APPROVAL WORKFLOW */
 
-supabaseClient.auth.onAuthStateChange(function (event) {
-    if (event === "SIGNED_OUT" && !isLoggingOut) {
-        closeCamera();
-        window.location.replace("login.html");
+function openDeleteAccountPopup() {
+    if (!currentUser?.id) {
+        toast("Please sign in again.");
+        return;
     }
+
+    $("deleteConfirmInput").value = "";
+    $("deleteConfirmBtn").disabled = true;
+    $("deleteConfirmBtn").textContent = "SUBMIT DELETION REQUEST";
+
+    $("deleteStatus").textContent = "";
+    $("deleteStatus").classList.remove("show");
+
+    $("deleteOverlay").classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    $("deleteConfirmInput").focus();
+}
+
+
+function closeDeleteAccountPopup(event) {
+    if (isDeletingAccount) return;
+
+    if (
+        event &&
+        event.target &&
+        event.target.id !== "deleteOverlay"
+    ) {
+        return;
+    }
+
+    $("deleteOverlay")?.classList.remove("show");
+    document.body.style.overflow = "";
+}
+
+
+$("deleteConfirmInput")?.addEventListener("input", function () {
+    $("deleteConfirmBtn").disabled =
+        this.value.trim() !== "DELETE";
 });
 
-/* =========================================================
-   ESC KEY
-========================================================= */
 
-document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-        closeLogoutPopup();
-        closeCamera();
+async function confirmDeleteAccount() {
+
+    if (isDeletingAccount) return;
+
+    if ($("deleteConfirmInput").value.trim() !== "DELETE") {
+        toast("Please type DELETE to confirm.");
+        return;
     }
-});
 
-/* =========================================================
-   INITIALIZE PROFILE
-========================================================= */
+    if (!currentUser?.id) {
+        toast("Your session has expired. Please sign in again.");
+        return;
+    }
+
+    const button = $("deleteConfirmBtn");
+    const status = $("deleteStatus");
+
+    isDeletingAccount = true;
+
+    button.disabled = true;
+    button.textContent = "SUBMITTING REQUEST...";
+
+    status.textContent =
+        "Checking your account and financial records...";
+
+    status.classList.add("show");
+
+    try {
+
+        closeCamera();
+
+        // Submit request to secure Edge Function
+        const { data, error } =
+            await supabaseClient.functions.invoke(
+                "request-account-deletion",
+                {
+                    body: {
+                        reason: "Customer requested account deletion."
+                    }
+                }
+            );
+
+        if (error) {
+
+            let details =
+                error.message ||
+                "Server could not process your request.";
+
+            try {
+                if (
+                    error.context &&
+                    typeof error.context.json === "function"
+                ) {
+                    const body = await error.context.json();
+
+                    details =
+                        body.message ||
+                        body.error ||
+                        details;
+                }
+            } catch (_) {}
+
+            throw new Error(details);
+        }
+
+        if (!data) {
+            throw new Error(
+                "No response received from the server."
+            );
+        }
+
+        // Financial eligibility blocked
+        if (
+            data.success !== true &&
+            data.status === "blocked"
+        ) {
+            throw new Error(
+                data.message ||
+                "Account deletion is blocked because financial dues are pending."
+            );
+        }
+
+        // Any other unsuccessful response
+        if (data.success !== true) {
+            throw new Error(
+                data.message ||
+                "Deletion request could not be submitted."
+            );
+        }
+
+        // Confirm that request is pending owner approval
+        if (data.status !== "pending") {
+            throw new Error(
+                "Unexpected server response. Please contact EGC Support."
+            );
+        }
+
+        // IMPORTANT:
+        // Account is NOT deleted here.
+        // Customer remains logged in.
+        // Financial records remain untouched.
+
+        status.textContent =
+            "✓ Your Account Deletion Request has been submitted successfully. " +
+            "Your request is now Pending Owner Approval. " +
+            "Your account is NOT deleted yet. You can continue using your account until the Owner reviews your request.";
+
+        status.classList.add("show");
+
+        button.textContent = "REQUEST SUBMITTED";
+        button.disabled = true;
+
+        $("deleteConfirmInput").disabled = true;
+
+        toast("Deletion request submitted. Waiting for Owner approval.");
+
+    } catch (error) {
+
+        console.error("Account deletion request error:", error);
+
+        status.textContent =
+            error.message ||
+            "Unable to submit deletion request. Please try again.";
+
+        status.classList.add("show");
+
+        button.disabled =
+            $("deleteConfirmInput").value.trim() !== "DELETE";
+
+        button.textContent = "SUBMIT DELETION REQUEST";
+
+        toast(error.message || "Request submission failed.");
+
+    } finally {
+
+        isDeletingAccount = false;
+
+    }
+}
+
+/* INITIALIZE PROFILE */
 
 async function initializeProfile() {
     try {
@@ -1847,10 +1734,7 @@ async function initializeProfile() {
         ]);
 
     } catch (error) {
-        console.error(
-            "Profile initialization error:",
-            error
-        );
+        console.error("Profile initialization error:", error);
 
         showMessage(
             error.message || "Unable to load profile.",
@@ -1859,9 +1743,7 @@ async function initializeProfile() {
     }
 }
 
-/* =========================================================
-   EXPOSE FUNCTIONS FOR EXISTING HTML BUTTONS
-========================================================= */
+/* EXPOSE FUNCTIONS */
 
 window.saveProfile = saveProfile;
 window.choosePhoto = choosePhoto;
@@ -1878,10 +1760,11 @@ window.goHelpSupport = goHelpSupport;
 window.openLogoutPopup = openLogoutPopup;
 window.closeLogoutPopup = closeLogoutPopup;
 window.confirmLogout = confirmLogout;
+window.openDeleteAccountPopup = openDeleteAccountPopup;
+window.closeDeleteAccountPopup = closeDeleteAccountPopup;
+window.confirmDeleteAccount = confirmDeleteAccount;
 
-/* =========================================================
-   START PAGE
-========================================================= */
+/* START PAGE */
 
 if (document.readyState === "loading") {
     document.addEventListener(

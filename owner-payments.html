@@ -2320,77 +2320,94 @@ function closeStatusPopup() {
 
 /* =====================================================
    SAVE CLEAR / PENDING + CYLINDER STATUS
+   SAFE VERSION — PRESERVE ACTUAL PAYMENT RECORDS
 ===================================================== */
 
 async function savePopupStatus(nextState) {
-if (isSavingPopupStatus || !activeStatusGroupKey) {
-return;
-}
 
-if (!["clear", "pending"].includes(nextState)) {
-    showToast("Update Failed", "Invalid status.");
-    return;
-}
+    if (isSavingPopupStatus || !activeStatusGroupKey) {
+        return;
+    }
 
-const group = userGroups.find(
-    item => item.key === activeStatusGroupKey
-);
+    if (!["clear", "pending"].includes(nextState)) {
+        showToast("Update Failed", "Invalid status.");
+        return;
+    }
 
-if (!group) {
-    showToast("Update Failed", "Payment group nahi mila.");
-    return;
-}
-
-const requestId = getRequestId(group);
-
-if (!requestId) {
-    showToast(
-        "Update Failed",
-        "Cylinder request ID nahi mila."
+    const group = userGroups.find(
+        item => item.key === activeStatusGroupKey
     );
-    return;
-}
 
-const busyKey = String(requestId) + ":payment-cylinder";
+    if (!group) {
+        showToast("Update Failed", "Payment group nahi mila.");
+        return;
+    }
 
-if (busyStatusUpdates.has(busyKey)) return;
+    const requestId = getRequestId(group);
 
-const clearButton = $("statusPopupClear");
-const pendingButton = $("statusPopupPending");
-const message = $("statusPopupMessage");
+    if (!requestId) {
+        showToast(
+            "Update Failed",
+            "Cylinder request ID nahi mila."
+        );
+        return;
+    }
 
-isSavingPopupStatus = true;
-busyStatusUpdates.add(busyKey);
+    const busyKey = String(requestId) + ":payment-cylinder";
 
-clearButton.disabled = true;
-pendingButton.disabled = true;
+    if (busyStatusUpdates.has(busyKey)) {
+        return;
+    }
 
-message.classList.remove("error");
-message.textContent = "Saving status...";
+    const clearButton = $("statusPopupClear");
+    const pendingButton = $("statusPopupPending");
+    const message = $("statusPopupMessage");
 
-try {
-    const nextPaymentStatus =
-        nextState === "clear" ? "paid" : "pending";
+    isSavingPopupStatus = true;
+    busyStatusUpdates.add(busyKey);
 
-    const updateObject = nextState === "clear"
-? {
-payment_pending_clear: "clear",
-cylinder_hold_eligible: "eligible",
-repayment_status: "clear",
-payment_status: "paid"
-}
-: {
-payment_pending_clear: "pending",
-cylinder_hold_eligible: "hold",
-repayment_status: "pending",
-payment_status: "pending"
-};
-    /*
-     * STEP 1:
-     * Update cylinder request statuses.
-     */
-    const { data: requestData, error: requestError } =
-        await supabaseClient
+    clearButton.disabled = true;
+    pendingButton.disabled = true;
+
+    message.classList.remove("error");
+    message.textContent = "Saving status...";
+
+    try {
+
+        /*
+         * CLEAR:
+         * Payment Clear = Clear
+         * Cylinder = Eligible
+         *
+         * PENDING:
+         * Payment Clear = Pending
+         * Cylinder = Hold
+         */
+
+        const updateObject = nextState === "clear"
+            ? {
+                payment_pending_clear: "clear",
+                cylinder_hold_eligible: "eligible",
+                updated_at: new Date().toISOString()
+            }
+            : {
+                payment_pending_clear: "pending",
+                cylinder_hold_eligible: "hold",
+                updated_at: new Date().toISOString()
+            };
+
+        /*
+         * IMPORTANT:
+         * Do not modify:
+         * payments.payment_status
+         * payments.verification_status
+         * cylinder_requests.payment_status
+         * cylinder_requests.repayment_status
+         *
+         * Actual financial records must remain unchanged.
+         */
+
+        const { data, error } = await supabaseClient
             .from("cylinder_requests")
             .update(updateObject)
             .eq("id", requestId)
@@ -2398,95 +2415,83 @@ payment_status: "pending"
                 id,
                 payment_pending_clear,
                 cylinder_hold_eligible,
-                repayment_status
-            `);
+                payment_status,
+                repayment_status,
+                updated_at
+            `)
+            .maybeSingle();
 
-    if (requestError) throw requestError;
+        if (error) {
+            throw error;
+        }
 
-    if (!requestData || requestData.length === 0) {
-        throw new Error(
-            "Cylinder request update nahi hua. RLS policy aur Owner permissions check karein."
-        );
-    }
+        if (!data) {
+            throw new Error(
+                "Request update nahi hui. Owner permissions aur RLS policy check karein."
+            );
+        }
 
-    /*
-     * STEP 2:
-     * Update payment_status for payment records
-     * belonging to this request.
-     */
-    const { data: paymentData, error: paymentError } =
-        await supabaseClient
-            .from("payments")
-            .update({
-                payment_status: nextPaymentStatus
-            })
-            .eq("request_id", requestId)
-            .select("id, payment_status");
+        /*
+         * Close popup only after successful database update.
+         */
 
-    if (paymentError) {
-        throw new Error(
-            "Cylinder status update ho gaya, lekin payment_status update nahi hua: " +
-            paymentError.message
-        );
-    }
+        $("paymentStatusPopup").classList.remove("show");
+        activeStatusGroupKey = null;
 
-    if (!paymentData || paymentData.length === 0) {
-        throw new Error(
-            "Cylinder status update ho gaya, lekin linked payment records update nahi hue. Payments table ki RLS policy check karein."
-        );
-    }
+        /*
+         * Reload authoritative database data.
+         */
 
-    /*
-     * STEP 3:
-     * Reload authoritative data from Supabase.
-     */
-    $("paymentStatusPopup").classList.remove("show");
-    activeStatusGroupKey = null;
-
-    await loadPayments();
-
-    showToast(
-        "Status Updated",
-        nextState === "clear"
-            ? "Payment Clear aur payment_status = paid save ho gaya. Cylinder Eligible hai."
-            : "Payment Pending aur payment_status = pending save ho gaya. Cylinder Hold hai."
-    );
-
-} catch (error) {
-    console.error(
-        "Payment/cylinder status update error:",
-        error
-    );
-
-    message.textContent =
-        error.message ||
-        "Status save nahi hua. Database permissions check karein.";
-
-    message.classList.add("error");
-
-    showToast(
-        "Update Failed",
-        error.message || "Status save nahi hua."
-    );
-
-    /*
-     * Reload database state because one update might
-     * have succeeded before another update failed.
-     */
-    try {
         await loadPayments();
-    } catch (reloadError) {
-        console.error("Payment reload error:", reloadError);
+
+        showToast(
+            "Status Updated",
+            nextState === "clear"
+                ? "Payment Clear save ho gaya. Cylinder Eligible hai."
+                : "Payment Pending save ho gaya. Cylinder Hold hai."
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Payment/Cylinder status update error:",
+            error
+        );
+
+        message.textContent =
+            error.message ||
+            "Status save nahi hua.";
+
+        message.classList.add("error");
+
+        showToast(
+            "Update Failed",
+            error.message || "Status save nahi hua."
+        );
+
+        /*
+         * Reload actual database state.
+         */
+
+        try {
+            await loadPayments();
+        } catch (reloadError) {
+            console.error(
+                "Payment reload error:",
+                reloadError
+            );
+        }
+
+    } finally {
+
+        isSavingPopupStatus = false;
+
+        busyStatusUpdates.delete(busyKey);
+
+        clearButton.disabled = false;
+        pendingButton.disabled = false;
+
     }
-
-} finally {
-    isSavingPopupStatus = false;
-    busyStatusUpdates.delete(busyKey);
-
-    clearButton.disabled = false;
-    pendingButton.disabled = false;
-}
-
 }
 
 /* =====================================================

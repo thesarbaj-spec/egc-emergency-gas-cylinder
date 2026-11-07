@@ -2128,6 +2128,149 @@ document.addEventListener("visibilitychange", () => {
         loadPayment({ silent: true });
     }
 });
+/* =====================================================
+   EGC OWNER PAYMENT DETAILS
+   INITIALIZATION + AUTH + FIRST PAYMENT LOAD
+===================================================== */
+
+let paymentPageInitialized = false;
+
+async function initializePaymentDetailsPage() {
+
+    if (paymentPageInitialized) return;
+
+    paymentPageInitialized = true;
+
+    showLoading();
+
+    try {
+
+        console.log("EGC Payment Details: Initializing...");
+
+        // 1. Initialize Supabase Client
+        if (!supabaseClient) {
+
+            supabaseClient = window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_ANON_KEY,
+                {
+                    auth: {
+                        storageKey: OWNER_STORAGE_KEY,
+                        persistSession: true,
+                        autoRefreshToken: true,
+                        detectSessionInUrl: true
+                    }
+                }
+            );
+        }
+
+        // 2. Check Owner Session
+        const {
+            data: sessionData,
+            error: sessionError
+        } = await supabaseClient.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        currentSession = sessionData?.session || null;
+
+        if (!currentSession) {
+
+            showError(
+                "Owner session expired. Please login again."
+            );
+
+            setTimeout(() => {
+                window.location.replace("owner-login.html");
+            }, 2000);
+
+            return;
+        }
+
+        // 3. Verify Owner Account
+        const {
+            data: ownerData,
+            error: ownerError
+        } = await supabaseClient.auth.getUser();
+
+        if (ownerError || !ownerData?.user) {
+
+            await supabaseClient.auth.signOut();
+
+            window.location.replace("owner-login.html");
+
+            return;
+        }
+
+        console.log(
+            "Owner Session Verified:",
+            ownerData.user.email
+        );
+
+        // 4. Check Payment ID
+        const paymentId = getPaymentIdFromUrl();
+
+        if (!paymentId) {
+
+            showError(
+                "Payment ID missing. Please open this page from Owner Payments."
+            );
+
+            return;
+        }
+
+        // 5. Load Payment Details
+        await loadPayment();
+
+        // 6. Start Realtime Only After Successful Load
+        if (payment?.id) {
+
+            startPaymentRealtime();
+
+            console.log(
+                "EGC Payment Details Loaded Successfully."
+            );
+
+        } else {
+
+            console.warn(
+                "Payment record could not be loaded."
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Payment Page Initialization Error:",
+            error
+        );
+
+        showError(
+            error?.message ||
+            "Unable to initialize Payment Details."
+        );
+
+    }
+}
+
+
+/* =====================================================
+   PAGE LOAD
+===================================================== */
+
+if (document.readyState === "loading") {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializePaymentDetailsPage,
+        { once: true }
+    );
+
+} else {
+
+    initializePaymentDetailsPage();
+
+}
 </script>
 </body>
 </html>
