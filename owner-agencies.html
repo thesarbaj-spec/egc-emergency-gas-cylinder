@@ -2875,10 +2875,21 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
 "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
+/* ================= EGC OWNER SUPABASE CLIENT ================= */
+
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            storage: window.localStorage,
+            storageKey: "egc-owner-auth",
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            flowType: "pkce"
+        }
+    }
 );
 
 
@@ -3199,38 +3210,33 @@ function escapeHtml(value){
 }
 
 
-/* ================= AUTH ================= */
+/* ================= OWNER AUTH ================= */
 
-async function getOwnerSession(){
+async function getOwnerSession() {
 
-    try{
+    try {
 
-        const {
-            data,
-            error
-        } =
-        await supabaseClient.auth.getSession();
+        const { data, error } =
+            await supabaseClient.auth.getSession();
 
-        if(error){
-
-            console.error(
-                "Session error:",
-                error
-            );
-
-            return null;
-
+        if (error) {
+            console.error("[EGC AUTH] Session error:", error);
+            throw error;
         }
 
-        return data?.session || null;
+        const session = data?.session || null;
 
-    }
-    catch(error){
+        console.log("[EGC AUTH] Session check:", {
+            sessionFound: !!session,
+            userFound: !!session?.user,
+            userId: session?.user?.id || null
+        });
 
-        console.error(
-            "Session exception:",
-            error
-        );
+        return session;
+
+    } catch (error) {
+
+        console.error("[EGC AUTH] Session exception:", error);
 
         return null;
 
@@ -3238,6 +3244,86 @@ async function getOwnerSession(){
 
 }
 
+
+/* ================= AUTH STATE ================= */
+
+supabaseClient.auth.onAuthStateChange(
+    (event, session) => {
+
+        console.log("[EGC AUTH STATE]", {
+            event,
+            sessionFound: !!session,
+            userId: session?.user?.id || null
+        });
+
+    }
+);
+
+
+/* ================= INITIALIZE ================= */
+
+async function initializeAgencyPage() {
+
+    try {
+
+        const session = await getOwnerSession();
+
+        if (!session) {
+
+            console.error(
+                "[EGC AUTH] Owner session missing."
+            );
+
+            if (agencyTableBody) {
+                agencyTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="empty">
+                            Owner Login Session Not Found.<br>
+                            Please login again.
+                            <br><br>
+                            <button type="button"
+                                onclick="window.location.href='owner-login.html'">
+                                Go to Owner Login
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return;
+
+        }
+
+        console.log(
+            "[EGC AUTH] Owner authenticated:",
+            session.user.id
+        );
+
+        await loadAgencies();
+
+        startAgencyRealtime();
+
+    } catch (error) {
+
+        console.error(
+            "[EGC Agencies] Initialization error:",
+            error
+        );
+
+        if (agencyTableBody) {
+            agencyTableBody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="empty">
+                        Unable to initialize agency page.<br>
+                        ${escapeHtml(error?.message || "Unknown error")}
+                    </td>
+                </tr>
+            `;
+        }
+
+    }
+
+}
 
 /* =====================================================
    LOAD AGENCIES

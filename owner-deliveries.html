@@ -192,6 +192,60 @@ tbody tr:last-child td{border-bottom:0}
  .modal{padding:20px}
  .toast{left:12px;right:12px;bottom:15px;min-width:0}
 }
+
+/* ================= NEW EXTRA CHARGE RULES ================= */
+
+.charge-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.charge-rule {
+    background: #f7faff;
+    border: 1px solid #e2eaf4;
+    border-radius: 12px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 65px;
+}
+
+.charge-rule span {
+    font-size: 12px;
+    color: #8194a8;
+    font-weight: 500;
+}
+
+.charge-rule strong {
+    font-size: 15px;
+    color: #244d70;
+    font-weight: 800;
+}
+
+.charge-note {
+    margin-top: 13px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border-left: 3px solid #0871c3;
+    color: #8296aa;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+    .charge-rules-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .charge-rule {
+        padding: 11px;
+    }
+}
 </style>
 </head>
 
@@ -310,15 +364,42 @@ tbody tr:last-child td{border-bottom:0}
      <div class="flow-item"><div class="flow-circle">5</div><span>Delivered</span></div>
     </div>
    </div>
-   <div class="info-card">
-    <h3>Extra Charge Rules</h3>
-    <div class="charge-grid">
-     <div class="detail-box"><label>Days 1–10</label><strong>₹35</strong></div>
-     <div class="detail-box"><label>Days 11–15</label><strong>₹40</strong></div>
-     <div class="detail-box"><label>Days 16–45</label><strong>₹50</strong></div>
-     <div class="detail-box"><label>Days 46+</label><strong>₹100</strong></div>
+  <div class="charge-rules-grid">
+
+    <div class="charge-rule">
+        <span>Delivery Day (Day 0)</span>
+        <strong>₹0</strong>
     </div>
-    <p style="margin-top:12px;color:#8798a6;font-size:11px;line-height:1.5">Stored extra_charge is displayed from the database. The tier amount is only a preview and does not modify billing or repayment records.</p>
+
+    <div class="charge-rule">
+        <span>Days 1–10</span>
+        <strong>₹50</strong>
+    </div>
+
+    <div class="charge-rule">
+        <span>Days 11–15</span>
+        <strong>₹60</strong>
+    </div>
+
+    <div class="charge-rule">
+        <span>Days 16–30</span>
+        <strong>₹80</strong>
+    </div>
+
+    <div class="charge-rule">
+        <span>Day 31 Onwards</span>
+        <strong>₹100 Maximum</strong>
+    </div>
+
+</div>
+
+<p class="charge-note">
+    If the full outstanding amount is paid on the delivery day,
+    no extra charge applies. If any amount remains unpaid,
+    the applicable slab starts from the following day.
+    Maximum extra charge is ₹100.
+    Final charges are calculated and verified by the EGC backend.
+</p>
    </div>
   </div>
  </main>
@@ -547,11 +628,16 @@ function calculateDays(value) {
 }
 
 function calculateExtraCharge(days) {
-  if (days === null || days <= 0) return 0;
-  if (days <= 10) return 35;
-  if (days <= 15) return 40;
-  if (days <= 45) return 50;
-  return 100;
+
+    if (days === null || days <= 0) return 0;
+
+    if (days <= 10) return 50;
+
+    if (days <= 15) return 60;
+
+    if (days <= 30) return 80;
+
+    return 100;
 }
 
 function money(value) {
@@ -642,38 +728,54 @@ function sortDeliveriesByLatestActivity(list) {
   Real profile details are loaded from public.profiles using user_id.
 */
 function normalizeDelivery(row, profile = null) {
-  const profileName = profile?.full_name?.trim() || "";
-  const requestName = typeof row.customer_name === "string"
-    ? row.customer_name.trim()
-    : "";
 
-  const customerName = requestName || profileName || "Not available";
-  const profilePhoto = profile?.profile_photo || row.profile_photo || "";
+    const profileName = profile?.full_name?.trim() || "";
+    const requestName = String(row.customer_name || "").trim();
 
-  return {
-    raw: row,
-    id: row.id,
-    userId: row.user_id || "",
-    requestNumber: getField(row, ["request_number"], row.id || "—"),
-    customer: customerName,
-    profilePhoto,
-    mobile: getField(row, ["customer_mobile"], profile?.mobile || "—"),
-    email: getField(row, ["customer_email"], profile?.email || "—"),
-egcUserCode: profile?.user_code || row.user_code || row.egc_user_code || "—",
-    company: getField(row, ["lpg_company"], "—"),
-    agencyId: getField(row, ["agency_id"], ""),
-    agency: getField(row, ["lpg_agency", "agency_name"], row.agency_id || "Not assigned"),
-    city: getField(row, ["city"], "—"),
-    quantity: getField(row, ["quantity"], 1),
-    ownerApproval: normalizeStatus(row.owner_approval, "pending"),
-    agencyStatus: normalizeStatus(row.agency_status, "waiting"),
-    deliveryStatus: normalizeStatus(row.delivery_status, "pending"),
-    deliveryDate: row.delivered_at || "",
-    extraCharge: Number(row.extra_charge || 0),
-    deliveryNote: getField(row, ["agency_note"], "")
-  };
+    const customerName =
+        requestName || profileName || "Not available";
+
+    const profilePhotoCandidates = [
+        profile?.profile_photo,
+        row?.profile_photo,
+        profile?.avatar_url,
+        row?.avatar_url
+    ].filter(Boolean);
+
+    return {
+        raw: row,
+        id: row.id,
+        userId: row.user_id || "",
+        requestNumber: getField(row, ["request_number"], row.id || "—"),
+        customer: customerName,
+
+        profilePhoto: profilePhotoCandidates[0] || "",
+        profilePhotoCandidates,
+
+        mobile: getField(row, ["customer_mobile"], profile?.mobile || "—"),
+        email: getField(row, ["customer_email"], profile?.email || "—"),
+
+        egcUserCode:
+            profile?.user_code ||
+            row?.user_code ||
+            row?.egc_user_code ||
+            "—",
+
+        company: getField(row, ["lpg_company"], "—"),
+        agencyId: getField(row, ["agency_id"], ""),
+        agency: getField(row, ["lpg_agency", "agency_name"], row.agency_id || "Not assigned"),
+        city: getField(row, ["city"], "—"),
+        quantity: getField(row, ["quantity"], 1),
+
+        ownerApproval: normalizeStatus(row.owner_approval, "pending"),
+        agencyStatus: normalizeStatus(row.agency_status, "waiting"),
+        deliveryStatus: normalizeStatus(row.delivery_status, "pending"),
+
+        deliveryDate: row.delivered_at || "",
+        extraCharge: Number(row.extra_charge || 0),
+        deliveryNote: getField(row, ["agency_note"], "")
+    };
 }
-
 /*
   Loads the profile table separately instead of assuming a PostgREST
   relationship exists. Profiles.id should match cylinder_requests.user_id.
@@ -742,12 +844,54 @@ async function loadDeliveries() {
     const requestRows = [...uniqueRequests.values()];
     const profilesById = await loadProfilesForRequests(requestRows);
 
-allDeliveries = sortDeliveriesByLatestActivity(
-    requestRows.map(row => {
-        const profile = profilesById.get(String(row.user_id)) || null;
-        return normalizeDelivery(row, profile);
+/* BUILD DELIVERY RECORDS */
+
+/* BUILD DELIVERY RECORDS */
+
+allDeliveries = requestRows.map(row => {
+
+    const profile =
+        profilesById.get(String(row.user_id)) || null;
+
+    return normalizeDelivery(row, profile);
+
+});
+
+
+/* LOAD SIGNED PROFILE IMAGE URLS */
+
+await Promise.all(
+    allDeliveries.map(async item => {
+
+        item.profilePhotoUrl = await getCustomerPhotoUrl(
+            item.profilePhotoCandidates
+        );
+
     })
 );
+
+
+/* SORT BY LATEST ACTIVITY */
+
+allDeliveries = sortDeliveriesByLatestActivity(
+    allDeliveries
+);
+
+console.log(
+    "EGC DELIVERY PHOTO DIAGNOSTICS:",
+    allDeliveries.map(item => ({
+        customer: item.customer,
+        photoPath: item.profilePhoto,
+        signedUrlAvailable: Boolean(item.profilePhotoUrl)
+    }))
+);
+
+/* SORT BY LATEST ACTIVITY */
+
+allDeliveries = sortDeliveriesByLatestActivity(
+    allDeliveries
+);
+
 
     populateAgencyFilter();
     updateStats();
@@ -862,34 +1006,163 @@ function applyFilters() {
 
     renderDeliveries();
 }
+/* CUSTOMER PROFILE IMAGE - SUPABASE STORAGE */
 
-/* CUSTOMER PHOTO HELPERS */
+const PROFILE_BUCKET = "users-documents";
+const profilePhotoCache = new Map();
+
 function getCustomerInitial(name) {
-  const clean = String(name || "").trim();
-  if (!clean || clean === "Not available") return "?";
-  return clean.charAt(0).toUpperCase();
+    const clean = String(name || "").trim();
+
+    if (!clean || clean === "Not available") {
+        return "?";
+    }
+
+    return clean.charAt(0).toUpperCase();
+}
+
+async function getCustomerPhotoUrl(paths) {
+
+    const candidates = Array.isArray(paths) ? paths : [paths];
+
+    for (const path of candidates) {
+
+        if (!path) continue;
+
+        const photoPath = String(path).trim();
+
+        if (!photoPath) continue;
+
+        if (/^https?:\/\//i.test(photoPath)) {
+            return photoPath;
+        }
+
+        if (profilePhotoCache.has(photoPath)) {
+            return profilePhotoCache.get(photoPath);
+        }
+
+        let storagePath = photoPath;
+
+        if (storagePath.startsWith(PROFILE_BUCKET + "/")) {
+            storagePath = storagePath.substring(
+                PROFILE_BUCKET.length + 1
+            );
+        }
+
+        try {
+
+            const { data, error } = await supabaseClient.storage
+                .from(PROFILE_BUCKET)
+                .createSignedUrl(storagePath, 3600);
+
+            if (error) {
+                console.warn("Photo path unavailable:", storagePath);
+                continue;
+            }
+
+            const imageUrl = data?.signedUrl || "";
+
+            if (imageUrl) {
+                profilePhotoCache.set(photoPath, imageUrl);
+                return imageUrl;
+            }
+
+        } catch (error) {
+            console.warn("Photo loading error:", error.message);
+        }
+    }
+
+    return "";
 }
 
 function renderAvatar(item) {
-  const photo = String(item.profilePhoto || "").trim();
-  const initial = getCustomerInitial(item.customer);
 
-  if (photo) {
-    return `<div class="avatar">
-      <img src="${escapeHtml(photo)}" alt="Customer photo"
-        loading="lazy"
-        onerror="this.style.display='none';this.parentElement.textContent='${escapeHtml(initial)}';">
-    </div>`;
-  }
+    const photo = item.profilePhotoUrl || "";
+    const initial = getCustomerInitial(item.customer);
 
-  return `<div class="avatar" aria-label="No customer photo">${escapeHtml(initial)}</div>`;
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+
+    if (!photo) {
+        avatar.textContent = initial;
+        return avatar.outerHTML;
+    }
+
+    const img = document.createElement("img");
+
+    img.src = photo;
+    img.alt = item.customer || "Customer";
+    img.loading = "lazy";
+
+    img.onerror = function () {
+        avatar.textContent = initial;
+    };
+
+    avatar.appendChild(img);
+
+    return avatar.outerHTML;
+}
+/* TABLE */
+function moneyNumber(value) {
+
+    const number = Number(value);
+
+    return (
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        !Number.isFinite(number)
+    ) ? 0 : number;
 }
 
-/* TABLE */
+
 function getChargeForDisplay(item, days) {
-  if (item.extraCharge > 0) return item.extraCharge;
-  if (item.deliveryStatus !== "delivered" || days === null) return 0;
-  return calculateExtraCharge(days);
+
+    // Database charge is authoritative.
+    // charge_amount is the current operational charge field.
+
+    const storedCharge = item.raw?.charge_amount;
+
+    if (
+        storedCharge !== null &&
+        storedCharge !== undefined &&
+        storedCharge !== ""
+    ) {
+        return moneyNumber(storedCharge);
+    }
+
+    const storedExtraCharge = item.raw?.extra_charge;
+
+    if (
+        storedExtraCharge !== null &&
+        storedExtraCharge !== undefined &&
+        storedExtraCharge !== ""
+    ) {
+        return moneyNumber(storedExtraCharge);
+    }
+
+    if (
+        item.deliveryStatus !== "delivered" ||
+        days === null
+    ) {
+        return 0;
+    }
+
+    // Display-only estimate. Never use this to collect payment.
+    return calculateExtraCharge(days);
+}
+
+function moneyNumber(value) {
+
+    const number = Number(value);
+
+    return (
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        !Number.isFinite(number)
+    ) ? 0 : number;
+
 }
 
 function renderDeliveries() {

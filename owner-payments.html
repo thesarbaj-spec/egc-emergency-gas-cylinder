@@ -969,22 +969,28 @@ async function fetchByIds(table, ids) {
 async function attachRelatedData() {
     if (!payments.length) return;
 
-    const userIds = [
-        ...new Set(
-            payments.map(payment => payment.user_id).filter(Boolean)
-        )
-    ];
-
     const requestIds = [
         ...new Set(
             payments.map(payment => payment.request_id).filter(Boolean)
         )
     ];
 
-    const [profiles, requests] = await Promise.all([
-        fetchByIds("profiles", userIds),
-        fetchByIds("cylinder_requests", requestIds)
-    ]);
+    const requests = await fetchByIds(
+        "cylinder_requests",
+        requestIds
+    );
+
+    const requestMap = new Map(
+        requests.map(request => [request.id, request])
+    );
+
+    // Payment aur Cylinder Request dono se User IDs collect karein
+    const userIds = [
+        ...new Set([
+            ...payments.map(payment => payment.user_id),
+            ...requests.map(request => request.user_id)
+        ].filter(Boolean))
+    ];
 
     const agencyIds = [
         ...new Set(
@@ -992,14 +998,13 @@ async function attachRelatedData() {
         )
     ];
 
-    const agencies = await fetchByIds("agencies", agencyIds);
+    const [profiles, agencies] = await Promise.all([
+        fetchByIds("profiles", userIds),
+        fetchByIds("agencies", agencyIds)
+    ]);
 
     const profileMap = new Map(
         profiles.map(profile => [profile.id, profile])
-    );
-
-    const requestMap = new Map(
-        requests.map(request => [request.id, request])
     );
 
     const agencyMap = new Map(
@@ -1007,14 +1012,22 @@ async function attachRelatedData() {
     );
 
     payments = payments.map(payment => {
-        const profile = profileMap.get(payment.user_id) || {};
-        const request = requestMap.get(payment.request_id) || {};
-        const agency = agencyMap.get(request.agency_id) || {};
+        const request =
+            requestMap.get(payment.request_id) || {};
+
+        const userId =
+            request.user_id || payment.user_id;
+
+        const profile =
+            profileMap.get(userId) || {};
+
+        const agency =
+            agencyMap.get(request.agency_id) || {};
 
         return {
             ...payment,
-            profile,
             request,
+            profile,
             agency
         };
     });
@@ -1058,6 +1071,12 @@ async function loadPayments() {
             payments = data || [];
 
             await attachRelatedData();
+            await Promise.all(
+    payments.map(async payment => {
+        const path = userPhoto(payment);
+        payment.profilePhotoUrl = await getProfilePhotoUrl(path);
+    })
+);
 
             classifyPayments();
             buildUserGroups();
@@ -1120,17 +1139,47 @@ function userEmail(payment) {
 
 function userPhoto(payment) {
     return (
-        payment.profile?.profile_photo ||
         payment.request?.profile_photo ||
+        payment.profile?.profile_photo ||
         ""
     );
+}
+const profilePhotoUrlCache = new Map();
+
+async function getProfilePhotoUrl(path) {
+    if (!path) return "";
+
+    // Agar already complete URL hai
+    if (/^https?:\/\//i.test(path)) {
+        return path;
+    }
+
+    if (profilePhotoUrlCache.has(path)) {
+        return profilePhotoUrlCache.get(path);
+    }
+
+    const { data, error } = await supabaseClient.storage
+        .from("users-documents")
+        .createSignedUrl(path, 3600);
+
+    if (error) {
+        console.error("Profile photo URL error:", error.message);
+        return "";
+    }
+
+    const url = data?.signedUrl || "";
+
+    if (url) {
+        profilePhotoUrlCache.set(path, url);
+    }
+
+    return url;
 }
 
 function userCode(payment) {
     return (
+        payment.profile?.user_code ||
         payment.request?.egc_user_code ||
-        payment.profile?.egc_user_code ||
-        payment.profile?.username ||
         "—"
     );
 }
@@ -1915,8 +1964,7 @@ function renderPayments() {
 
         const name = userName(payment);
         const email = userEmail(payment);
-        const photo = userPhoto(payment);
-
+const photo = payment.profilePhotoUrl || "";
         const photoHtml = photo
             ? `
                 <img

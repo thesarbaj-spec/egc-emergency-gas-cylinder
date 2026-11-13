@@ -558,6 +558,67 @@ const supabaseClient = window.supabase.createClient(
 /* =========================================================
    STATE
 ========================================================= */
+/* CUSTOMER PROFILE PHOTO */
+
+const PROFILE_BUCKET = "users-documents";
+
+const profilePhotoCache = new Map();
+
+
+async function getCustomerPhotoUrl(path) {
+
+    if (!path) return "";
+
+    let photoPath = String(path).trim();
+
+    if (!photoPath) return "";
+
+    if (/^https?:\/\//i.test(photoPath)) {
+        return photoPath;
+    }
+
+    if (photoPath.startsWith(PROFILE_BUCKET + "/")) {
+        photoPath = photoPath.substring(
+            PROFILE_BUCKET.length + 1
+        );
+    }
+
+    if (profilePhotoCache.has(photoPath)) {
+        return profilePhotoCache.get(photoPath);
+    }
+
+    try {
+
+        const { data, error } = await supabaseClient
+            .storage
+            .from(PROFILE_BUCKET)
+            .createSignedUrl(photoPath, 3600);
+
+        if (error) {
+            console.warn(
+                "Profile Photo Error:",
+                photoPath,
+                error.message
+            );
+
+            return "";
+        }
+
+        const url = data?.signedUrl || "";
+
+        if (url) {
+            profilePhotoCache.set(photoPath, url);
+        }
+
+        return url;
+
+    } catch (error) {
+
+        console.error("Profile Photo Error:", error);
+
+        return "";
+    }
+}
 
 let requestRecords = [];
 let paymentRecords = [];
@@ -684,34 +745,36 @@ function prettyStatus(status) {
 }
 
 function isVerifiedPayment(payment) {
-    const paymentStatus = normalizeStatus(payment.payment_status);
-    const verification = normalizeStatus(payment.verification_status);
+const paymentStatus = normalizeStatus(payment.payment_status);
+const verification = normalizeStatus(payment.verification_status);
 
-    const isRejected = [
-        "rejected", "failed", "cancelled", "canceled"
-    ].includes(paymentStatus) || [
-        "rejected", "failed"
-    ].includes(verification);
+return (
+    ["paid", "completed", "success", "successful"].includes(paymentStatus) &&
+    ["approved", "verified", "completed"].includes(verification)
+);
 
-    if (isRejected) return false;
-
-    return [
-        "paid", "completed", "success", "successful", "approved", "verified"
-    ].includes(paymentStatus) ||
-    [
-        "approved", "verified", "completed"
-    ].includes(verification) ||
-    Boolean(payment.verified_at) ||
-    Boolean(payment.owner_approved_at);
 }
 
 function isRejectedPayment(payment) {
+    const paymentStatus = normalizeStatus(payment.payment_status);
+
+    const verification = normalizeStatus(
+        firstValue(payment, [
+            "verification_status",
+            "payment_verification_status"
+        ], "")
+    );
+
     return [
-        "rejected", "failed", "cancelled", "canceled"
-    ].includes(normalizeStatus(payment.payment_status)) ||
+        "rejected",
+        "failed",
+        "cancelled",
+        "canceled"
+    ].includes(paymentStatus) ||
     [
-        "rejected", "failed"
-    ].includes(normalizeStatus(payment.verification_status));
+        "rejected",
+        "failed"
+    ].includes(verification);
 }
 
 /* =========================================================
@@ -748,8 +811,47 @@ function getLatestActivityTimestamp(request, payments = []) {
 function sortRepaymentsByLatestActivity(records) {
     return [...records].sort((a, b) => {
         return (b.latestActivity || 0) - (a.latestActivity || 0);
+        const cylinderAmount = num(firstValue(request, [
+    "cylinder_amount",
+    "total_amount",
+    "amount"
+], 0));
+
+const savedExtraCharge = firstValue(request, [
+"extra_charge",
+"charge_amount"
+], null);
+
+const calculatedExtraCharge =
+calculateExtraChargeFromDelivery(request);
+
+const extraCharge = calculatedExtraCharge !== null
+? calculatedExtraCharge
+: num(savedExtraCharge);
+
+const totalPayable = cylinderAmount + extraCharge;
+
+const verifiedPayments = requestPayments.filter(isVerifiedPayment);
+
+const deposited = verifiedPayments.reduce(
+(sum, payment) => sum + num(payment.payment_amount),
+0
+);
+
+const remaining = Math.max(totalPayable - deposited, 0);
+
+let status;
+
+if (remaining <= 0 && totalPayable > 0) {
+status = "completed";
+} else if (deposited > 0) {
+status = "partial";
+} else {
+status = "pending";
+}
     });
 }
+
 
 /* =========================================================
 EGC REPAYMENT EXTRA CHARGE
@@ -763,60 +865,50 @@ return firstValue(request, [
 ]);
 }
 
-function getDaysAfterDelivery(request) {
-const deliveryStatus = normalizeStatus(
-firstValue(request, ["delivery_status"], "")
-);
+function getDateOnly(value) {
+if (!value) return null;
 
-if (deliveryStatus !== "delivered") {
-    return null;
+const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+
+return match ? match[1] : null;
+
 }
 
-const value = getDeliveryDate(request);
+function getDaysBetweenDates(startDate, endDate) {
+const start = getDateOnly(startDate);
+const end = getDateOnly(endDate);
 
-if (!value) {
-    return null;
-}
+if (!start || !end) return null;
 
-const deliveryDate = new Date(value);
+const [sy, sm, sd] = start.split("-").map(Number);
+const [ey, em, ed] = end.split("-").map(Number);
 
-if (Number.isNaN(deliveryDate.getTime())) {
-    return null;
-}
+const startUTC = Date.UTC(sy, sm - 1, sd);
+const endUTC = Date.UTC(ey, em - 1, ed);
 
-const today = new Date();
-
-const deliveryDayUTC = Date.UTC(
-    deliveryDate.getFullYear(),
-    deliveryDate.getMonth(),
-    deliveryDate.getDate()
-);
-
-const todayUTC = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-);
-
-return Math.max(
-    0,
-    Math.floor(
-        (todayUTC - deliveryDayUTC) / 86400000
-    )
-);
+return Math.max(0, Math.floor((endUTC - startUTC) / 86400000));
 
 }
 
 function calculateExtraChargeFromDelivery(request) {
-const days = getDaysAfterDelivery(request);
+const deliveryDate = request.delivered_at || request.delivery_date;
 
-/*
- * No delivery date means the charge cannot be
- * calculated reliably. Do not invent a delivery date.
- */
-if (days === null || days <= 0) {
-    return null;
-}
+if (!deliveryDate) return null;
+
+const repaymentStatus = normalizeStatus(request.repayment_status);
+
+// If repayment is cleared, freeze the charge
+// at the actual repayment-cleared date.
+const isCleared = ["clear", "cleared", "completed", "paid"]
+    .includes(repaymentStatus);
+
+const endDate = isCleared
+    ? (request.repayment_cleared_at || request.updated_at)
+    : new Date().toISOString();
+
+const days = getDaysBetweenDates(deliveryDate, endDate);
+
+if (days === null || days <= 0) return 0;
 
 if (days <= 10) return 50;
 if (days <= 15) return 60;
@@ -999,67 +1091,44 @@ async function loadRepayments() {
                 "advance_amount"
             ], 0));
 
-            const savedExtraCharge = firstValue(request, [
-"extra_charge",
-"charge_amount"
-], null);
+            const verifiedPayments = requestPayments.filter(isVerifiedPayment);
+
+const deposited = verifiedPayments.reduce(
+(sum, payment) => sum + num(payment.payment_amount),
+0
+);
+
+const repaymentStatus = normalizeStatus(request.repayment_status);
+
+const isCleared = ["clear", "cleared", "completed", "paid"]
+.includes(repaymentStatus);
 
 const calculatedExtraCharge =
 calculateExtraChargeFromDelivery(request);
 
-/*
-
-Prefer the delivery-based charge when the delivery date
-is available. Otherwise preserve the saved database charge.
-*/
-const extraCharge = calculatedExtraCharge !== null
-? calculatedExtraCharge
-: num(savedExtraCharge);
-
-const totalPayableStored = num(firstValue(request, [
-"total_payable"
+const savedExtraCharge = num(firstValue(request, [
+"extra_charge",
+"charge_amount"
 ], 0));
+
+// Use the frozen database charge for cleared repayments.
+const extraCharge = isCleared
+? savedExtraCharge
+: (calculatedExtraCharge ?? savedExtraCharge);
 
 const totalPayable = cylinderAmount + extraCharge;
 
-            const verifiedPayments = requestPayments.filter(isVerifiedPayment);
+const remaining = Math.max(totalPayable - deposited, 0);
 
-            /*
-             * Do not count pending, rejected or failed payment submissions
-             * as deposited money.
-             */
-            const paymentsPaid = verifiedPayments.reduce(
-                (sum, payment) => sum + num(payment.payment_amount),
-                0
-            );
+let status;
 
-            /*
-             * Some older requests may store the verified advance amount
-             * on cylinder_requests rather than in the payments table.
-             * Use it only when no verified payment row exists to avoid
-             * counting the same advance twice.
-             */
-            const storedAdvancePaid = num(firstValue(request, [
-                "advance_paid",
-                "initial_paid"
-            ], 0));
-
-            const deposited = verifiedPayments.length
-                ? paymentsPaid
-                : storedAdvancePaid;
-
-            const remaining = Math.max(totalPayable - deposited, 0);
-
-            let status = normalizeStatus(request.repayment_status);
-
-            if (remaining <= 0 && totalPayable > 0) {
-                status = "completed";
-            } else if (deposited > 0) {
-                status = "partial";
-            } else if (!status || status === "completed" || status === "paid") {
-                status = "pending";
-            }
-
+if (remaining <= 0 && totalPayable > 0) {
+status = "completed";
+} else if (deposited > 0) {
+status = "partial";
+} else {
+status = "pending";
+}
             const lastPayment = verifiedPayments.reduce((latest, payment) => {
                 const date = payment.payment_date || payment.created_at;
                 if (!date) return latest;
@@ -1085,9 +1154,14 @@ const totalPayable = cylinderAmount + extraCharge;
                 "customer_email"
             ], firstValue(profile, ["email"], "—"));
 
-            const userCode = firstValue(request, [
-                "egc_user_code"
-            ], firstValue(profile, ["egc_user_code", "username"], "—"));
+const userCode = firstValue(profile, [
+    "user_code",
+    "egc_user_code"
+],
+firstValue(request, [
+    "egc_user_code",
+    "user_code"
+], "—"));
 
             return {
                 id: request.id,
@@ -1115,6 +1189,30 @@ const totalPayable = cylinderAmount + extraCharge;
                 request
                };
     })
+);
+
+/* LOAD SIGNED CUSTOMER PROFILE PHOTOS */
+
+await Promise.all(
+
+    requestRecords.map(async record => {
+
+        record.photoUrl = await getCustomerPhotoUrl(
+            record.photo
+        );
+
+    })
+
+);
+
+console.log(
+    "EGC REPAYMENT PROFILE PHOTO STATUS:",
+    requestRecords.map(record => ({
+        customer: record.name,
+        userCode: record.userCode,
+        photo: record.photo,
+        photoLoaded: Boolean(record.photoUrl)
+    }))
 );
 
         /*
@@ -1274,9 +1372,14 @@ function renderTable() {
     }
 
     body.innerHTML = rows.map(record => {
-        const avatar = record.photo
-            ? `<img src="${escapeHtml(record.photo)}" alt="" onerror="this.parentElement.textContent='👤'">`
-            : "👤";
+      const avatar = record.photoUrl
+    ? `<img
+        src="${escapeHtml(record.photoUrl)}"
+        alt="${escapeHtml(record.name)}"
+        loading="lazy"
+        onerror="this.style.display='none';this.parentElement.textContent='👤';"
+    >`
+    : "👤";
 
         return `
             <tr>

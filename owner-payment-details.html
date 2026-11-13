@@ -331,9 +331,9 @@ button:disabled{opacity:.55;cursor:not-allowed}
         <div class="detail-box"><div class="detail-label">Payment Type</div><div class="detail-value" id="paymentType">—</div></div>
         <div class="detail-box"><div class="detail-label">Payment Amount</div><div class="detail-value highlight" id="paymentAmount">₹0.00</div></div>
         <div class="detail-box"><div class="detail-label">Payment Date</div><div class="detail-value" id="paymentDate">—</div></div>
-        <div class="detail-item">
-    <span>Latest Activity</span>
-    <strong id="latestActivity">Not Available</strong>
+<div class="detail-box">
+    <div class="detail-label">Latest Activity</div>
+    <div class="detail-value" id="latestActivity">Not Available</div>
 </div>
         <div class="detail-box"><div class="detail-label">Payment Method</div><div class="detail-value" id="paymentMethod">—</div></div>
         <div class="detail-box"><div class="detail-label">Transaction ID</div><div class="detail-value" id="transactionId">—</div></div>
@@ -571,15 +571,19 @@ function getLatestRelatedPaymentActivity() {
 }
 
 function getLatestActivity() {
-    const latest = Math.max(
+    const timestamps = [
         getLatestPaymentActivity(),
         getLatestRequestActivity(),
         getLatestRelatedPaymentActivity()
-    );
+    ];
 
-    return latest > 0
-        ? formatDateTime(latest)
-        : "Not Available";
+    const latest = Math.max(0, ...timestamps);
+
+    if (!Number.isFinite(latest) || latest <= 0) {
+        return "Not Available";
+    }
+
+    return formatDateTime(new Date(latest).toISOString());
 }
 
 function getPaymentIdFromUrl() {
@@ -1035,29 +1039,81 @@ async function loadPayment(options = {}) {
     }
 }
 
-function renderPhoto(photo) {
- const container = $("photoContainer");
- container.replaceChildren();
+async function renderPhoto(photo) {
+    const container = $("photoContainer");
+    if (!container) return;
 
- if (!photo) {
-  const fallback = document.createElement("div");
-  fallback.className = "user-photo-fallback";
-  fallback.textContent = "👤";
-  container.appendChild(fallback);
-  return;
- }
+    function showFallback() {
+        const fallback = document.createElement("div");
+        fallback.className = "user-photo-fallback";
+        fallback.textContent = "👤";
+        container.replaceChildren(fallback);
+    }
 
- const img = document.createElement("img");
- img.src = photo;
- img.className = "user-photo";
- img.alt = "User profile photo";
- img.addEventListener("error",()=>{
-  const fallback = document.createElement("div");
-  fallback.className = "user-photo-fallback";
-  fallback.textContent = "👤";
-  container.replaceChildren(fallback);
- },{once:true});
- container.appendChild(img);
+    if (!photo) {
+        showFallback();
+        return;
+    }
+
+    try {
+        let photoPath = String(photo).trim();
+
+        // Handle full URLs and storage paths
+        if (/^https?:\/\//i.test(photoPath)) {
+            const url = new URL(photoPath);
+            const marker = "/users-documents/";
+            const index = url.pathname.indexOf(marker);
+
+            if (index !== -1) {
+                photoPath = decodeURIComponent(
+                    url.pathname.substring(index + marker.length)
+                );
+            } else {
+                const img = document.createElement("img");
+                img.className = "user-photo";
+                img.alt = "Customer Profile Photo";
+                img.onerror = showFallback;
+                img.src = photoPath;
+                container.replaceChildren(img);
+                return;
+            }
+        }
+
+        photoPath = photoPath.replace(/^users-documents\//, "");
+
+        // Fix old profile filename reference
+        if (/\/profile-\d+\.jpg$/i.test(photoPath)) {
+            photoPath = photoPath.replace(
+                /\/profile-\d+\.jpg$/i,
+                "/profile.jpg"
+            );
+        }
+
+        console.log("FINAL PROFILE PHOTO PATH:", photoPath);
+
+        const { data, error } = await supabaseClient.storage
+            .from("users-documents")
+            .createSignedUrl(photoPath, 3600);
+
+        if (error) throw error;
+
+        if (!data?.signedUrl) {
+            throw new Error("Signed URL not generated");
+        }
+
+        const img = document.createElement("img");
+        img.className = "user-photo";
+        img.alt = "Customer Profile Photo";
+
+        img.onerror = showFallback;
+        img.src = data.signedUrl;
+
+        container.replaceChildren(img);
+
+    } catch (error) {
+        console.error("Profile Photo Error:", error);
+        showFallback();
+    }
 }
 
 /*
@@ -1275,98 +1331,236 @@ function updateReviewUI() {
  if (final && !busy) note.value = payment?.notes || note.value || "";
 }
 
-function isImageFile(path) {
- return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(path || "");
-}
+
 
 function isAbsoluteHttpUrl(value) {
- return /^https?:\/\//i.test(String(value || ""));
+    return /^https?:\/\//i.test(String(value || "").trim());
+}
+
+function isImageFile(value) {
+    try {
+        const pathname = new URL(value, window.location.href).pathname;
+        return /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(pathname);
+    } catch {
+        return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(
+            String(value || "")
+        );
+    }
+}
+
+function getStorageObjectPath(url) {
+    try {
+        const parsed = new URL(url);
+        const marker = "/storage/v1/object/";
+
+        const index = parsed.pathname.indexOf(marker);
+
+        if (index === -1) return "";
+
+        let objectPath = parsed.pathname.substring(index + marker.length);
+
+        objectPath = objectPath.replace(
+            /^(public|sign|authenticated)\//,
+            ""
+        );
+
+        return decodeURIComponent(objectPath);
+    } catch {
+        return "";
+    }
+}
+
+async function getScreenshotUrl(value) {
+    const path = String(value || "").trim();
+
+    if (!path) return "";
+
+    // Full URL: first try the URL directly.
+    if (isAbsoluteHttpUrl(path)) {
+        return path;
+    }
+
+    // Relative Supabase Storage path.
+    const { data, error } = await supabaseClient.storage
+        .from(PAYMENT_BUCKET)
+        .createSignedUrl(path, 3600);
+
+    if (error) throw error;
+
+    return data?.signedUrl || "";
 }
 
 async function renderScreenshot() {
-$("screenshotWrap").style.display = "none";
-$("screenshotEmpty").style.display = "none";
-$("screenshotImage").style.display = "none";
-$("screenshotFile").style.display = "none";
 
-$("screenshotNotice").style.display = "block";
-$("screenshotNotice").className = "notice notice-info";
-$("screenshotNotice").textContent =
-    "Checking for an uploaded payment screenshot...";
+    const wrap = $("screenshotWrap");
+    const empty = $("screenshotEmpty");
+    const image = $("screenshotImage");
+    const file = $("screenshotFile");
+    const notice = $("screenshotNotice");
+    const openButton = $("openScreenshotBtn");
 
-signedScreenshotUrl = "";
-
-const path =
-    payment?.screenshot_path ||
-    payment?.payment_screenshot ||
-    payment?.screenshot_url ||
-    payment?.proof_image ||
-    request?.payment_screenshot_1 ||
-    request?.payment_screenshot_2 ||
-    request?.payment_screenshot_3 ||
-    "";
-
-if (!path) {
-    $("screenshotNotice").style.display = "none";
-    $("screenshotEmpty").style.display = "block";
-    return;
-}
-
-try {
-    let url = "";
-
-    if (isAbsoluteHttpUrl(path)) {
-        url = path;
-    } else {
-        const { data, error } = await supabaseClient.storage
-            .from(PAYMENT_BUCKET)
-            .createSignedUrl(path, 300);
-
-        if (error) throw error;
-
-        url = data?.signedUrl || "";
+    if (!wrap || !empty || !image || !file || !notice || !openButton) {
+        console.error("Screenshot HTML elements are missing.");
+        return;
     }
 
-    if (!url) {
-        throw new Error("Could not create screenshot viewing URL.");
+    wrap.style.display = "none";
+    empty.style.display = "none";
+    image.style.display = "none";
+    file.style.display = "none";
+
+    notice.style.display = "block";
+    notice.className = "notice notice-info";
+    notice.textContent = "Checking for uploaded payment screenshot...";
+
+    signedScreenshotUrl = "";
+
+    // First priority: current payment's own screenshot.
+    const paymentCandidates = [
+        payment?.screenshot_path,
+        payment?.payment_screenshot,
+        payment?.screenshot_url,
+        payment?.proof_image,
+        payment?.payment_reference
+    ];
+
+    const requestCandidates = [
+        request?.payment_screenshot_1,
+        request?.payment_screenshot_2,
+        request?.payment_screenshot_3
+    ];
+
+    function validCandidate(value) {
+        if (typeof value !== "string") return false;
+
+        const clean = value.trim();
+
+        if (!clean) return false;
+
+        // Do not treat ordinary transaction/reference text as a file.
+        if (isAbsoluteHttpUrl(clean)) return true;
+
+        return /\.(png|jpe?g|gif|webp|bmp|avif)(\?.*)?$/i.test(clean);
     }
 
-    signedScreenshotUrl = url;
+    let candidates = paymentCandidates
+        .filter(validCandidate);
 
-    $("openScreenshotBtn").href = url;
-    $("openScreenshotBtn").target = "_blank";
-    $("openScreenshotBtn").rel = "noopener noreferrer";
+    // Use old request-level screenshots only if the payment
+    // itself does not contain a usable screenshot reference.
+    if (!candidates.length) {
+        candidates = requestCandidates.filter(validCandidate);
+    }
 
-    $("screenshotWrap").style.display = "block";
+    if (!candidates.length) {
+        notice.style.display = "none";
+        empty.style.display = "block";
+        empty.textContent = "No payment screenshot was uploaded for this record.";
+        return;
+    }
 
-    if (isImageFile(path)) {
-        $("screenshotImage").src = url;
-        $("screenshotImage").style.display = "block";
+    let finalUrl = "";
+    let selectedPath = "";
+    let lastError = null;
 
-        $("screenshotImage").onerror = () => {
-            $("screenshotImage").style.display = "none";
-            $("screenshotFile").style.display = "block";
+    for (const candidate of candidates) {
 
-            $("screenshotFile").textContent =
-                "The image could not be previewed. Use the button below to open the evidence file.";
+        try {
+
+            let url = await getScreenshotUrl(candidate);
+
+            if (url) {
+                finalUrl = url;
+                selectedPath = candidate;
+                break;
+            }
+
+        } catch (error) {
+
+            lastError = error;
+            console.warn("Screenshot source failed:", error);
+
+            // If a full Supabase Storage URL was supplied,
+            // extract its object path and try a signed URL.
+            if (isAbsoluteHttpUrl(candidate)) {
+
+                const objectPath = getStorageObjectPath(candidate);
+
+                if (objectPath) {
+
+                    try {
+
+                        const { data, error: signedError } =
+                            await supabaseClient.storage
+                                .from(PAYMENT_BUCKET)
+                                .createSignedUrl(objectPath, 3600);
+
+                        if (signedError) throw signedError;
+
+                        if (data?.signedUrl) {
+                            finalUrl = data.signedUrl;
+                            selectedPath = candidate;
+                            break;
+                        }
+
+                    } catch (secondError) {
+                        lastError = secondError;
+                        console.warn("Signed URL retry failed:", secondError);
+                    }
+                }
+            }
+        }
+    }
+
+    if (!finalUrl) {
+
+        notice.className = "notice notice-warning";
+        notice.textContent =
+            "Screenshot could not be loaded. Check the payment-screenshots bucket and Storage permissions.";
+
+        console.warn("Screenshot loading failed:", lastError);
+        return;
+    }
+
+    signedScreenshotUrl = finalUrl;
+
+    openButton.href = finalUrl;
+    openButton.target = "_blank";
+    openButton.rel = "noopener noreferrer";
+
+    wrap.style.display = "block";
+
+    if (isImageFile(selectedPath)) {
+
+        image.onload = () => {
+            image.style.display = "block";
+            file.style.display = "none";
+            notice.style.display = "none";
         };
+
+        image.onerror = () => {
+            image.style.display = "none";
+            file.style.display = "block";
+
+            file.textContent =
+                "Image preview unavailable. Use Open Screenshot / Evidence in New Tab.";
+
+            notice.style.display = "none";
+        };
+
+        image.alt = "Customer Payment Screenshot";
+        image.src = finalUrl;
+
     } else {
-        $("screenshotFile").style.display = "block";
 
-        $("screenshotFile").textContent =
-            "Payment evidence is available. Open the file in a new tab to review it.";
+        image.style.display = "none";
+        file.style.display = "block";
+
+        file.textContent =
+            "Payment evidence is available. Open it in a new tab to review.";
+
+        notice.style.display = "none";
     }
-
-    $("screenshotNotice").style.display = "none";
-} catch (error) {
-    console.warn("Screenshot loading:", error);
-
-    $("screenshotNotice").style.display = "block";
-    $("screenshotNotice").className = "notice notice-warning";
-    $("screenshotNotice").textContent =
-        "The screenshot could not be opened. Check the payment-screenshots bucket, file path, and Storage SELECT policy.";
-}
-
 }
 
 async function renderPage() {
@@ -1392,6 +1586,8 @@ const initialPending = getPendingInitialPaymentAmount();
 
 const repaymentPending = getPendingRepaymentAmount();
 
+
+await renderPhoto(getPhoto());
 setText("userName", userName);
 setText("userContact", mobile + " • " + email);
 
@@ -1404,6 +1600,7 @@ setBadge(
 
 setText("paymentType", getPaymentType());
 setText("paymentAmount", formatMoney(amount));
+setText("latestActivity", getLatestActivity());
 
 setText(
     "paymentType",
@@ -1894,9 +2091,21 @@ $("requestBtn").addEventListener("click",()=>{
  window.location.assign("owner-request-details.html?request_id=" + encodeURIComponent(id));
 });
 
-$("slipBtn").addEventListener("click",()=>{
- if (!payment?.id) return showToast("Payment Not Available","Payment ID is not available.");
- window.location.assign("owner-slip.html?payment_id=" + encodeURIComponent(payment.id));
+$("slipBtn").addEventListener("click", () => {
+
+    if (!payment?.id) {
+        showToast(
+            "Payment Not Available",
+            "Payment ID is not available."
+        );
+        return;
+    }
+
+    const paymentId = encodeURIComponent(payment.id);
+
+    window.location.href =
+        "owner-slips.html?payment_id=" + paymentId;
+
 });
 
 $("logoutBtn").addEventListener("click",()=>{

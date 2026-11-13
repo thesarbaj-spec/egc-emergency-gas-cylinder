@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="assets/EGC - Emergency Gas Cylinder logo.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -2678,17 +2679,31 @@ td{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-
 const SUPABASE_URL =
 "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
 "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-const supabaseClient =
-window.supabase.createClient(
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            storage: window.localStorage,
+            storageKey: OWNER_STORAGE_KEY,
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
+        }
+    }
 );
 
 
@@ -2917,6 +2932,17 @@ function getRequestDate(request){
 
 }
 
+function getRequestStatus(request) {
+
+    return (
+        request.status ||
+        request.request_status ||
+        request.owner_approval ||
+        "pending"
+    );
+
+}
+
 /* ================= LATEST ACTIVITY SORTING ================= */
 
 function getLatestPaymentActivity(requestId) {
@@ -2967,16 +2993,43 @@ function sortRequestsByLatestActivity(list) {
     );
 }
 
-function getProfile(userId){
-
+function getProfile(userId) {
     return profiles.find(
-        item =>
-        String(item.id) ===
-        String(userId)
+        item => String(item.id) === String(userId)
     ) || {};
-
 }
 
+function getUserName(request) {
+    const p = getProfile(request.user_id);
+
+    return (
+        request.customer_name ||
+        p.full_name ||
+        p.name ||
+        p.username ||
+        "User"
+    );
+}
+
+function getUserMobile(request) {
+    const p = getProfile(request.user_id);
+
+    return (
+        request.customer_mobile ||
+        p.mobile ||
+        "—"
+    );
+}
+
+function getUserCode(request) {
+    const p = getProfile(request.user_id);
+
+    return (
+        p.user_code ||
+        request.egc_user_code ||
+        "—"
+    );
+}
 
 function getAgency(agencyId){
 
@@ -2985,20 +3038,6 @@ function getAgency(agencyId){
         String(item.id) ===
         String(agencyId)
     ) || {};
-
-}
-
-
-function getUserName(request){
-
-    const p =
-    getProfile(request.user_id);
-
-    return (
-        p.full_name ||
-        p.username ||
-        "User"
-    );
 
 }
 
@@ -3015,20 +3054,18 @@ function getUserMobile(request){
 
 }
 
+function getUserEmail(request) {
 
-function getUserEmail(request){
-
-    const p =
-    getProfile(request.user_id);
+    const p = getProfile(request.user_id);
 
     return (
+        request.customer_email ||
         p.email ||
         p.auth_email ||
         "—"
     );
 
 }
-
 
 function getAgencyName(request){
 
@@ -3045,118 +3082,75 @@ function getAgencyName(request){
 }
 
 
-function getPaymentForRequest(requestId){
+/* =====================================================
+   ACCURATE PAYMENT CALCULATIONS
+===================================================== */
 
-    return paymentRecords.find(
-        payment =>
-        String(payment.request_id) ===
-        String(requestId)
-    ) || null;
-
-}
-
-
-function getPaymentStatus(request){
-
-    const payment =
-    getPaymentForRequest(request.id);
-
-    if(payment){
-
-        return String(
-            payment.payment_status ||
-            "pending"
-        ).toLowerCase();
-
-    }
-
-    return String(
-        request.payment_status ||
-        "pending"
-    ).toLowerCase();
-
-}
-
-
-function getReceivedAmount(request){
-
-    const payment =
-    getPaymentForRequest(request.id);
-
-    if(payment){
-
-        const status =
-        String(
-            payment.payment_status ||
-            ""
-        ).toLowerCase();
-
-        if(status === "paid"){
-
-            return moneyNumber(
-                payment.payment_amount
-            );
-
-        }
-
-    }
-
-    if(
-        String(
-            request.payment_status ||
-            ""
-        ).toLowerCase() === "paid"
-    ){
-
-        return moneyNumber(
-            request.total_amount
-        ) +
-        moneyNumber(
-            request.extra_charge
-        );
-
-    }
-
-    return 0;
-
-}
-
-
-function getPayableAmount(request){
-
-    return (
-        moneyNumber(request.total_amount) +
-        moneyNumber(request.extra_charge)
+function getPaymentsForRequest(requestId) {
+    return paymentRecords.filter(payment =>
+        String(payment.request_id) === String(requestId)
     );
-
 }
 
+function isApprovedPaid(payment) {
+    return (
+        String(payment.payment_status || "").toLowerCase() === "paid" &&
+        String(payment.verification_status || "").toLowerCase() === "approved"
+    );
+}
 
-function getPendingAmount(request){
+function getReceivedAmount(request) {
+    return getPaymentsForRequest(request.id)
+        .filter(isApprovedPaid)
+        .reduce(
+            (sum, payment) =>
+                sum + moneyNumber(payment.payment_amount),
+            0
+        );
+}
 
-    const payable =
-    getPayableAmount(request);
+function getPayableAmount(request) {
+    return moneyNumber(
+        request.total_payable ??
+        request.total_amount
+    );
+}
 
-    const received =
-    getReceivedAmount(request);
-
+function getPendingAmount(request) {
     return Math.max(
-        payable - received,
+        getPayableAmount(request) - getReceivedAmount(request),
         0
     );
-
 }
 
+function getPaymentStatus(request) {
+    const related = getPaymentsForRequest(request.id);
 
-function getRequestStatus(request){
+    if (!related.length) {
+        return "pending";
+    }
 
-    return String(
-        request.status ||
-        "Pending"
-    );
+    const received = getReceivedAmount(request);
+    const payable = getPayableAmount(request);
 
+    if (payable > 0 && received >= payable) {
+        return "paid";
+    }
+
+    if (related.some(payment =>
+        String(payment.verification_status || "").toLowerCase() === "rejected"
+    )) {
+        return "rejected";
+    }
+
+    if (related.some(payment =>
+        String(payment.payment_status || "").toLowerCase() === "pending"
+    )) {
+        return "pending";
+    }
+
+    return received > 0 ? "partial" : "pending";
 }
-
 
 function isCancelled(request){
 
@@ -3386,12 +3380,10 @@ async function loadReports() {
 
             reportsReloadRequested = false;
 
-            /* LOAD CYLINDER REQUESTS */
-
-            const requestsResponse =
-                await supabaseClient
-                    .from("cylinder_requests")
-                    .select("*");
+            // 1. LOAD REQUESTS
+            const requestsResponse = await supabaseClient
+                .from("cylinder_requests")
+                .select("*");
 
             if (requestsResponse.error) {
                 throw requestsResponse.error;
@@ -3400,85 +3392,37 @@ async function loadReports() {
             requests = requestsResponse.data || [];
 
 
-            /* LOAD PAYMENTS */
-
-            const paymentsResponse =
-                await supabaseClient
-                    .from("payments")
-                    .select("*");
+            // 2. LOAD PAYMENTS
+            const paymentsResponse = await supabaseClient
+                .from("payments")
+                .select("*");
 
             if (paymentsResponse.error) {
-
-                console.warn(
-                    "Payments table:",
-                    paymentsResponse.error.message
-                );
-
-                paymentRecords = [];
-
-            } else {
-
-                paymentRecords =
-                    paymentsResponse.data || [];
-
+                throw paymentsResponse.error;
             }
 
-
-            /* SORT PAYMENT RECORDS */
-
-            paymentRecords.sort((a, b) => {
-
-                const timeA = Math.max(
-                    new Date(a.updated_at || 0).getTime() || 0,
-                    new Date(a.verified_at || 0).getTime() || 0,
-                    new Date(a.payment_date || 0).getTime() || 0,
-                    new Date(a.created_at || 0).getTime() || 0
-                );
-
-                const timeB = Math.max(
-                    new Date(b.updated_at || 0).getTime() || 0,
-                    new Date(b.verified_at || 0).getTime() || 0,
-                    new Date(b.payment_date || 0).getTime() || 0,
-                    new Date(b.created_at || 0).getTime() || 0
-                );
-
-                return timeB - timeA;
-
-            });
+            paymentRecords = paymentsResponse.data || [];
 
 
-            /* LOAD PROFILES */
+          /* LOAD ALL REGISTERED CUSTOMERS */
 
-            const userIds = [
-                ...new Set(
-                    requests
-                        .map(item => item.user_id)
-                        .filter(Boolean)
-                )
-            ];
+profiles = [];
 
-            profiles = [];
+const profileResponse = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("role", "customer");
 
-            if (userIds.length) {
+if (profileResponse.error) {
+    throw profileResponse.error;
+}
 
-                const profileResponse =
-                    await supabaseClient
-                        .from("profiles")
-                        .select("*")
-                        .in("id", userIds);
+profiles = profileResponse.data || [];
 
-                if (profileResponse.error) {
-                    throw profileResponse.error;
-                }
-
-                profiles =
-                    profileResponse.data || [];
-
-            }
+console.log("EGC REGISTERED CUSTOMERS:", profiles.length);
 
 
-            /* LOAD AGENCIES */
-
+            // 4. LOAD AGENCIES
             const agencyIds = [
                 ...new Set(
                     requests
@@ -3491,29 +3435,69 @@ async function loadReports() {
 
             if (agencyIds.length) {
 
-                const agencyResponse =
-                    await supabaseClient
-                        .from("agencies")
-                        .select("*")
-                        .in("id", agencyIds);
+                const agencyResponse = await supabaseClient
+                    .from("agencies")
+                    .select("*")
+                    .in("id", agencyIds);
 
                 if (agencyResponse.error) {
                     throw agencyResponse.error;
                 }
 
-                agencies =
-                    agencyResponse.data || [];
+                agencies = agencyResponse.data || [];
 
             }
 
 
-            /* LATEST ACTIVITY SORTING */
+            // 5. SORT PAYMENTS
+            paymentRecords.sort((a, b) => {
 
+                const timeA = Math.max(
+                    new Date(a.updated_at || 0).getTime() || 0,
+                    new Date(a.verified_at || 0).getTime() || 0,
+                    new Date(a.owner_approved_at || 0).getTime() || 0,
+                    new Date(a.payment_date || 0).getTime() || 0,
+                    new Date(a.created_at || 0).getTime() || 0
+                );
+
+                const timeB = Math.max(
+                    new Date(b.updated_at || 0).getTime() || 0,
+                    new Date(b.verified_at || 0).getTime() || 0,
+                    new Date(b.owner_approved_at || 0).getTime() || 0,
+                    new Date(b.payment_date || 0).getTime() || 0,
+                    new Date(b.created_at || 0).getTime() || 0
+                );
+
+                return timeB - timeA;
+
+            });
+
+
+            // 6. SORT REQUESTS
             requests = sortRequestsByLatestActivity(requests);
 
 
-            /* UPDATE REPORTS */
+            // 7. DEBUG DATA
+            console.log("EGC REPORT DATA:", {
 
+                totalRequests: requests.length,
+
+                totalPaymentRecords: paymentRecords.length,
+
+                totalProfiles: profiles.length,
+
+                totalAgencies: agencies.length,
+
+                sampleRequest: requests[0] || null,
+
+                samplePayment: paymentRecords[0] || null,
+
+                sampleProfile: profiles[0] || null
+
+            });
+
+
+            // 8. UPDATE REPORTS
             populateYears();
 
             calculateOverview();
@@ -3524,21 +3508,18 @@ async function loadReports() {
 
             renderTransactions();
 
+
         } while (reportsReloadRequested);
 
     }
 
     catch(error) {
 
-        console.error(
-            "Reports error:",
-            error
-        );
+        console.error("EGC REPORTS DATABASE ERROR:", error);
 
         showToast(
             "Reports Error",
-            error.message ||
-            "Unable to load report data."
+            error.message || "Unable to load report data."
         );
 
         monthlyTableBody.innerHTML = `
@@ -3561,349 +3542,213 @@ async function loadReports() {
 
 }
 
-/* ================= OVERVIEW ================= */
+/* =====================================================
+   REPORT OVERVIEW — CORRECTED
+===================================================== */
 
-function calculateOverview(){
+function calculateOverview() {
 
-    const total =
-    requests.length;
-
+    const total = requests.length;
 
     let completed = 0;
-
     let pending = 0;
-
     let cancelled = 0;
-
     let processing = 0;
 
     let cylinders = 0;
-
     let delivered = 0;
-
-    let cancelledCylinders = 0;
-
+    let cancelledCylinderCount = 0;
     let pendingCylinderCount = 0;
 
     let payable = 0;
-
     let received = 0;
-
     let pendingMoney = 0;
-
     let charges = 0;
 
-    let paymentCount =
-    paymentRecords.length;
+    const paymentCount = paymentRecords.length;
 
-    let paidTransactions = 0;
-
+    const paidTransactions = paymentRecords.filter(
+        isApprovedPaid
+    ).length;
 
     requests.forEach(request => {
 
-        const status =
-        getRequestStatus(request)
-        .toLowerCase();
+        const status = getRequestStatus(request).toLowerCase();
 
-
-        if(status === "completed"){
-
+        if (status === "completed") {
             completed++;
-
-        }
-        else if(status === "cancelled"){
-
+        } else if (status === "cancelled") {
             cancelled++;
-
-        }
-        else if(status === "processing"){
-
+        } else if (
+            status === "processing" ||
+            status === "approved"
+        ) {
             processing++;
-
-        }
-        else{
-
+        } else {
             pending++;
-
         }
 
-
-        const qty =
-        Number(request.quantity) || 0;
+        const qty = moneyNumber(request.quantity);
 
         cylinders += qty;
 
-
-        if(isCancelled(request)){
-
-            cancelledCylinders += qty;
-
-        }
-        else if(isDelivered(request)){
-
+        if (isCancelled(request)) {
+            cancelledCylinderCount += qty;
+        } else if (isDelivered(request)) {
             delivered += qty;
-
-        }
-        else{
-
+        } else {
             pendingCylinderCount += qty;
-
         }
 
+        const requestPayable = getPayableAmount(request);
+        const requestReceived = getReceivedAmount(request);
 
-        const requestPayable =
-        getPayableAmount(request);
+        payable += requestPayable;
+        received += requestReceived;
 
-        const requestReceived =
-        getReceivedAmount(request);
-
-        const requestPending =
-        getPendingAmount(request);
-
-
-        payable +=
-        requestPayable;
-
-        received +=
-        requestReceived;
-
-        pendingMoney +=
-        requestPending;
-
-        charges +=
-        moneyNumber(
-            request.extra_charge
+        pendingMoney += Math.max(
+            requestPayable - requestReceived,
+            0
         );
 
+        charges += moneyNumber(
+            request.extra_charge ??
+            request.charge_amount
+        );
     });
 
-
-    paymentRecords.forEach(payment => {
-
-        const status =
-        String(
-            payment.payment_status ||
-            ""
-        ).toLowerCase();
-
-        if(status === "paid"){
-
-            paidTransactions++;
-
-        }
-
-    });
-
-
-    const remaining =
-    Math.max(
-        cylinders -
-        delivered -
-        cancelledCylinders,
+    const remaining = Math.max(
+        cylinders - delivered - cancelledCylinderCount,
         0
     );
 
+    /* REQUEST SUMMARY */
 
-    totalRequests.textContent =
-    total;
+    totalRequests.textContent = total;
+    completedRequests.textContent = completed;
+    pendingRequests.textContent = pending;
+    cancelledRequests.textContent = cancelled;
 
-    completedRequests.textContent =
-    completed;
+    completedTop.textContent = completed;
+    cancelledTop.textContent = cancelled;
 
-    pendingRequests.textContent =
-    pending;
+    statusCompleted.textContent = completed;
+    statusPending.textContent = pending;
+    statusCancelled.textContent = cancelled;
+    statusProcessing.textContent = processing;
 
-    cancelledRequests.textContent =
-    cancelled;
+    /* PAYMENT SUMMARY */
 
+    totalPaymentRecords.textContent = paymentCount;
+    paidTransactionCount.textContent = paidTransactions;
 
-    completedTop.textContent =
-    completed;
+    paymentReceivedTop.textContent = formatMoney(received);
+    paymentPendingTop.textContent = formatMoney(pendingMoney);
 
-    cancelledTop.textContent =
-    cancelled;
+    paymentReceived.textContent = formatMoney(received);
+    paymentPending.textContent = formatMoney(pendingMoney);
 
+    extraChargeAmount.textContent = formatMoney(charges);
+    totalPayable.textContent = formatMoney(payable);
 
-    statusCompleted.textContent =
-    completed;
+    /* PROFIT */
 
-    statusPending.textContent =
-    pending;
+    profitAmount.textContent = "Not Available";
 
-    statusCancelled.textContent =
-    cancelled;
+    /* USERS */
 
-    statusProcessing.textContent =
-    processing;
+    totalUsers.textContent = profiles.length;
 
+    /* CYLINDERS */
 
-    totalPaymentRecords.textContent =
-    paymentCount;
+    totalCylinders.textContent = cylinders;
+    deliveredCylinders.textContent = delivered;
+    pendingCylinders.textContent = pendingCylinderCount;
 
-    paidTransactionCount.textContent =
-    paidTransactions;
+    cancelledCylinders.textContent = cancelledCylinderCount;
+    remainingCylinders.textContent = remaining;
 
+    /* CURRENT MONTH / YEAR */
 
-    paymentReceivedTop.textContent =
-    formatMoney(received);
+    const now = new Date();
 
-    paymentPendingTop.textContent =
-    formatMoney(pendingMoney);
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
-
-    paymentReceived.textContent =
-    formatMoney(received);
-
-    paymentPending.textContent =
-    formatMoney(pendingMoney);
-
-    extraChargeAmount.textContent =
-    formatMoney(charges);
-
-    totalPayable.textContent =
-    formatMoney(payable);
-
-
-    profitAmount.textContent =
-    "Not Available";
-
-
-    totalUsers.textContent =
-    profiles.length;
-
-
-    totalCylinders.textContent =
-    cylinders;
-
-    deliveredCylinders.textContent =
-    delivered;
-
-    pendingCylinders.textContent =
-    pendingCylinderCount;
-
-    cancelledCylinders.textContent =
-    cancelledCylinders;
-
-    remainingCylinders.textContent =
-    remaining;
-
-
-    const now =
-    new Date();
-
-    const currentMonth =
-    now.getMonth();
-
-    const currentYear =
-    now.getFullYear();
-
-
-    const monthReceived =
-    requests
-    .filter(request => {
-
-        const date =
-        new Date(
-            getRequestDate(request)
-        );
+    const isCurrentMonth = value => {
+        const date = new Date(value);
 
         return (
-            date.getMonth() ===
-            currentMonth &&
-            date.getFullYear() ===
-            currentYear
+            !Number.isNaN(date.getTime()) &&
+            date.getMonth() === currentMonth &&
+            date.getFullYear() === currentYear
         );
+    };
 
-    })
-    .reduce(
-        (
-            total,
-            request
-        ) =>
-        total +
-        getReceivedAmount(request),
-        0
-    );
-
-
-    const currentMonthPayable =
-    requests
-    .filter(request => {
-
-        const date =
-        new Date(
-            getRequestDate(request)
-        );
+    const isCurrentYear = value => {
+        const date = new Date(value);
 
         return (
-            date.getMonth() ===
-            currentMonth &&
-            date.getFullYear() ===
-            currentYear
+            !Number.isNaN(date.getTime()) &&
+            date.getFullYear() === currentYear
+        );
+    };
+
+    /* Actual payment received during current month */
+
+    const monthReceived = paymentRecords
+        .filter(payment =>
+            isApprovedPaid(payment) &&
+            isCurrentMonth(
+                payment.payment_date || payment.created_at
+            )
+        )
+        .reduce(
+            (sum, payment) =>
+                sum + moneyNumber(payment.payment_amount),
+            0
         );
 
-    })
-    .reduce(
-        (
-            total,
-            request
-        ) =>
-        total +
-        getPayableAmount(request),
-        0
-    );
+    /* Current month request payable */
 
-
-    const currentYearPayable =
-    requests
-    .filter(request => {
-
-        const date =
-        new Date(
-            getRequestDate(request)
+    const currentMonthPayable = requests
+        .filter(request =>
+            isCurrentMonth(getRequestDate(request))
+        )
+        .reduce(
+            (sum, request) =>
+                sum + getPayableAmount(request),
+            0
         );
 
-        return (
-            date.getFullYear() ===
-            currentYear
+    /* Current year request payable */
+
+    const currentYearPayable = requests
+        .filter(request =>
+            isCurrentYear(getRequestDate(request))
+        )
+        .reduce(
+            (sum, request) =>
+                sum + getPayableAmount(request),
+            0
         );
 
-    })
-    .reduce(
-        (
-            total,
-            request
-        ) =>
-        total +
-        getPayableAmount(request),
-        0
-    );
-
-
-    monthlySubmitted.textContent =
-    formatMoney(monthReceived);
+    monthlySubmitted.textContent = formatMoney(monthReceived);
 
     currentMonthTotal.textContent =
-    formatMoney(currentMonthPayable);
+        formatMoney(currentMonthPayable);
 
     currentYearTotal.textContent =
-    formatMoney(currentYearPayable);
-
+        formatMoney(currentYearPayable);
 
     currentMonthName.textContent =
-    now.toLocaleDateString(
-        "en-IN",
-        {
-            month:"long",
-            year:"numeric"
-        }
-    );
+        now.toLocaleDateString("en-IN", {
+            month: "long",
+            year: "numeric"
+        });
 
-    currentYearName.textContent =
-    String(currentYear);
-
+    currentYearName.textContent = String(currentYear);
 }
-
 
 /* ================= YEAR FILTER ================= */
 
@@ -4031,9 +3876,10 @@ function renderMonthlySummary(){
         getPendingAmount(request);
 
         item.charges +=
-        moneyNumber(
-            request.extra_charge
-        );
+      moneyNumber(
+    request.extra_charge ??
+    request.charge_amount
+);
 
         item.payable +=
         getPayableAmount(request);
@@ -4198,7 +4044,10 @@ function renderYearlySummary(){
 
         item.charges +=
         moneyNumber(
-            request.extra_charge
+          moneyNumber(
+    request.extra_charge ??
+    request.charge_amount
+)
         );
 
         item.payable +=
@@ -4382,7 +4231,7 @@ const latest = sortRequestsByLatestActivity(
 
         transactionTableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty">
+                <td colspan="7" class="empty">
                     No transactions found.
                 </td>
             </tr>
@@ -4405,73 +4254,52 @@ const latest = sortRequestsByLatestActivity(
 
 
         return `
+    <tr>
 
-            <tr>
+        <td>
+            <div class="transaction-date">
+                ${formatDate(getRequestDate(request))}
+            </div>
+        </td>
 
-                <td>
+        <td>
+            <div class="transaction-request">
+                ${escapeHtml(request.request_number || "—")}
+            </div>
+        </td>
 
-                    <div class="transaction-date">
-                        ${formatDate(
-                            getRequestDate(request)
-                        )}
-                    </div>
+        <td>
+            <div class="transaction-user">
+                ${escapeHtml(getUserName(request))}
+            </div>
 
-                </td>
+            <small class="transaction-user-code">
+                EGC ID: ${escapeHtml(getUserCode(request))}
+            </small>
+        </td>
 
-                <td>
+        <td>
+            ${escapeHtml(getUserMobile(request))}
+        </td>
 
-                    <div class="transaction-request">
-                        ${escapeHtml(
-                            request.request_number ||
-                            "—"
-                        )}
-                    </div>
+        <td>
+            ${Number(request.quantity) || 0}
+        </td>
 
-                </td>
+        <td class="money">
+            ${formatMoney(getPayableAmount(request))}
+        </td>
 
-                <td>
+        <td>
+            ${badgeHtml(paymentStatus)}
+        </td>
 
-                    <div class="transaction-user">
-                        ${escapeHtml(
-                            getUserName(request)
-                        )}
-                    </div>
+        <td>
+            ${badgeHtml(requestStatus)}
+        </td>
 
-                </td>
-
-                <td>
-                    ${escapeHtml(
-                        getUserMobile(request)
-                    )}
-                </td>
-
-                <td>
-                    ${Number(
-                        request.quantity
-                    ) || 0}
-                </td>
-
-                <td class="money">
-                    ${formatMoney(
-                        getPayableAmount(request)
-                    )}
-                </td>
-
-                <td>
-                    ${badgeHtml(
-                        paymentStatus
-                    )}
-                </td>
-
-                <td>
-                    ${badgeHtml(
-                        requestStatus
-                    )}
-                </td>
-
-            </tr>
-
-        `;
+    </tr>
+`;
 
     }).join("");
 
@@ -4801,12 +4629,39 @@ async function init() {
 
     try {
 
-        await loadReports();
+        // CHECK OWNER SESSION
+        const { data, error } =
+            await supabaseClient.auth.getSession();
 
-        startRealtime();
+        if (error) {
+            throw error;
+        }
+
+        if (!data?.session?.user) {
+
+            console.error("EGC OWNER SESSION NOT FOUND");
+
+            window.location.replace("owner-login.html");
+
+            return;
+        }
 
         console.log(
-            "EGC Owner Reports Initialized Successfully."
+            "EGC OWNER AUTHENTICATED:",
+            data.session.user.id
+        );
+
+
+        // LOAD REPORT DATA
+        await loadReports();
+
+
+        // START REALTIME
+        startRealtime();
+
+
+        console.log(
+            "EGC OWNER REPORTS INITIALIZED"
         );
 
     }
@@ -4814,8 +4669,13 @@ async function init() {
     catch(error) {
 
         console.error(
-            "Reports Initialization Error:",
+            "REPORTS INITIALIZATION ERROR:",
             error
+        );
+
+        showToast(
+            "Reports Error",
+            error.message || "Unable to initialize Reports."
         );
 
     }
