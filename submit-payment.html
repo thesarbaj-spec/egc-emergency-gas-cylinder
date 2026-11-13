@@ -988,11 +988,33 @@ function calculatePendingDays() {
 }
 
 function calculateExtraCharge(days) {
-if (days <= 0) return 0;
-if (days <= 10) return 50;
-if (days <= 15) return 60;
-if (days <= 30) return 80;
-return 100;
+const currentDays = Math.max(0, Number(days) || 0);
+
+// Delivery day charge
+if (currentDays === 0) return 20;
+
+// Use the pricing snapshot saved with this request
+const charge1To10 = Number(
+currentRequest?.pricing_extra_charge_1_10 ?? 50
+);
+
+const charge11To15 = Number(
+currentRequest?.pricing_extra_charge_11_15 ?? 60
+);
+
+const charge16To30 = Number(
+currentRequest?.pricing_extra_charge_16_30 ?? 80
+);
+
+const charge31Plus = Number(
+currentRequest?.pricing_extra_charge_31_plus ?? 100
+);
+
+if (currentDays <= 10) return charge1To10;
+if (currentDays <= 15) return charge11To15;
+if (currentDays <= 30) return charge16To30;
+
+return charge31Plus;
 }
 
 function getRequestAmount() {
@@ -1027,7 +1049,6 @@ return;
 
 const deliveryDate = getDeliveryDate();
 
-// Repayment cannot be calculated without a recorded delivery date.
 if (!deliveryDate) {
 extraCharge = 0;
 payableAmount = 0;
@@ -1036,9 +1057,9 @@ return;
 }
 
 const charge = calculateExtraCharge(pendingDays);
+
 const totalWithCharge = requestAmount + charge;
 
-// Charge is due only while the total payable amount is outstanding.
 if (paid >= totalWithCharge) {
 extraCharge = 0;
 payableAmount = 0;
@@ -1154,90 +1175,96 @@ paymentType === "initial"
 }
 
 function updateAmountHelp() {
-  const input = $("paymentAmountInput");
-  const entered = Number(input.value || 0);
-  const help = $("amountHelp");
+const input = $("paymentAmountInput");
+const entered = Number(input.value || 0);
+const help = $("amountHelp");
 
-  if (selectedPaymentAmountType === "full") {
-    help.textContent =
-      "Full Payment selected. The complete amount of ₹" +
-      formatMoney(payableAmount) +
-      " is filled automatically.";
+if (selectedPaymentAmountType === "full") {
+help.textContent =
+"Full Payment selected. The complete amount of ₹" +
+formatMoney(payableAmount) +
+" is filled automatically.";
 
-    $("payableAmount").textContent =
-      "₹" + formatMoney(payableAmount);
+$("payableAmount").textContent =
+  "₹" + formatMoney(payableAmount);
 
-    $("payableNote").textContent =
-      paymentType === "initial"
-        ? "Initial EGC payment"
-        : "Remaining amount + applicable extra charge";
+$("payableNote").textContent =
+  paymentType === "initial"
+    ? "Initial EGC payment"
+    : "Full remaining payment including extra charge.";
 
-    return;
-  }
+return;
 
-  if (
-    input.value.trim() === "" ||
-    !Number.isFinite(entered) ||
-    entered <= 0
-  ) {
-    help.textContent =
-      "Other Amount selected. Enter an amount greater than ₹0 and less than ₹" +
-      formatMoney(payableAmount) + ".";
+}
 
-    $("payableAmount").textContent =
-      "₹" + formatMoney(payableAmount);
+if (
+input.value.trim() === "" ||
+!Number.isFinite(entered) ||
+entered <= 0
+) {
+help.textContent =
+"Other Amount selected. Enter an amount greater than ₹0 and less than ₹" +
+formatMoney(payableAmount) + ".";
 
-    $("payableNote").textContent =
-      "Enter an amount to calculate the remaining balance.";
+$("payableAmount").textContent =
+  "₹" + formatMoney(payableAmount);
 
-    return;
-  }
+$("payableNote").textContent =
+  "Enter an amount to calculate the remaining balance.";
 
-  if (entered > payableAmount) {
-    help.textContent =
-      "The entered amount cannot exceed ₹" +
-      formatMoney(payableAmount) + ".";
+return;
 
-    $("payableAmount").textContent =
-      "₹" + formatMoney(payableAmount);
+}
 
-    $("payableNote").textContent =
-      "Entered amount exceeds the current amount due.";
+if (entered > payableAmount) {
+help.textContent =
+"The entered amount cannot exceed ₹" +
+formatMoney(payableAmount) + ".";
 
-    return;
-  }
+$("payableAmount").textContent =
+  "₹" + formatMoney(payableAmount);
 
-  if (Math.abs(entered - payableAmount) < 0.001) {
-    help.textContent =
-      "You entered the full amount. Select Full Payment to pay the complete amount.";
+$("payableNote").textContent =
+  "Entered amount exceeds the current amount due.";
 
-    $("payableAmount").textContent = "₹0.00";
+return;
 
-    $("payableNote").textContent =
-      "No balance would remain after this payment.";
+}
 
-    return;
-  }
+if (Math.abs(entered - payableAmount) < 0.001) {
+help.textContent =
+"You entered the complete amount. Select Full Payment to continue.";
 
-  const remainingAfterPayment = Math.max(
-    0,
-    payableAmount - entered
-  );
+$("payableAmount").textContent =
+  "₹" + formatMoney(entered);
 
-  help.textContent =
-    "Other Amount selected: ₹" +
-    formatMoney(entered) +
-    ". Estimated remaining balance: ₹" +
-    formatMoney(remainingAfterPayment) + ".";
+$("payableNote").textContent =
+  "Complete payment selected.";
 
-  $("payableAmount").textContent =
-    "₹" + formatMoney(remainingAfterPayment);
+return;
 
-  $("payableNote").textContent =
-    "Your payment: ₹" +
-    formatMoney(entered) +
-    " | Estimated remaining balance: ₹" +
-    formatMoney(remainingAfterPayment);
+}
+
+const remainingAfterPayment = Math.max(
+0,
+payableAmount - entered
+);
+
+help.textContent =
+"Your payment: ₹" +
+formatMoney(entered) +
+" | Estimated remaining balance: ₹" +
+formatMoney(remainingAfterPayment) + ".";
+
+// Show the amount being paid now
+$("payableAmount").textContent =
+"₹" + formatMoney(entered);
+
+$("payableNote").textContent =
+"Paying Now: ₹" +
+formatMoney(entered) +
+" | Balance After Payment: ₹" +
+formatMoney(remainingAfterPayment);
 }
 
 /* PAYMENT AMOUNT TYPE SELECTION */

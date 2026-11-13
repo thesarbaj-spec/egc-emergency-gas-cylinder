@@ -2595,68 +2595,71 @@ function calculateTierExtraCharge(days) {
 }
 
 function getRequestExtraCharge(request) {
-    if (!request || !isRequestApproved(request)) {
-        return 0;
-    }
+    if (!request) return 0;
 
-    const deliveryDate = getDeliveryDate(request);
+    const charge = Number(request.extra_charge ?? 0);
 
-    // Delivery date record नहीं है तो कोई charge नहीं।
-    if (!deliveryDate) {
-        return 0;
-    }
-
-    const baseAmount = getRequestTotal(request);
-
-    // केवल Owner-verified payments को count करो।
-    const verifiedPaid = getRequestVerifiedPayments(request.id);
-
-    // Base amount पूरा जमा हो गया तो Extra Charge बंद।
-    // ₹1 भी बाकी है तो applicable slab charge लगेगा।
-    if (verifiedPaid >= baseAmount) {
-        return 0;
-    }
-
-    const days = getDeliveryDayCount(request);
-
-    // Delivery वाले दिन कोई charge नहीं।
-    if (days <= 0) {
-        return 0;
-    }
-
-    return calculateTierExtraCharge(days);
+    return Number.isFinite(charge) && charge >= 0
+        ? charge
+        : 0;
 }
 /* =========================================================
    REQUEST FINANCIALS
 ========================================================= */
 
 function getRequestFinancials(request) {
-const approved = isRequestApproved(request);
-const baseAmount = getRequestTotal(request);
 
-if (!approved) {
-return {
-approved: false,
-baseAmount,
-extraCharge: 0,
-totalPayable: 0,
-paidAmount: 0,
-remainingAmount: 0
-};
-}
+    const approved = isRequestApproved(request);
 
-const extraCharge = getRequestExtraCharge(request);
-const totalPayable = baseAmount + extraCharge;
-const paidAmount = getRequestVerifiedPayments(request.id);
+    if (!request || !approved) {
+        return {
+            approved: false,
+            baseAmount: 0,
+            extraCharge: 0,
+            totalPayable: 0,
+            paidAmount: 0,
+            remainingAmount: 0
+        };
+    }
 
-return {
-approved: true,
-baseAmount,
-extraCharge,
-totalPayable,
-paidAmount,
-remainingAmount: Math.max(0, totalPayable - paidAmount)
-};
+    // Database Base Amount
+    const baseAmount = Number(
+        request.cylinder_amount ??
+        request.advance_amount ??
+        0
+    );
+
+    // Database Extra Charge
+    const extraCharge = Number(
+        request.extra_charge ?? 0
+    );
+
+    // Database Total Payable
+    const totalPayable = Number(
+        request.total_amount ??
+        (baseAmount + extraCharge)
+    );
+
+    // Only Owner-verified payments
+    const paidAmount = getRequestVerifiedPayments(request.id);
+
+    // Database Remaining Amount is authoritative
+    const remainingAmount =
+        request.remaining_amount !== null &&
+        request.remaining_amount !== undefined
+            ? Math.max(0, Number(request.remaining_amount))
+            : Math.max(0, totalPayable - paidAmount);
+
+    return {
+        approved: true,
+        baseAmount: Number.isFinite(baseAmount) ? baseAmount : 0,
+        extraCharge: Number.isFinite(extraCharge) ? extraCharge : 0,
+        totalPayable: Number.isFinite(totalPayable) ? totalPayable : 0,
+        paidAmount,
+        remainingAmount: Number.isFinite(remainingAmount)
+            ? remainingAmount
+            : 0
+    };
 }
 
 function isRequestFullyPaid(request) {

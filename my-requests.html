@@ -613,17 +613,42 @@ function getLatestPayment(item) {
   return getPaymentsForRequest(item.id)[0] || null;
 }
 
+function getPaymentAmount(payment) {
+  if (!payment) return 0;
+
+  const amount = Number(
+    payment.payment_amount ??
+    payment.amount ??
+    payment.paid_amount ??
+    0
+  );
+
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
 function isVerifiedPaymentRecord(payment) {
-if (!payment) return false;
+  if (!payment) return false;
 
-const status = normalizeStatus(payment.payment_status);
-const verification = normalizeStatus(payment.verification_status);
+  const status = normalizeStatus(payment.payment_status);
+  const verification = normalizeStatus(payment.verification_status);
 
-return (
-["paid", "approved", "completed", "success", "successful", "verified"]
-.includes(status) &&
-["approved", "verified"].includes(verification)
-);
+  return (
+    [
+      "paid",
+      "approved",
+      "completed",
+      "success",
+      "successful",
+      "verified"
+    ].includes(status) &&
+    [
+      "approved",
+      "verified",
+      "success",
+      "successful",
+      "completed"
+    ].includes(verification)
+  );
 }
 
 function getPaymentData(item) {
@@ -703,40 +728,105 @@ return true;
 /* AMOUNT CALCULATION */
 
 function getRequestAmount(item) {
-return Math.max(
-0,
-Number(
-getValue(item, [
-"cylinder_amount",
-"request_amount",
-"finance_amount",
-"total_amount"
-], 0)
-) || 0
-);
+  if (!item) return 0;
+
+  // Database saved cylinder_amount is the primary source.
+  const amount = getValue(item, [
+    "cylinder_amount",
+    "request_amount",
+    "finance_amount",
+    "total_amount"
+  ], 0);
+
+  const value = Number(amount);
+
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function getTotalPayable(item) {
+  if (!item) return 0;
+
+  // Use the cylinder amount saved with this request.
+  const cylinderAmount = getRequestAmount(item);
+
+  // Extra charge is calculated using this request's snapshot.
+  const extraCharge = getCalculatedExtraCharge(item);
+
+  return Math.max(0, cylinderAmount + extraCharge);
+}
+
+
+function getCurrentExtraChargeByDays(item) {
+  if (!item || getDeliveryStatus(item) !== "delivered") {
+    return 0;
+  }
+
+  const days = getDaysSinceDelivery(item);
+
+  // Delivery Day = ₹20
+  if (days === 0) return 20;
+
+  // Request creation के समय saved pricing snapshots
+  function getSnapshotCharge(field, fallback) {
+    const value = Number(item[field]);
+
+    if (
+      item[field] === null ||
+      item[field] === undefined ||
+      item[field] === "" ||
+      !Number.isFinite(value) ||
+      value < 0
+    ) {
+      return fallback;
+    }
+
+    return value;
+  }
+
+  const charge1To10 = getSnapshotCharge(
+    "pricing_extra_charge_1_10", 50
+  );
+
+  const charge11To15 = getSnapshotCharge(
+    "pricing_extra_charge_11_15", 60
+  );
+
+  const charge16To30 = getSnapshotCharge(
+    "pricing_extra_charge_16_30", 80
+  );
+
+  const charge31Plus = getSnapshotCharge(
+    "pricing_extra_charge_31_plus", 100
+  );
+
+  if (days <= 10) return charge1To10;
+  if (days <= 15) return charge11To15;
+  if (days <= 30) return charge16To30;
+
+  return charge31Plus;
 }
 
 function getVerifiedInitialPaymentTotal(item) {
-if (!item?.id) return 0;
+  if (!item?.id) return 0;
 
-return getPaymentsForRequest(item.id)
-.filter(payment =>
-getPaymentType(payment) === "initial_payment" &&
-isVerifiedPaymentRecord(payment)
-)
-.reduce((sum, payment) => {
-return sum + Math.max(0, Number(payment.payment_amount) || 0);
-}, 0);
+  return getPaymentsForRequest(item.id)
+    .filter(payment =>
+      getPaymentType(payment) === "initial_payment" &&
+      isVerifiedPaymentRecord(payment)
+    )
+    .reduce((sum, payment) => {
+      return sum + getPaymentAmount(payment);
+    }, 0);
 }
 
 function getApprovedRepaymentTotal(item) {
-if (!item?.id) return 0;
+  if (!item?.id) return 0;
 
-return getRepaymentRecords(item)
-.filter(isVerifiedPaymentRecord)
-.reduce((sum, payment) => {
-return sum + Math.max(0, Number(payment.payment_amount) || 0);
-}, 0);
+  return getRepaymentRecords(item)
+    .filter(isVerifiedPaymentRecord)
+    .reduce((sum, payment) => {
+      return sum + getPaymentAmount(payment);
+    }, 0);
 }
 
 /*
@@ -788,47 +878,44 @@ Math.floor((today - deliveryDay) / 86400000)
 );
 }
 
-function getCurrentExtraChargeByDays(item) {
-if (!item || getDeliveryStatus(item) !== "delivered") {
-return 0;
-}
+function getRepaymentDays(item) {
+  if (!item) return 0;
 
-const days = getDaysSinceDelivery(item);
+  // Database में saved repayment days को प्राथमिकता दें।
+  const savedDays = Number(item.repayment_days);
 
-if (days <= 0) return 0;
-if (days <= 10) return 50;
-if (days <= 15) return 60;
-if (days <= 30) return 80;
+  if (
+    item.repayment_days !== null &&
+    item.repayment_days !== undefined &&
+    item.repayment_days !== "" &&
+    Number.isFinite(savedDays) &&
+    savedDays >= 0
+  ) {
+    return savedDays;
+  }
 
-return 100;
+  // पुराने records के लिए fallback.
+  if (isRepaymentCleared(item)) {
+    return 0;
+  }
+
+  if (getDeliveryStatus(item) !== "delivered") {
+    return 0;
+  }
+
+  return getDaysSinceDelivery(item);
 }
 
 function getCalculatedExtraCharge(item) {
-if (!item) return 0;
+  if (!item) return 0;
 
-/*
-After full payment, use the charge saved by the database.
-Do not recalculate it using later delivery days.
-*/
-if (isRepaymentCleared(item)) {
-return Math.max(0, Number(item.extra_charge) || 0);
-}
+  // Database द्वारा cleared repayment का saved charge ही दिखाएँ
+  if (isRepaymentCleared(item)) {
+    return Math.max(0, Number(item.extra_charge) || 0);
+  }
 
-/*
-Before repayment is cleared, calculate the current day slab.
-The database function will permanently lock the charge when
-the full amount has been approved.
-*/
-return getCurrentExtraChargeByDays(item);
-}
-
-function getTotalPayable(item) {
-if (!item) return 0;
-
-const cylinderAmount = getRequestAmount(item);
-const extraCharge = getCalculatedExtraCharge(item);
-
-return cylinderAmount + extraCharge;
+  // अन्यथा delivery date के अनुसार वर्तमान slab
+  return getCurrentExtraChargeByDays(item);
 }
 
 function getRemainingAmount(item) {
@@ -853,22 +940,15 @@ return Math.max(0, totalPayable - verifiedPaid);
 }
 
 function getExtraChargeDue(item) {
-if (!item) return 0;
+  if (!item || isRepaymentCleared(item)) {
+    return 0;
+  }
 
-/*
-The charge may remain visible in Total Payable as historical
-information, but no extra charge is due after repayment clears.
-*/
-if (isRepaymentCleared(item)) {
-return 0;
-}
+  const remaining = getRemainingAmount(item);
 
-const assessedExtraCharge = getCalculatedExtraCharge(item);
-const remaining = getRemainingAmount(item);
+  if (remaining <= 0) return 0;
 
-if (remaining <= 0) return 0;
-
-return Math.min(assessedExtraCharge, remaining);
+  return getCalculatedExtraCharge(item);
 }
 
 function isFullyCompleted(item) {
@@ -1653,6 +1733,22 @@ function renderRequests() {
     const extraCharge = getCalculatedExtraCharge(item);
     const totalPayable = getTotalPayable(item);
 
+    // Configured advance amount saved with this request.
+    const firstPaymentAmount = Math.max(
+      0,
+      Number(getValue(item, ["advance_amount"], 0)) || 0
+    );
+
+    // Find the initial payment record.
+    const initialPayment = getInitialPayment(item);
+
+    const firstPaymentApproved =
+  !!initialPayment && isVerifiedPaymentRecord(initialPayment);
+
+const firstPaymentText = firstPaymentApproved
+  ? "Paid"
+  : "Not Paid";
+
     const requestNumber = getValue(
       item,
       ["request_number", "request_no"],
@@ -1666,12 +1762,17 @@ function renderRequests() {
     );
 
     const deliveryDate = getValue(
+      
       item,
       ["delivery_date", "delivered_at"],
       ""
     );
+    const repaymentDays = getRepaymentDays(item);
+
+const isDelivered = getDeliveryStatus(item) === "delivered";
 
     const activeRequest = getActiveRequest();
+
     const active =
       activeRequest &&
       String(activeRequest.id) === String(item.id);
@@ -1719,6 +1820,10 @@ function renderRequests() {
 
     const ownerApprovalText = getOwnerApproval(item) || "pending";
 
+    const remainingLabel = !isApproved(getOwnerApproval(item))
+      ? "Amount Awaiting Owner Approval"
+      : "Remaining Amount";
+
     return `
       <div class="request-card ${cardClass}">
 
@@ -1738,14 +1843,48 @@ function renderRequests() {
         ${renderPaymentSummary(item)}
 
         <div class="request-details">
+
           <div class="detail">
             <div class="detail-label">Quantity</div>
             <div class="detail-value">${quantity}</div>
           </div>
 
           <div class="detail">
-            <div class="detail-label">Request Amount</div>
-            <div class="detail-value">₹${formatMoney(amount)}</div>
+            <div class="detail-label">Cylinder Price</div>
+            <div class="detail-value">
+              ₹${formatMoney(amount)}
+            </div>
+          </div>
+
+          ${isDelivered ? `
+  <div class="detail">
+    <div class="detail-label">Delivery Date</div>
+    <div class="detail-value">
+      ${escapeHtml(formatDate(deliveryDate))}
+    </div>
+  </div>
+
+  <div class="detail">
+    <div class="detail-label">Repayment Days</div>
+    <div class="detail-value">
+      ${repaymentDays} Days
+    </div>
+  </div>
+
+  <div class="detail">
+    <div class="detail-label">Extra Charge</div>
+    <div class="detail-value">
+      ₹${formatMoney(getCalculatedExtraCharge(item))}
+    </div>
+  </div>
+` : ""}
+
+          <div class="detail">
+            <div class="detail-label">First Payment</div>
+            <div class="detail-value">
+              ₹${formatMoney(firstPaymentAmount)}
+              (${firstPaymentText})
+            </div>
           </div>
 
           <div class="detail">
@@ -1761,6 +1900,27 @@ function renderRequests() {
               ${escapeHtml(ownerApprovalText)}
             </div>
           </div>
+
+          ${
+            extraCharge > 0
+              ? `
+                <div class="detail">
+                  <div class="detail-label">Extra Charge</div>
+                  <div class="detail-value">
+                    ₹${formatMoney(extraCharge)}
+                  </div>
+                </div>
+              `
+              : ""
+          }
+
+          <div class="detail">
+            <div class="detail-label">Total Payable</div>
+            <div class="detail-value">
+              ₹${formatMoney(totalPayable)}
+            </div>
+          </div>
+
         </div>
 
         ${
@@ -1803,7 +1963,9 @@ function renderRequests() {
         <div class="delivery-row">
           <div>
             <div class="delivery-label">Current Status</div>
-            <div class="delivery-value">${escapeHtml(state.message)}</div>
+            <div class="delivery-value">
+              ${escapeHtml(state.message)}
+            </div>
           </div>
 
           <div>
@@ -1834,7 +1996,7 @@ function renderRequests() {
 
         <div class="request-footer">
           <div class="amount">
-            <span>Remaining Amount</span>
+            <span>${remainingLabel}</span>
             ₹${formatMoney(remaining)}
           </div>
 
@@ -1847,6 +2009,7 @@ function renderRequests() {
             </button>
           </div>
         </div>
+
       </div>`;
   }).join("");
 }

@@ -708,46 +708,47 @@
                 taken to clear the remaining payment.
             </p>
 
-            <div class="amount-summary">
-                <div class="amount-box">
-                    <div class="amount-label">Total Cylinder Amount</div>
-                    <div class="amount-value" id="cylinderAmount">₹890</div>
-                </div>
+<div class="amount-summary">
+    <div class="amount-box">
+        <div class="amount-label">Total Cylinder Amount</div>
+        <div class="amount-value" id="cylinderAmount">Loading...</div>
+    </div>
 
-                <div class="amount-box advance">
-                    <div class="amount-label">First Payment</div>
-                    <div class="amount-value" id="firstPayment">₹200</div>
-                </div>
+<div class="amount-box advance">
+    <div class="amount-label">First Payment</div>
+    <div class="amount-value" id="firstPayment">Loading...</div>
+</div>
 
-                <div class="amount-box remaining">
-                    <div class="amount-label">Remaining Payment</div>
-                    <div class="amount-value" id="remainingAmount">₹690</div>
-                </div>
-            </div>
+<div class="amount-box remaining">
+    <div class="amount-label">Remaining Payment</div>
+    <div class="amount-value" id="remainingAmount">Loading...</div>
+</div>
 
-            <div class="calculation-box">
-                <div class="calculation-title">Payment Summary</div>
+</div>
+<div class="calculation-box">
+    <div class="calculation-title">Payment Summary</div>
 
-                <div class="calculation-line">
-                    <span>Cylinder amount</span>
-                    <strong id="summaryCylinder">₹890</strong>
-                </div>
+<div class="calculation-line">
+    <span>Cylinder amount</span>
+    <strong id="summaryCylinder">Loading...</strong>
+</div>
 
-                <div class="calculation-line">
-                    <span>Pay first</span>
-                    <strong id="summaryFirst">₹200</strong>
-                </div>
+<div class="calculation-line">
+    <span>Pay first</span>
+    <strong id="summaryFirst">Loading...</strong>
+</div>
 
-                <div class="calculation-line">
-                    <span>Balance after first payment</span>
-                    <strong id="summaryRemaining">₹690</strong>
-                </div>
+<div class="calculation-line">
+    <span>Balance after first payment</span>
+    <strong id="summaryRemaining">Loading...</strong>
+</div>
 
-                <div class="calculation-total">
-                    <span>Balance + applicable charge</span>
-                    <strong>According to payment date</strong>
-                </div>
-            </div>
+<div class="calculation-total">
+    <span>Balance + applicable charge</span>
+    <strong>According to payment date</strong>
+</div>
+
+</div>
 
             <div class="scheme-heading">
                 <h3>Repayment Charges</h3>
@@ -758,6 +759,18 @@
             </div>
 
             <div class="scheme-list">
+                <div class="scheme-row">
+    <div class="scheme-left">
+        <div class="scheme-days">Delivery Day</div>
+        <div class="scheme-description">
+            If the remaining payment is fully cleared on the cylinder delivery day.
+        </div>
+    </div>
+    <div class="scheme-charge">
+        <span class="charge-label">Extra Charge</span>
+        <span class="charge-value">₹20</span>
+    </div>
+</div>
                 <div class="scheme-row">
                     <div class="scheme-left">
                         <div class="scheme-days">1–10 Days</div>
@@ -811,11 +824,16 @@
                 </div>
             </div>
 
-            <div class="fixed-rule">
-                <strong>Important:</strong>
-                These charges are fixed. The applicable amount will be calculated
-                according to the actual date on which the remaining payment is completely cleared.
-            </div>
+          <div class="fixed-rule">
+    <strong>Important:</strong>
+    A fixed extra charge of ₹20 applies when the remaining payment
+    is fully cleared on the cylinder delivery day.
+    For payments cleared after the delivery day, the applicable
+    charge will be ₹50 (1–10 days), ₹60 (11–15 days),
+    ₹80 (16–30 days), or ₹100 (31 days or more).
+    The applicable charge will be calculated according to the
+    actual date on which the remaining payment is completely cleared.
+</div>
 
             <div class="rule-box">
                 <div class="rule-title">Important Agency Rule</div>
@@ -831,14 +849,20 @@
                     <input type="checkbox" id="agreeCheck">
 
                     <span class="agreement-text">
-                        I have read and understood the repayment rules.
-                        I agree to pay <strong>₹200</strong> as the first payment
-                        and understand that the remaining <strong>₹690</strong>
-                        will have the applicable fixed extra charge according to
-                        the date of full payment. I also understand that another
-                        cylinder cannot be issued until the previous payment is
-                        completely cleared.
-                    </span>
+    I have read and understood the repayment rules.
+    I agree to pay
+    <strong id="agreementFirstPayment">Loading...</strong>
+    as the first payment and understand that the remaining
+    <strong id="agreementRemainingAmount">Loading...</strong>
+    will have the applicable fixed extra charge according to
+    the date of full payment.
+
+    A ₹20 extra charge applies if the remaining payment is
+    fully cleared on the cylinder delivery day.
+
+    I also understand that another cylinder cannot be issued
+    until the previous payment is completely cleared.
+</span>
                 </label>
             </div>
 
@@ -878,9 +902,15 @@
     const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
     const SUPABASE_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
-    const CYLINDER_AMOUNT = 890;
-    const FIRST_PAYMENT = 200;
-    const REMAINING_AMOUNT = CYLINDER_AMOUNT - FIRST_PAYMENT;
+// ==========================================
+// AGENCY-WISE PRICING STATE
+// ==========================================
+
+let currentAgencyPricing = null;
+
+let CYLINDER_AMOUNT = 0;
+let FIRST_PAYMENT = 0;
+let REMAINING_AMOUNT = 0;
 
     const $ = (id) => document.getElementById(id);
 
@@ -1360,7 +1390,9 @@
             Number.isFinite(Number(verifiedPaidAmount))
         ) {
             const totalPaid = Number(verifiedPaidAmount);
-            const totalDue = Number(request.cylinder_amount || CYLINDER_AMOUNT);
+            const totalDue = Number(
+    request.cylinder_amount || request.total_amount || 0
+);
 
             return totalDue > 0 && totalPaid >= totalDue;
         }
@@ -1509,10 +1541,9 @@
             );
         }, 0);
 
-        const cylinderAmount = Number(
-            request.cylinder_amount || request.total_amount || CYLINDER_AMOUNT
-        );
-
+      const cylinderAmount = Number(
+    request.cylinder_amount || request.total_amount || 0
+);
         let extraCharge = Number(request.extra_charge || 0);
 
         for (const payment of approvedPayments) {
@@ -1599,6 +1630,59 @@
     // ==========================================
     // VERIFY SELECTED AGENCY
     // ==========================================
+
+    // ==========================================
+// FETCH SELECTED AGENCY PRICING
+// ==========================================
+
+async function getAgencyPricing(agencyId) {
+
+    if (!agencyId) {
+        throw new Error("Agency ID is missing.");
+    }
+
+    const { data, error } = await supabaseClient
+        .from("agency_pricing")
+        .select(`
+            id,
+            agency_id,
+            cylinder_price,
+            advance_amount,
+            extra_charge_1_10,
+            extra_charge_11_15,
+            extra_charge_16_30,
+            extra_charge_31_plus,
+            is_active,
+            updated_at
+        `)
+        .eq("agency_id", agencyId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Agency pricing fetch error:", error);
+
+        throw new Error(
+            "Unable to load agency pricing: " + error.message
+        );
+    }
+
+    if (!data) {
+        throw new Error(
+            "Pricing is not configured for the selected agency. Please contact EGC support."
+        );
+    }
+
+    if (
+        Number(data.cylinder_price) <= 0 ||
+        Number(data.advance_amount) < 0 ||
+        Number(data.advance_amount) > Number(data.cylinder_price)
+    ) {
+        throw new Error("Agency pricing configuration is invalid.");
+    }
+
+    return data;
+}
 
     async function getVerifiedAgency(lpgDetails) {
         const detectedAgency = getSelectedAgency(lpgDetails);
@@ -1780,61 +1864,114 @@
         return request;
     }
 
-    // ==========================================
-    // SAVE REQUEST REFERENCE LOCALLY
-    // ==========================================
+   // ==========================================
+// SAVE REQUEST REFERENCE LOCALLY
+// ==========================================
 
-    function saveCurrentRequest(request, user, agency) {
-        const requestData = {
-            request_id: request.id,
-            request_number: request.request_number || "",
-            user_id: user.id,
-            agency_id: request.agency_id || agency.id,
-            agency_name: agency.agency_name || "",
-            agency_code: agency.agency_code || "",
-            lpg_company: request.lpg_company || agency.lpg_company || "",
-            cylinder_amount: Number(request.cylinder_amount || CYLINDER_AMOUNT),
-            first_payment: Number(request.advance_amount || FIRST_PAYMENT),
-            remaining_amount: Number(request.remaining_amount ?? REMAINING_AMOUNT),
-            extra_charge: Number(request.extra_charge || 0),
-            total_payable: Number(request.total_payable ?? CYLINDER_AMOUNT),
-            status: request.status || "Pending",
-            payment_status: request.payment_status || "pending",
-            owner_approval: request.owner_approval || "pending",
-            user_status: request.user_status || "pending",
-            repayment_status: request.repayment_status || "pending",
-            submitted_at: request.created_at || new Date().toISOString()
-        };
+function saveCurrentRequest(request, user, agency) {
 
-        saveJSON("egc_current_request", requestData);
-        saveJSON("egc_request_data", requestData);
+    const requestData = {
 
-        for (const key of [
-            "egc_current_request_id",
-            "egc_last_request_id"
-        ]) {
-            try {
-                sessionStorage.setItem(key, String(request.id));
-                localStorage.setItem(key, String(request.id));
-            } catch (error) {
-                console.warn("Unable to save request ID:", error);
-            }
+        request_id: request.id,
+
+        request_number: request.request_number || "",
+
+        user_id: user.id,
+
+        agency_id: request.agency_id || agency.id,
+
+        agency_name: agency.agency_name || "",
+
+        agency_code: agency.agency_code || "",
+
+        lpg_company: request.lpg_company || agency.lpg_company || "",
+
+        cylinder_amount: Number(request.cylinder_amount || 0),
+
+        first_payment: Number(request.advance_amount || 0),
+
+        // Preserve the exact database balance.
+        // The RPC initially stores the full cylinder price here.
+
+        remaining_amount: Number(request.remaining_amount ?? 0),
+
+        extra_charge: Number(request.extra_charge || 0),
+
+        total_payable: Number(request.total_payable ?? 0),
+
+        pricing_id: request.pricing_id || null,
+
+        pricing_version_at_request:
+            request.pricing_version_at_request || null,
+
+        pricing_extra_charge_1_10:
+            Number(request.pricing_extra_charge_1_10 || 0),
+
+        pricing_extra_charge_11_15:
+            Number(request.pricing_extra_charge_11_15 || 0),
+
+        pricing_extra_charge_16_30:
+            Number(request.pricing_extra_charge_16_30 || 0),
+
+        pricing_extra_charge_31_plus:
+            Number(request.pricing_extra_charge_31_plus || 0),
+
+        status: request.status || "Pending",
+
+        payment_status: request.payment_status || "pending",
+
+        owner_approval: request.owner_approval || "pending",
+
+        user_status: request.user_status || "pending",
+
+        repayment_status: request.repayment_status || "pending",
+
+        submitted_at: request.created_at || new Date().toISOString()
+
+    };
+
+    saveJSON("egc_current_request", requestData);
+
+    saveJSON("egc_request_data", requestData);
+
+    for (const key of [
+        "egc_current_request_id",
+        "egc_last_request_id"
+    ]) {
+
+        try {
+
+            sessionStorage.setItem(key, String(request.id));
+
+            localStorage.setItem(key, String(request.id));
+
+        } catch (error) {
+
+            console.warn("Unable to save request ID:", error);
+
         }
 
-        if (request.request_number) {
-            try {
-                localStorage.setItem(
-                    "egc_last_request_number",
-                    String(request.request_number)
-                );
-            } catch (error) {
-                console.warn("Unable to save request number:", error);
-            }
-        }
-
-        return requestData;
     }
 
+    if (request.request_number) {
+
+        try {
+
+            localStorage.setItem(
+                "egc_last_request_number",
+                String(request.request_number)
+            );
+
+        } catch (error) {
+
+            console.warn("Unable to save request number:", error);
+
+        }
+
+    }
+
+    return requestData;
+}
     // ==========================================
     // MAIN REQUEST SUBMISSION
     // ==========================================
@@ -1846,6 +1983,9 @@
         const verificationData = getVerificationData();
         const profile = await getProfile(user.id);
         const agency = await getVerifiedAgency(lpgDetails);
+        const agencyPricing = await getAgencyPricing(agency.id);
+
+updateAmountDisplays(agencyPricing);
 
         const existingRequest = await getExistingActiveRequest(user.id);
 
@@ -1907,23 +2047,83 @@
     }
 
     // ==========================================
-    // DISPLAY PAYMENT AMOUNTS
-    // ==========================================
+// AGENCY-WISE PRICING DISPLAY
+// ==========================================
 
-    [
+function updateAmountDisplays(pricing) {
+
+    if (!pricing) {
+        throw new Error("Agency pricing is not available.");
+    }
+
+    const cylinderAmount = Number(pricing.cylinder_price);
+    const firstPayment = Number(pricing.advance_amount);
+
+    if (
+        !Number.isFinite(cylinderAmount) ||
+        !Number.isFinite(firstPayment) ||
+        cylinderAmount <= 0 ||
+        firstPayment < 0 ||
+        firstPayment > cylinderAmount
+    ) {
+        throw new Error("Invalid agency pricing configuration.");
+    }
+
+    CYLINDER_AMOUNT = cylinderAmount;
+    FIRST_PAYMENT = firstPayment;
+
+    // Display balance after the initial advance.
+    REMAINING_AMOUNT = cylinderAmount - firstPayment;
+
+    const amounts = [
         ["cylinderAmount", CYLINDER_AMOUNT],
         ["firstPayment", FIRST_PAYMENT],
         ["remainingAmount", REMAINING_AMOUNT],
+
         ["summaryCylinder", CYLINDER_AMOUNT],
         ["summaryFirst", FIRST_PAYMENT],
         ["summaryRemaining", REMAINING_AMOUNT]
-    ].forEach(([id, amount]) => {
+    ];
+
+    amounts.forEach(([id, amount]) => {
+
         const element = $(id);
 
         if (element) {
-            element.textContent = "₹" + amount;
+            element.textContent =
+                "₹" + Number(amount).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
         }
+
     });
+
+    // Update dynamic agreement amounts.
+
+const agreementFirstPayment = $("agreementFirstPayment");
+const agreementRemainingAmount = $("agreementRemainingAmount");
+
+if (agreementFirstPayment) {
+    agreementFirstPayment.textContent =
+        "₹" + FIRST_PAYMENT.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+}
+
+if (agreementRemainingAmount) {
+    agreementRemainingAmount.textContent =
+        "₹" + REMAINING_AMOUNT.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+}
+
+    currentAgencyPricing = pricing;
+
+    console.log("EGC Agency Pricing Loaded:", pricing);
+}
 
     // ==========================================
     // INITIALIZE SUPABASE
@@ -1958,6 +2158,53 @@
         if (continueBtn) continueBtn.disabled = true;
         return;
     }
+
+    // ==========================================
+// INITIAL LOAD: AGENCY PRICING
+// ==========================================
+
+async function initializeAgencyPricing() {
+
+    try {
+
+        const lpgDetails = getLpgDetails();
+
+        const agency = getSelectedAgency(lpgDetails);
+
+        if (!agency || !agency.id) {
+            throw new Error(
+                "Selected agency information was not found."
+            );
+        }
+
+        const pricing = await getAgencyPricing(agency.id);
+
+        updateAmountDisplays(pricing);
+
+        console.log(
+            "EGC initial agency pricing displayed:",
+            pricing
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Initial agency pricing error:",
+            error
+        );
+
+        showMessage(
+            error.message || "Unable to load agency pricing.",
+            "error"
+        );
+
+        if (continueBtn) {
+            continueBtn.disabled = true;
+        }
+    }
+}
+
+initializeAgencyPricing();
 
     // Load rules for consistency checks; the Scheme page does not charge
     // users any repayment fee during initial request submission.

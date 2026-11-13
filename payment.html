@@ -1062,23 +1062,20 @@ textarea.form-input {
 
             <div class="summary-row">
                 <span class="summary-label">Cylinder Amount</span>
-                <span class="summary-value" id="cylinderAmount">₹890.00</span>
-            </div>
+<span class="summary-value" id="cylinderAmount">Loading...</span>            </div>
 
             <div class="summary-row">
                 <span class="summary-label">Initial Payment</span>
-                <span class="summary-value" id="initialPayment">₹200.00</span>
-            </div>
+<span class="summary-value" id="initialPayment">Loading...</span>            </div>
 
             <div class="summary-row">
                 <span class="summary-label">Remaining Amount</span>
-                <span class="summary-value" id="remainingAmount">₹690.00</span>
+                <span class="summary-value" id="remainingAmount">Loading...</span>
             </div>
 
             <div class="summary-row">
                 <span class="summary-label">Applicable EMI / Clearing Charge</span>
-                <span class="summary-value" id="chargeAmount">₹0.00</span>
-            </div>
+<span class="summary-value" id="chargeAmount">Loading...</span>            </div>
 
             <div class="summary-row total">
                 <span class="summary-label">Pay Now</span>
@@ -1575,10 +1572,11 @@ function updatePaymentDateTime() {
 updatePaymentDateTime();
 
 /* =========================================================
-   PAYMENT AMOUNTS
+   PAYMENT AMOUNTS - DATABASE BASED
 ========================================================= */
 
 function renderAmounts() {
+
     const values = {
         cylinderAmount,
         initialPayment,
@@ -1589,6 +1587,7 @@ function renderAmounts() {
     };
 
     for (const [id, value] of Object.entries(values)) {
+
         const element = document.getElementById(id);
 
         if (element) {
@@ -1597,8 +1596,32 @@ function renderAmounts() {
     }
 }
 
+function updatePaymentAmountsFromRequest(request) {
+
+if (!request) return;
+
+// Current cylinder amount from database
+cylinderAmount = getPositiveNumber([
+    request.cylinder_amount
+], CYLINDER_AMOUNT_DEFAULT);
+
+// Initial payment fixed at ₹200
+initialPayment = INITIAL_PAYMENT;
+
+// Extra charge from database
+chargeAmount = getNonNegativeNumber([
+    request.extra_charge,
+    request.charge_amount
+], 0);
+
+// Remaining amount directly from database
+remainingAmount = getNonNegativeNumber([
+    request.remaining_amount
+], Math.max(0, cylinderAmount - initialPayment));
+
 renderAmounts();
 
+}
 /* =========================================================
    IMAGE PREVIEW AND REQUIRED SCREENSHOT
 
@@ -2084,22 +2107,7 @@ async function loadExistingRequest(user) {
 
         saveCurrentRequest(currentRequest);
 
-        cylinderAmount = getPositiveNumber([
-            currentRequest.cylinder_amount,
-            currentRequest.total_amount,
-            currentRequest.total_price,
-            currentRequest.amount
-        ], cylinderAmount);
-
-        remainingAmount = Math.max(0, cylinderAmount - INITIAL_PAYMENT);
-
-        chargeAmount = getNonNegativeNumber([
-            currentRequest.charge_amount,
-            currentRequest.extra_charge,
-            currentRequest.extra_charges
-        ], chargeAmount);
-
-        renderAmounts();
+       updatePaymentAmountsFromRequest(currentRequest);
 
         requestNumberElement.textContent =
             currentRequest.request_number || currentRequest.id;
@@ -2125,7 +2133,7 @@ async function loadExistingPayments(user, request) {
         .select("*")
         .eq("request_id", request.id)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+.or("payment_type.eq.initial_payment,payment_type.is.null")        .order("created_at", { ascending: false })
         .limit(100);
 
     if (error) {
@@ -2154,7 +2162,7 @@ async function loadExistingPayments(user, request) {
 
     if (pendingPayment) {
         throw new Error(
-            "Aapka payment pehle hi submit ho chuka hai aur Owner verification ke liye pending hai. Duplicate payment submit na karein."
+            "Aapka ₹200 Initial Payment pehle hi submit ho chuka hai aur Owner verification ke liye pending hai. Duplicate payment submit na karein."
         );
     }
 
@@ -2170,7 +2178,7 @@ async function loadExistingPayments(user, request) {
 
     if (approvedPayment) {
         throw new Error(
-            "Is request ke liye payment record approved/verified hai. Dobara submit karne se pehle Owner Payments mein status check karein."
+            "Is request ka ₹200 Initial Payment pehle hi approved/verified hai. Dobara payment submit nahi kar sakte."
         );
     }
 }
@@ -2245,9 +2253,10 @@ async function checkPaymentBeforeSubmit(
 ) {
     const { data, error } = await supabaseClient
         .from("payments")
-        .select("id, user_id, request_id, payment_status, verification_status, transaction_id, payment_reference")
+        .select("id, user_id, request_id, payment_type, payment_status, verification_status, transaction_id, payment_reference")
         .eq("request_id", requestId)
         .eq("user_id", userId)
+        .eq("payment_type", "initial_payment")
         .limit(100);
 
     if (error) {
@@ -2300,7 +2309,7 @@ async function checkPaymentBeforeSubmit(
 
     if (pendingPayment) {
         throw new Error(
-            "Is request ka ek payment Owner verification ke liye pending hai. Pehle Owner ke decision ka wait karein."
+            "Aapka ₹200 Initial Payment Owner verification ke liye pending hai. Pehle Owner ke decision ka wait karein."
         );
     }
 
@@ -2316,7 +2325,7 @@ async function checkPaymentBeforeSubmit(
 
     if (approvedPayment) {
         throw new Error(
-            "Is request ke liye pehle se approved payment record hai. Duplicate submission roki gayi."
+            "Is request ka ₹200 Initial Payment pehle se approved hai. Duplicate submission roki gayi."
         );
     }
 }
@@ -2340,6 +2349,7 @@ async function insertPaymentRecord(
         user_id: user.id,
         request_id: request.id,
         payment_amount: INITIAL_PAYMENT,
+        payment_type: "initial_payment",
         payment_status: "pending",
         verification_status: "pending",
         payment_reference: transactionId,

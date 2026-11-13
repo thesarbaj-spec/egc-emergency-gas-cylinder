@@ -38,6 +38,10 @@
       cursor: pointer;
     }
 
+    .notification {
+    cursor: pointer;
+}
+
     button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
@@ -2070,54 +2074,47 @@ function notificationIcon(type) {
 /* LOAD NOTIFICATIONS */
 
 async function loadNotifications() {
-  if (!currentUser?.id) return;
+    if (!currentUser?.id) return;
 
-  const list = $("notificationsList");
-
-  if (list) {
-    list.innerHTML =
-      '<div class="loading">Loading notifications...</div>';
-  }
-
-  const { data, error } = await supabaseClient
-    .from("notifications")
-    .select(
-      "id,user_id,title,message,notification_type,is_read,created_at"
-    )
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) {
-    console.error("Notifications load error:", error);
-
-    notifications = [];
-    updateStats();
+    const list = $("notificationsList");
 
     if (list) {
-      list.innerHTML =
-        '<div class="empty">' +
-          '<div class="empty-icon">⚠️</div>' +
-          '<div>Unable to load notifications.</div>' +
-          '<div>Please check the notifications table and RLS policies.</div>' +
-        '</div>';
+        list.innerHTML =
+            '<div class="loading">Loading notifications...</div>';
     }
 
-    showError(
-      "Notifications could not be loaded: " + error.message
-    );
+    const { data, error } = await supabaseClient
+        .from("notifications")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false });
 
-    return;
-  }
+    if (error) {
+        console.error("Notifications load error:", error);
 
-  clearError();
+        notifications = [];
+        updateStats();
 
-  notifications = Array.isArray(data) ? data : [];
+        if (list) {
+            list.innerHTML =
+                '<div class="empty">Unable to load notifications: ' +
+                escapeHtml(error.message) +
+                '</div>';
+        }
 
-  updateStats();
-  renderNotifications();
+        showError("Notifications could not be loaded: " + error.message);
+        return;
+    }
+
+    clearError();
+
+    notifications = Array.isArray(data) ? data : [];
+
+    updateStats();
+    renderNotifications();
+
+    console.log("All customer notifications:", notifications);
 }
-
 /* NOTIFICATION STATISTICS */
 
 function updateStats() {
@@ -2360,25 +2357,83 @@ async function markAllAsRead() {
   toast("All notifications marked as read.");
 }
 
-/* DELEGATED NOTIFICATION CLICK HANDLER */
+/* CLICKABLE NOTIFICATION HANDLER */
 
 if ($("notificationsList")) {
-  $("notificationsList").addEventListener("click", async event => {
-    const target = event.target;
+    $("notificationsList").addEventListener("click", async event => {
 
-    if (!(target instanceof Element)) return;
+        const target = event.target;
 
-    const button = target.closest("[data-read-id]");
-    if (!button) return;
+        if (!(target instanceof Element)) return;
 
-    const id = button.getAttribute("data-read-id");
-    if (!id) return;
+        // Mark as Read button
+        const readButton = target.closest("[data-read-id]");
 
-    button.disabled = true;
-    button.textContent = "Updating...";
+        if (readButton) {
+            const id = readButton.getAttribute("data-read-id");
 
-    await markNotificationRead(id);
-  });
+            if (!id) return;
+
+            readButton.disabled = true;
+            readButton.textContent = "Updating...";
+
+            await markNotificationRead(id);
+            return;
+        }
+
+        // Notification card click
+        const card = target.closest("[data-notification-id]");
+
+        if (!card) return;
+
+        const id = card.getAttribute("data-notification-id");
+
+        const item = notifications.find(
+            notification => String(notification.id) === String(id)
+        );
+
+        if (!item) return;
+
+        // Mark notification as read
+        if (item.is_read !== true) {
+            await markNotificationRead(id);
+        }
+
+        // Open the correct page
+        if (item.action_url) {
+            window.location.href = item.action_url;
+            return;
+        }
+
+        if (item.payment_id || item.notification_type === "payment") {
+            window.location.href = item.request_id
+                ? "payments.html?request_id=" + encodeURIComponent(item.request_id)
+                : "payments.html";
+            return;
+        }
+
+        if (item.request_id) {
+            window.location.href =
+                "request-status.html?request_id=" +
+                encodeURIComponent(item.request_id);
+            return;
+        }
+
+        if (item.notification_type === "account_deletion") {
+            window.location.href = "profile.html";
+            return;
+        }
+
+        if (item.notification_type === "request" ||
+            item.notification_type === "approval" ||
+            item.notification_type === "completed" ||
+            item.notification_type === "cancelled") {
+            window.location.href = "my-requests.html";
+            return;
+        }
+
+        toast("Notification marked as read.");
+    });
 }
 
 /* REALTIME NOTIFICATIONS */

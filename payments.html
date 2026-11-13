@@ -449,12 +449,56 @@ const supabaseClient = window.supabase.createClient(
 /* =========================================================
    GLOBAL STATE
 ========================================================= */
-
 let currentUser = null;
 let currentProfile = null;
 let currentRequests = [];
 let currentPayments = [];
+let currentSlips = [];
 let currentNotifications = [];
+
+// ======================================
+// EGC PAYMENT DATA BRIDGE
+// ======================================
+
+Object.defineProperties(window, {
+currentRequests: {
+configurable: true,
+get: () => currentRequests
+},
+
+currentPayments: {
+    configurable: true,
+    get: () => currentPayments
+},
+
+currentSlips: {
+    configurable: true,
+    get: () => currentSlips
+}
+
+});
+
+/* ==========================================
+   SHARE DATA WITH payments-slip.js
+========================================== */
+
+Object.defineProperties(window, {
+  currentRequests: {
+    configurable: true,
+    get: () => currentRequests
+  },
+
+  currentPayments: {
+    configurable: true,
+    get: () => currentPayments
+  },
+
+  currentSlips: {
+    configurable: true,
+    get: () => currentSlips
+  }
+});
+
 let realtimeChannel = null;
 let toastTimer = null;
 let pageBusy = false;
@@ -807,6 +851,37 @@ async function loadPayments() {
   }
 
   currentPayments = data || [];
+}
+
+/* =========================================================
+   LOAD CUSTOMER E-SLIPS
+========================================================= */
+
+async function loadCustomerSlips() {
+    const { data, error } = await supabaseClient
+        .from("request_slips")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .eq("slip_status", "active")
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("E-Slip load error:", error);
+        currentSlips = [];
+        return;
+    }
+
+    currentSlips = data || [];
+
+    console.log("Customer E-Slips Loaded:", currentSlips);
+}
+
+/* Get the E-Slip linked to a cylinder request */
+function getRequestSlip(requestId) {
+  return currentSlips.find(slip =>
+    String(slip.request_id) === String(requestId) &&
+    normalizeStatus(slip.slip_status) === "active"
+  ) || null;
 }
 
 async function loadNotifications() {
@@ -1185,39 +1260,39 @@ function calculateDaysSinceDelivery(deliveryDate) {
  * Final payable amount must be validated by Supabase.
  */
 function calculateExtraCharge(days) {
-  if (
-    days === null ||
-    days === undefined ||
-    !Number.isFinite(Number(days)) ||
-    Number(days) < 0
-  ) {
-    return 0;
-  }
+if (
+days === null ||
+days === undefined ||
+!Number.isFinite(Number(days)) ||
+Number(days) < 0
+) {
+return 0;
+}
 
-  const deliveryDays = Math.floor(Number(days));
+const deliveryDays = Math.floor(Number(days));
 
-  // Delivery day
-  if (deliveryDays === 0) {
-    return 0;
-  }
+// Delivery Day = ₹20
+if (deliveryDays === 0) {
+return 20;
+}
 
-  // Days 1–10
-  if (deliveryDays <= 10) {
-    return 50;
-  }
+// Days 1–10 = ₹50
+if (deliveryDays <= 10) {
+return 50;
+}
 
-  // Days 11–15
-  if (deliveryDays <= 15) {
-    return 60;
-  }
+// Days 11–15 = ₹60
+if (deliveryDays <= 15) {
+return 60;
+}
 
-  // Days 16–30
-  if (deliveryDays <= 30) {
-    return 80;
-  }
+// Days 16–30 = ₹80
+if (deliveryDays <= 30) {
+return 80;
+}
 
-  // Day 31+
-  return 100;
+// Day 31 onward = ₹100 maximum
+return 100;
 }
 
 function calculateRemainingDaysToNextSlab(days) {
@@ -1296,72 +1371,60 @@ function calculateRemainingDaysToNextSlab(days) {
 ========================================================= */
 
 function calculateRequestPayment(request) {
-  const total = getRequestTotal(request);
+const total = getRequestTotal(request);
 
-  const payments = getRequestPayments(request.id);
+const payments = getRequestPayments(request.id);
 
-  // Sirf successful aur Owner-approved payments count honge.
-  const paid = payments
-    .filter(paymentIsSuccessful)
-    .reduce(
-      (sum, payment) =>
-        sum + getPaymentAmount(payment),
-      0
-    );
+// केवल Paid + Owner Approved payments गिने जाएंगे।
+const paid = payments
+.filter(paymentIsSuccessful)
+.reduce(
+(sum, payment) => sum + getPaymentAmount(payment),
+0
+);
 
-  const initialPayment = getInitialPayment(request.id);
+const initialPayment = getInitialPayment(request.id);
 
-  const initialPaid =
-    initialPayment &&
-    paymentIsSuccessful(initialPayment)
-      ? getPaymentAmount(initialPayment)
-      : 0;
+const initialPaid =
+initialPayment && paymentIsSuccessful(initialPayment)
+? getPaymentAmount(initialPayment)
+: 0;
 
-  const deliveryDate = getDeliveryDate(request);
+const deliveryDate = getDeliveryDate(request);
 
-  const days = deliveryDate
-    ? calculateDaysSinceDelivery(deliveryDate)
-    : null;
+const days = deliveryDate
+? calculateDaysSinceDelivery(deliveryDate)
+: null;
 
-  // Cylinder ki original amount ka outstanding balance.
-  const baseRemaining = Math.max(
-    0,
-    total - paid
-  );
+// Original cylinder amount का balance
+const baseRemaining = Math.max(0, total - paid);
 
-  // Delivery date available hone par applicable charge calculate hoga.
-  const applicableExtraCharge = deliveryDate
-    ? calculateExtraCharge(days)
-    : 0;
+// Delivery date के अनुसार Extra Charge
+const applicableExtraCharge = deliveryDate
+? calculateExtraCharge(days)
+: 0;
 
-  /*
-   * Existing EGC display rule:
-   * Jab original cylinder amount ka balance zero ho,
-   * tab extra charge ko outstanding nahi dikhana.
-   */
-  const extraCharge =
-    baseRemaining > 0
-      ? applicableExtraCharge
-      : 0;
+// जब तक cylinder amount बाकी है, Extra Charge भी लागू होगा।
+const extraCharge =
+baseRemaining > 0
+? applicableExtraCharge
+: 0;
 
-  // Total outstanding = original balance + applicable charge.
-  const remaining =
-    baseRemaining > 0
-      ? baseRemaining + extraCharge
-      : 0;
+// Final outstanding amount
+const remaining = baseRemaining + extraCharge;
 
-  return {
-    total,
-    paid,
-    initialPaid,
-    initialPayment,
-    deliveryDate,
-    days,
-    applicableExtraCharge,
-    extraCharge,
-    baseRemaining,
-    remaining
-  };
+return {
+total,
+paid,
+initialPaid,
+initialPayment,
+deliveryDate,
+days,
+applicableExtraCharge,
+extraCharge,
+baseRemaining,
+remaining
+};
 }
 
 function calculateSummary() {
@@ -1572,9 +1635,9 @@ function getPaymentEligibility(request) {
 
     return {
       allowed: true,
-      maximum: INITIAL_PAYMENT_AMOUNT,
+      maximum: firstNumber(request, ["advance_amount", "initial_payment_amount"], INITIAL_PAYMENT_AMOUNT),
       type: "initial",
-      message: "Initial payment of ₹200 is due."
+      message: "Initial payment is due: " + money(firstNumber(request, ["advance_amount", "initial_payment_amount"], INITIAL_PAYMENT_AMOUNT))
     };
   }
 
@@ -1658,21 +1721,23 @@ Number.isFinite(inputAmount) &&
 inputAmount > 0 &&
 inputAmount <= eligibility.maximum;
 
-// Remaining balance includes the applicable extra charge.
-let remainingBalance = c.remaining;
+// Original cylinder balance only (extra charge excluded)
+let remainingBalance = c.baseRemaining;
 
-// Preview the balance after the entered partial repayment.
+// Partial repayment preview
 if (
-eligibility.allowed &&
-eligibility.type === "repayment" &&
-isOtherAmount &&
-validOtherAmount
+  eligibility.allowed &&
+  eligibility.type === "repayment" &&
+  isOtherAmount &&
+  validOtherAmount
 ) {
-remainingBalance = Math.max(
-0,
-c.remaining - inputAmount
-);
+  remainingBalance = Math.max(
+    0,
+    c.baseRemaining - inputAmount
+  );
 }
+
+setText("payRemainingBalance", money(remainingBalance));
 
 setText(
 "payRemainingBalance",
@@ -2384,127 +2449,6 @@ function canRetryPayment(payment, request) {
   return false;
 }
 
-/* =========================================================
-   CREATE RECEIPT HTML — COMPLETED
-========================================================= */
-
-function createReceiptHtml(payment, request) {
-  const amount = getPaymentAmount(payment);
-
-  const requestNumber = request
-    ? getRequestNumber(request)
-    : "EGC Request";
-
-  const name =
-    currentProfile?.full_name ||
-    currentUser?.user_metadata?.full_name ||
-    "EGC Customer";
-
-  const email =
-    currentProfile?.email ||
-    currentUser?.email ||
-    "—";
-
-  const type = getPaymentType(payment);
-  const approval = prettyStatus(getPaymentApproval(payment));
-  const status = getPaymentDisplayStatus(payment);
-
-  const transaction = payment.transaction_id || "—";
-  const method = payment.payment_method || "—";
-
-  const date = formatDateTime(
-    payment.payment_date || payment.created_at
-  );
-
-  const requestAmount = request
-    ? getRequestTotal(request)
-    : 0;
-
-  const calc = request
-    ? calculateRequestPayment(request)
-    : null;
-
-  const logo = new URL(
-    "assets/EGC - Emergency Gas Cylinder logo.png",
-    window.location.href
-  ).href;
-
-  const logoHtml = escapeHtml(logo);
-
-  return;
-}
-
-function openPaymentSlip(paymentId) {
-  const payment = currentPayments.find(
-    p => String(p.id) === String(paymentId)
-  );
-
-  if (!payment) {
-    toast("Payment record could not be found.");
-    return;
-  }
-
-  const request = currentRequests.find(
-    r => String(r.id) === String(payment.request_id)
-  );
-
-  const blob = new Blob(
-    [createReceiptHtml(payment, request)],
-    { type: "text/html;charset=utf-8" }
-  );
-
-  const url = URL.createObjectURL(blob);
-  const opened = window.open(url, "_blank");
-
-  if (!opened) {
-    URL.revokeObjectURL(url);
-    toast("Allow pop-ups to view your payment slip.");
-    return;
-  }
-
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
-function downloadPaymentSlip(paymentId) {
-  const payment = currentPayments.find(
-    p => String(p.id) === String(paymentId)
-  );
-
-  if (!payment) {
-    toast("Payment record could not be found.");
-    return;
-  }
-
-  const request = currentRequests.find(
-    r => String(r.id) === String(payment.request_id)
-  );
-
-  const blob = new Blob(
-    [createReceiptHtml(payment, request)],
-    { type: "text/html;charset=utf-8" }
-  );
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-
-  link.download =
-    "EGC-Payment-Slip-" +
-    String(payment.id || Date.now()).replace(
-      /[^a-zA-Z0-9_-]/g,
-      ""
-    ) +
-    ".html";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-  toast("Receipt downloaded. Open it and choose Print → Save as PDF.");
-}
 
 /* =========================================================
    PAYMENT HISTORY
@@ -3143,10 +3087,12 @@ async function initializePage() {
 
     currentUser = data.user;
 
-    await loadProfile();
-    await loadRequests();
-    await loadPayments();
-    await loadNotifications();
+await loadProfile();
+await loadRequests();
+await loadPayments();
+await loadCustomerSlips();
+renderAll();
+await loadNotifications();
 
     renderAll();
     subscribeRealtime();
@@ -3190,6 +3136,6 @@ if (document.readyState === "loading") {
   initializePage();
 }
 </script>
-
+<script src="payments-slip.js"></script>
 </body>
 </html>
