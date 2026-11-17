@@ -577,10 +577,35 @@ function isRepaymentRecord(payment) {
 return getPaymentType(payment) === "repayment";
 }
 
+function isInitialPaymentForRequest(payment, item) {
+  if (!payment || !item) return false;
+
+  const type = getPaymentType(payment);
+
+  if (type === "initial_payment") return true;
+  if (type === "repayment") return false;
+
+  // Legacy NULL payment_type record
+  const advanceAmount = Number(item.advance_amount);
+  const paymentAmount = getPaymentAmount(payment);
+
+  return (
+    (payment.payment_type === null ||
+     payment.payment_type === undefined ||
+     payment.payment_type === "") &&
+    advanceAmount > 0 &&
+    Math.abs(paymentAmount - advanceAmount) < 0.01
+  );
+}
+
 function getInitialPayment(item) {
-return getPaymentsForRequest(item.id).find(payment => {
-return getPaymentType(payment) === "initial_payment";
-}) || null;
+  if (!item || !item.id) return null;
+
+  const payments = getPaymentsForRequest(item.id);
+
+  return payments.find(payment => {
+    return isInitialPaymentForRequest(payment, item);
+  }) || null;
 }
 
 function getRepaymentRecords(item) {
@@ -824,7 +849,7 @@ function getVerifiedInitialPaymentTotal(item) {
 
   return getPaymentsForRequest(item.id)
     .filter(payment =>
-      getPaymentType(payment) === "initial_payment" &&
+      isInitialPaymentForRequest(payment, item) &&
       isVerifiedPaymentRecord(payment)
     )
     .reduce((sum, payment) => {
@@ -1755,9 +1780,18 @@ function renderRequests() {
 
     // Find the initial payment record.
     const initialPayment = getInitialPayment(item);
+    console.log("EGC PAYMENT DEBUG:", {
+  requestId: item.id,
+  advanceAmount: item.advance_amount,
+  payments: getPaymentsForRequest(item.id),
+  initialPayment: getInitialPayment(item),
+  verifiedInitialTotal: getVerifiedInitialPaymentTotal(item)
+});
 
-    const firstPaymentApproved =
-  !!initialPayment && isVerifiedPaymentRecord(initialPayment);
+const firstPaymentApproved =
+  !!initialPayment &&
+  normalizeStatus(initialPayment.payment_status) === "paid" &&
+  normalizeStatus(initialPayment.verification_status) === "approved";
 
 const firstPaymentText = firstPaymentApproved
   ? "Paid"
