@@ -1647,7 +1647,16 @@ th {
 
 </div>
 
-<button class="print-btn" onclick="window.print()">
+<button class="print-btn" onclick="
+  if (window.AndroidEGC && window.AndroidEGC.printSlip) {
+    window.AndroidEGC.printSlip(
+      document.documentElement.outerHTML,
+      'EGC-Payment-Slip'
+    );
+  } else {
+    window.print();
+  }
+">
   Print / Save PDF
 </button>
 
@@ -1726,101 +1735,201 @@ th {
     };
   }
 
-  /* ==========================================
-     OPEN E-SLIP
-  ========================================== */
+ /* ==========================================
+   EGC SLIP VIEW MODAL
+========================================== */
 
-  async function openPaymentSlip(paymentId) {
+function closeESlipModal() {
 
-    let slipWindow = null;
+  const oldModal = document.getElementById("egcSlipModal");
 
-    try {
-
-      slipWindow = window.open("about:blank", "_blank");
-
-      if (!slipWindow) {
-        alert("Please allow pop-ups to view your E-Slip.");
-        return;
-      }
-
-      const result = await getFreshSlipData(paymentId);
-
-      if (!slipWindow || slipWindow.closed) {
-        return;
-      }
-
-      const html = createESlipHtml(
-        result.slip,
-        result.request,
-        result.payments,
-        result.payment
-      );
-
-      slipWindow.document.open();
-      slipWindow.document.write(html);
-      slipWindow.document.close();
-
-      slipWindow.focus();
-
-    } catch (error) {
-
-      console.error("Open E-Slip Error:", error);
-
-      if (slipWindow && !slipWindow.closed) {
-        slipWindow.close();
-      }
-
-      alert(error.message || "Unable to open E-Slip.");
-    }
+  if (oldModal) {
+    oldModal.remove();
   }
 
-  /* ==========================================
-     DOWNLOAD E-SLIP
-  ========================================== */
+}
 
-  async function downloadPaymentSlip(paymentId) {
+/* ==========================================
+   OPEN E-SLIP
+========================================== */
 
-    try {
+async function openPaymentSlip(paymentId) {
 
-      const result = await getFreshSlipData(paymentId);
+  try {
 
-      const html = createESlipHtml(
-        result.slip,
-        result.request,
-        result.payments,
-        result.payment
+    const result = await getFreshSlipData(paymentId);
+
+    const html = createESlipHtml(
+      result.slip,
+      result.request,
+      result.payments,
+      result.payment
+    );
+
+    closeESlipModal();
+
+    const modal = document.createElement("div");
+
+    modal.id = "egcSlipModal";
+
+    modal.style.cssText = `
+      position: fixed;
+      inset: 0;
+      z-index: 999999;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    `;
+
+    const toolbar = document.createElement("div");
+
+    toolbar.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: #ffffff;
+      min-height: 55px;
+      flex-shrink: 0;
+    `;
+
+    const title = document.createElement("strong");
+
+    title.textContent = "EGC Payment Slip";
+
+    title.style.cssText = `
+      font-size: 15px;
+      color: #174b7c;
+    `;
+
+    const closeButton = document.createElement("button");
+
+    closeButton.textContent = "✕ Close";
+
+    closeButton.style.cssText = `
+      border: none;
+      background: #dc2626;
+      color: white;
+      padding: 9px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+    `;
+
+    closeButton.onclick = closeESlipModal;
+
+    toolbar.appendChild(title);
+    toolbar.appendChild(closeButton);
+
+    const iframe = document.createElement("iframe");
+
+    iframe.style.cssText = `
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    `;
+
+    iframe.setAttribute("title", "EGC Payment Slip");
+
+    modal.appendChild(toolbar);
+    modal.appendChild(iframe);
+
+    document.body.appendChild(modal);
+
+    iframe.srcdoc = html;
+
+    // Close modal when user clicks outside the slip toolbar.
+    modal.addEventListener("click", function(event) {
+
+      if (event.target === modal) {
+        closeESlipModal();
+      }
+
+    });
+
+  } catch (error) {
+
+    console.error("Open E-Slip Error:", error);
+
+    alert(error.message || "Unable to open E-Slip.");
+
+  }
+
+}
+
+/* ==========================================
+   DOWNLOAD E-SLIP AS PDF
+========================================== */
+
+async function downloadPaymentSlip(paymentId) {
+
+  try {
+
+    const result = await getFreshSlipData(paymentId);
+
+    const html = createESlipHtml(
+      result.slip,
+      result.request,
+      result.payments,
+      result.payment
+    );
+
+    const fileName =
+      "EGC-" +
+      (result.slip.slip_number || "ESlip");
+
+    // Android App: Open native Android Print / Save PDF.
+    if (
+      window.AndroidEGC &&
+      typeof window.AndroidEGC.printSlip === "function"
+    ) {
+
+      window.AndroidEGC.printSlip(
+        html,
+        fileName
       );
 
-      const blob = new Blob([html], {
-        type: "text/html;charset=utf-8"
-      });
-
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-
-      link.href = url;
-
-      link.download =
-        `EGC-${result.slip.slip_number || "ESlip"}.html`;
-
-      document.body.appendChild(link);
-
-      link.click();
-
-      link.remove();
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1500);
-
-    } catch (error) {
-
-      console.error("Download E-Slip Error:", error);
-
-      alert(error.message || "Unable to download E-Slip.");
+      return;
     }
+
+    // Website: Open printable slip in a new tab.
+    const printWindow = window.open("", "_blank");
+
+    if (!printWindow) {
+
+      alert("Please allow pop-ups to print your E-Slip.");
+
+      return;
+    }
+
+    printWindow.document.open();
+
+    printWindow.document.write(html);
+
+    printWindow.document.close();
+
+    printWindow.onload = function() {
+
+      printWindow.focus();
+
+      setTimeout(function() {
+        printWindow.print();
+      }, 500);
+
+    };
+
+  } catch (error) {
+
+    console.error("Download E-Slip Error:", error);
+
+    alert(error.message || "Unable to download E-Slip.");
+
   }
+
+}
 
   /* ==========================================
      EXPOSE FUNCTIONS
