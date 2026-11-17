@@ -3917,48 +3917,68 @@ async function savePaymentApproval(request, decision, paymentOverride = null) {
     button.disabled = true;
     if (otherButton) otherButton.disabled = true;
 
-    const timestamp = new Date().toISOString();
-
     try {
-        const payload = decision === "approved"
-            ? {
-                payment_status: "paid",
-                verification_status: "approved",
-                verified_at: timestamp,
-                verified_by: currentOwnerId,
-                owner_approved_at: timestamp,
-                owner_approved_by: currentOwnerId,
-                owner_rejection_reason: null,
-                notes: note || payment.notes || null
+        let resultMessage = "";
+
+        if (decision === "approved") {
+
+            // APPROVE: Use secure database function.
+            // This function handles payment approval and E-Slip generation.
+            const { data, error } = await supabaseClient.rpc(
+                "owner_approve_payment",
+                {
+                    p_payment_id: payment.id
+                }
+            );
+
+            if (error) throw error;
+
+            if (!data) {
+                throw new Error("Payment approval returned an empty response.");
             }
-            : {
+
+            if (data.success === false) {
+                throw new Error(
+                    data.message || "Payment approval was not completed."
+                );
+            }
+
+            resultMessage = "Payment approved successfully. E-Slip generation was processed.";
+
+        } else {
+
+            // REJECT: Preserve the existing rejection update logic.
+            const payload = {
                 verification_status: "rejected",
                 owner_rejection_reason: note,
                 notes: note
             };
 
-        const { data, error } = await supabaseClient
-            .from("payments")
-            .update(payload)
-            .eq("id", payment.id)
-            .eq("request_id", request.id)
-            .select("id, payment_status, verification_status, owner_approved_at, owner_approved_by, owner_rejection_reason");
+            const { data, error } = await supabaseClient
+                .from("payments")
+                .update(payload)
+                .eq("id", payment.id)
+                .eq("request_id", request.id)
+                .select(
+                    "id, payment_status, verification_status, owner_approved_at, owner_approved_by, owner_rejection_reason"
+                );
 
-        if (error) throw error;
+            if (error) throw error;
 
-        if (!data || data.length === 0) {
-            throw new Error(
-                "No payment row was updated. Check Owner permissions and Supabase Row Level Security policies."
-            );
+            if (!data || data.length === 0) {
+                throw new Error(
+                    "No payment row was updated. Check Owner permissions and Supabase RLS policies."
+                );
+            }
+
+            resultMessage = "The payment was rejected. Existing payment and repayment history remains unchanged.";
         }
 
         closeModal();
 
         showToast(
             decision === "approved" ? "Payment Approved" : "Payment Rejected",
-            decision === "approved"
-                ? "The selected payment was approved. Other history records were not changed."
-                : "The selected payment was rejected. Its payment amount and other history records remain unchanged."
+            resultMessage
         );
 
         await Promise.all([
@@ -3966,6 +3986,7 @@ async function savePaymentApproval(request, decision, paymentOverride = null) {
             loadPaymentHistory(),
             loadNotifications()
         ]);
+
     } catch (error) {
         console.error("Payment approval error:", error);
 
@@ -3978,7 +3999,6 @@ async function savePaymentApproval(request, decision, paymentOverride = null) {
         if (otherButton) otherButton.disabled = false;
     }
 }
-
 /* =========================================================
    CUSTOMER DOCUMENTS
    ========================================================= */
