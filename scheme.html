@@ -1627,61 +1627,88 @@ let REMAINING_AMOUNT = 0;
         return null;
     }
 
-    // ==========================================
-    // VERIFY SELECTED AGENCY
-    // ==========================================
+  /* =========================================================
+FETCH EXACT SELECTED CYLINDER PRICING
+Validates pricing ID, agency ID, active status and stock.
+========================================================= */
 
-    // ==========================================
-// FETCH SELECTED AGENCY PRICING
-// ==========================================
+async function getAgencyPricing(agencyId, pricingId) {
 
-async function getAgencyPricing(agencyId) {
+if (!agencyId || !pricingId) {
+    throw new Error(
+        "Selected Agency ID or Cylinder Pricing ID is missing."
+    );
+}
 
-    if (!agencyId) {
-        throw new Error("Agency ID is missing.");
-    }
+const { data, error } = await supabaseClient
+    .from("agency_pricing")
+    .select(`
+        id,
+        agency_id,
+        cylinder_price,
+        advance_amount,
+        extra_charge_1_10,
+        extra_charge_11_15,
+        extra_charge_16_30,
+        extra_charge_31_plus,
+        cylinder_type,
+        cylinder_weight,
+        stock_status,
+        stock_quantity,
+        is_active,
+        updated_at
+    `)
+    .eq("id", pricingId)
+    .eq("agency_id", agencyId)
+    .eq("is_active", true)
+    .maybeSingle();
 
-    const { data, error } = await supabaseClient
-        .from("agency_pricing")
-        .select(`
-            id,
-            agency_id,
-            cylinder_price,
-            advance_amount,
-            extra_charge_1_10,
-            extra_charge_11_15,
-            extra_charge_16_30,
-            extra_charge_31_plus,
-            is_active,
-            updated_at
-        `)
-        .eq("agency_id", agencyId)
-        .eq("is_active", true)
-        .maybeSingle();
+if (error) {
+    console.error("Agency pricing fetch error:", error);
 
-    if (error) {
-        console.error("Agency pricing fetch error:", error);
+    throw new Error(
+        "Unable to load selected cylinder pricing: " + error.message
+    );
+}
 
-        throw new Error(
-            "Unable to load agency pricing: " + error.message
-        );
-    }
+if (!data) {
+    throw new Error(
+        "Selected cylinder pricing is no longer active. Please return to LPG Details and select again."
+    );
+}
 
-    if (!data) {
-        throw new Error(
-            "Pricing is not configured for the selected agency. Please contact EGC support."
-        );
-    }
+const cylinderPrice = Number(data.cylinder_price);
+const advanceAmount = Number(data.advance_amount);
 
-    if (
-        Number(data.cylinder_price) <= 0 ||
-        Number(data.advance_amount) < 0 ||
-        Number(data.advance_amount) > Number(data.cylinder_price)
-    ) {
-        throw new Error("Agency pricing configuration is invalid.");
-    }
+if (
+    !Number.isFinite(cylinderPrice) ||
+    !Number.isFinite(advanceAmount) ||
+    cylinderPrice <= 0 ||
+    advanceAmount < 0 ||
+    advanceAmount > cylinderPrice
+) {
+    throw new Error("Selected agency pricing configuration is invalid.");
+}
 
-    return data;
+const stockStatus = String(
+    data.stock_status || ""
+).trim().toLowerCase();
+
+if (
+    stockStatus !== "available" ||
+    (
+        data.stock_quantity !== null &&
+        data.stock_quantity !== undefined &&
+        Number(data.stock_quantity) <= 0
+    )
+) {
+    throw new Error(
+        "Selected cylinder is currently out of stock. Please select another cylinder."
+    );
+}
+
+return data;
+
 }
 
     async function getVerifiedAgency(lpgDetails) {
@@ -1740,13 +1767,14 @@ async function getAgencyPricing(agencyId) {
     // CREATE REQUEST THROUGH SECURE RPC
     // ==========================================
 
-    async function createRequest(
-        user,
-        profile,
-        agency,
-        lpgDetails,
-        verificationData
-    ) {
+ async function createRequest(
+    user,
+    profile,
+    agency,
+    lpgDetails,
+    verificationData,
+    agencyPricing
+) {
         if (!user || !user.id) {
             throw new Error(
                 "User login is required to create a cylinder request."
@@ -1788,11 +1816,28 @@ async function getAgencyPricing(agencyId) {
                 null;
         }
 
-        const lpgData = {
-            ...lpgDetails,
-            agency_id: agency.id,
-            lpg_company: company
-        };
+      const lpgData = {
+    ...lpgDetails,
+
+    agency_id: agency.id,
+    lpg_company: company,
+
+    // Exact selected pricing from Supabase
+    pricing_id: agencyPricing.id,
+
+    cylinder_type: agencyPricing.cylinder_type,
+    cylinder_weight: agencyPricing.cylinder_weight,
+
+    cylinder_price: Number(agencyPricing.cylinder_price),
+    advance_amount: Number(agencyPricing.advance_amount),
+
+    extra_charge_1_10: Number(agencyPricing.extra_charge_1_10 || 0),
+    extra_charge_11_15: Number(agencyPricing.extra_charge_11_15 || 0),
+    extra_charge_16_30: Number(agencyPricing.extra_charge_16_30 || 0),
+    extra_charge_31_plus: Number(agencyPricing.extra_charge_31_plus || 0),
+
+    pricing_saved_at: agencyPricing.updated_at || new Date().toISOString()
+};
 
         const { data: requestId, error: rpcError } =
             await supabaseClient.rpc(
@@ -1983,8 +2028,28 @@ function saveCurrentRequest(request, user, agency) {
         const verificationData = getVerificationData();
         const profile = await getProfile(user.id);
         const agency = await getVerifiedAgency(lpgDetails);
-        const agencyPricing = await getAgencyPricing(agency.id);
+// Fetch the exact cylinder selected on LPG Details page.
+const pricingId = String(
+    lpgDetails.pricing_id || ""
+).trim();
 
+if (!pricingId) {
+    throw new Error(
+        "Selected Cylinder Pricing ID नहीं मिली। LPG Details page पर वापस जाकर Cylinder दोबारा चुनें।"
+    );
+}
+
+const agencyPricing = await getAgencyPricing(
+    agency.id,
+    pricingId
+);
+
+// Verify that the selected pricing belongs to this agency.
+if (String(agencyPricing.agency_id) !== String(agency.id)) {
+    throw new Error("Selected cylinder does not belong to this agency.");
+}
+
+// Display verified database pricing.
 updateAmountDisplays(agencyPricing);
 
         const existingRequest = await getExistingActiveRequest(user.id);
@@ -2010,13 +2075,14 @@ updateAmountDisplays(agencyPricing);
             }
         }
 
-        const request = await createRequest(
-            user,
-            profile,
-            agency,
-            lpgDetails,
-            verificationData
-        );
+    const request = await createRequest(
+    user,
+    profile,
+    agency,
+    lpgDetails,
+    verificationData,
+    agencyPricing
+);
 
         saveCurrentRequest(request, user, agency);
 
@@ -2159,49 +2225,58 @@ if (agreementRemainingAmount) {
         return;
     }
 
-    // ==========================================
-// INITIAL LOAD: AGENCY PRICING
-// ==========================================
+ async function initializeAgencyPricing() {
 
-async function initializeAgencyPricing() {
+try {
 
-    try {
+    const lpgDetails = getLpgDetails();
+    const agency = getSelectedAgency(lpgDetails);
 
-        const lpgDetails = getLpgDetails();
-
-        const agency = getSelectedAgency(lpgDetails);
-
-        if (!agency || !agency.id) {
-            throw new Error(
-                "Selected agency information was not found."
-            );
-        }
-
-        const pricing = await getAgencyPricing(agency.id);
-
-        updateAmountDisplays(pricing);
-
-        console.log(
-            "EGC initial agency pricing displayed:",
-            pricing
+    if (!agency || !agency.id) {
+        throw new Error(
+            "Selected agency information was not found."
         );
-
-    } catch (error) {
-
-        console.error(
-            "Initial agency pricing error:",
-            error
-        );
-
-        showMessage(
-            error.message || "Unable to load agency pricing.",
-            "error"
-        );
-
-        if (continueBtn) {
-            continueBtn.disabled = true;
-        }
     }
+
+    const pricingId = String(
+        lpgDetails.pricing_id || ""
+    ).trim();
+
+    if (!pricingId) {
+        throw new Error(
+            "Selected cylinder pricing was not found. Please return to LPG Details."
+        );
+    }
+
+    const pricing = await getAgencyPricing(
+        agency.id,
+        pricingId
+    );
+
+    updateAmountDisplays(pricing);
+
+    console.log(
+        "EGC selected cylinder pricing loaded:",
+        pricing
+    );
+
+} catch (error) {
+
+    console.error(
+        "Initial agency pricing error:",
+        error
+    );
+
+    showMessage(
+        error.message || "Unable to load agency pricing.",
+        "error"
+    );
+
+    if (continueBtn) {
+        continueBtn.disabled = true;
+    }
+}
+
 }
 
 initializeAgencyPricing();

@@ -79,7 +79,7 @@ button{cursor:pointer}
 
 .screenshot-preview-wrap{display:none;margin-top:12px;padding:14px;background:#f8fcff;border:1px solid #dce8ef;border-radius:14px;width:fit-content;max-width:100%}
 .screenshot-preview-wrap .preview{display:block;margin-top:0;max-width:180px;max-height:180px;width:auto;height:auto;border-radius:12px;object-fit:contain}
-.remove-image-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;margin-top:12px;padding:9px 14px;border:1px solid #ffd0d0;border-radius:10px;background:#fff0f0;color:#c62828;font-size:12px;font-weight:900;transition:background .2s,border-color .2s}
+.remove-image-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;margin-top:12px;padding:9px 14px;border:1px solid #ffd0d0;border-radius:10px;background:#fff0f0;color:#c62828;font-size:12px;font-weight:900;transition: background .2s,border-color .2s}
 .remove-image-btn:hover{background:#ffe3e3;border-color:#f3aaaa}
 .remove-image-btn:focus-visible{outline:3px solid rgba(198,40,40,.2);outline-offset:2px}
 
@@ -230,7 +230,7 @@ button{cursor:pointer}
         <div class="amount-value green" id="alreadyPaid">₹0.00</div>
       </div>
       <div class="amount-card">
-        <div class="amount-label">Remaining Before This Payment</div>
+        <div class="amount-label">Remaining before This Payment </div>
         <div class="amount-value orange" id="remainingAmount">₹0.00</div>
       </div>
     </div>
@@ -1021,9 +1021,9 @@ function getRequestAmount() {
   if (!currentRequest) return 0;
 
   return Number(
-    currentRequest.total_amount ??
-    currentRequest.request_amount ??
     currentRequest.cylinder_amount ??
+    currentRequest.request_amount ??
+    currentRequest.total_amount ??
     currentRequest.total ??
     0
   );
@@ -1037,10 +1037,9 @@ pendingDays = calculatePendingDays();
 
 if (paymentType === "initial") {
 extraCharge = 0;
-
 payableAmount = hasApprovedInitialPayment()
-  ? 0
-  : INITIAL_PAYMENT_AMOUNT;
+? 0
+: INITIAL_PAYMENT_AMOUNT;
 
 renderAmount();
 return;
@@ -1056,17 +1055,20 @@ renderAmount();
 return;
 }
 
-const charge = calculateExtraCharge(pendingDays);
+// Cylinder balance after approved payments
+const baseRemaining = Math.max(0, requestAmount - paid);
 
-const totalWithCharge = requestAmount + charge;
+// Apply extra charge only while cylinder balance remains
+extraCharge = baseRemaining > 0
+? calculateExtraCharge(pendingDays)
+: 0;
 
-if (paid >= totalWithCharge) {
-extraCharge = 0;
-payableAmount = 0;
-} else {
-extraCharge = charge;
-payableAmount = Math.max(0, totalWithCharge - paid);
-}
+// Extra charge is already included in the total amount.
+// Subtract approved payments only once.
+payableAmount = Math.max(
+0,
+baseRemaining + extraCharge
+);
 
 renderAmount();
 }
@@ -1109,12 +1111,16 @@ const paidAmount = calculatePaidAmount();
 const deliveryDate = getDeliveryDate();
 const isRepayment = paymentType === "repayment";
 
-const charge = isRepayment && deliveryDate
+const baseRemaining = Math.max(
+0,
+requestAmount - paidAmount
+);
+
+const charge = isRepayment && deliveryDate && baseRemaining > 0
 ? calculateExtraCharge(pendingDays)
 : 0;
 
-const totalPayable = requestAmount + charge;
-const remaining = Math.max(0, totalPayable - paidAmount);
+const totalPayable = baseRemaining + charge;
 
 $("requestAmount").textContent =
 "₹" + formatMoney(requestAmount);
@@ -1123,7 +1129,7 @@ $("alreadyPaid").textContent =
 "₹" + formatMoney(paidAmount);
 
 $("remainingAmount").textContent =
-"₹" + formatMoney(Math.max(0, requestAmount - paidAmount));
+"₹" + formatMoney(baseRemaining);
 
 if (isRepayment && deliveryDate) {
 $("repaymentDaysBox").style.display = "block";
@@ -1135,9 +1141,11 @@ $("repaymentDaysBox").innerHTML =
   "<br>Days since delivery: " +
   escapeHtml(String(pendingDays)) +
   "<br>Remaining before charge: ₹" +
-  formatMoney(Math.max(0, requestAmount - paidAmount)) +
+  formatMoney(baseRemaining) +
   "<br>Extra charge: ₹" +
-  formatMoney(remaining > 0 ? charge : 0);
+  formatMoney(charge) +
+  "<br><strong>Total Payable: ₹" +
+  formatMoney(totalPayable) + "</strong>";
 
 } else {
 $("repaymentDaysBox").style.display = "none";
@@ -1171,148 +1179,160 @@ $("payableAmount").textContent =
 $("payableNote").textContent =
 paymentType === "initial"
 ? "Initial EGC payment"
-: "Remaining amount + applicable extra charge";
+: "Paying Now: ₹" + formatMoney(payableAmount) +
+" | Balance After Payment: ₹0.00";
 }
 
 function updateAmountHelp() {
+
 const input = $("paymentAmountInput");
 const entered = Number(input.value || 0);
 const help = $("amountHelp");
 
+const remainingAfterPayment = Math.max(
+    0,
+    payableAmount - entered
+);
+
 if (selectedPaymentAmountType === "full") {
-help.textContent =
-"Full Payment selected. The complete amount of ₹" +
-formatMoney(payableAmount) +
-" is filled automatically.";
 
-$("payableAmount").textContent =
-  "₹" + formatMoney(payableAmount);
+    const balanceAfterPayment = 0;
 
-$("payableNote").textContent =
-  paymentType === "initial"
-    ? "Initial EGC payment"
-    : "Full remaining payment including extra charge.";
+    help.textContent =
+        "Full Payment selected. The complete amount of ₹" +
+        formatMoney(payableAmount) +
+        " is filled automatically.";
 
-return;
+    $("payableAmount").textContent =
+        "₹" + formatMoney(payableAmount);
 
+    $("payableNote").textContent =
+        "Paying Now: ₹" +
+        formatMoney(payableAmount) +
+        " | Balance After Payment: ₹" +
+        formatMoney(balanceAfterPayment);
+
+    return;
 }
 
 if (
-input.value.trim() === "" ||
-!Number.isFinite(entered) ||
-entered <= 0
+    input.value.trim() === "" ||
+    !Number.isFinite(entered) ||
+    entered <= 0
 ) {
-help.textContent =
-"Other Amount selected. Enter an amount greater than ₹0 and less than ₹" +
-formatMoney(payableAmount) + ".";
 
-$("payableAmount").textContent =
-  "₹" + formatMoney(payableAmount);
+    help.textContent =
+        "Other Amount selected. Enter an amount greater than ₹0 and less than ₹" +
+        formatMoney(payableAmount) + ".";
 
-$("payableNote").textContent =
-  "Enter an amount to calculate the remaining balance.";
+    $("payableAmount").textContent =
+        "₹" + formatMoney(payableAmount);
 
-return;
+    $("payableNote").textContent =
+        "Enter an amount to calculate the remaining balance.";
 
+    return;
 }
 
 if (entered > payableAmount) {
-help.textContent =
-"The entered amount cannot exceed ₹" +
-formatMoney(payableAmount) + ".";
 
-$("payableAmount").textContent =
-  "₹" + formatMoney(payableAmount);
+    help.textContent =
+        "The entered amount cannot exceed ₹" +
+        formatMoney(payableAmount) + ".";
 
-$("payableNote").textContent =
-  "Entered amount exceeds the current amount due.";
+    $("payableAmount").textContent =
+        "₹" + formatMoney(payableAmount);
 
-return;
+    $("payableNote").textContent =
+        "Entered amount exceeds the current amount due.";
 
+    return;
 }
 
 if (Math.abs(entered - payableAmount) < 0.001) {
-help.textContent =
-"You entered the complete amount. Select Full Payment to continue.";
 
-$("payableAmount").textContent =
-  "₹" + formatMoney(entered);
+    help.textContent =
+        "You entered the complete amount. Select Full Payment to continue.";
 
-$("payableNote").textContent =
-  "Complete payment selected.";
+    $("payableAmount").textContent =
+        "₹" + formatMoney(entered);
 
-return;
+    $("payableNote").textContent =
+        "Paying Now: ₹" +
+        formatMoney(entered) +
+        " | Balance After Payment: ₹0.00";
 
+    return;
 }
 
-const remainingAfterPayment = Math.max(
-0,
-payableAmount - entered
-);
-
 help.textContent =
-"Your payment: ₹" +
-formatMoney(entered) +
-" | Estimated remaining balance: ₹" +
-formatMoney(remainingAfterPayment) + ".";
+    "Your payment: ₹" +
+    formatMoney(entered) +
+    " | Estimated remaining balance: ₹" +
+    formatMoney(remainingAfterPayment) + ".";
 
-// Show the amount being paid now
 $("payableAmount").textContent =
-"₹" + formatMoney(entered);
+    "₹" + formatMoney(entered);
 
 $("payableNote").textContent =
-"Paying Now: ₹" +
-formatMoney(entered) +
-" | Balance After Payment: ₹" +
-formatMoney(remainingAfterPayment);
-}
+    "Paying Now: ₹" +
+    formatMoney(entered) +
+    " | Balance After Payment: ₹" +
+    formatMoney(remainingAfterPayment);
 
+}
 /* PAYMENT AMOUNT TYPE SELECTION */
 
 function setPaymentAmountType(type, options = {}) {
-  const input = $("paymentAmountInput");
+const input = $("paymentAmountInput");
 
-  const normalizedType = type === "full"
-    ? "full"
-    : "partial";
+const normalizedType = type === "full"
+? "full"
+: "partial";
 
-  const preserveAmount = options.preserveAmount === true;
-  const existingValue = input.value;
+const preserveAmount = options.preserveAmount === true;
+const existingValue = input.value;
 
-  selectedPaymentAmountType = normalizedType;
+selectedPaymentAmountType = normalizedType;
 
-  $("fullPaymentChoice").classList.toggle(
-    "active",
-    normalizedType === "full"
-  );
+$("fullPaymentChoice").classList.toggle(
+"active",
+normalizedType === "full"
+);
 
-  $("partialPaymentChoice").classList.toggle(
-    "active",
-    normalizedType === "partial"
-  );
+$("partialPaymentChoice").classList.toggle(
+"active",
+normalizedType === "partial"
+);
 
-  if (normalizedType === "full") {
-    input.value = payableAmount > 0
-      ? payableAmount.toFixed(2)
-      : "";
-  } else if (preserveAmount) {
-    input.value = existingValue;
-  } else {
-    const currentValue = Number(input.value || 0);
+if (normalizedType === "full") {
 
-    if (
-      input.value.trim() === "" ||
-      !Number.isFinite(currentValue) ||
-      currentValue <= 0 ||
-      currentValue >= payableAmount
-    ) {
-      input.value = "";
-    }
-  }
+input.value = payableAmount > 0
+  ? payableAmount.toFixed(2)
+  : "";
 
-  input.readOnly = false;
+} else if (preserveAmount) {
 
-  updateAmountHelp();
+input.value = existingValue;
+
+} else {
+
+const currentValue = Number(input.value || 0);
+
+if (
+  input.value.trim() === "" ||
+  !Number.isFinite(currentValue) ||
+  currentValue <= 0 ||
+  currentValue >= payableAmount
+) {
+  input.value = "";
+}
+
+}
+
+input.readOnly = false;
+
+updateAmountHelp();
 }
 
 /* EXISTING PAYMENTS */
@@ -2168,100 +2188,82 @@ supabaseClient.auth.onAuthStateChange(event => {
 /* INITIALIZE */
 
 async function initializePage() {
-  try {
-    clearMessages();
+try {
+clearMessages();
 
-    const { data, error } =
-      await supabaseClient.auth.getUser();
+const { data, error } = await supabaseClient.auth.getUser();
 
-    if (error || !data?.user) {
-      window.location.replace(LOGIN_URL);
-      return;
-    }
-
-    currentUser = data.user;
-
-    await loadProfile();
-    await loadRequest();
-    await loadAllPayments();
-
-    paymentType = determinePaymentType();
-
-    /*
-     * Display the latest relevant payment, but do not use its
-     * approval status to lock the whole form.
-     */
-    currentPayment = findLatestPaymentForType(paymentType);
-
-    calculatePayable();
-    renderRequest();
-    renderExistingPayment();
-
-    const requestAmount = getRequestAmount();
-    const approvedPaid = calculatePaidAmount();
-
-    /*
-     * Lock only for a payment still awaiting verification.
-     */
-    const blockingPayment = findBlockingPayment(paymentType);
-
-    if (blockingPayment) {
-      currentPayment = blockingPayment;
-      renderExistingPayment();
-
-      disablePaymentForm(
-        "Your payment has been submitted and is waiting for Owner verification. Check Payments history for updates."
-      );
-
-      return;
-    }
-
-    /*
-     * A fully settled request should not accept more payments.
-     */
-   if (
-paymentType === "repayment" &&
-payableAmount <= 0
-) {
-disablePaymentForm(
-"Your request payment is complete. No further payment is due."
-);
-return;
+if (error || !data?.user) {
+  window.location.replace(LOGIN_URL);
+  return;
 }
 
-    /*
-     * Do not lock merely because an earlier payment was approved.
-     */
-    enablePaymentForm();
+currentUser = data.user;
 
-    const urlAmount = getAmountFromURL();
+await loadProfile();
+await loadRequest();
+await loadAllPayments();
 
-    if (
-      urlAmount !== null &&
-      urlAmount > 0 &&
-      urlAmount < payableAmount
-    ) {
-      $("paymentAmountInput").value =
-        urlAmount.toFixed(2);
+paymentType = determinePaymentType();
 
-      setPaymentAmountType(
-        "partial",
-        { preserveAmount: true }
-      );
-    } else {
-      setPaymentAmountType("full");
-    }
+currentPayment = findLatestPaymentForType(paymentType);
 
-  } catch (error) {
-    console.error(
-      "Submit payment page error:",
-      error
-    );
+calculatePayable();
+renderRequest();
+renderExistingPayment();
 
-    showError(
-      error.message || "Unable to load payment page."
-    );
-  }
+const blockingPayment = findBlockingPayment(paymentType);
+
+if (blockingPayment) {
+  currentPayment = blockingPayment;
+  renderExistingPayment();
+
+  disablePaymentForm(
+    "Your payment has been submitted and is waiting for Owner verification. Check Payments history for updates."
+  );
+
+  return;
+}
+
+if (paymentType === "repayment" && payableAmount <= 0) {
+  disablePaymentForm(
+    "Your request payment is complete. No further payment is due."
+  );
+  return;
+}
+
+enablePaymentForm();
+
+// Read amount selected on the previous Payments page.
+const urlAmount = getAmountFromURL();
+
+if (
+  urlAmount !== null &&
+  urlAmount > 0 &&
+  urlAmount < payableAmount
+) {
+  // Restore the customer's selected Other Amount.
+  $("paymentAmountInput").value = urlAmount.toFixed(2);
+
+  setPaymentAmountType("partial", {
+    preserveAmount: true
+  });
+
+  updateAmountHelp();
+
+} else {
+  // Default to Full Payment when no valid partial amount exists.
+  setPaymentAmountType("full");
+}
+
+} catch (error) {
+console.error("Submit payment page error:", error);
+
+showError(
+  error.message || "Unable to load payment page."
+);
+
+}
 }
 
 /* EVENT LISTENERS */
@@ -2288,25 +2290,23 @@ $("partialPaymentChoice").addEventListener(
   }
 );
 
-$("paymentAmountInput").addEventListener(
-  "input",
-  function() {
-    if (this.disabled) return;
+$("paymentAmountInput").addEventListener("input", function() {
 
-    const typedValue = this.value;
+  if (this.disabled) return;
 
-    if (selectedPaymentAmountType !== "partial") {
-      selectedPaymentAmountType = "partial";
+  const typedValue = this.value;
 
-      $("fullPaymentChoice").classList.remove("active");
-      $("partialPaymentChoice").classList.add("active");
-    }
+  if (selectedPaymentAmountType !== "partial") {
+    selectedPaymentAmountType = "partial";
 
-    this.value = typedValue;
-
-    updateAmountHelp();
+    $("fullPaymentChoice").classList.remove("active");
+    $("partialPaymentChoice").classList.add("active");
   }
-);
+
+  this.value = typedValue;
+
+  updateAmountHelp();
+});
 
 if (document.readyState === "loading") {
   document.addEventListener(

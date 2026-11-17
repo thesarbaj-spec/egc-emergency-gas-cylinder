@@ -746,13 +746,26 @@ function getRequestAmount(item) {
 function getTotalPayable(item) {
   if (!item) return 0;
 
-  // Use the cylinder amount saved with this request.
+  if (isRepaymentCleared(item)) {
+    return 0;
+  }
+
   const cylinderAmount = getRequestAmount(item);
+  const verifiedPaid = getVerifiedPaidTotal(item);
 
-  // Extra charge is calculated using this request's snapshot.
-  const extraCharge = getCalculatedExtraCharge(item);
+  // Cylinder का केवल बाकी पैसा
+  const baseRemaining = Math.max(
+    0,
+    cylinderAmount - verifiedPaid
+  );
 
-  return Math.max(0, cylinderAmount + extraCharge);
+  // Extra charge तभी लगेगा जब cylinder का पैसा बाकी हो
+  const extraCharge = baseRemaining > 0
+    ? getCalculatedExtraCharge(item)
+    : 0;
+
+  // Remaining cylinder amount + extra charge
+  return baseRemaining + extraCharge;
 }
 
 
@@ -919,24 +932,24 @@ function getCalculatedExtraCharge(item) {
 }
 
 function getRemainingAmount(item) {
-if (!item) return 0;
+  if (!item) return 0;
 
-if (!isApproved(getOwnerApproval(item))) {
-return 0;
-}
+  if (!isApproved(getOwnerApproval(item))) {
+    return 0;
+  }
 
-/*
-Once the database confirms full repayment, do not create
-another balance when the delivery date gets older.
-*/
-if (isRepaymentCleared(item)) {
-return 0;
-}
+  if (isRepaymentCleared(item)) {
+    return 0;
+  }
 
-const totalPayable = getTotalPayable(item);
-const verifiedPaid = getVerifiedPaidTotal(item);
+  const cylinderAmount = getRequestAmount(item);
+  const verifiedPaid = getVerifiedPaidTotal(item);
 
-return Math.max(0, totalPayable - verifiedPaid);
+  // केवल Cylinder का remaining balance
+  return Math.max(
+    0,
+    cylinderAmount - verifiedPaid
+  );
 }
 
 function getExtraChargeDue(item) {
@@ -946,7 +959,9 @@ function getExtraChargeDue(item) {
 
   const remaining = getRemainingAmount(item);
 
-  if (remaining <= 0) return 0;
+  if (remaining <= 0) {
+    return 0;
+  }
 
   return getCalculatedExtraCharge(item);
 }
@@ -1061,12 +1076,11 @@ message:
 progress: 95
 };
 }
-
 const remainingAmount = getRemainingAmount(item);
-const extraCharge = getCalculatedExtraCharge(item);
+const extraCharge = getExtraChargeDue(item);
 const totalPayable = getTotalPayable(item);
 
-if (remainingAmount > 0) {
+if (totalPayable > 0) {
 return {
 key: "repayment_due",
 label: "Repayment Due",
@@ -1920,6 +1934,21 @@ const isDelivered = getDeliveryStatus(item) === "delivered";
               ₹${formatMoney(totalPayable)}
             </div>
           </div>
+
+          <div class="detail">
+  <div class="detail-label">Cylinder Type</div>
+  <div class="detail-value">
+    ${escapeHtml(getValue(item, ["cylinder_type"], "—"))}
+  </div>
+</div>
+
+<div class="detail">
+  <div class="detail-label">Cylinder Weight</div>
+  <div class="detail-value">
+    ${escapeHtml(String(getValue(item, ["cylinder_weight"], "—")))}
+    ${getValue(item, ["cylinder_weight"], "") ? " KG" : ""}
+  </div>
+</div>
 
         </div>
 

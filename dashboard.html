@@ -2583,14 +2583,26 @@ function getDeliveryDayCount(request) {
 function calculateTierExtraCharge(days) {
     const deliveryDays = Number(days);
 
-    if (!Number.isFinite(deliveryDays) || deliveryDays <= 0) {
+    if (
+        !Number.isFinite(deliveryDays) ||
+        deliveryDays < 0
+    ) {
         return 0;
     }
 
+    // Delivery Day = ₹20
+    if (deliveryDays === 0) return 20;
+
+    // Days 1–10 = ₹50
     if (deliveryDays <= 10) return 50;
+
+    // Days 11–15 = ₹60
     if (deliveryDays <= 15) return 60;
+
+    // Days 16–30 = ₹80
     if (deliveryDays <= 30) return 80;
 
+    // Day 31 onward = ₹100 maximum
     return 100;
 }
 
@@ -2606,7 +2618,6 @@ function getRequestExtraCharge(request) {
 /* =========================================================
    REQUEST FINANCIALS
 ========================================================= */
-
 function getRequestFinancials(request) {
 
     const approved = isRequestApproved(request);
@@ -2622,43 +2633,54 @@ function getRequestFinancials(request) {
         };
     }
 
-    // Database Base Amount
+    // Cylinder Base Amount
     const baseAmount = Number(
         request.cylinder_amount ??
         request.advance_amount ??
+        request.request_amount ??
         0
-    );
-
-    // Database Extra Charge
-    const extraCharge = Number(
-        request.extra_charge ?? 0
-    );
-
-    // Database Total Payable
-    const totalPayable = Number(
-        request.total_amount ??
-        (baseAmount + extraCharge)
     );
 
     // Only Owner-verified payments
     const paidAmount = getRequestVerifiedPayments(request.id);
 
-    // Database Remaining Amount is authoritative
-    const remainingAmount =
-        request.remaining_amount !== null &&
-        request.remaining_amount !== undefined
-            ? Math.max(0, Number(request.remaining_amount))
-            : Math.max(0, totalPayable - paidAmount);
+    // Actual Delivery Date
+    const deliveryDate = getDeliveryDate(request);
+
+    // Days Since Delivery
+    const days = deliveryDate
+        ? getDeliveryDayCount(request)
+        : null;
+
+    // Remaining Cylinder Amount
+    const baseRemaining = Math.max(
+        0,
+        baseAmount - paidAmount
+    );
+
+    // Calculate Extra Charge using delivery date
+    let extraCharge = 0;
+
+    if (deliveryDate && baseRemaining > 0) {
+        extraCharge = calculateTierExtraCharge(days);
+    }
+
+    // Total Payable
+    const totalPayable = baseAmount + extraCharge;
+
+    // Final Remaining Amount
+    const remainingAmount = Math.max(
+        0,
+        totalPayable - paidAmount
+    );
 
     return {
         approved: true,
-        baseAmount: Number.isFinite(baseAmount) ? baseAmount : 0,
-        extraCharge: Number.isFinite(extraCharge) ? extraCharge : 0,
-        totalPayable: Number.isFinite(totalPayable) ? totalPayable : 0,
+        baseAmount,
+        extraCharge,
+        totalPayable,
         paidAmount,
-        remainingAmount: Number.isFinite(remainingAmount)
-            ? remainingAmount
-            : 0
+        remainingAmount
     };
 }
 

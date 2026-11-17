@@ -1162,6 +1162,16 @@ button:focus-visible {
         </div>
 
         <div class="request-detail">
+    <div class="detail-label">Cylinder Type</div>
+    <div class="detail-value" id="requestCylinderType">-</div>
+</div>
+
+<div class="request-detail">
+    <div class="detail-label">Cylinder Weight</div>
+    <div class="detail-value" id="requestCylinderWeight">-</div>
+</div>
+
+        <div class="request-detail">
             <div class="detail-label">LPG Company</div>
             <div class="detail-value" id="lpgCompany">-</div>
         </div>
@@ -1320,6 +1330,15 @@ button:focus-visible {
         <tr><td>Scheme</td><td id="slipScheme">-</td></tr>
         <tr><td>Cylinder Quantity</td><td id="slipQuantity">1</td></tr>
         <tr><td>Cylinder Amount</td><td id="slipCylinderAmount">₹0.00</td></tr>
+        <tr>
+    <td>Cylinder Type</td>
+    <td id="slipCylinderType">-</td>
+</tr>
+
+<tr>
+    <td>Cylinder Weight</td>
+    <td id="slipCylinderWeight">-</td>
+</tr>
     </table>
 
     <div class="slip-section-title">Payment Information</div>
@@ -1937,6 +1956,62 @@ async function resolveAgencyName(request) {
 }
 
 /* =========================================================
+   CYLINDER TYPE & WEIGHT
+========================================================= */
+
+function getCylinderType(item) {
+    const type = firstValue(
+        item,
+        ["cylinder_type"],
+        "-"
+    );
+
+    if (type === "-") return "-";
+
+    const normalized = String(type).trim().toLowerCase();
+
+    const types = {
+        domestic: "Domestic LPG Cylinder",
+        commercial: "Commercial LPG Cylinder",
+        domestic_lpg: "Domestic LPG Cylinder",
+        commercial_lpg: "Commercial LPG Cylinder"
+    };
+
+    return types[normalized] || String(type);
+}
+
+function getCylinderWeight(item) {
+    const weight = firstValue(
+        item,
+        ["cylinder_weight"],
+        null
+    );
+
+    if (weight === null || weight === "") {
+        return "-";
+    }
+
+    const value = String(weight).trim();
+
+    if (/kg$/i.test(value)) {
+        return value;
+    }
+
+    return value + " KG";
+}
+
+function displayCylinderDetails(item) {
+    const cylinderType = getCylinderType(item);
+    const cylinderWeight = getCylinderWeight(item);
+
+    setText("requestCylinderType", cylinderType);
+    setText("requestCylinderWeight", cylinderWeight);
+
+    setText("slipCylinderType", cylinderType);
+    setText("slipCylinderWeight", cylinderWeight);
+}
+
+/* =========================================================
    REQUEST DETAILS
 ========================================================= */
 
@@ -2003,6 +2078,7 @@ async function displayRequestDetails() {
     );
 
     const agency = await resolveAgencyName(item);
+    displayCylinderDetails(item);
 
     setText("requestQuantity", quantity);
     setText("requestAmount", moneyText(amount));
@@ -2073,6 +2149,8 @@ async function displayLocalRequest() {
         item.scheme ||
         lpgDetails?.scheme_name ||
         "-";
+
+    displayCylinderDetails(item);
 
     setText("requestDate", formatDateTime(date));
     setText("requestQuantity", quantity);

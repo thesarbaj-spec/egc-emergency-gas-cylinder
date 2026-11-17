@@ -246,13 +246,14 @@ input,select{max-width:100%}
 }
 </style>
 </head>
-
 <body>
+
 <header class="topbar">
   <div class="brand">
     <img src="assets/EGC - Emergency Gas Cylinder logo.png" alt="EGC">
     <div class="brand-text">Emergency Gas Cylinder</div>
   </div>
+
   <div class="profile-mini">
     <div>
       <div class="profile-name" id="topName">Loading...</div>
@@ -263,10 +264,12 @@ input,select{max-width:100%}
 </header>
 
 <div class="layout">
+
 <aside class="sidebar">
   <div class="nav-title">MENU</div>
+
   <button class="nav-btn" onclick="goDashboard()">🏠 &nbsp; Dashboard</button>
- <button class="nav-btn" onclick="requestCylinder()">🛢️ &nbsp; Request Cylinder</button>
+  <button class="nav-btn" onclick="requestCylinder()">🛢️ &nbsp; Request Cylinder</button>
   <button class="nav-btn" onclick="goRequests()">📋 &nbsp; My Requests</button>
   <button class="nav-btn active" onclick="goPayments()">💰 &nbsp; Payments</button>
   <button class="nav-btn" onclick="goNotifications()">🔔 &nbsp; Notifications</button>
@@ -277,153 +280,533 @@ input,select{max-width:100%}
 </aside>
 
 <main class="main">
+
   <div id="errorBox" class="error-box" role="alert"></div>
 
+  <!-- PAGE HEADER -->
   <section class="page-header">
     <div class="page-title">
       <h1>Payments</h1>
-      <p>Manage your EGC cylinder payments and repayment.</p>
+      <p>Manage your EGC cylinder payments, outstanding balance and repayments.</p>
     </div>
+
     <button class="notify-btn" onclick="goNotifications()" aria-label="Notifications">
       🔔 <span id="notificationCount" class="notify-count">0</span>
     </button>
   </section>
 
+  <!-- PAYMENT SUMMARY -->
   <section class="summary-grid">
-    <div class="summary-card"><div class="summary-top"><div class="summary-label">Total Amount</div><div class="summary-icon">💰</div></div><div class="summary-number" id="totalAmount">₹0.00</div></div>
-    <div class="summary-card"><div class="summary-top"><div class="summary-label">Paid Amount</div><div class="summary-icon">✅</div></div><div class="summary-number green" id="paidAmount">₹0.00</div></div>
-    <div class="summary-card"><div class="summary-top"><div class="summary-label">Remaining Balance</div><div class="summary-icon">⏳</div></div><div class="summary-number orange" id="remainingAmount">₹0.00</div></div>
-    <div class="summary-card"><div class="summary-top"><div class="summary-label">Successful Payments</div><div class="summary-icon">💳</div></div><div class="summary-number" id="successfulPayments">0</div></div>
+
+    <div class="summary-card">
+      <div class="summary-top">
+        <div class="summary-label">Total Amount</div>
+        <div class="summary-icon">💰</div>
+      </div>
+      <div class="summary-number" id="totalAmount">₹0.00</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-top">
+        <div class="summary-label">Paid Amount</div>
+        <div class="summary-icon">✅</div>
+      </div>
+      <div class="summary-number green" id="paidAmount">₹0.00</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-top">
+        <div class="summary-label">Remaining Balance</div>
+        <div class="summary-icon">⏳</div>
+      </div>
+      <div class="summary-number orange" id="remainingAmount">₹0.00</div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-top">
+        <div class="summary-label">Successful Payments</div>
+        <div class="summary-icon">💳</div>
+      </div>
+      <div class="summary-number" id="successfulPayments">0</div>
+    </div>
+
   </section>
 
+  <!-- CURRENT PAYMENT -->
   <section class="box">
     <div class="box-title">💳 Current Payment</div>
-    <div id="currentPaymentArea"><div class="empty">Checking payment status...</div></div>
+    <div id="currentPaymentArea">
+      <div class="empty">Checking payment status...</div>
+    </div>
   </section>
 
+  <!-- DELIVERY AND EXTRA CHARGE -->
   <section class="box">
+
     <div class="box-title">📅 Delivery & Extra Charge Details</div>
-    <p class="section-note">Delivery ke baad beete din aur applicable extra charge yahan dikhaya jayega.</p>
+
+    <p class="section-note">
+      Cylinder delivery ke baad applicable extra charge delivery date ke according calculate hota hai.
+    </p>
+
     <div class="delivery-grid">
-      <div class="delivery-item"><div class="delivery-label">Delivery Date</div><div class="delivery-value" id="deliveryDate">—</div><div class="delivery-help">Cylinder delivered hone ki date.</div></div>
-      <div class="delivery-item"><div class="delivery-label">Days Since Delivery</div><div class="delivery-value" id="daysSinceDelivery">—</div><div class="delivery-help">Delivery ke baad ab tak beete din.</div></div>
-      <div class="delivery-item"><div class="delivery-label">Remaining Days to Next Charge Slab</div><div class="delivery-value orange" id="remainingDays">—</div><div class="delivery-help" id="remainingDaysHelp">Delivery date milne ke baad calculate hoga.</div></div>
-      <div class="delivery-item"><div class="delivery-label">Current Extra Charge</div><div class="delivery-value orange" id="extraCharge">₹0.00</div><div class="delivery-help">Current delivery-day slab ke hisaab se.</div></div>
+
+      <div class="delivery-item">
+        <div class="delivery-label">Delivery Date</div>
+        <div class="delivery-value" id="deliveryDate">—</div>
+        <div class="delivery-help">Cylinder delivered hone ki date.</div>
+      </div>
+
+      <div class="delivery-item">
+        <div class="delivery-label">Days Since Delivery</div>
+        <div class="delivery-value" id="daysSinceDelivery">—</div>
+        <div class="delivery-help">Delivery ke baad ab tak beete din.</div>
+      </div>
+
+      <div class="delivery-item">
+        <div class="delivery-label">Remaining Days to Next Charge Slab</div>
+        <div class="delivery-value orange" id="remainingDays">—</div>
+        <div class="delivery-help" id="remainingDaysHelp">
+          Delivery date milne ke baad calculate hoga.
+        </div>
+      </div>
+
+      <div class="delivery-item">
+        <div class="delivery-label">Current Extra Charge</div>
+        <div class="delivery-value orange" id="extraCharge">₹0.00</div>
+        <div class="delivery-help">
+          Current delivery-day slab ke hisaab se.
+        </div>
+      </div>
+
     </div>
+
+    <!-- EXTRA CHARGE SLABS -->
+    <div class="payment-breakdown" style="margin-top:18px;">
+
+      <div class="payment-breakdown-title">
+        Extra Charge Slab Information
+      </div>
+
+      <div class="payment-breakdown-row">
+        <span>Delivery Day</span>
+        <span>₹20</span>
+      </div>
+
+      <div class="payment-breakdown-row">
+        <span>Day 1 – Day 10</span>
+        <span>₹50</span>
+      </div>
+
+      <div class="payment-breakdown-row">
+        <span>Day 11 – Day 15</span>
+        <span>₹60</span>
+      </div>
+
+      <div class="payment-breakdown-row">
+        <span>Day 16 – Day 30</span>
+        <span>₹80</span>
+      </div>
+
+      <div class="payment-breakdown-row total">
+        <span>Day 31 Onwards</span>
+        <span>₹100 Maximum</span>
+      </div>
+
+      <div class="payment-choice-note">
+        Extra charge delivery date ke basis par applicable slab ke according calculate hota hai.
+        Final payable amount database calculation ke according hoga.
+      </div>
+
+    </div>
+
   </section>
 
+  <!-- PAYMENT OVERVIEW -->
   <section class="box">
+
     <div class="box-title">💰 Payment Overview</div>
+
     <div class="balance-box">
-      <div class="balance-item"><div class="balance-label">Total Request Amount</div><div class="balance-value" id="overviewTotal">₹0.00</div></div>
-      <div class="balance-item"><div class="balance-label">Owner-Approved Paid Amount</div><div class="balance-value green" id="overviewPaid">₹0.00</div></div>
-      <div class="balance-item"><div class="balance-label">Total Due (Including Extra Charge)</div><div class="balance-value remaining" id="overviewRemaining">₹0.00</div></div>
+
+      <div class="balance-item">
+        <div class="balance-label">Total Request Amount</div>
+        <div class="balance-value" id="overviewTotal">₹0.00</div>
+      </div>
+
+      <div class="balance-item">
+        <div class="balance-label">Owner-Approved Paid Amount</div>
+        <div class="balance-value green" id="overviewPaid">₹0.00</div>
+      </div>
+
+      <div class="balance-item">
+        <div class="balance-label">Total Due (Including Extra Charge)</div>
+        <div class="balance-value remaining" id="overviewRemaining">₹0.00</div>
+      </div>
+
     </div>
+
     <div class="progress-wrap">
-      <div class="progress-label"><span>Payment Progress</span><span id="paymentPercentage">0%</span></div>
-      <div class="progress"><div class="progress-bar" id="paymentProgressBar"></div></div>
+
+      <div class="progress-label">
+        <span>Payment Progress</span>
+        <span id="paymentPercentage">0%</span>
+      </div>
+
+      <div class="progress">
+        <div class="progress-bar" id="paymentProgressBar"></div>
+      </div>
+
     </div>
+
   </section>
 
+  <!-- MAKE PAYMENT -->
   <section class="box">
+
     <div class="box-title">💳 Make a Payment</div>
-    <p class="section-note">Apni payment choice select karein. Amount database mein maujood request aur approved payment records se calculate hoga.</p>
+
+    <p class="section-note">
+      Apni eligible cylinder request select karein aur Full Payment ya Other Amount choose karein.
+      Payable amount approved payment records aur request details ke according calculate hoga.
+    </p>
 
     <div class="payment-form">
+
       <div class="subheading">Choose Payment Type</div>
 
       <div class="amount-options">
+
         <label class="amount-option">
-          <input type="radio" name="paymentAmountOption" id="fullPaymentOption" value="full" checked>
-          <div><strong>Full Payment</strong><span>Currently payable complete amount pay karein.</span></div>
+          <input
+            type="radio"
+            name="paymentAmountOption"
+            id="fullPaymentOption"
+            value="full"
+            checked
+          >
+
+          <div>
+            <strong>Full Payment</strong>
+            <span>Currently payable complete amount pay karein.</span>
+          </div>
         </label>
+
         <label class="amount-option">
-          <input type="radio" name="paymentAmountOption" id="partialPaymentOption" value="partial">
-          <div><strong>Other Amount</strong><span>Apni choice ki payment amount enter karein.</span></div>
+          <input
+            type="radio"
+            name="paymentAmountOption"
+            id="partialPaymentOption"
+            value="partial"
+          >
+
+          <div>
+            <strong>Other Amount</strong>
+            <span>Apni choice ki payment amount enter karein.</span>
+          </div>
         </label>
+
       </div>
 
       <div class="form-grid">
+
         <div class="form-group">
-          <label class="form-label" for="paymentAmountInput">Payment Amount (₹)</label>
-          <input type="number" id="paymentAmountInput" class="form-input" min="1" step="0.01" inputmode="decimal" placeholder="Enter amount" disabled>
-          <div class="form-help" id="paymentAmountHelp">Full Payment select karne par currently payable amount use hoga.</div>
+
+          <label class="form-label" for="paymentAmountInput">
+            Payment Amount (₹)
+          </label>
+
+          <input
+            type="number"
+            id="paymentAmountInput"
+            class="form-input"
+            min="1"
+            step="0.01"
+            inputmode="decimal"
+            placeholder="Enter amount"
+            disabled
+          >
+
+          <div class="form-help" id="paymentAmountHelp">
+            Full Payment select karne par currently payable amount use hoga.
+          </div>
+
         </div>
+
         <div class="form-group">
-          <label class="form-label" for="paymentRequestSelect">Cylinder Request</label>
+
+          <label class="form-label" for="paymentRequestSelect">
+            Cylinder Request
+          </label>
+
           <select id="paymentRequestSelect" class="form-select">
             <option value="">Loading eligible requests...</option>
           </select>
-          <div class="form-help">Sirf eligible request select karein.</div>
+
+          <div class="form-help">
+            Sirf payment ke liye eligible request select karein.
+          </div>
+
         </div>
+
       </div>
 
+      <!-- PAYMENT BREAKDOWN -->
       <div class="payment-breakdown">
-        <div class="payment-breakdown-title">Payment Breakdown</div>
-        <div class="payment-breakdown-row"><span>Request Amount</span><span id="payRequestAmount">₹0.00</span></div>
-        <div class="payment-breakdown-row"><span>Previously Paid / Approved</span><span id="payPreviouslyPaid">₹0.00</span></div>
-        <div class="payment-breakdown-row"><span>Remaining Balance</span><span id="payRemainingBalance">₹0.00</span></div>
-        <div class="payment-breakdown-row"><span>Extra Charge</span><span id="payExtraCharge">₹0.00</span></div>
-        <div class="payment-breakdown-row total"><span>Total Due</span><span id="payTotalDue">₹0.00</span></div>
-        <div class="payment-choice-note" id="paymentChoiceNote" aria-live="polite">Payment details will appear after an eligible request is selected.</div>
+
+        <div class="payment-breakdown-title">
+          Payment Breakdown
+        </div>
+
+        <div class="payment-breakdown-row">
+          <span>Request Amount</span>
+          <span id="payRequestAmount">₹0.00</span>
+        </div>
+
+        <div class="payment-breakdown-row">
+          <span>Previously Paid / Approved</span>
+          <span id="payPreviouslyPaid">₹0.00</span>
+        </div>
+
+        <div class="payment-breakdown-row">
+          <span>Remaining Balance</span>
+          <span id="payRemainingBalance">₹0.00</span>
+        </div>
+
+        <div class="payment-breakdown-row">
+          <span>Extra Charge</span>
+          <span id="payExtraCharge">₹0.00</span>
+        </div>
+
+        <div class="payment-breakdown-row total">
+          <span>Total Due</span>
+          <span id="payTotalDue">₹0.00</span>
+        </div>
+
+        <div class="payment-choice-note" id="paymentChoiceNote" aria-live="polite">
+          Payment details will appear after an eligible request is selected.
+        </div>
+
       </div>
 
       <div class="payment-action">
-        <button type="button" class="pay-btn blue" id="payFullBtn">PAY</button>
+        <button type="button" class="pay-btn blue" id="payFullBtn">
+          PAY
+        </button>
       </div>
 
+      <!-- PAYMENT RULES -->
       <div class="form-warning">
-        <strong>Important:</strong>
-        Pehle successful aur Owner-approved ₹200 initial payment ko dobara charge nahi kiya jayega. Pending, rejected ya unverified payments ko confirmed paid amount mein count nahi kiya jayega. Extra charge delivery date aur applicable delivery-day slab ke according calculate hoga.
+
+        <strong>Important Payment Information:</strong>
+
+        <ul>
+          <li>
+            Initial payment request Owner-approved hone ke baad hi available hoga.
+          </li>
+
+          <li>
+            Successful aur Owner-approved initial payment dobara charge nahi kiya jayega.
+          </li>
+
+          <li>
+            Pending, rejected ya unverified payments ko confirmed paid amount mein count nahi kiya jayega.
+          </li>
+
+          <li>
+            Payment submit karne ke baad Owner verification required ho sakta hai.
+          </li>
+
+          <li>
+            Delivery ke baad applicable extra charge delivery date ke according calculate hoga.
+          </li>
+
+          <li>
+            Final payable amount database ke verified records aur applicable charge rules ke according hoga.
+          </li>
+        </ul>
+
       </div>
+
     </div>
+
   </section>
 
+  <!-- PAYMENT HISTORY -->
   <section class="box">
+
     <div class="box-title">📜 Payment History</div>
-    <p class="section-note">Har payment ka status, transaction details aur available receipt actions yahan milenge.</p>
-    <div id="paymentList" class="payment-list"><div class="empty">Loading payment history...</div></div>
-  </section>
 
-  <section class="box">
-    <div class="box-title">🔄 Live Payment Status</div>
-    <div class="realtime-indicator" id="realtimeStatus"><span class="realtime-dot"></span><span id="realtimeStatusText">Connecting to payment updates...</span></div>
-    <div class="current-grid">
-      <div class="current-item"><div class="current-label">Latest Payment Status</div><div class="current-value" id="latestPaymentStatus">Checking...</div></div>
-      <div class="current-item"><div class="current-label">Owner Verification</div><div class="current-value" id="ownerVerificationStatus">Checking...</div></div>
-      <div class="current-item"><div class="current-label">Latest Transaction ID</div><div class="current-value" id="latestTransactionId">—</div></div>
-      <div class="current-item"><div class="current-label">Last Status Update</div><div class="current-value" id="lastPaymentUpdate">—</div></div>
+    <p class="section-note">
+      Aapke sabhi initial payments aur repayments ka record yahan available hoga.
+      Har transaction ka status aur available receipt actions bhi yahan dikhaye jayenge.
+    </p>
+
+    <div id="paymentList" class="payment-list">
+      <div class="empty">Loading payment history...</div>
     </div>
-    <p class="realtime-note">Realtime status Supabase configuration aur database updates par depend karta hai.</p>
+
   </section>
 
+  <!-- LIVE PAYMENT STATUS -->
   <section class="box">
-    <div class="box-title">ℹ️ Payment Information</div>
-    <div class="info-box"><strong>How EGC payment works</strong><p>Initial payment ₹200 tabhi available hoga jab request Owner-approved ho. Confirmed initial payment dobara charge nahi hoga. Full ya partial payment submit karne ke baad woh Owner verification tak pending reh sakta hai. Delivery ke baad applicable extra charge current delivery-day slab ke according calculate hoga.</p></div>
+
+    <div class="box-title">🔄 Live Payment Status</div>
+
+    <div class="realtime-indicator" id="realtimeStatus">
+      <span class="realtime-dot"></span>
+      <span id="realtimeStatusText">Connecting to payment updates...</span>
+    </div>
+
+    <div class="current-grid">
+
+      <div class="current-item">
+        <div class="current-label">Latest Payment Status</div>
+        <div class="current-value" id="latestPaymentStatus">Checking...</div>
+      </div>
+
+      <div class="current-item">
+        <div class="current-label">Owner Verification</div>
+        <div class="current-value" id="ownerVerificationStatus">Checking...</div>
+      </div>
+
+      <div class="current-item">
+        <div class="current-label">Latest Transaction ID</div>
+        <div class="current-value" id="latestTransactionId">—</div>
+      </div>
+
+      <div class="current-item">
+        <div class="current-label">Last Status Update</div>
+        <div class="current-value" id="lastPaymentUpdate">—</div>
+      </div>
+
+    </div>
+
+    <p class="realtime-note">
+      Payment status Supabase Realtime aur Owner verification ke database updates ke according refresh hoga.
+    </p>
+
   </section>
+
+  <!-- PAYMENT INFORMATION -->
+  <section class="box">
+
+    <div class="box-title">ℹ️ Payment Information</div>
+
+    <div class="info-box">
+
+      <strong>How EGC Payment Works</strong>
+
+      <p>
+        <strong>1. Initial Payment:</strong>
+        Cylinder request Owner-approved hone ke baad initial payment available hota hai.
+      </p>
+
+      <p>
+        <strong>2. Payment Verification:</strong>
+        Payment submit hone ke baad Owner uski verification karta hai.
+        Approval ke baad hi payment confirmed paid amount mein count hota hai.
+      </p>
+
+      <p>
+        <strong>3. Cylinder Delivery:</strong>
+        Cylinder delivery ke baad remaining balance aur applicable extra charge calculate hota hai.
+      </p>
+
+      <p>
+        <strong>4. Repayment:</strong>
+        Customer remaining outstanding amount ki full ya partial repayment kar sakta hai,
+        existing repayment rules ke according.
+      </p>
+
+      <p>
+        <strong>5. Extra Charge:</strong>
+        Delivery day ₹20, days 1–10 ₹50, days 11–15 ₹60,
+        days 16–30 ₹80 aur day 31 onwards ₹100 maximum.
+      </p>
+
+      <p>
+        <strong>6. Final Clearance:</strong>
+        Outstanding balance aur applicable extra charge clear hone ke baad
+        request ka repayment status update hoga.
+      </p>
+
+    </div>
+
+  </section>
+
 </main>
+
 </div>
 
+<!-- MOBILE NAVIGATION -->
 <nav class="mobile-nav">
-  <button onclick="goDashboard()"><span>🏠</span>Home</button>
-  <button onclick="goRequests()"><span>📋</span>Requests</button>
-  <button onclick="requestCylinder()"><span>➕</span>Request</button>
-  <button class="active" onclick="goPayments()"><span>💰</span>Payments</button>
-  <button onclick="goProfile()"><span>👤</span>Profile</button>
+
+  <button onclick="goDashboard()">
+    <span>🏠</span>Home
+  </button>
+
+  <button onclick="goRequests()">
+    <span>📋</span>Requests
+  </button>
+
+  <button onclick="requestCylinder()">
+    <span>➕</span>Request
+  </button>
+
+  <button class="active" onclick="goPayments()">
+    <span>💰</span>Payments
+  </button>
+
+  <button onclick="goProfile()">
+    <span>👤</span>Profile
+  </button>
+
 </nav>
 
+<!-- LOGOUT POPUP -->
 <div class="logout-overlay" id="logoutOverlay" onclick="closeLogoutPopup(event)">
+
   <div class="logout-popup" onclick="event.stopPropagation()">
+
     <div class="logout-icon">🚪</div>
-    <div class="logout-title">Are you sure you want to logout?</div>
-    <div class="logout-subtitle">Emergency Gas Cylinder</div>
-    <div class="logout-buttons">
-      <button type="button" class="logout-cancel-btn" onclick="closeLogoutPopup()">Cancel</button>
-      <button type="button" class="logout-confirm-btn" id="confirmLogoutBtn" onclick="confirmLogout()">Logout</button>
+
+    <div class="logout-title">
+      Are you sure you want to logout?
     </div>
+
+    <div class="logout-subtitle">
+      Emergency Gas Cylinder
+    </div>
+
+    <div class="logout-buttons">
+
+      <button
+        type="button"
+        class="logout-cancel-btn"
+        onclick="closeLogoutPopup()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="logout-confirm-btn"
+        id="confirmLogoutBtn"
+        onclick="confirmLogout()"
+      >
+        Logout
+      </button>
+
+    </div>
+
   </div>
+
 </div>
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+</body>
 
 <script>
 "use strict";
@@ -505,7 +888,7 @@ let pageBusy = false;
 let initialized = false;
 
 const INITIAL_PAYMENT_AMOUNT = 200;
-const DEFAULT_CYLINDER_AMOUNT = 890;
+const DEFAULT_CYLINDER_AMOUNT = 980;
 
 /* =========================================================
    BASIC HELPERS
@@ -950,34 +1333,32 @@ function isClosedRequest(request) {
 }
 
 function getLatestActiveRequest() {
-  if (!currentRequests.length) return null;
 
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem("egc_current_request") || "null"
-    );
-
-    const id = saved?.request_id || saved?.id;
-
-    if (id) {
-      const match = currentRequests.find(
-        r => String(r.id) === String(id)
-      );
-
-      if (match && !isRequestCancelled(match) &&
-          !isOwnerRejected(match)) {
-        return match;
-      }
-    }
-  } catch (e) {
-    console.warn("Saved request unavailable:", e);
+  if (!Array.isArray(currentRequests) || !currentRequests.length) {
+    return null;
   }
 
-  return (
-    currentRequests.find(
-      r => !isRequestCancelled(r) && !isOwnerRejected(r)
-    ) || null
-  );
+  // Latest request पहले से loadRequests() में sorted है।
+  // Cancelled, rejected और closed requests को छोड़ेंगे।
+
+  const runningRequests = currentRequests.filter(request => {
+
+    if (!request) return false;
+
+    if (isRequestCancelled(request)) return false;
+
+    if (isOwnerRejected(request)) return false;
+
+    if (isClosedRequest(request)) return false;
+
+    return true;
+
+  });
+
+  // केवल सबसे नई Running Request
+  return runningRequests.length
+    ? runningRequests[0]
+    : null;
 }
 
 function getRequestTotal(request) {
@@ -986,10 +1367,11 @@ function getRequestTotal(request) {
     firstNumber(
       request,
       [
-        "total_amount",
-        "finance_amount",
         "cylinder_amount",
-        "amount"
+        "request_amount",
+        "finance_amount",
+        "amount",
+        "total_amount"
       ],
       DEFAULT_CYLINDER_AMOUNT
     )
@@ -1369,83 +1751,97 @@ function calculateRemainingDaysToNextSlab(days) {
    PAYMENT CALCULATION
    EGC REPAYMENT BREAKDOWN
 ========================================================= */
-
 function calculateRequestPayment(request) {
-const total = getRequestTotal(request);
 
-const payments = getRequestPayments(request.id);
+  const total = getRequestTotal(request);
 
-// केवल Paid + Owner Approved payments गिने जाएंगे।
-const paid = payments
-.filter(paymentIsSuccessful)
-.reduce(
-(sum, payment) => sum + getPaymentAmount(payment),
-0
-);
+  const payments = getRequestPayments(request.id);
 
-const initialPayment = getInitialPayment(request.id);
+  // केवल successful और Owner-approved payments
+  // ही Paid Amount में शामिल होंगे।
+  const paid = payments
+    .filter(paymentIsSuccessful)
+    .reduce(
+      (sum, payment) => sum + getPaymentAmount(payment),
+      0
+    );
 
-const initialPaid =
-initialPayment && paymentIsSuccessful(initialPayment)
-? getPaymentAmount(initialPayment)
-: 0;
+  const initialPayment = getInitialPayment(request.id);
 
-const deliveryDate = getDeliveryDate(request);
+  const initialPaid =
+    initialPayment && paymentIsSuccessful(initialPayment)
+      ? getPaymentAmount(initialPayment)
+      : 0;
 
-const days = deliveryDate
-? calculateDaysSinceDelivery(deliveryDate)
-: null;
+  const deliveryDate = getDeliveryDate(request);
 
-// Original cylinder amount का balance
-const baseRemaining = Math.max(0, total - paid);
+  const days = deliveryDate
+    ? calculateDaysSinceDelivery(deliveryDate)
+    : null;
 
-// Delivery date के अनुसार Extra Charge
-const applicableExtraCharge = deliveryDate
-? calculateExtraCharge(days)
-: 0;
+  // Cylinder का वास्तविक बाकी पैसा
+  const baseRemaining = Math.max(
+    0,
+    total - paid
+  );
 
-// जब तक cylinder amount बाकी है, Extra Charge भी लागू होगा।
-const extraCharge =
-baseRemaining > 0
-? applicableExtraCharge
-: 0;
+  // Delivery date के अनुसार Extra Charge
+  const applicableExtraCharge = deliveryDate
+    ? calculateExtraCharge(days)
+    : 0;
 
-// Final outstanding amount
-const remaining = baseRemaining + extraCharge;
+  // पूरा भुगतान हो जाने पर Extra Charge नहीं लगेगा।
+  const extraCharge = baseRemaining > 0
+    ? applicableExtraCharge
+    : 0;
 
-return {
-total,
-paid,
-initialPaid,
-initialPayment,
-deliveryDate,
-days,
-applicableExtraCharge,
-extraCharge,
-baseRemaining,
-remaining
-};
+  // Principal + Extra Charge
+  const remaining = Math.max(
+    0,
+    baseRemaining + extraCharge
+  );
+
+  return {
+    total,
+    paid,
+    initialPaid,
+    initialPayment,
+    deliveryDate,
+    days,
+    applicableExtraCharge,
+    extraCharge,
+    baseRemaining,
+    remaining
+  };
 }
 
 function calculateSummary() {
+
+  // केवल वर्तमान Running Cylinder Request
+  const request = getLatestActiveRequest();
+
   let totalAmount = 0;
   let remainingAmount = 0;
   let paidAmount = 0;
   let successfulCount = 0;
 
-  currentRequests.forEach(request => {
-    const c = calculateRequestPayment(request);
+  if (request) {
 
-    totalAmount += c.total;
-    remainingAmount += c.remaining;
-  });
+    const calculation = calculateRequestPayment(request);
 
-  currentPayments.forEach(payment => {
-    if (!paymentIsSuccessful(payment)) return;
+    totalAmount = calculation.total;
 
-    paidAmount += getPaymentAmount(payment);
-    successfulCount++;
-  });
+remainingAmount = calculation.remaining;
+    paidAmount = calculation.paid;
+
+    // केवल इसी Running Request के successful payments
+    const requestPayments = getRequestPayments(request.id);
+
+    successfulCount = requestPayments.filter(
+      paymentIsSuccessful
+    ).length;
+
+  }
 
   const percentage = totalAmount > 0
     ? Math.min(
@@ -1455,12 +1851,19 @@ function calculateSummary() {
     : 0;
 
   setText("totalAmount", money(totalAmount));
+
   setText("paidAmount", money(paidAmount));
+
   setText("remainingAmount", money(remainingAmount));
+
   setText("successfulPayments", String(successfulCount));
+
   setText("overviewTotal", money(totalAmount));
+
   setText("overviewPaid", money(paidAmount));
+
   setText("overviewRemaining", money(remainingAmount));
+
   setText("paymentPercentage", percentage + "%");
 
   const bar = $("paymentProgressBar");
@@ -1551,40 +1954,37 @@ function requestCanAcceptPayment(request) {
 }
 
 function renderRequestSelector() {
+
   const select = $("paymentRequestSelect");
+
   if (!select) return;
 
-  const oldValue = select.value;
-  const eligible = currentRequests.filter(requestCanAcceptPayment);
+  const runningRequest = getLatestActiveRequest();
+
+  const eligible = runningRequest &&
+    requestCanAcceptPayment(runningRequest)
+      ? [runningRequest]
+      : [];
 
   if (!eligible.length) {
+
     select.innerHTML =
-      '<option value="">No eligible payment requests</option>';
+      '<option value="">No eligible payment request</option>';
 
     select.disabled = true;
+
     return;
   }
 
   select.disabled = false;
 
-  select.innerHTML = eligible.map(request =>
-    `<option value="${escapeHtml(request.id)}">${escapeHtml(
-      getRequestNumber(request)
-    )}</option>`
-  ).join("");
+  select.innerHTML = eligible.map(request => `
+    <option value="${escapeHtml(request.id)}">
+      ${escapeHtml(getRequestNumber(request))}
+    </option>
+  `).join("");
 
-  if (eligible.some(r => String(r.id) === String(oldValue))) {
-    select.value = oldValue;
-  } else {
-    const latest = getLatestActiveRequest();
-
-    if (
-      latest &&
-      eligible.some(r => String(r.id) === String(latest.id))
-    ) {
-      select.value = String(latest.id);
-    }
-  }
+  select.value = String(runningRequest.id);
 }
 
 function getSelectedPaymentRequest() {

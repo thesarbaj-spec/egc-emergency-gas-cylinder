@@ -605,8 +605,14 @@ function loadLpgDetails() {
         details.agency_id_value
     );
 
-    if (!state || !district || !city || !company || !agencyId) {
-        savedLpgDetails = null;
+if (
+    !state ||
+    !district ||
+    !city ||
+    !company ||
+    !agencyId ||
+    !normalize(details.pricing_id)
+) {        savedLpgDetails = null;
 
         if (noDetailsBox) noDetailsBox.style.display = "block";
 
@@ -1086,6 +1092,49 @@ if (mobileInput) {
     });
 }
 
+async function checkCustomerEligibility(user) {
+
+    if (!savedLpgDetails) {
+        throw new Error("LPG Details उपलब्ध नहीं हैं।");
+    }
+
+    const agencyId = normalize(savedLpgDetails.agency_id);
+    const pricingId = normalize(savedLpgDetails.pricing_id);
+
+    if (!isValidUuid(agencyId)) {
+        throw new Error("LPG Agency ID सही नहीं है।");
+    }
+
+    if (!isValidUuid(pricingId)) {
+        throw new Error("Cylinder Pricing ID नहीं मिली। LPG Details दोबारा चुनें।");
+    }
+
+    const { data, error } = await egcSupabase.rpc(
+        "egc_check_customer_eligibility",
+        {
+            p_agency_id: agencyId,
+            p_pricing_id: pricingId
+        }
+    );
+
+    if (error) {
+        console.error("Eligibility check failed:", error);
+        throw new Error(
+            "Eligibility Check नहीं हो पाया: " + error.message
+        );
+    }
+
+    if (!data || data.eligible !== true) {
+        throw new Error(
+            data && data.reason
+                ? data.reason
+                : "आप अभी Cylinder Request के लिए Eligible नहीं हैं।"
+        );
+    }
+
+    return data;
+}
+
 /* Save personal details temporarily */
 
 function savePersonalDetails() {
@@ -1118,7 +1167,12 @@ function savePersonalDetails() {
 
 /* Form validation */
 
+/* =========================================================
+   FORM VALIDATION - FIXED
+========================================================= */
+
 function validateForm() {
+
     if (!savedLpgDetails) {
         showMessage(
             "Saved LPG Details नहीं मिलीं। पहले LPG Details page पूरा करें।",
@@ -1131,31 +1185,60 @@ function validateForm() {
     const mobile = normalize(mobileInput.value);
     const email = normalize(emailInput.value);
     const address = normalize(addressInput.value);
+// LPG Booking Number
+const bookingNumber = normalize(bookingNumberInput.value);
 
+if (!bookingNumber) {
+    showMessage("कृपया अपना LPG Booking Number भरें।", "error");
+    bookingNumberInput.focus();
+    return false;
+}    
+
+    // Full Name
     if (!fullName) {
         showMessage("कृपया अपना Full Name भरें।", "error");
         fullNameInput.focus();
         return false;
     }
 
+    // Mobile Number
     if (!/^\d{10}$/.test(mobile)) {
-        showMessage("कृपया सही 10-digit Mobile Number भरें।", "error");
+        showMessage(
+            "कृपया सही 10-digit Mobile Number भरें।",
+            "error"
+        );
         mobileInput.focus();
         return false;
     }
 
+    // Email Address - Regex Fixed
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showMessage("कृपया सही Email Address भरें।", "error");
+        showMessage(
+            "कृपया सही Email Address भरें।",
+            "error"
+        );
         emailInput.focus();
         return false;
     }
 
+    // Address
     if (!address) {
         showMessage("कृपया अपना Address भरें।", "error");
         addressInput.focus();
         return false;
     }
 
+    // LPG Booking Number
+    if (!bookingNumber) {
+        showMessage(
+            "कृपया अपना LPG Booking Number भरें।",
+            "error"
+        );
+        bookingNumberInput.focus();
+        return false;
+    }
+
+    // Required Documents
     const requiredDocuments = [
         ["profile", "Profile Photo"],
         ["passbook", "Gas Passbook photo"],
@@ -1164,13 +1247,18 @@ function validateForm() {
     ];
 
     for (const [target, label] of requiredDocuments) {
+
         if (!safeLocalGet(imageKeys[target])) {
-            showMessage("कृपया " + label + " upload या capture करें।", "error");
+            showMessage(
+                "कृपया " + label + " upload या capture करें।",
+                "error"
+            );
             return false;
         }
     }
 
-    if (!confirmCheck.checked) {
+    // Confirmation
+    if (!confirmCheck || !confirmCheck.checked) {
         showMessage(
             "आगे बढ़ने से पहले information की पुष्टि करें।",
             "error"
@@ -1283,6 +1371,9 @@ async function saveProfileToSupabase(user, personal, paths) {
         lpg_company: lpg.company || null,
         agency_id: agencyId,
 
+        booking_number: personal.booking_number,
+        verification_status: "pending",
+
         gas_passbook_photo: paths.passbook || null,
         aadhaar_front_photo: paths.aadhaarFront || null,
         aadhaar_back_photo: paths.aadhaarBack || null,
@@ -1349,12 +1440,15 @@ async function saveVerificationHandoff(user, personal, paths) {
 /* Continue: save and navigate to scheme.html */
 
 if (continueBtn) {
+
     continueBtn.addEventListener("click", async function() {
+
         if (isSaving) return;
 
         clearMessage();
 
         if (!loadLpgDetails()) return;
+
         if (!validateForm()) return;
 
         if (!SUPABASE_READY || !egcSupabase) {
@@ -1367,11 +1461,21 @@ if (continueBtn) {
 
         isSaving = true;
         continueBtn.disabled = true;
-        continueBtn.textContent = "SAVING...";
+        continueBtn.textContent = "CHECKING...";
 
         try {
+
             const user = await getAuthenticatedUser();
 
+            showMessage(
+                "Customer Eligibility और LPG Connection जाँचे जा रहे हैं...",
+                "info"
+            );
+
+            // 1. Check Agency, Pricing, Stock and Previous Outstanding.
+            await checkCustomerEligibility(user);
+
+            // 2. Save personal information.
             const personal = savePersonalDetails();
 
             showMessage(
@@ -1379,30 +1483,36 @@ if (continueBtn) {
                 "info"
             );
 
+            // 3. Upload all documents.
             const paths = await uploadAllDocuments(user.id);
 
             showMessage(
-                "Profile information save हो रही है...",
+                "Customer Profile save हो रही है...",
                 "info"
             );
 
+            // 4. Save profile in Supabase.
             await saveProfileToSupabase(user, personal, paths);
+
+            // 5. Save verification handoff.
             await saveVerificationHandoff(user, personal, paths);
 
             showMessage(
-                "Verification details save हो गई हैं। Scheme page खोला जा रहा है...",
+                "Verification Details सफलतापूर्वक save हो गई हैं।",
                 "success"
             );
 
             continueBtn.textContent = "SAVED ✓";
 
-            // Remove temporary image data only after successful uploads and saves.
+            // Clear temporary images only after successful save.
             for (const key of Object.values(imageKeys)) {
+
                 try {
                     localStorage.removeItem(key);
                 } catch (error) {
                     console.warn(error);
                 }
+
             }
 
             setTimeout(function() {
@@ -1410,12 +1520,16 @@ if (continueBtn) {
             }, 700);
 
         } catch (error) {
-            console.error("Verification submission failed:", error);
+
+            console.error(
+                "Verification submission failed:",
+                error
+            );
 
             showMessage(
                 error && error.message
                     ? error.message
-                    : "Verification save नहीं हो पाई। कृपया फिर प्रयास करें।",
+                    : "Verification पूरी नहीं हो पाई। कृपया फिर प्रयास करें।",
                 "error"
             );
 
@@ -1423,9 +1537,13 @@ if (continueBtn) {
             continueBtn.textContent = "CONTINUE →";
 
         } finally {
+
             isSaving = false;
+
         }
+
     });
+
 }
 
 /* Navigation */

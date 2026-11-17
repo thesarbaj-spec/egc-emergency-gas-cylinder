@@ -250,6 +250,84 @@ select:disabled{background:#f5f8fa;color:#91a2ae;cursor:not-allowed}
                 <div id="agencyStatus" class="agency-status" aria-live="polite"></div>
             </div>
 
+            <!-- CYLINDER SELECTION -->
+<div class="form-group full" id="cylinderSection" style="display:none;">
+
+    <label for="cylinderPricing">
+        Select Cylinder
+    </label>
+
+    <select id="cylinderPricing" name="cylinder-pricing" disabled>
+        <option value="">Select Cylinder</option>
+    </select>
+
+    <div id="cylinderDetails" style="
+        display:none;
+        margin-top:14px;
+        padding:16px;
+        border:1px solid #dce8f3;
+        border-radius:12px;
+        background:#f7fbff;
+    ">
+
+        <div style="font-size:15px;font-weight:900;color:#06477f;margin-bottom:12px;">
+            Cylinder Details
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+            <div>
+                <small>Cylinder Type</small>
+                <div id="selectedCylinderType">—</div>
+            </div>
+
+            <div>
+                <small>Cylinder Weight</small>
+                <div id="selectedCylinderWeight">—</div>
+            </div>
+
+            <div>
+                <small>Cylinder Price</small>
+                <div id="selectedCylinderPrice">—</div>
+            </div>
+
+            <div>
+                <small>Advance Amount</small>
+                <div id="selectedAdvanceAmount">—</div>
+            </div>
+
+            <div>
+                <small>Stock Status</small>
+                <div id="selectedStockStatus">—</div>
+            </div>
+
+            <div>
+                <small>Available Quantity</small>
+                <div id="selectedStockQuantity">—</div>
+            </div>
+
+        </div>
+
+        <div style="margin-top:14px;border-top:1px solid #dce8f3;padding-top:12px;">
+
+            <strong style="color:#06477f;">Extra Charges</strong>
+
+            <div style="font-size:12px;line-height:1.9;margin-top:6px;">
+                Delivery Day: ₹20<br>
+                1–10 Days: ₹50<br>
+                11–15 Days: ₹60<br>
+                16–30 Days: ₹80<br>
+                31+ Days: ₹100
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="cylinderStatus" class="agency-status" aria-live="polite"></div>
+
+</div>
+
         </div>
 
         <div class="info">
@@ -344,7 +422,20 @@ const agencyStatus = document.getElementById("agencyStatus");
 const continueBtn = document.getElementById("continueBtn");
 const message = document.getElementById("message");
 const backBtn = document.getElementById("backBtn");
+const cylinderSection = document.getElementById("cylinderSection");
+const cylinderPricingSelect = document.getElementById("cylinderPricing");
+const cylinderDetails = document.getElementById("cylinderDetails");
+const cylinderStatus = document.getElementById("cylinderStatus");
 
+const selectedCylinderType = document.getElementById("selectedCylinderType");
+const selectedCylinderWeight = document.getElementById("selectedCylinderWeight");
+const selectedCylinderPrice = document.getElementById("selectedCylinderPrice");
+const selectedAdvanceAmount = document.getElementById("selectedAdvanceAmount");
+const selectedStockStatus = document.getElementById("selectedStockStatus");
+const selectedStockQuantity = document.getElementById("selectedStockQuantity");
+
+let agencyPricingList = [];
+let selectedPricing = null;
 /* =========================================================
    HELPERS
 ========================================================= */
@@ -654,6 +745,35 @@ async function saveDetails() {
     const company = companySelect.value.trim();
     const agencyId = agencySelect.value;
 
+    if (!selectedPricing || !cylinderPricingSelect.value) {
+    showMessage("Please select an available cylinder.", "error");
+    return false;
+}
+
+if (String(selectedPricing.agency_id) !== String(agencyId)) {
+    showMessage("Invalid cylinder selection. Please select again.", "error");
+    return false;
+}
+
+const stockStatus = String(selectedPricing.stock_status || "").toLowerCase();
+
+if (
+    stockStatus !== "available" ||
+    (
+        selectedPricing.stock_quantity !== null &&
+        selectedPricing.stock_quantity !== undefined &&
+        Number(selectedPricing.stock_quantity) <= 0
+    )
+) {
+    showMessage("This cylinder is currently out of stock.", "error");
+    return false;
+}
+
+if (!agencyId) {
+    showMessage("Please select an LPG agency.", "error");
+    return;
+}
+    
     if (!state) {
         showMessage("Please select your State.", "error");
         return false;
@@ -696,6 +816,16 @@ async function saveDetails() {
         agency_code: selectedAgency.dataset.code || "",
         agency_mobile: selectedAgency.dataset.mobile || "",
         agency_address: selectedAgency.dataset.address || "",
+            pricing_id: selectedPricing.id,
+    cylinder_type: selectedPricing.cylinder_type,
+    cylinder_weight: selectedPricing.cylinder_weight,
+    cylinder_price: selectedPricing.cylinder_price,
+    advance_amount: selectedPricing.advance_amount,
+    extra_charge_1_10: selectedPricing.extra_charge_1_10,
+    extra_charge_11_15: selectedPricing.extra_charge_11_15,
+    extra_charge_16_30: selectedPricing.extra_charge_16_30,
+    extra_charge_31_plus: selectedPricing.extra_charge_31_plus,
+    pricing_saved_at: new Date().toISOString(),
         saved_at: new Date().toISOString()
     };
 
@@ -725,43 +855,93 @@ async function saveDetails() {
 }
 
 /* =========================================================
-   CONTINUE BUTTON
+CONTINUE BUTTON - FIXED
 ========================================================= */
 
-continueBtn.addEventListener("click", async function() {
-    if (continueBtn.disabled) return;
+continueBtn.addEventListener("click", async function () {
 
-    clearMessage();
+if (continueBtn.disabled) return;
 
-    continueBtn.disabled = true;
-    continueBtn.textContent = "SAVING...";
+clearMessage();
 
-    try {
-        const saved = await saveDetails();
+// IMPORTANT: agencyId must be defined inside this function
+const agencyId = agencySelect.value;
 
-        if (saved) {
-            showMessage(
-                "LPG details prepared successfully. Opening verification...",
-                "success"
-            );
+if (!agencyId) {
+    showMessage("Please select your LPG Agency.", "error");
+    return;
+}
 
-            setTimeout(() => {
-                window.location.href = "verification.html";
-            }, 500);
+// Check cylinder selection BEFORE saving details
+if (!selectedPricing || !cylinderPricingSelect.value) {
+    showMessage("Please select an available cylinder.", "error");
+    return;
+}
 
-        } else {
-            continueBtn.disabled = false;
-            continueBtn.textContent = "CONTINUE →";
-        }
+// Verify selected pricing belongs to selected agency
+if (String(selectedPricing.agency_id) !== String(agencyId)) {
+    showMessage(
+        "Invalid cylinder selection. Please select again.",
+        "error"
+    );
+    return;
+}
 
-    } catch (error) {
-        console.error("Continue error:", error);
+// Check current stock
+const stockStatus = String(
+    selectedPricing.stock_status || ""
+).toLowerCase();
 
-        showMessage("Something went wrong. Please try again.", "error");
+if (
+    stockStatus !== "available" ||
+    (
+        selectedPricing.stock_quantity !== null &&
+        selectedPricing.stock_quantity !== undefined &&
+        Number(selectedPricing.stock_quantity) <= 0
+    )
+) {
+    showMessage(
+        "This cylinder is currently out of stock.",
+        "error"
+    );
+    return;
+}
 
+continueBtn.disabled = true;
+continueBtn.textContent = "SAVING...";
+
+try {
+
+    const saved = await saveDetails();
+
+    if (!saved) {
         continueBtn.disabled = false;
         continueBtn.textContent = "CONTINUE →";
+        return;
     }
+
+    showMessage(
+        "LPG details prepared successfully. Opening verification...",
+        "success"
+    );
+
+    setTimeout(function () {
+        window.location.href = "verification.html";
+    }, 500);
+
+} catch (error) {
+
+    console.error("Continue error:", error);
+
+    showMessage(
+        "Something went wrong. Please try again.",
+        "error"
+    );
+
+    continueBtn.disabled = false;
+    continueBtn.textContent = "CONTINUE →";
+}
+
 });
 
 /* =========================================================
@@ -781,7 +961,20 @@ districtSelect.addEventListener("change", function() {
 citySelect.addEventListener("change", loadAgencies);
 companySelect.addEventListener("change", loadAgencies);
 
-agencySelect.addEventListener("change", clearMessage);
+agencySelect.addEventListener("change", function() {
+
+    clearMessage();
+
+    resetCylinderSelection();
+
+    loadAgencyPricing();
+
+});
+
+cylinderPricingSelect.addEventListener(
+    "change",
+    showSelectedCylinder
+);
 
 /* =========================================================
    BACK BUTTON
@@ -790,6 +983,191 @@ agencySelect.addEventListener("change", clearMessage);
 backBtn.addEventListener("click", function() {
     window.location.href = "dashboard.html";
 });
+
+/* =========================================================
+   LOAD AGENCY CYLINDER PRICING
+========================================================= */
+
+function resetCylinderSelection(messageText = "Select LPG Agency first") {
+
+    agencyPricingList = [];
+    selectedPricing = null;
+
+    cylinderSection.style.display = "none";
+
+    cylinderPricingSelect.innerHTML =
+        '<option value="">Select Cylinder</option>';
+
+    cylinderPricingSelect.disabled = true;
+
+    cylinderDetails.style.display = "none";
+
+    cylinderStatus.textContent = messageText;
+    cylinderStatus.className = "agency-status";
+}
+
+
+async function loadAgencyPricing() {
+
+    resetCylinderSelection("Loading cylinder options...");
+
+    const agencyId = agencySelect.value;
+
+    if (!agencyId || !supabaseClient) {
+        return;
+    }
+
+    cylinderSection.style.display = "block";
+
+    try {
+
+        const { data, error } = await supabaseClient
+            .from("agency_pricing")
+            .select(`
+                id,
+                agency_id,
+                cylinder_price,
+                advance_amount,
+                extra_charge_1_10,
+                extra_charge_11_15,
+                extra_charge_16_30,
+                extra_charge_31_plus,
+                cylinder_type,
+                cylinder_weight,
+                stock_status,
+                stock_quantity,
+                is_active
+            `)
+            .eq("agency_id", agencyId)
+            .eq("is_active", true)
+            .order("cylinder_weight", { ascending: true });
+
+        if (error) throw error;
+
+        if (agencySelect.value !== agencyId) return;
+
+        agencyPricingList = Array.isArray(data) ? data : [];
+
+        cylinderPricingSelect.innerHTML =
+            '<option value="">Select Cylinder Type and Weight</option>';
+
+        if (!agencyPricingList.length) {
+
+            cylinderPricingSelect.disabled = true;
+
+            cylinderStatus.textContent =
+                "No active cylinder pricing available for this agency.";
+
+            cylinderStatus.classList.add("error");
+
+            return;
+        }
+
+        agencyPricingList.forEach(pricing => {
+
+            const option = document.createElement("option");
+
+            option.value = pricing.id;
+
+            const type = pricing.cylinder_type || "Cylinder";
+
+            const weight = pricing.cylinder_weight
+                ? pricing.cylinder_weight + " KG"
+                : "Weight not specified";
+
+            const price = Number(pricing.cylinder_price || 0);
+
+            const stockStatus = String(
+                pricing.stock_status || ""
+            ).toLowerCase();
+
+            const quantity = pricing.stock_quantity;
+
+            const outOfStock =
+                stockStatus !== "available" ||
+                (quantity !== null && Number(quantity) <= 0);
+
+            option.textContent =
+                `${type} • ${weight} • ₹${price.toFixed(2)}` +
+                (outOfStock ? " • OUT OF STOCK" : " • AVAILABLE");
+
+            option.disabled = outOfStock;
+
+            cylinderPricingSelect.appendChild(option);
+
+        });
+
+        cylinderPricingSelect.disabled = false;
+
+        cylinderSection.style.display = "block";
+
+        cylinderStatus.textContent =
+            "Select your required cylinder.";
+
+        cylinderStatus.className = "agency-status success";
+
+    } catch (error) {
+
+        console.error("Agency pricing error:", error);
+
+        resetCylinderSelection("Unable to load cylinder pricing.");
+
+        showMessage(
+            "Cylinder pricing load nahi ho paayi.\n\n" +
+            (error.message || "Supabase error"),
+            "error"
+        );
+    }
+}
+
+/* =========================================================
+   DISPLAY SELECTED CYLINDER
+========================================================= */
+
+function showSelectedCylinder() {
+
+    const pricingId = cylinderPricingSelect.value;
+
+    selectedPricing = agencyPricingList.find(
+        item => String(item.id) === String(pricingId)
+    ) || null;
+
+    if (!selectedPricing) {
+
+        cylinderDetails.style.display = "none";
+
+        return;
+    }
+
+    const pricing = selectedPricing;
+
+    selectedCylinderType.textContent =
+        pricing.cylinder_type || "—";
+
+    selectedCylinderWeight.textContent =
+        pricing.cylinder_weight
+            ? pricing.cylinder_weight + " KG"
+            : "—";
+
+    selectedCylinderPrice.textContent =
+        "₹" + Number(pricing.cylinder_price).toFixed(2);
+
+    selectedAdvanceAmount.textContent =
+        "₹" + Number(pricing.advance_amount).toFixed(2);
+
+    selectedStockStatus.textContent =
+        pricing.stock_status === "available"
+            ? "Available"
+            : "Out of Stock";
+
+    selectedStockQuantity.textContent =
+        pricing.stock_quantity === null ||
+        pricing.stock_quantity === undefined
+            ? "Not specified"
+            : pricing.stock_quantity;
+
+    cylinderDetails.style.display = "block";
+}
 
 /* =========================================================
    START PAGE
@@ -813,6 +1191,8 @@ function initializePage() {
 
     continueBtn.disabled = false;
     continueBtn.textContent = "CONTINUE →";
+
+    resetCylinderSelection("Select LPG Agency first");
 }
 
 initializePage();
