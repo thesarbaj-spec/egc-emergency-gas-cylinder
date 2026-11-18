@@ -2429,6 +2429,54 @@ window.addEventListener("pageshow", event => {
 });
 
 initDashboard();
+/* =========================================
+   RECOVER NOORI MISSING ORIGINAL E-SLIP
+========================================= */
+
+async function recoverNooriSlip() {
+
+    try {
+
+        const {
+            data: { user },
+            error: authError
+        } = await supabaseClient.auth.getUser();
+
+        if (authError || !user) {
+            throw new Error("Please login to Owner Panel first.");
+        }
+
+        console.log("Checking Owner session...");
+
+        const { data, error } = await supabaseClient.rpc(
+            "owner_recover_missing_initial_slip",
+            {
+                p_payment_id: "32d78bc1-55be-45cb-8739-a537830ee547"
+            }
+        );
+
+        if (error) {
+            throw error;
+        }
+
+        console.log("NOORI SLIP RECOVERY RESULT:", data);
+
+        alert(
+            data.already_exists
+                ? "Noori's Original Slip already exists."
+                : "Noori's Original E-Slip recovered successfully!"
+        );
+
+        return data;
+
+    } catch (error) {
+
+        console.error("NOORI SLIP RECOVERY ERROR:", error);
+
+        alert("Slip Recovery Failed: " + error.message);
+
+    }
+}
 </script>
 </body>
 </html>

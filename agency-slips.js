@@ -2,8 +2,8 @@
 
 /* =========================================================
    EGC AGENCY SLIPS
-   One slip per unique cylinder request
-   Supabase + Customer Profiles + Payments + Print
+   Original Customer E-Slip Integration
+   Same Original Slip Number + Verification Code
    ========================================================= */
 
 const SUPABASE_URL =
@@ -53,16 +53,18 @@ let agencyId = null;
 
 let requestRecords = [];
 let paymentRecords = [];
-let profileMap = {};
+let profileMap = Object.create(null);
 
 let allSlips = [];
 let filteredSlips = [];
+let originalSlipRecords = [];
+
 let selectedSlip = null;
 
 let pageInitialized = false;
 let loadingSlips = false;
 let signingOut = false;
-// LATEST ACTIVITY + REALTIME
+
 let slipsRealtimeChannel = null;
 let realtimeRefreshTimer = null;
 let realtimeReloadPending = false;
@@ -126,18 +128,11 @@ function statusClass(value) {
         return "status-approved";
     }
 
-    if ([
-        "paid",
-        "success",
-        "successful"
-    ].includes(status)) {
+    if (["paid", "success", "successful"].includes(status)) {
         return "status-paid";
     }
 
-    if ([
-        "completed",
-        "delivered"
-    ].includes(status)) {
+    if (["completed", "delivered"].includes(status)) {
         return "status-completed";
     }
 
@@ -160,20 +155,7 @@ function statusClass(value) {
         return "status-processing";
     }
 
-    if ([
-        "pending",
-        "pending_approval",
-        "waiting",
-        "on_hold",
-        "hold",
-        "submitted",
-        "under_review",
-        "pending_verification"
-    ].includes(status)) {
-        return "status-pending";
-    }
-
-    return "status-default";
+    return "status-pending";
 }
 
 function formatMoney(value) {
@@ -182,7 +164,7 @@ function formatMoney(value) {
     return "₹" + (
         Number.isFinite(amount) ? amount : 0
     ).toLocaleString("en-IN", {
-        minimumFractionDigits: 0,
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
 }
@@ -248,9 +230,7 @@ function showToast(message, type = "") {
 }
 
 /* =========================================================
-   CUSTOMER PROFILE MAPPING
-
-   cylinder_requests.user_id = profiles.id
+   CUSTOMER PROFILE HELPERS
    ========================================================= */
 
 function getRequestUserId(request) {
@@ -269,39 +249,39 @@ function getCustomerProfile(request) {
     return userId ? profileMap[userId] || null : null;
 }
 
-function getCustomerName(request) {
+function getCustomerName(request, originalSlip = null) {
     const profile = getCustomerProfile(request);
 
     return String(firstValue(
+        originalSlip?.user_name,
         request?.customer_name,
         request?.full_name,
         profile?.full_name,
         profile?.customer_name,
         profile?.name,
         profile?.display_name,
-        profile?.email,
         "Customer"
     ));
 }
 
-function getCustomerEGCCode(request) {
+function getCustomerEGCCode(request, originalSlip = null) {
     const profile = getCustomerProfile(request);
 
     return String(firstValue(
+        originalSlip?.user_code,
         request?.egc_user_code,
-        request?.egc_user_id,
         profile?.user_code,
         profile?.egc_user_code,
         profile?.egc_user_id,
-        profile?.egc_id,
         "Not assigned"
     ));
 }
 
-function getCustomerMobile(request) {
+function getCustomerMobile(request, originalSlip = null) {
     const profile = getCustomerProfile(request);
 
     return String(firstValue(
+        originalSlip?.mobile,
         request?.customer_mobile,
         request?.mobile,
         request?.mobile_number,
@@ -325,100 +305,68 @@ function getCustomerEmail(request) {
     ));
 }
 
+function getCustomerAddress(request) {
+    return String(firstValue(
+        request?.address,
+        request?.customer_address,
+        request?.full_address,
+        "—"
+    ));
+}
+
 /* =========================================================
    REQUEST HELPERS
    ========================================================= */
 
-function getRequestNumber(request) {
+function getRequestNumber(request, originalSlip = null) {
     return String(firstValue(
+        originalSlip?.request_number_snapshot,
         request?.request_number,
         request?.request_no,
-        request?.request_id_number,
         request?.request_code,
-        request?.reference_number,
-        request?.reference_no,
         request?.id,
         "—"
     ));
 }
 
-/*
-   Stable slip number:
-   same request always gets the same slip number.
-   No random number is generated on page refresh.
-*/
-
-function getRequestSlipNumber(request) {
-    const existing = firstValue(
-        request?.request_slip_number,
-        request?.request_slip_no,
-        request?.slip_number,
-        request?.slip_no
-    );
-
-    if (existing) return String(existing);
-
-    const requestNumber = getRequestNumber(request);
-
-    if (requestNumber !== "—") {
-        return "REQ-SLIP-" + requestNumber;
-    }
-
-    return "REQ-SLIP-" +
-        String(request?.id || "UNKNOWN")
-            .slice(0, 8)
-            .toUpperCase();
-}
-
-function getRequestDate(request) {
-    return firstValue(
-        request?.request_date,
-        request?.created_at,
-        request?.requested_at,
-        request?.updated_at,
-        ""
-    );
-}
-
 function getRequestStatus(request) {
     return firstValue(
-        request?.owner_approval,
-        request?.request_approval,
-        request?.approval_status,
-        request?.user_status,
         request?.status,
+        request?.user_status,
         request?.request_status,
         "pending"
     );
 }
 
-function getAgencyStatus(request) {
-    return firstValue(request?.agency_status, "waiting");
+function getAgencyStatus(request, originalSlip = null) {
+    return firstValue(
+        request?.agency_status,
+        originalSlip?.slip_status,
+        "waiting"
+    );
 }
 
-function getDeliveryStatus(request) {
+function getDeliveryStatus(request, originalSlip = null) {
     return firstValue(
         request?.delivery_status,
-        request?.delivery_state,
+        originalSlip?.delivery_status,
         "pending"
     );
 }
 
-function getLPGCompany(request) {
+function getLPGCompany(request, originalSlip = null) {
     return firstValue(
+        originalSlip?.lpg_company,
         request?.lpg_company,
         request?.company,
         request?.gas_company,
-        request?.lpg_provider,
-        request?.company_name,
         "—"
     );
 }
 
-function getLPGAgencyName(request) {
+function getLPGAgencyName(request, originalSlip = null) {
     return firstValue(
-        request?.lpg_agency_name,
-        request?.lpg_agency,
+        originalSlip?.agency_name,
         request?.agency_name,
         currentAgency?.agency_name,
         currentAgency?.name,
@@ -427,16 +375,48 @@ function getLPGAgencyName(request) {
     );
 }
 
-function getRequestAmount(request) {
-    const amount = Number(firstValue(
-        request?.total_payable,
-        request?.total_amount,
-        request?.cylinder_amount,
-        request?.amount,
-        0
-    ));
+function getCylinderType(request) {
+    return firstValue(
+        request?.cylinder_type,
+        request?.cylinder_category,
+        request?.gas_type,
+        request?.product_type,
+        "—"
+    );
+}
 
-    return Number.isFinite(amount) ? amount : 0;
+function getCylinderWeight(request) {
+    const weight = firstValue(
+        request?.cylinder_weight,
+        request?.weight,
+        request?.cylinder_size,
+        request?.cylinder_capacity,
+        request?.weight_kg,
+        ""
+    );
+
+    if (!weight) return "—";
+
+    const value = String(weight).trim();
+
+    return /kg/i.test(value) ? value : value + " KG";
+}
+
+function getSlipDate(originalSlip) {
+    return firstValue(
+        originalSlip?.created_at,
+        originalSlip?.approved_at,
+        ""
+    );
+}
+
+function getDeliveryDate(request, originalSlip) {
+    return firstValue(
+        request?.delivery_date,
+        request?.delivered_at,
+        originalSlip?.delivered_at,
+        ""
+    );
 }
 
 /* =========================================================
@@ -447,8 +427,6 @@ function getPaymentRequestId(payment) {
     return String(firstValue(
         payment?.request_id,
         payment?.cylinder_request_id,
-        payment?.cylinderRequestId,
-        payment?.requestId,
         ""
     )).trim();
 }
@@ -458,7 +436,6 @@ function getPaymentRequestNumber(payment) {
         payment?.request_number,
         payment?.request_no,
         payment?.cylinder_request_number,
-        payment?.cylinder_request_no,
         ""
     )).trim();
 }
@@ -482,62 +459,44 @@ function getPaymentApprovalStatus(payment) {
 
 function getPaymentDate(payment) {
     return firstValue(
-        payment?.paid_at,
         payment?.payment_date,
         payment?.created_at,
-        payment?.submitted_at,
-        payment?.updated_at,
+        payment?.verified_at,
         ""
     );
 }
 
 function getPaymentAmount(payment) {
     const amount = Number(firstValue(
-        payment?.amount,
         payment?.payment_amount,
+        payment?.amount,
         payment?.paid_amount,
-        payment?.total_amount,
         0
     ));
 
     return Number.isFinite(amount) ? amount : 0;
 }
 
-function getPaymentSlipNumber(payment) {
-    const existing = firstValue(
-        payment?.payment_slip_number,
-        payment?.payment_slip_no,
-        payment?.slip_number,
-        payment?.slip_no,
-        payment?.payment_number
-    );
-
-    if (existing) {
-        return String(existing).startsWith("PAY-SLIP-")
-            ? String(existing)
-            : "PAY-SLIP-" + existing;
-    }
-
-    const reference = firstValue(
-        payment?.transaction_id,
-        payment?.payment_transaction_id,
-        payment?.id,
-        "UNKNOWN"
-    );
-
-    return "PAY-SLIP-" +
-        String(reference).slice(0, 8).toUpperCase();
+function getPaymentType(payment) {
+    return statusText(firstValue(
+        payment?.payment_type,
+        "Payment"
+    ));
 }
 
-/*
-   Same approval condition used by agency-cylinder-requests.js.
-*/
+function getPaymentTransactionId(payment, originalSlip = null) {
+    return firstValue(
+        originalSlip?.transaction_id,
+        payment?.transaction_id,
+        payment?.payment_reference,
+        "—"
+    );
+}
 
 function isPaymentApproved(payment) {
     if (!payment) return false;
 
     const status = normalizeStatus(getPaymentStatus(payment));
-
     const approval = normalizeStatus(
         getPaymentApprovalStatus(payment)
     );
@@ -548,62 +507,15 @@ function isPaymentApproved(payment) {
     );
 }
 
-/*
-   A payment is linked by request ID first.
-   Request number is only a fallback.
-*/
-
-function findRequestForPayment(payment, requests) {
-    const paymentRequestId = normalizedIdentifier(
-        getPaymentRequestId(payment)
-    );
-
-    if (paymentRequestId) {
-        const byId = (requests || []).find(request =>
-            normalizedIdentifier(request.id) === paymentRequestId
-        );
-
-        if (byId) return byId;
-    }
-
-    const paymentRequestNumber = normalizedIdentifier(
-        getPaymentRequestNumber(payment)
-    );
-
-    if (paymentRequestNumber) {
-        return (requests || []).find(request =>
-            normalizedIdentifier(getRequestNumber(request)) ===
-            paymentRequestNumber
-        ) || null;
-    }
-
-    return null;
-}
-
 function getPaymentsForRequest(request) {
     const requestId = normalizedIdentifier(request?.id);
-    const requestNumber = normalizedIdentifier(
-        getRequestNumber(request)
-    );
 
     return paymentRecords.filter(payment => {
         const paymentRequestId = normalizedIdentifier(
             getPaymentRequestId(payment)
         );
 
-        if (paymentRequestId && requestId) {
-            return paymentRequestId === requestId;
-        }
-
-        const paymentRequestNumber = normalizedIdentifier(
-            getPaymentRequestNumber(payment)
-        );
-
-        return Boolean(
-            requestNumber &&
-            paymentRequestNumber &&
-            requestNumber === paymentRequestNumber
-        );
+        return paymentRequestId === requestId;
     }).sort((a, b) =>
         getTimestamp(getPaymentDate(b)) -
         getTimestamp(getPaymentDate(a))
@@ -611,44 +523,128 @@ function getPaymentsForRequest(request) {
 }
 
 /* =========================================================
-   LATEST ACTIVITY SORTING
+   ORIGINAL CUSTOMER E-SLIPS
+   ========================================================= */
 
-   Request + Customer Profile + Payments
-   Latest activity वाला Slip सबसे ऊपर रहेगा.
+async function loadOriginalRequestSlips(requests) {
+    const requestIds = [
+        ...new Set(
+            (requests || [])
+                .map(request => String(request.id || "").trim())
+                .filter(Boolean)
+        )
+    ];
+
+    if (!requestIds.length) return [];
+
+    const result = [];
+    const batchSize = 100;
+
+    for (let i = 0; i < requestIds.length; i += batchSize) {
+        const batch = requestIds.slice(i, i + batchSize);
+
+        const { data, error } = await supabaseClient
+            .from("request_slips")
+            .select("*")
+            .in("request_id", batch)
+            .in("slip_type", [
+                "standard",
+                "historical_recovery"
+            ])
+            .eq("slip_status", "active");
+
+        if (error) {
+            throw new Error(
+                "Original Slips load failed: " + error.message
+            );
+        }
+
+        result.push(...(data || []));
+    }
+
+    console.log("Loaded Original Slips:", result);
+
+    return result;
+}
+
+function getOriginalSlipForPayment(request, payment) {
+    if (!request?.id || !payment?.id) return null;
+
+    return originalSlipRecords.find(slip =>
+        String(slip.request_id) === String(request.id) &&
+        String(slip.payment_id) === String(payment.id) &&
+        normalizeStatus(slip.slip_status) === "active" &&
+        ["standard", "historical_recovery"].includes(
+            normalizeStatus(slip.slip_type)
+        )
+    ) || null;
+}
+
+/* =========================================================
+   PAYMENT / ORIGINAL SLIP MATCHING
+   ========================================================= */
+function getOriginalSlipForRequest(request, approvedPayments) {
+    if (!request?.id) return null;
+
+    const requestSlips = originalSlipRecords.filter(slip =>
+        String(slip.request_id) === String(request.id) &&
+        normalizeStatus(slip.slip_status) === "active" &&
+        [
+            "standard",
+            "historical_recovery"
+        ].includes(normalizeStatus(slip.slip_type))
+    );
+
+    for (const originalSlip of requestSlips) {
+        const matchedPayment = (approvedPayments || []).find(
+            payment =>
+                String(payment.id) === String(originalSlip.payment_id) &&
+                isPaymentApproved(payment)
+        );
+
+        if (matchedPayment) {
+            return {
+                originalSlip,
+                payment: matchedPayment
+            };
+        }
+    }
+
+    console.warn(
+        "Original slip matching failed:",
+        request.request_number,
+        requestSlips,
+        approvedPayments
+    );
+
+    return null;
+}
+
+/* =========================================================
+   LATEST ACTIVITY SORTING
    ========================================================= */
 
 function getLatestSlipActivity(request) {
     if (!request) return 0;
 
-    const profile = getCustomerProfile(request);
     const linkedPayments = getPaymentsForRequest(request);
-
     const timestamps = [];
 
-    function collectTimestamps(record) {
+    function collect(record) {
         if (!record) return;
 
-        const fields = [
+        [
             "updated_at",
             "created_at",
             "request_date",
-            "requested_at",
-            "submitted_at",
             "payment_date",
-            "paid_at",
-            "payment_verified_at",
             "verified_at",
             "approved_at",
             "delivery_date",
             "delivered_at",
-            "delivery_updated_at",
-            "agency_updated_at",
-            "repayment_date",
-            "repayment_at"
-        ];
-
-        fields.forEach(field => {
-            const timestamp = getTimestamp(record[field]);
+            "agency_updated_at"
+        ].forEach(key => {
+            const timestamp = getTimestamp(record[key]);
 
             if (timestamp > 0) {
                 timestamps.push(timestamp);
@@ -656,20 +652,13 @@ function getLatestSlipActivity(request) {
         });
     }
 
-    // Request activity
-    collectTimestamps(request);
+    collect(request);
 
-    // Customer profile activity
-    collectTimestamps(profile);
-
-    // All linked payment activities
-    linkedPayments.forEach(payment => {
-        collectTimestamps(payment);
-    });
+    linkedPayments.forEach(collect);
 
     return timestamps.length
         ? Math.max(...timestamps)
-        : getTimestamp(getRequestDate(request));
+        : 0;
 }
 
 /* =========================================================
@@ -773,16 +762,13 @@ async function loadAgency() {
 }
 
 /* =========================================================
-   LOAD ASSIGNED REQUESTS
+   LOAD REQUESTS
    ========================================================= */
 
 async function loadRequests() {
     if (!agencyId) return [];
 
-    const {
-        data,
-        error
-    } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("cylinder_requests")
         .select("*")
         .eq("agency_id", agencyId)
@@ -790,6 +776,7 @@ async function loadRequests() {
 
     if (error) {
         console.error("Agency requests query failed:", error);
+
         throw new Error(
             "Requests load nahi hui: " + error.message
         );
@@ -800,9 +787,6 @@ async function loadRequests() {
 
 /* =========================================================
    LOAD CUSTOMER PROFILES
-
-   Important:
-   Fetch only the profiles belonging to these requests.
    ========================================================= */
 
 async function loadCustomerProfiles(requests) {
@@ -822,19 +806,13 @@ async function loadCustomerProfiles(requests) {
     for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize);
 
-        const {
-            data,
-            error
-        } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("profiles")
             .select("*")
             .in("id", batch);
 
         if (error) {
-            console.error(
-                "Customer profiles query failed:",
-                error
-            );
+            console.error("Customer profiles query failed:", error);
 
             throw new Error(
                 "Customer profiles load nahi hui: " +
@@ -862,12 +840,6 @@ function createProfileMap(profiles) {
 
 /* =========================================================
    LOAD PAYMENTS
-
-   First load agency-assigned requests.
-   Then query payments only for those request IDs.
-
-   This matches agency-cylinder-requests.js and avoids
-   fetching payments for unrelated requests.
    ========================================================= */
 
 async function loadPayments(requests) {
@@ -887,10 +859,7 @@ async function loadPayments(requests) {
     for (let i = 0; i < requestIds.length; i += batchSize) {
         const batch = requestIds.slice(i, i + batchSize);
 
-        const {
-            data,
-            error
-        } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from("payments")
             .select("*")
             .in("request_id", batch)
@@ -907,11 +876,6 @@ async function loadPayments(requests) {
         result.push(...(data || []));
     }
 
-    /*
-       Keep only payments that actually belong to one of
-       this agency's assigned requests.
-    */
-
     const assignedRequestIds = new Set(
         requestIds.map(normalizedIdentifier)
     );
@@ -921,48 +885,16 @@ async function loadPayments(requests) {
             getPaymentRequestId(payment)
         );
 
-        if (paymentRequestId) {
-            return assignedRequestIds.has(paymentRequestId);
-        }
-
-        /*
-           Some legacy payment rows may have request_number
-           instead of request_id. Match exact request number.
-        */
-
-        const matchedRequest = findRequestForPayment(
-            payment,
-            requests
-        );
-
-        return Boolean(matchedRequest);
+        return assignedRequestIds.has(paymentRequestId);
     });
 }
 
 /* =========================================================
-   REQUEST ELIGIBILITY
-
-   A slip is shown only if:
-   1. Owner approved the request.
-   2. There is a linked payment marked paid/completed.
-   3. Payment approval is approved/verified.
-
-   Agency status "waiting" alone does not hide an
-   owner-approved, payment-approved request.
+   SLIP ELIGIBILITY
    ========================================================= */
 
 function isOwnerApproved(request) {
-    const status = normalizeStatus(
-        request?.owner_approval
-    );
-
-    return status === "approved";
-}
-
-function hasApprovedPayment(request) {
-    return getPaymentsForRequest(request).some(
-        isPaymentApproved
-    );
+    return normalizeStatus(request?.owner_approval) === "approved";
 }
 
 function isSlipEligible(request) {
@@ -970,121 +902,120 @@ function isSlipEligible(request) {
         request &&
         request.id &&
         isOwnerApproved(request) &&
-        hasApprovedPayment(request)
+        getPaymentsForRequest(request).some(isPaymentApproved)
     );
 }
 
 /* =========================================================
-   BUILD ONE SLIP PER REQUEST
-   ========================================================= */
-
-/* =========================================================
-   BUILD ONE SLIP PER REQUEST
-   LATEST ACTIVITY SORTING
+   BUILD ONE ORIGINAL SLIP PER REQUEST
    ========================================================= */
 
 function buildCustomerSlips(requests) {
-
     const uniqueRequests = new Map();
 
-    (Array.isArray(requests) ? requests : []).forEach(request => {
-
+    (requests || []).forEach(request => {
         if (!request?.id) return;
 
-        const key = normalizedIdentifier(request.id);
-
-        if (!uniqueRequests.has(key)) {
-            uniqueRequests.set(key, request);
-        }
+        uniqueRequests.set(String(request.id), request);
     });
 
     const slips = [];
 
     uniqueRequests.forEach(request => {
-
         const linkedPayments = getPaymentsForRequest(request);
 
         const approvedPayments = linkedPayments.filter(
             isPaymentApproved
         );
 
-        console.log("SLIP ELIGIBILITY CHECK:", {
-            requestId: request.id,
-            ownerApproval: request.owner_approval,
-            isOwnerApproved: isOwnerApproved(request),
-            linkedPayments: linkedPayments.length,
-            approvedPayments: approvedPayments.length
-        });
-
-        // Existing EGC approval conditions
-        if (
-            !isOwnerApproved(request) ||
-            !approvedPayments.length
-        ) {
-            console.warn("SLIP SKIPPED:", request.id);
+        if (!isOwnerApproved(request) || !approvedPayments.length) {
             return;
         }
 
-        const latestPayment = approvedPayments[0];
+        const matched = getOriginalSlipForRequest(
+            request,
+            approvedPayments
+        );
 
-        const totalApprovedPaymentAmount =
-            approvedPayments.reduce((total, payment) => {
-                return total + getPaymentAmount(payment);
-            }, 0);
+        const originalSlip = matched?.originalSlip || null;
+        const originalPayment = matched?.payment || null;
 
         slips.push({
-
             id: String(request.id),
 
             type: "request",
 
-            slipNumber: getRequestSlipNumber(request),
+            slipNumber: originalSlip?.slip_number ||
+                "Original Slip Pending",
 
-            requestNumber: getRequestNumber(request),
+            verificationCode:
+                originalSlip?.verification_code || "",
 
-            customerName: getCustomerName(request),
+            requestNumber: getRequestNumber(
+                request,
+                originalSlip
+            ),
 
-            customerCode: getCustomerEGCCode(request),
+            slipDate: originalSlip
+                ? getSlipDate(originalSlip)
+                : request.created_at,
 
-            customerMobile: getCustomerMobile(request),
+            customerName: getCustomerName(
+                request,
+                originalSlip
+            ),
+
+            customerCode: getCustomerEGCCode(
+                request,
+                originalSlip
+            ),
+
+            customerMobile: getCustomerMobile(
+                request,
+                originalSlip
+            ),
 
             customerEmail: getCustomerEmail(request),
 
-            amount: totalApprovedPaymentAmount,
+            customerAddress: getCustomerAddress(request),
 
             status: getRequestStatus(request),
 
-            agencyStatus: getAgencyStatus(request),
+            agencyStatus: getAgencyStatus(
+                request,
+                originalSlip
+            ),
 
-            deliveryStatus: getDeliveryStatus(request),
+            deliveryStatus: getDeliveryStatus(
+                request,
+                originalSlip
+            ),
 
-            date: getRequestDate(request),
+            date: originalSlip
+                ? getSlipDate(originalSlip)
+                : request.created_at,
 
             raw: request,
+
+            originalSlip: originalSlip,
 
             payments: linkedPayments,
 
             approvedPayments: approvedPayments,
 
-            latestPayment: latestPayment,
+            latestPayment: originalPayment ||
+                approvedPayments[0] ||
+                null,
 
             paymentCount: linkedPayments.length
-
         });
-
     });
 
-    // Latest Activity Sorting
-    slips.sort((a, b) => {
+    slips.sort((a, b) =>
+        getLatestSlipActivity(b.raw) -
+        getLatestSlipActivity(a.raw)
+    );
 
-        return (
-            getLatestSlipActivity(b.raw) -
-            getLatestSlipActivity(a.raw)
-        );
-
-    });
-
-    // IMPORTANT: Return slips array
     return slips;
 }
 
@@ -1114,6 +1045,7 @@ async function loadSlips() {
 
         if (!requestRecords.length) {
             paymentRecords = [];
+            originalSlipRecords = [];
             profileMap = Object.create(null);
             allSlips = [];
 
@@ -1124,70 +1056,46 @@ async function loadSlips() {
             return;
         }
 
-        const [profiles, payments] = await Promise.all([
+        const [
+            profiles,
+            payments,
+            originalSlips
+        ] = await Promise.all([
             loadCustomerProfiles(requestRecords),
-            loadPayments(requestRecords)
+            loadPayments(requestRecords),
+            loadOriginalRequestSlips(requestRecords)
         ]);
 
         profileMap = createProfileMap(profiles);
         paymentRecords = payments || [];
+        originalSlipRecords = originalSlips || [];
 
         const builtSlips = buildCustomerSlips(requestRecords);
 
-        console.log("========== EGC SLIP DEBUG ==========");
+        allSlips = Array.isArray(builtSlips)
+            ? builtSlips
+            : [];
 
-console.table(requestRecords.map(request => ({
-    request_id: request.id,
-    request_number: getRequestNumber(request),
-    owner_approval: request.owner_approval,
-    request_status: request.status,
-    linked_payments: getPaymentsForRequest(request).length,
-    approved_payments: getPaymentsForRequest(request).filter(isPaymentApproved).length
-})));
+        console.log("========== EGC AGENCY SLIPS ==========");
 
-console.table(paymentRecords.map(payment => ({
-    payment_id: payment.id,
-    request_id: getPaymentRequestId(payment),
-    request_number: getPaymentRequestNumber(payment),
-    payment_status: getPaymentStatus(payment),
-    approval_status: getPaymentApprovalStatus(payment),
-    is_approved: isPaymentApproved(payment)
-})));
+        console.table(allSlips.map(slip => ({
+            request_number: slip.requestNumber,
+            original_slip_number: slip.slipNumber,
+            verification_code: slip.verificationCode,
+            customer: slip.customerName,
+            egc_user_id: slip.customerCode,
+            email: slip.customerEmail
+        })));
 
-console.log("===================================");
-
-allSlips = Array.isArray(builtSlips)
-    ? builtSlips
-    : [];
-
-console.log("[EGC] Built slips:", allSlips);
+        console.log("Requests:", requestRecords.length);
+        console.log("Profiles:", profiles.length);
+        console.log("Payments:", paymentRecords.length);
+        console.log("Original slips:", originalSlipRecords.length);
+        console.log("Agency slips:", allSlips.length);
 
         updateStats();
         updatePendingCount(requestRecords, paymentRecords);
         applyFilters();
-
-        console.info("[EGC] Agency ID:", agencyId);
-        console.info("[EGC] Assigned requests:", requestRecords.length);
-        console.info("[EGC] Customer profiles:", profiles.length);
-        console.info("[EGC] Payments loaded:", paymentRecords.length);
-        console.info("[EGC] Eligible slips:", allSlips.length);
-
-console.table(
-    (Array.isArray(allSlips) ? allSlips : []).map(slip => ({
-        request_number: slip.requestNumber || "—",
-        slip_number: slip.slipNumber || "—",
-        customer: slip.customerName || "—",
-        egc_user_id: slip.customerCode || "—",
-        mobile: slip.customerMobile || "—",
-        email: slip.customerEmail || "—",
-        payment_count: Array.isArray(slip.payments)
-            ? slip.payments.length
-            : 0,
-        approved_payment_count: Array.isArray(slip.approvedPayments)
-            ? slip.approvedPayments.length
-            : 0
-    }))
-);
 
     } catch (error) {
         console.error("Unable to load slips:", error);
@@ -1197,6 +1105,7 @@ console.table(
 
         if (empty) {
             empty.style.display = "block";
+
             empty.innerHTML =
                 "<div class='empty-icon'>⚠️</div>" +
                 "<strong>Unable to load slips</strong>" +
@@ -1210,29 +1119,21 @@ console.table(
             "error"
         );
 
-} finally {
-    loadingSlips = false;
+    } finally {
+        loadingSlips = false;
 
-    // अगर loading के दौरान कोई नया database update आया हो
-    if (realtimeReloadPending) {
-        realtimeReloadPending = false;
+        if (realtimeReloadPending) {
+            realtimeReloadPending = false;
 
-        setTimeout(() => {
-            loadSlips();
-        }, 300);
+            setTimeout(() => {
+                loadSlips();
+            }, 300);
+        }
     }
-}
 }
 
 /* =========================================================
-   REALTIME UPDATE — AGENCY SLIPS
-
-   Listen to:
-   1. cylinder_requests
-   2. payments
-   3. profiles
-
-   Database changes पर Slips automatically reload होंगे.
+   REALTIME UPDATE
    ========================================================= */
 
 function scheduleSlipsRealtimeRefresh() {
@@ -1248,11 +1149,9 @@ function scheduleSlipsRealtimeRefresh() {
     }, 700);
 }
 
-
 function startSlipsRealtime() {
     if (!agencyId) return;
 
-    // Existing channel को पहले बंद करें
     if (slipsRealtimeChannel) {
         supabaseClient.removeChannel(slipsRealtimeChannel);
         slipsRealtimeChannel = null;
@@ -1261,7 +1160,6 @@ function startSlipsRealtime() {
     slipsRealtimeChannel = supabaseClient
         .channel("egc-agency-slips-realtime-" + agencyId)
 
-        // New / Updated / Deleted Requests
         .on(
             "postgres_changes",
             {
@@ -1280,7 +1178,6 @@ function startSlipsRealtime() {
             }
         )
 
-        // New / Updated / Deleted Payments
         .on(
             "postgres_changes",
             {
@@ -1298,7 +1195,6 @@ function startSlipsRealtime() {
             }
         )
 
-        // Customer Profile Updates
         .on(
             "postgres_changes",
             {
@@ -1316,11 +1212,25 @@ function startSlipsRealtime() {
             }
         )
 
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "request_slips"
+            },
+            payload => {
+                console.log(
+                    "[EGC Slips] Original slip activity:",
+                    payload.eventType
+                );
+
+                scheduleSlipsRealtimeRefresh();
+            }
+        )
+
         .subscribe(status => {
-            console.log(
-                "[EGC Slips] Realtime status:",
-                status
-            );
+            console.log("[EGC Slips] Realtime status:", status);
         });
 }
 
@@ -1328,89 +1238,60 @@ function startSlipsRealtime() {
    STATISTICS
    ========================================================= */
 
-/* =========================================================
-   STATISTICS — ERROR FIX
-   ========================================================= */
-
 function updateStats() {
+    const approvedPaymentSlips = $("approvedPaymentSlips");
 
-const approvedPaymentSlips = $("approvedPaymentSlips");
+    const slips = Array.isArray(allSlips)
+        ? allSlips
+        : [];
 
-const slips = Array.isArray(allSlips)
-    ? allSlips
-    : [];
+    const approvedCount = slips.length;
 
-// जिन Request Slips में Approved Payment है
-const approvedCount = slips.filter(slip =>
-    Array.isArray(slip.approvedPayments) &&
-    slip.approvedPayments.length > 0
-).length;
-
-if (approvedPaymentSlips) {
-    approvedPaymentSlips.textContent = approvedCount;
+    if (approvedPaymentSlips) {
+        approvedPaymentSlips.textContent = approvedCount;
+    }
 }
-
-}
-
-/* =========================================================
-   PENDING COUNT — FIX
-   ========================================================= */
 
 function updatePendingCount(requests = [], payments = []) {
+    const pendingStatuses = [
+        "pending",
+        "pending_approval",
+        "waiting",
+        "on_hold",
+        "hold",
+        "submitted",
+        "under_review",
+        "pending_verification"
+    ];
 
-const pendingStatuses = [
-    "pending",
-    "pending_approval",
-    "waiting",
-    "on_hold",
-    "hold",
-    "submitted",
-    "under_review",
-    "pending_verification"
-];
+    const pendingRequests = requests.filter(request =>
+        pendingStatuses.includes(
+            normalizeStatus(request.owner_approval)
+        )
+    ).length;
 
-const safeRequests = Array.isArray(requests)
-    ? requests
-    : [];
+    const pendingPayments = payments.filter(payment =>
+        pendingStatuses.includes(
+            normalizeStatus(getPaymentStatus(payment))
+        ) ||
+        pendingStatuses.includes(
+            normalizeStatus(getPaymentApprovalStatus(payment))
+        )
+    ).length;
 
-const safePayments = Array.isArray(payments)
-    ? payments
-    : [];
+    const pendingCount = $("pendingSlips");
 
-const pendingRequests = safeRequests.filter(request =>
-    pendingStatuses.includes(
-        normalizeStatus(getRequestStatus(request))
-    )
-).length;
-
-const pendingPayments = safePayments.filter(payment =>
-    pendingStatuses.includes(
-        normalizeStatus(getPaymentStatus(payment))
-    ) ||
-    pendingStatuses.includes(
-        normalizeStatus(getPaymentApprovalStatus(payment))
-    )
-).length;
-
-const pendingCount = $("pendingSlips");
-
-if (pendingCount) {
-    pendingCount.textContent =
-        pendingRequests + pendingPayments;
-}
-
+    if (pendingCount) {
+        pendingCount.textContent =
+            pendingRequests + pendingPayments;
+    }
 }
 
 /* =========================================================
    SEARCH + FILTERS
    ========================================================= */
 
-/* =========================================================
-   SEARCH + FILTERS — SAFE VERSION
-   ========================================================= */
-
 function applyFilters() {
-
     const search = String(
         $("searchInput")?.value || ""
     ).trim().toLowerCase();
@@ -1418,28 +1299,18 @@ function applyFilters() {
     const type = $("typeFilter")?.value || "all";
     const status = $("statusFilter")?.value || "all";
 
-    // Ensure allSlips is always an array
     const safeSlips = Array.isArray(allSlips)
         ? allSlips
         : [];
 
-    // Latest Activity Sorting
-    const sortedSlips = [...safeSlips].sort((a, b) => {
-        return (
-            getLatestSlipActivity(b?.raw) -
-            getLatestSlipActivity(a?.raw)
-        );
-    });
+    const sortedSlips = [...safeSlips].sort((a, b) =>
+        getLatestSlipActivity(b.raw) -
+        getLatestSlipActivity(a.raw)
+    );
 
     filteredSlips = sortedSlips.filter(slip => {
-
-        const approvedPayments = Array.isArray(
-            slip?.approvedPayments
-        ) ? slip.approvedPayments : [];
-
-        const payments = Array.isArray(
-            slip?.payments
-        ) ? slip.payments : [];
+        const approvedPayments = slip.approvedPayments || [];
+        const payments = slip.payments || [];
 
         if (
             type === "payment" &&
@@ -1448,58 +1319,35 @@ function applyFilters() {
             return false;
         }
 
-        if (type === "request" && !slip?.id) {
-            return false;
-        }
-
         if (status !== "all") {
-
             const wanted = normalizeStatus(status);
 
-            const requestMatches =
-                normalizeStatus(slip?.status) === wanted;
+            const matches =
+                normalizeStatus(slip.status) === wanted ||
+                normalizeStatus(slip.agencyStatus) === wanted ||
+                normalizeStatus(slip.deliveryStatus) === wanted ||
+                approvedPayments.some(payment =>
+                    normalizeStatus(getPaymentStatus(payment)) === wanted ||
+                    normalizeStatus(getPaymentApprovalStatus(payment)) === wanted
+                );
 
-            const agencyMatches =
-                normalizeStatus(slip?.agencyStatus) === wanted;
-
-            const deliveryMatches =
-                normalizeStatus(slip?.deliveryStatus) === wanted;
-
-            const paymentMatches = approvedPayments.some(payment =>
-                normalizeStatus(getPaymentStatus(payment)) === wanted ||
-                normalizeStatus(getPaymentApprovalStatus(payment)) === wanted
-            );
-
-            if (
-                !requestMatches &&
-                !agencyMatches &&
-                !deliveryMatches &&
-                !paymentMatches
-            ) {
-                return false;
-            }
+            if (!matches) return false;
         }
 
         if (search) {
-
-            const searchableValues = [
-                slip?.slipNumber,
-                slip?.requestNumber,
-                slip?.customerName,
-                slip?.customerCode,
-                slip?.customerMobile,
-                slip?.customerEmail,
-                slip?.status,
-                slip?.agencyStatus,
-                slip?.deliveryStatus,
-                ...payments.map(getPaymentSlipNumber),
+            const searchable = [
+                slip.slipNumber,
+                slip.verificationCode,
+                slip.requestNumber,
+                slip.customerName,
+                slip.customerCode,
+                slip.customerMobile,
+                slip.customerEmail,
+                slip.status,
+                slip.agencyStatus,
+                slip.deliveryStatus,
                 ...payments.map(getPaymentStatus)
-            ];
-
-            const searchable = searchableValues
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
+            ].filter(Boolean).join(" ").toLowerCase();
 
             if (!searchable.includes(search)) {
                 return false;
@@ -1514,13 +1362,6 @@ function applyFilters() {
 
 /* =========================================================
    TABLE RENDER
-   ========================================================= */
-
-/* =========================================================
-   TABLE RENDER — CUSTOMER SLIPS
-   Correct columns:
-   Slip No. | Customer | Phone / Email | Request No.
-   | Status | Date | Action
    ========================================================= */
 
 function renderSlips() {
@@ -1539,11 +1380,11 @@ function renderSlips() {
 
         empty.innerHTML =
             "<div class='empty-icon'>📄</div>" +
-            "<strong>No approved slips found</strong>" +
+            "<strong>No customer slips found</strong>" +
             "<p style='margin-top:5px;'>" +
             (
                 requestRecords.length
-                    ? "Owner approval aur payment approval check karein. Search ya filters bhi check karein."
+                    ? "Approved customer requests aur payments check karein."
                     : "Is agency ko koi request assign nahi hui."
             ) +
             "</p>";
@@ -1558,95 +1399,77 @@ function renderSlips() {
     body.innerHTML = filteredSlips.map(slip => {
         const latestPayment = slip.latestPayment;
 
-        const isPaid = (slip.approvedPayments || []).length > 0;
-
-        const rowStatus = isPaid
-            ? "Paid"
-            : firstValue(slip.status, "Pending");
-
-        const customerName = firstValue(
-            slip.customerName,
-            "Customer"
-        );
-
-        const customerCode = firstValue(
-            slip.customerCode,
-            "Not assigned"
-        );
-
-        const customerMobile = firstValue(
-            slip.customerMobile,
-            "—"
-        );
-
-        const customerEmail = firstValue(
-            slip.customerEmail,
-            "—"
-        );
-
         const paymentDate = latestPayment
             ? getPaymentDate(latestPayment)
-            : slip.date;
+            : slip.slipDate;
 
         return `
             <tr data-request-row="${escapeHtml(slip.id)}">
 
-                <!-- SLIP NUMBER -->
                 <td>
                     <span class="slip-number">
                         ${escapeHtml(slip.slipNumber)}
                     </span>
                 </td>
 
-                <!-- CUSTOMER NAME + EGC USER ID -->
                 <td>
                     <div class="customer-name">
-                        ${escapeHtml(customerName)}
+                        ${escapeHtml(slip.customerName)}
                     </div>
 
                     <div class="sub-text customer-code">
-                        ${escapeHtml(customerCode)}
+                        ${escapeHtml(slip.customerCode)}
                     </div>
                 </td>
 
-                <!-- PHONE + EMAIL -->
                 <td>
                     <div class="customer-phone">
-                        ${escapeHtml(customerMobile)}
+                        ${escapeHtml(slip.customerMobile)}
                     </div>
 
                     <div class="sub-text customer-email">
-                        ${escapeHtml(customerEmail)}
+                        ${escapeHtml(slip.customerEmail)}
                     </div>
                 </td>
 
-                <!-- REQUEST NUMBER -->
                 <td>
                     <span class="request-number">
                         ${escapeHtml(slip.requestNumber)}
                     </span>
                 </td>
 
-                <!-- PAYMENT STATUS -->
                 <td>
-                    <span class="status-badge ${statusClass(rowStatus)}">
-                        ${escapeHtml(statusText(rowStatus))}
+                    <span class="status-badge ${statusClass(
+                        slip.originalSlip ? "approved" : "pending"
+                    )}">
+                        ${slip.originalSlip ? "Approved" : "Slip Pending"}
                     </span>
                 </td>
 
-                <!-- DATE -->
                 <td>
                     ${escapeHtml(formatDate(paymentDate))}
                 </td>
 
-                <!-- ACTION -->
                 <td>
-                    <button
-                        type="button"
-                        class="view-btn"
-                        data-slip-id="${escapeHtml(slip.id)}">
-                        View Slip
-                    </button>
+                    ${
+                        slip.originalSlip
+                            ? `
+                                <button
+                                    type="button"
+                                    class="view-btn"
+                                    data-slip-id="${escapeHtml(slip.id)}">
+                                    View Slip
+                                </button>
+                            `
+                            : `
+                                <button
+                                    type="button"
+                                    disabled
+                                    style="opacity:.5;cursor:not-allowed;">
+                                    Slip Pending
+                                </button>
+                            `
+                    }
                 </td>
 
             </tr>
@@ -1659,14 +1482,15 @@ function renderSlips() {
                 String(item.id) === String(button.dataset.slipId)
             );
 
-            if (slip) {
+            if (slip && slip.originalSlip) {
                 openSlipModal(slip);
             }
         });
     });
 }
+
 /* =========================================================
-   SLIP MODAL
+   SLIP FIELD
    ========================================================= */
 
 function field(label, value) {
@@ -1678,6 +1502,374 @@ function field(label, value) {
     `;
 }
 
+/* =========================================================
+   PAYMENT TABLE
+   Amount column renamed to Amount Paid.
+   No extra financial summary.
+   ========================================================= */
+
+function buildPaymentTable(slip) {
+    const payment = slip.latestPayment;
+
+    if (!payment) {
+        return `
+            <p>No approved payment records found.</p>
+        `;
+    }
+
+    const originalSlip = slip.originalSlip;
+
+    return `
+        <div style="overflow-x:auto;">
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                font-size:13px;
+                margin-top:10px;
+            ">
+                <thead>
+                    <tr style="background:#f2f8fc;">
+                        <th style="padding:10px;text-align:left;">Payment Type</th>
+                        <th style="padding:10px;text-align:left;">Date</th>
+                        <th style="padding:10px;text-align:left;">Amount Paid</th>
+                        <th style="padding:10px;text-align:left;">Status</th>
+                        <th style="padding:10px;text-align:left;">Owner Approval</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr>
+                        <td style="padding:10px;">
+                            ${escapeHtml(getPaymentType(payment))}
+                        </td>
+
+                        <td style="padding:10px;">
+                            ${escapeHtml(formatDateTime(
+                                firstValue(
+                                    originalSlip?.payment_date,
+                                    getPaymentDate(payment)
+                                )
+                            ))}
+                        </td>
+
+                        <td style="padding:10px;font-weight:700;color:#13834a;">
+                            Paid
+                        </td>
+
+                        <td style="padding:10px;">
+                            <span class="status-badge status-approved">
+                                Approved
+                            </span>
+                        </td>
+
+                        <td style="padding:10px;">
+                            <span class="status-badge status-approved">
+                                Approved
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/* =========================================================
+   ORIGINAL CUSTOMER E-SLIP CONTENT
+   ========================================================= */
+
+function buildOriginalSlipHTML(slip) {
+    const request = slip.raw || {};
+    const originalSlip = slip.originalSlip || {};
+    const payment = slip.latestPayment || {};
+
+    const agencyName = getLPGAgencyName(
+        request,
+        originalSlip
+    );
+
+    const paymentTable = buildPaymentTable(slip);
+
+    const requestStatus = getRequestStatus(request);
+    const ownerApproval = request.owner_approval;
+
+    const agencyStatus = getAgencyStatus(
+        request,
+        originalSlip
+    );
+
+    const deliveryStatus = getDeliveryStatus(
+        request,
+        originalSlip
+    );
+
+    const deliveryDate = getDeliveryDate(
+        request,
+        originalSlip
+    );
+
+    return `
+        <div class="egc-original-slip">
+
+            <!-- HEADER -->
+            <div class="slip-header">
+                <div class="slip-brand">
+
+                    <img
+                        src="assets/EGC - Emergency Gas Cylinder logo.png"
+                        alt="EGC"
+                        onerror="this.style.display='none'">
+
+                    <div>
+                        <h4>EGC - Emergency Gas Cylinder</h4>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="slip-content">
+
+                <!-- PAYMENT VERIFIED -->
+                <div style="
+                    text-align:center;
+                    margin:15px 0 22px;
+                ">
+                    <h2 style="
+                        color:#13834a;
+                        margin:0;
+                        font-size:21px;
+                        font-weight:800;
+                    ">
+                        PAYMENT VERIFIED
+                    </h2>
+                </div>
+
+                <!-- CURRENT REQUEST STATUS -->
+                <h3 style="color:#0871c3;margin:0 0 12px;">
+                    Current Request Status
+                </h3>
+
+                <div class="slip-grid">
+
+                    ${field(
+                        "Payment Owner Approval",
+                        statusText(ownerApproval)
+                    )}
+
+                    ${field(
+                        "Agency Status",
+                        statusText(agencyStatus)
+                    )}
+
+                    ${field(
+                        "Delivery Status",
+                        statusText(deliveryStatus)
+                    )}
+
+                    ${field(
+                        "Request Status",
+                        statusText(requestStatus)
+                    )}
+
+                </div>
+
+                <!-- SLIP INFORMATION -->
+                <h3 style="color:#0871c3;margin:22px 0 12px;">
+                    Slip Information
+                </h3>
+
+                <div class="slip-grid">
+
+                    ${field(
+                        "Slip Number",
+                        originalSlip.slip_number
+                    )}
+
+                    ${field(
+                        "Request Number",
+                        slip.requestNumber
+                    )}
+
+                    ${field(
+                        "Slip Date",
+                        formatDate(slip.slipDate)
+                    )}
+
+                    ${field(
+                        "Payment Status",
+                        "Approved"
+                    )}
+
+                </div>
+
+                <!-- CUSTOMER DETAILS -->
+                <h3 style="color:#0871c3;margin:22px 0 12px;">
+                    Customer Details
+                </h3>
+
+                <div class="slip-grid">
+
+                    ${field(
+                        "Customer Name",
+                        slip.customerName
+                    )}
+
+                    ${field(
+                        "Mobile Number",
+                        slip.customerMobile
+                    )}
+
+                    ${field(
+                        "EGC User ID",
+                        slip.customerCode
+                    )}
+
+                    ${field(
+                        "Email",
+                        slip.customerEmail
+                    )}
+
+                    ${field(
+                        "Customer Address",
+                        slip.customerAddress
+                    )}
+
+                </div>
+
+                <!-- LPG & AGENCY DETAILS -->
+                <h3 style="color:#0871c3;margin:22px 0 12px;">
+                    LPG & Agency Details
+                </h3>
+
+                <div class="slip-grid">
+
+                    ${field(
+                        "Cylinder Type",
+                        getCylinderType(request)
+                    )}
+
+                    ${field(
+                        "Cylinder Weight",
+                        getCylinderWeight(request)
+                    )}
+
+                    ${field(
+                        "LPG Company",
+                        getLPGCompany(request, originalSlip)
+                    )}
+
+                    ${field(
+                        "Agency Name",
+                        agencyName
+                    )}
+
+                    ${field(
+                        "Cylinder Quantity",
+                        firstValue(
+                            originalSlip.quantity,
+                            request.quantity,
+                            1
+                        )
+                    )}
+
+                    ${field(
+                        "Agency Status",
+                        statusText(agencyStatus)
+                    )}
+
+                    ${field(
+                        "Delivery Status",
+                        statusText(deliveryStatus)
+                    )}
+
+                    ${field(
+                        "Delivery Date",
+                        formatDate(deliveryDate)
+                    )}
+
+                </div>
+
+                <!-- PAYMENT DETAILS -->
+                <h3 style="color:#0871c3;margin:22px 0 12px;">
+                    Payment & Repayment Details
+                </h3>
+
+                ${paymentTable}
+
+                <!-- VERIFICATION -->
+                <div style="
+                    margin-top:24px;
+                    padding:18px;
+                    text-align:center;
+                    border:1px dashed #b8d1e2;
+                    border-radius:10px;
+                    background:#f8fbfd;
+                ">
+
+                    <h3 style="
+                        color:#0871c3;
+                        margin:0 0 12px;
+                    ">
+                        Slip Verification Code
+                    </h3>
+
+                    <strong style="
+                        font-size:21px;
+                        letter-spacing:2px;
+                        color:#17344a;
+                    ">
+                        ${escapeHtml(
+                            originalSlip.verification_code || "—"
+                        )}
+                    </strong>
+
+                    <p style="
+                        margin:10px 0 0;
+                        color:#718697;
+                        font-size:12px;
+                    ">
+                        Keep this code for your records.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="slip-footer" style="
+                text-align:center;
+                line-height:1.8;
+            ">
+
+                <strong>EGC - Emergency Gas Cylinder</strong>
+
+                <br>
+
+                This is a system-generated E-Slip.
+
+                <br>
+
+                Please keep it safe for future reference.
+
+                <br>
+
+                Last Status Checked:
+                ${escapeHtml(formatDateTime(new Date().toISOString()))}
+
+                <br>
+
+                EGC Developed by Sarbaj
+
+            </div>
+
+        </div>
+    `;
+}
+
+/* =========================================================
+   OPEN SLIP MODAL
+   ========================================================= */
+
 function openSlipModal(slip) {
     selectedSlip = slip;
 
@@ -1686,108 +1878,26 @@ function openSlipModal(slip) {
     const title = $("slipModalTitle");
 
     if (!modal || !preview || !title) {
-        showToast("Slip preview elements HTML mein nahi mile.", "error");
+        showToast(
+            "Slip preview elements HTML mein nahi mile.",
+            "error"
+        );
+
         return;
     }
 
-    const request = slip.raw || {};
-    const payments = slip.approvedPayments || [];
+    if (!slip.originalSlip) {
+        showToast(
+            "Original Customer E-Slip nahi mili.",
+            "error"
+        );
 
-    const agencyName = firstValue(
-        currentAgency?.agency_name,
-        currentAgency?.name,
-        currentProfile?.agency_name,
-        "LPG Agency"
-    );
+        return;
+    }
 
-    title.textContent = "Request / Payment Slip";
+    title.textContent = "Payment Slip";
 
-    const fields = [
-        field("Request Slip Number", slip.slipNumber),
-        field("Request Number", slip.requestNumber),
-        field("Customer Name", slip.customerName),
-        field("EGC User ID", slip.customerCode),
-        field("Mobile Number", slip.customerMobile),
-        field("Email", slip.customerEmail),
-        field("State", firstValue(request.state, request.state_name, "—")),
-        field("District", firstValue(request.district, request.district_name, "—")),
-        field("City", firstValue(request.city, request.city_name, request.lpg_city, "—")),
-        field("LPG Company", getLPGCompany(request)),
-        field("LPG Agency", getLPGAgencyName(request)),
-        field("Owner Approval", statusText(request.owner_approval)),
-        field("Agency Status", statusText(getAgencyStatus(request))),
-        field("Delivery Status", statusText(getDeliveryStatus(request))),
-        field("Request Date", formatDateTime(slip.date)),
-        field("Cylinder / Request Amount", formatMoney(getRequestAmount(request))),
-        field("Approved Payments Total", formatMoney(
-            payments.reduce((total, payment) =>
-                total + getPaymentAmount(payment), 0)
-        )),
-        field("Approved Payment Records", payments.length)
-    ];
-
-    const paymentHtml = payments.length
-        ? payments.map((payment, index) => `
-            <div class="slip-payment-item"
-                 style="border:1px solid #e2edf3;border-radius:10px;padding:12px;margin-top:10px;">
-
-                <h4 style="margin:0 0 8px;color:#06477f;">
-                    Payment ${index + 1}
-                </h4>
-
-                ${field("Payment Slip Number", getPaymentSlipNumber(payment))}
-                ${field("Payment Amount", formatMoney(getPaymentAmount(payment)))}
-                ${field("Payment Status", statusText(getPaymentStatus(payment)))}
-                ${field("Payment Approval", statusText(getPaymentApprovalStatus(payment)))}
-                ${field("Payment Date", formatDateTime(getPaymentDate(payment)))}
-                ${field("Transaction ID", firstValue(
-                    payment.transaction_id,
-                    payment.payment_transaction_id,
-                    payment.transaction_reference,
-                    payment.reference_number,
-                    "—"
-                ))}
-
-            </div>
-        `).join("")
-        : "<p>No approved payment records found.</p>";
-
-    preview.innerHTML = `
-        <div class="slip-header">
-            <div class="slip-brand">
-                <img
-                    src="assets/EGC - Emergency Gas Cylinder logo.png"
-                    alt="EGC"
-                    onerror="this.style.display='none'">
-
-                <div>
-                    <h4>EGC - Emergency Gas Cylinder</h4>
-                    <p>${escapeHtml(agencyName)}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="slip-content">
-            <h3 style="margin:0 0 14px;color:#0871c3;">
-                Request Details
-            </h3>
-
-            <div class="slip-grid">
-                ${fields.join("")}
-            </div>
-
-            <h3 style="margin:22px 0 10px;color:#0871c3;">
-                Approved Payment Details
-            </h3>
-
-            ${paymentHtml}
-        </div>
-
-        <div class="slip-footer">
-            Generated by EGC Agency Panel •
-            ${escapeHtml(formatDateTime(new Date().toISOString()))}
-        </div>
-    `;
+    preview.innerHTML = buildOriginalSlipHTML(slip);
 
     modal.classList.add("show");
 }
@@ -1798,17 +1908,9 @@ function closeSlipModal() {
 }
 
 /* =========================================================
-   PRINT SLIP
+   PRINT / SAVE PDF
+   Same Original E-Slip Content
    ========================================================= */
-
-function printField(label, value) {
-    return `
-        <div class="item">
-            <label>${escapeHtml(label)}</label>
-            <strong>${escapeHtml(firstValue(value, "—"))}</strong>
-        </div>
-    `;
-}
 
 function printSelectedSlip() {
     if (!selectedSlip) {
@@ -1816,16 +1918,16 @@ function printSelectedSlip() {
         return;
     }
 
-    const slip = selectedSlip;
-    const request = slip.raw || {};
-    const payments = slip.approvedPayments || [];
+    if (!selectedSlip.originalSlip) {
+        showToast(
+            "Original Customer E-Slip nahi mili.",
+            "error"
+        );
 
-    const agencyName = firstValue(
-        currentAgency?.agency_name,
-        currentAgency?.name,
-        currentProfile?.agency_name,
-        "LPG Agency"
-    );
+        return;
+    }
+
+    const slip = selectedSlip;
 
     const printWindow = window.open(
         "",
@@ -1838,191 +1940,185 @@ function printSelectedSlip() {
             "Slip print karne ke liye browser pop-ups allow karein.",
             "error"
         );
+
         return;
     }
-
-    const totalApprovedPayment = payments.reduce(
-        (total, payment) =>
-            total + getPaymentAmount(payment),
-        0
-    );
-
-    const requestFields = [
-        printField("Request Slip Number", slip.slipNumber),
-        printField("Request Number", slip.requestNumber),
-        printField("Customer Name", slip.customerName),
-        printField("EGC User ID", slip.customerCode),
-        printField("Mobile", slip.customerMobile),
-        printField("Email", slip.customerEmail),
-        printField("State", firstValue(request.state, request.state_name, "—")),
-        printField("District", firstValue(request.district, request.district_name, "—")),
-        printField("City", firstValue(request.city, request.city_name, request.lpg_city, "—")),
-        printField("LPG Company", getLPGCompany(request)),
-        printField("LPG Agency", getLPGAgencyName(request)),
-        printField("Owner Approval", statusText(request.owner_approval)),
-        printField("Agency Status", statusText(getAgencyStatus(request))),
-        printField("Delivery Status", statusText(getDeliveryStatus(request))),
-        printField("Request Date", formatDateTime(slip.date)),
-        printField("Request Amount", formatMoney(getRequestAmount(request))),
-        printField("Approved Payments Total", formatMoney(totalApprovedPayment))
-    ].join("");
-
-    const paymentFields = payments.length
-        ? payments.map((payment, index) => `
-            <div class="payment-section">
-                <h3>Payment ${index + 1}</h3>
-
-                ${printField("Payment Slip Number", getPaymentSlipNumber(payment))}
-                ${printField("Amount", formatMoney(getPaymentAmount(payment)))}
-                ${printField("Payment Status", statusText(getPaymentStatus(payment)))}
-                ${printField("Payment Approval", statusText(getPaymentApprovalStatus(payment)))}
-                ${printField("Date", formatDateTime(getPaymentDate(payment)))}
-                ${printField("Transaction ID", firstValue(
-                    payment.transaction_id,
-                    payment.payment_transaction_id,
-                    payment.transaction_reference,
-                    payment.reference_number,
-                    "—"
-                ))}
-            </div>
-        `).join("")
-        : "<p>No approved payment records found.</p>";
 
     const printableHtml = `
         <!DOCTYPE html>
         <html lang="en">
+
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1.0">
-            <title>${escapeHtml(slip.slipNumber)}</title>
+
+            <meta
+                name="viewport"
+                content="width=device-width,initial-scale=1.0">
+
+            <title>
+                ${escapeHtml(slip.slipNumber)}
+            </title>
 
             <style>
-                *{box-sizing:border-box}
-                body{
+
+                * {
+                    box-sizing:border-box;
+                }
+
+                body {
                     font-family:Arial,Helvetica,sans-serif;
                     margin:0;
-                    padding:25px;
+                    padding:20px;
                     color:#17344a;
-                    background:#fff
+                    background:#fff;
                 }
-                .sheet{
+
+                .egc-original-slip {
                     max-width:850px;
                     margin:0 auto;
                     border:1px solid #d8e5ed;
                     border-radius:12px;
-                    overflow:hidden
+                    overflow:hidden;
+                    background:#fff;
                 }
-                .head{
+
+                .slip-header {
+                    padding:20px;
+                    background:#f2f8fc;
+                    border-bottom:1px solid #d8e5ed;
+                }
+
+                .slip-brand {
                     display:flex;
                     align-items:center;
                     gap:14px;
-                    padding:20px;
-                    background:#f2f8fc;
-                    border-bottom:1px solid #d8e5ed
                 }
-                .head img{
-                    width:58px;
-                    height:58px;
-                    object-fit:contain
+
+                .slip-brand img {
+                    width:60px;
+                    height:60px;
+                    object-fit:contain;
                 }
-                .head h1{
+
+                .slip-brand h4 {
                     margin:0;
-                    font-size:22px;
-                    color:#06477f
+                    color:#06477f;
+                    font-size:20px;
                 }
-                .head p{
-                    margin:5px 0 0;
-                    font-size:12px;
-                    color:#6c8294
+
+                .slip-content {
+                    padding:20px;
                 }
-                .title{
-                    padding:18px 20px 8px;
-                    font-size:18px;
-                    font-weight:800;
-                    color:#0871c3
-                }
-                .grid{
+
+                .slip-grid {
                     display:grid;
                     grid-template-columns:1fr 1fr;
                     gap:10px;
-                    padding:12px 20px 20px
                 }
-                .item{
+
+                .slip-field {
                     border:1px solid #e2edf3;
                     background:#fafcfd;
                     border-radius:8px;
                     padding:11px;
-                    min-width:0
+                    min-width:0;
                 }
-                .item label{
+
+                .slip-field label {
                     display:block;
                     font-size:9px;
                     font-weight:800;
                     text-transform:uppercase;
-                    color:#8498a6
+                    color:#8498a6;
                 }
-                .item strong{
+
+                .slip-field strong {
                     display:block;
                     font-size:12px;
                     margin-top:5px;
-                    word-break:break-word
+                    word-break:break-word;
                 }
-                .payment-section{
-                    padding:15px 20px;
+
+                table {
+                    width:100%;
+                    border-collapse:collapse;
+                }
+
+                th, td {
+                    border:1px solid #e2edf3;
+                    padding:10px;
+                    text-align:left;
+                    font-size:12px;
+                }
+
+                th {
+                    background:#f2f8fc;
+                    color:#06477f;
+                }
+
+                .status-badge {
+                    display:inline-block;
+                    padding:5px 9px;
+                    border-radius:20px;
+                    background:#e8f7ee;
+                    color:#13834a;
+                    font-size:11px;
+                    font-weight:700;
+                }
+
+                .slip-footer {
+                    padding:18px;
                     border-top:1px solid #d8e5ed;
-                    break-inside:avoid
+                    font-size:11px;
+                    color:#718697;
                 }
-                .payment-section h3{
-                    color:#0871c3;
-                    font-size:15px;
-                    margin:0 0 10px
+
+                @media(max-width:600px) {
+                    body {
+                        padding:5px;
+                    }
+
+                    .slip-grid {
+                        grid-template-columns:1fr;
+                    }
+
+                    .slip-content {
+                        padding:12px;
+                    }
+
+                    .slip-brand h4 {
+                        font-size:16px;
+                    }
                 }
-                .footer{
-                    border-top:1px solid #d8e5ed;
-                    padding:14px 20px;
-                    text-align:center;
-                    font-size:10px;
-                    color:#8295a2
+
+                @media print {
+                    body {
+                        padding:0;
+                    }
+
+                    .egc-original-slip {
+                        border:0;
+                        border-radius:0;
+                    }
+
+                    .slip-field,
+                    .slip-footer,
+                    table,
+                    tr {
+                        break-inside:avoid;
+                    }
                 }
-                @media(max-width:600px){
-                    body{padding:8px}
-                    .grid{grid-template-columns:1fr}
-                    .head h1{font-size:17px}
-                }
-                @media print{
-                    body{padding:0}
-                    .sheet{border:0;border-radius:0}
-                }
+
             </style>
+
         </head>
 
         <body>
-            <div class="sheet">
-                <div class="head">
-                    <img
-                        src="assets/EGC - Emergency Gas Cylinder logo.png"
-                        alt="EGC">
 
-                    <div>
-                        <h1>EGC - Emergency Gas Cylinder</h1>
-                        <p>${escapeHtml(agencyName)}</p>
-                    </div>
-                </div>
+            ${buildOriginalSlipHTML(slip)}
 
-                <div class="title">Request / Payment Slip</div>
-
-                <div class="grid">
-                    ${requestFields}
-                </div>
-
-                ${paymentFields}
-
-                <div class="footer">
-                    Generated by EGC Agency Panel •
-                    ${escapeHtml(formatDateTime(new Date().toISOString()))}
-                </div>
-            </div>
         </body>
+
         </html>
     `;
 
@@ -2049,6 +2145,7 @@ function getNotifications() {
         const data = JSON.parse(stored);
 
         return Array.isArray(data) ? data : [];
+
     } catch (error) {
         console.error("Notification read error:", error);
         return [];
@@ -2061,6 +2158,7 @@ function saveNotifications(items) {
             NOTIFICATION_KEY,
             JSON.stringify(items || [])
         );
+
     } catch (error) {
         console.error("Notification save error:", error);
     }
@@ -2088,13 +2186,19 @@ function loadNotifications() {
     if (!notifications.length) {
         list.innerHTML =
             "<div class='notification-empty'>No notifications.</div>";
+
         return;
     }
 
     list.innerHTML = notifications.slice().reverse().map(item => `
         <div class="notification-item">
-            <strong>${escapeHtml(firstValue(item.title, "Notification"))}</strong>
-            <p>${escapeHtml(firstValue(item.message, ""))}</p>
+            <strong>
+                ${escapeHtml(firstValue(item.title, "Notification"))}
+            </strong>
+
+            <p>
+                ${escapeHtml(firstValue(item.message, ""))}
+            </p>
         </div>
     `).join("");
 }
@@ -2102,6 +2206,7 @@ function loadNotifications() {
 function clearNotifications() {
     saveNotifications([]);
     loadNotifications();
+
     showToast("Notifications cleared.", "success");
 }
 
@@ -2135,6 +2240,7 @@ async function confirmLogout() {
         if (error) throw error;
 
         window.location.replace("agency-login.html");
+
     } catch (error) {
         console.error("Logout failed:", error);
 
@@ -2145,7 +2251,10 @@ async function confirmLogout() {
             button.textContent = "Logout";
         }
 
-        showToast(error.message || "Logout failed.", "error");
+        showToast(
+            error.message || "Logout failed.",
+            "error"
+        );
     }
 }
 
@@ -2180,7 +2289,9 @@ function setupEventListeners() {
 
         try {
             await loadSlips();
+
             showToast("Slips refreshed.", "success");
+
         } finally {
             button.disabled = false;
             button.textContent = "↻ Refresh";
@@ -2191,9 +2302,20 @@ function setupEventListeners() {
     $("typeFilter")?.addEventListener("change", applyFilters);
     $("statusFilter")?.addEventListener("change", applyFilters);
 
-    $("closeSlipModal")?.addEventListener("click", closeSlipModal);
-    $("cancelSlipModal")?.addEventListener("click", closeSlipModal);
-    $("printSlipBtn")?.addEventListener("click", printSelectedSlip);
+    $("closeSlipModal")?.addEventListener(
+        "click",
+        closeSlipModal
+    );
+
+    $("cancelSlipModal")?.addEventListener(
+        "click",
+        closeSlipModal
+    );
+
+    $("printSlipBtn")?.addEventListener(
+        "click",
+        printSelectedSlip
+    );
 
     $("slipModal")?.addEventListener("click", event => {
         if (event.target === event.currentTarget) {
@@ -2203,6 +2325,7 @@ function setupEventListeners() {
 
     $("notificationBtn")?.addEventListener("click", event => {
         event.stopPropagation();
+
         $("notificationPanel")?.classList.toggle("show");
     });
 
@@ -2215,9 +2338,20 @@ function setupEventListeners() {
         clearNotifications
     );
 
-    $("logoutBtn")?.addEventListener("click", openLogoutModal);
-    $("cancelLogout")?.addEventListener("click", closeLogoutModal);
-    $("confirmLogout")?.addEventListener("click", confirmLogout);
+    $("logoutBtn")?.addEventListener(
+        "click",
+        openLogoutModal
+    );
+
+    $("cancelLogout")?.addEventListener(
+        "click",
+        closeLogoutModal
+    );
+
+    $("confirmLogout")?.addEventListener(
+        "click",
+        confirmLogout
+    );
 
     $("logoutModal")?.addEventListener("click", event => {
         if (event.target === event.currentTarget) {
@@ -2225,8 +2359,15 @@ function setupEventListeners() {
         }
     });
 
-    $("menuBtn")?.addEventListener("click", openMobileMenu);
-    $("sidebarOverlay")?.addEventListener("click", closeMobileMenu);
+    $("menuBtn")?.addEventListener(
+        "click",
+        openMobileMenu
+    );
+
+    $("sidebarOverlay")?.addEventListener(
+        "click",
+        closeMobileMenu
+    );
 
     document.querySelectorAll(".sidebar-link").forEach(link => {
         link.addEventListener("click", () => {
@@ -2276,20 +2417,21 @@ async function initializePage() {
     setupEventListeners();
 
     try {
-     const authenticated = await loadAgency();
+        const authenticated = await loadAgency();
 
-if (!authenticated) return;
+        if (!authenticated) return;
 
-loadNotifications();
+        loadNotifications();
 
-// Start Realtime Updates
-startSlipsRealtime();
+        startSlipsRealtime();
 
-// Initial Slips Load
-await loadSlips();
+        await loadSlips();
 
     } catch (error) {
-        console.error("Agency slips initialization failed:", error);
+        console.error(
+            "Agency slips initialization failed:",
+            error
+        );
 
         showToast(
             error.message || "Agency Slips initialize nahi hua.",
