@@ -1841,15 +1841,15 @@ function buildOriginalSlipHTML(slip) {
                 line-height:1.8;
             ">
 
-                <strong>EGC - Emergency Gas Cylinder</strong>
+                <strong> EGC Agency Panel</strong>
+
+                <br>
+
+                EGC - Emergency Gas Cylinder
 
                 <br>
 
                 This is a system-generated E-Slip.
-
-                <br>
-
-                Please keep it safe for future reference.
 
                 <br>
 
