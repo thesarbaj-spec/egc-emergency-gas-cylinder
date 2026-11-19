@@ -1677,38 +1677,12 @@ td{
                     Status
                 </label>
 
-                <select id="statusFilter">
-
-                    <option value="all">
-                        All Status
-                    </option>
-
-                    <option value="pending">
-                        Pending Approval
-                    </option>
-
-                    <option value="approved">
-                        Approved
-                    </option>
-
-                    <option value="rejected">
-                        Rejected
-                    </option>
-
-                    <option value="processing">
-                        Processing
-                    </option>
-
-                    <option value="delivered">
-                        Delivered
-                    </option>
-
-                    <option value="completed">
-                        Completed
-                    </option>
-
-                </select>
-
+   <select id="statusFilter">
+    <option value="all">All Status</option>
+    <option value="pending">Pending Approval</option>
+    <option value="processing">Processing</option>
+    <option value="rejected">Rejected</option>
+</select>
             </div>
 
 
@@ -1893,21 +1867,7 @@ td{
                 Close
             </button>
 
-            <button
-                class="modal-reject"
-                id="modalReject"
-                type="button"
-            >
-                Reject Request
-            </button>
-
-            <button
-                class="modal-approve"
-                id="modalApprove"
-                type="button"
-            >
-                Approve Request
-            </button>
+          
 
         </div>
 
@@ -2032,16 +1992,33 @@ td{
 
 <script>
 
+/* ================= SUPABASE OWNER AUTH CONFIG ================= */
+
 const SUPABASE_URL =
 "https://szefvmvokkhvnzryodqu.supabase.co";
 
 const SUPABASE_ANON_KEY =
 "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
 
+const OWNER_STORAGE_KEY = "egc-owner-auth";
+
 const supabaseClient =
 window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: OWNER_STORAGE_KEY
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
+        }
+    }
 );
 
 
@@ -2088,12 +2065,6 @@ document.getElementById("detailsClose");
 
 const detailsCloseBottom =
 document.getElementById("detailsCloseBottom");
-
-const modalApprove =
-document.getElementById("modalApprove");
-
-const modalReject =
-document.getElementById("modalReject");
 
 const confirmModal =
 document.getElementById("confirmModal");
@@ -2154,6 +2125,9 @@ document.getElementById("logoutConfirm");
 
 let requests = [];
 
+let profileUserCodeMap = new Map();
+let agencyProfileMap = new Map();
+
 let selectedRequest = null;
 
 let pendingAction = null;
@@ -2173,6 +2147,7 @@ let requestsRefreshTimer = null;
 let requestsLoading = false;
 
 let requestsReloadPending = false;
+
 
 
 /* ================= NAVIGATION ================= */
@@ -2537,15 +2512,20 @@ function statusClass(value){
 
 
 /* ================= EGC USER ID ================= */
+function getEgcUserId(request) {
 
-function getEgcUserId(request){
+    const userId = String(request?.user_id || "");
+
+    const profile = profileUserCodeMap.get(userId);
 
     return (
+        request.egc_user_code ||
         request.egc_user_id ||
         request.user_code ||
         request.customer_code ||
         request.egc_id ||
         request.profile_code ||
+        profile?.user_code ||
         "—"
     );
 
@@ -2582,39 +2562,54 @@ function getCompany(request){
 
 
 /* ================= AGENCY ================= */
+function getAgency(request) {
 
-function getAgency(request){
+    const agencyId = String(
+        request.agency_id || ""
+    );
+
+    const agency = agencyProfileMap.get(agencyId);
 
     return (
+        agency?.agency_name ||
         request.agency_name ||
         request.agency ||
-        request.selected_agency ||
         "—"
     );
 
 }
 
-
 /* ================= LOCATION ================= */
 
-function getLocation(request){
+function getLocation(request) {
 
-    const city =
-    request.city ||
-    "—";
-
-    const district =
-    request.district ||
-    "—";
-
-    const state =
-    request.state ||
-    "—";
+    const profile = profileUserCodeMap.get(
+        String(request?.user_id || "")
+    ) || {};
 
     return {
-        city,
-        district,
-        state
+
+        city:
+            request.city ||
+            profile.city ||
+            "—",
+
+        district:
+            request.district ||
+            profile.district ||
+            "—",
+
+        state:
+            request.state ||
+            profile.state ||
+            "—",
+
+        address:
+            request.address ||
+            request.full_address ||
+            profile.address ||
+            "Address not available"
+
     };
 
 }
@@ -2640,11 +2635,53 @@ function getRequestNumber(request){
 
 }
 
+/* ============== OWNER REQUEST STATUS ============== */
 
-/* ================= FETCH REQUESTS ================= */
+function getOwnerRequestStatus(request) {
+
+    const status = String(
+        request.status || ""
+    ).trim().toLowerCase();
+
+    if (status === "pending") {
+        return "pending";
+    }
+
+    if (
+        status === "processing" ||
+        status === "agency processing"
+    ) {
+        return "processing";
+    }
+
+    if (
+        status === "rejected" ||
+        status === "reject"
+    ) {
+        return "rejected";
+    }
+
+    // Completed, Delivered, Approved etc. hide
+    return "";
+}
+
+
+/* ============== OWNER REQUEST FILTER ============== */
+
+function isOwnerPendingRequest(request) {
+
+    return [
+        "pending",
+        "processing",
+        "rejected"
+    ].includes(getOwnerRequestStatus(request));
+
+}
 
 /* =====================================================
    FETCH REQUESTS
+   ONLY PENDING OWNER APPROVAL REQUESTS
+   CUSTOMER PROFILES + AGENCY DETAILS
    LATEST ACTIVITY + PAYMENT ACTIVITY
    SAFE REALTIME REFRESH
 ===================================================== */
@@ -2652,17 +2689,13 @@ function getRequestNumber(request){
 async function loadRequests() {
 
     if (requestsLoading) {
-
         requestsReloadPending = true;
-
         return;
-
     }
 
     requestsLoading = true;
 
     if (requestTableBody) {
-
         requestTableBody.innerHTML = `
             <tr>
                 <td colspan="7" class="empty">
@@ -2670,7 +2703,6 @@ async function loadRequests() {
                 </td>
             </tr>
         `;
-
     }
 
     try {
@@ -2679,7 +2711,9 @@ async function loadRequests() {
 
             requestsReloadPending = false;
 
-            /* LOAD CYLINDER REQUESTS */
+            /* =====================================
+               1. LOAD CYLINDER REQUESTS
+            ===================================== */
 
             const {
                 data,
@@ -2692,21 +2726,172 @@ async function loadRequests() {
                 throw error;
             }
 
-            requests = Array.isArray(data)
-                ? data
-                : [];
+            console.log("[EGC DEBUG] Total Supabase Requests:", data?.length || 0);
+
+            console.table(
+                (data || []).map(request => ({
+                    id: request.id,
+                    status: request.status,
+                    owner_approval: request.owner_approval,
+                    user_status: request.user_status
+                }))
+            );
+
+
+            /* =====================================
+               2. FILTER ONLY PENDING OWNER REQUESTS
+            ===================================== */
+
+            requests = (Array.isArray(data) ? data : [])
+                .filter(isOwnerPendingRequest);
+
+
+            console.log("[EGC] Pending Owner Requests:", {
+                total: data?.length || 0,
+                visible: requests.length,
+                requests: requests.map(request => ({
+                    id: request.id,
+                    status: request.status,
+                    owner_approval: request.owner_approval,
+                    user_status: request.user_status
+                }))
+            });
+
+
+            /* =====================================
+               3. LOAD AGENCY DETAILS
+            ===================================== */
+
+            agencyProfileMap = new Map();
+
+            const agencyIds = [
+                ...new Set(
+                    requests
+                        .map(request => request.agency_id)
+                        .filter(Boolean)
+                )
+            ];
+
+            if (agencyIds.length) {
+
+                const {
+                    data: agencyProfiles,
+                    error: agencyError
+                } = await supabaseClient
+                    .from("agencies")
+                    .select("id, agency_name, agency_code")
+                    .in("id", agencyIds);
+
+                if (agencyError) {
+
+                    console.error(
+                        "[EGC Requests] Agency loading error:",
+                        agencyError
+                    );
+
+                } else {
+
+                    (agencyProfiles || []).forEach(agency => {
+
+                        agencyProfileMap.set(
+                            String(agency.id),
+                            agency
+                        );
+
+                    });
+
+                }
+
+            }
+
+
+            /* =====================================
+               4. LOAD CUSTOMER PROFILES
+            ===================================== */
+
+            profileUserCodeMap = new Map();
+
+            const userIds = [
+                ...new Set(
+                    requests
+                        .map(request => request.user_id)
+                        .filter(Boolean)
+                )
+            ];
+
+            if (userIds.length) {
+
+                const {
+                    data: profileRows,
+                    error: profileError
+                } = await supabaseClient
+                    .from("profiles")
+                    .select(`
+                        id,
+                        user_code,
+                        full_name,
+                        mobile,
+                        email,
+                        auth_email,
+                        address,
+                        city,
+                        district,
+                        state,
+                        booking_number,
+                        profile_photo,
+                        gas_passbook_photo,
+                        pan_photo,
+                        aadhaar_front_photo,
+                        aadhaar_back_photo
+                    `)
+                    .in("id", userIds);
+
+                if (profileError) {
+
+                    console.error(
+                        "[EGC Requests] Profile loading error:",
+                        profileError
+                    );
+
+                } else {
+
+                    (profileRows || []).forEach(profile => {
+
+                        if (profile.id) {
+
+                            profileUserCodeMap.set(
+                                String(profile.id),
+                                profile
+                            );
+
+                        }
+
+                    });
+
+                }
+
+            }
+
+
+            /* =====================================
+               5. RESET PAYMENT ACTIVITY MAP
+            ===================================== */
 
             requestActivityMap = new Map();
 
 
-            /* REQUEST IDS */
+            /* =====================================
+               6. GET REQUEST IDS
+            ===================================== */
 
             const requestIds = requests
                 .map(request => String(request.id || ""))
                 .filter(Boolean);
 
 
-            /* LOAD RELATED PAYMENTS */
+            /* =====================================
+               7. LOAD RELATED PAYMENT ACTIVITY
+            ===================================== */
 
             if (requestIds.length) {
 
@@ -2753,31 +2938,55 @@ async function loadRequests() {
             }
 
 
-            /* SORT BY LATEST ACTIVITY */
+            /* =====================================
+               8. SORT BY LATEST ACTIVITY
+            ===================================== */
 
             requests = sortRequestsByLatestActivity(
                 requests
             );
 
 
-            /* UPDATE EXISTING UI */
+            /* =====================================
+               9. UPDATE COMPANY FILTER
+            ===================================== */
 
             populateCompanyFilter();
 
+
+            /* =====================================
+               10. UPDATE DASHBOARD STATS
+            ===================================== */
+
             updateStats();
+
+
+            /* =====================================
+               11. RENDER REQUEST TABLE
+            ===================================== */
 
             renderRequests();
 
 
+            /* =====================================
+               12. DEBUG LOG
+            ===================================== */
+
             console.log(
-                "[EGC Requests] Latest activity sorting completed:",
+                "[EGC Requests] Pending requests loaded:",
                 requests.length
+            );
+
+            console.log(
+                "[EGC Requests] Latest activity sorting completed."
             );
 
 
         } while (requestsReloadPending);
 
+
     }
+
     catch (error) {
 
         console.error(
@@ -2785,17 +2994,22 @@ async function loadRequests() {
             error
         );
 
-        requestTableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="empty">
-                    Unable to load cylinder requests.
-                    <br>
-                    <small>${escapeHtml(error.message)}</small>
-                </td>
-            </tr>
-        `;
+        if (requestTableBody) {
+
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty">
+                        Unable to load cylinder requests.
+                        <br>
+                        <small>${escapeHtml(error.message)}</small>
+                    </td>
+                </tr>
+            `;
+
+        }
 
     }
+
     finally {
 
         requestsLoading = false;
@@ -2803,6 +3017,7 @@ async function loadRequests() {
     }
 
 }
+
 
 
 /* ================= COMPANY FILTER ================= */
@@ -2942,107 +3157,24 @@ function updateStats(){
 function getFilteredRequests(){
 
     const search =
-    searchInput.value
-    .trim()
-    .toLowerCase();
-
-
-    const selectedStatus =
-    statusFilter.value;
-
-
-    const selectedCompany =
-    companyFilter.value;
-
-
-    return requests.filter(
-        request => {
-
-            const userName =
-            getUserName(
-                request
-            )
-            .toLowerCase();
-
-
-            const egcId =
-            getEgcUserId(
-                request
-            )
-            .toLowerCase();
-
-
-            const city =
-            String(
-                request.city ||
-                ""
-            )
-            .toLowerCase();
-
-
-            const requestNumber =
-            getRequestNumber(
-                request
-            )
-            .toLowerCase();
-
-
-            const company =
-            getCompany(
-                request
-            );
-
-
-            const status =
-            normalizeStatus(
-                request.status
-            );
-
-
-            const searchMatch =
-            !search ||
-            userName.includes(search) ||
-            egcId.includes(search) ||
-            city.includes(search) ||
-            requestNumber.includes(search);
-
-
-            const statusMatch =
-            selectedStatus === "all" ||
-            status === selectedStatus;
-
-
-            const companyMatch =
-            selectedCompany === "all" ||
-            company === selectedCompany;
-
-
-            return (
-                searchMatch &&
-                statusMatch &&
-                companyMatch
-            );
-
-        }
-    );
-
-}
-
-/* =====================================================
-   FILTER SORTED REQUESTS
-===================================================== */
-
-function getFilteredRequestsFromList(list) {
-
-    const search = searchInput.value
+        searchInput.value
         .trim()
         .toLowerCase();
 
-    const selectedStatus = statusFilter.value;
+    const selectedStatus =
+        statusFilter.value;
 
-    const selectedCompany = companyFilter.value;
+    const selectedCompany =
+        companyFilter.value;
 
-    return list.filter(request => {
+    // इस पेज पर केवल ये तीन statuses दिखेंगी
+    const allowedStatuses = [
+        "pending",
+        "rejected",
+        "processing"
+    ];
+
+    return requests.filter(request => {
 
         const userName =
             getUserName(request).toLowerCase();
@@ -3062,6 +3194,10 @@ function getFilteredRequestsFromList(list) {
         const status =
             normalizeStatus(request.status);
 
+        // Approved और अन्य statuses को रोकें
+        const allowedStatus =
+            allowedStatuses.includes(status);
+
         const searchMatch =
             !search ||
             userName.includes(search) ||
@@ -3078,6 +3214,7 @@ function getFilteredRequestsFromList(list) {
             company === selectedCompany;
 
         return (
+            allowedStatus &&
             searchMatch &&
             statusMatch &&
             companyMatch
@@ -3087,6 +3224,56 @@ function getFilteredRequestsFromList(list) {
 
 }
 
+function getFilteredRequestsFromList(list) {
+
+    const search = searchInput.value.trim().toLowerCase();
+    const selectedStatus = statusFilter.value;
+    const selectedCompany = companyFilter.value;
+
+    return list.filter(request => {
+
+        const status = normalizeStatus(request.status);
+
+        const userName = getUserName(request).toLowerCase();
+        const egcId = String(getEgcUserId(request)).toLowerCase();
+        const city = String(request.city || "").toLowerCase();
+        const requestNumber = String(getRequestNumber(request)).toLowerCase();
+        const company = String(getCompany(request));
+
+        const allowedStatus = [
+            "pending",
+            "processing",
+            "rejected"
+        ].includes(status);
+
+        const matchesStatus =
+            selectedStatus === "all" ||
+            status === selectedStatus;
+
+        const matchesCompany =
+            selectedCompany === "all" ||
+            company === selectedCompany;
+
+        const searchableText = [
+            userName,
+            egcId,
+            city,
+            requestNumber,
+            company,
+            getAgency(request).toLowerCase()
+        ].join(" ").toLowerCase();
+
+        const matchesSearch =
+            !search || searchableText.includes(search);
+
+        return (
+            allowedStatus &&
+            matchesStatus &&
+            matchesCompany &&
+            matchesSearch
+        );
+    });
+}
 /* ================= RENDER ================= */
 
 function renderRequests(){
@@ -3140,160 +3327,147 @@ getFilteredRequestsFromList(sortedRequests);
         document.createElement("tr");
 
 
-        let actionButtons = `
-
-            <button
-                class="action-btn view-action"
-                type="button"
-                data-action="view"
-                data-id="${escapeHtml(request.id)}"
-                title="View Request"
-            >
-                👁
-            </button>
-
-        `;
-
-
-        if(
-            status === "pending"
-        ){
-
-            actionButtons += `
-
-                <button
-                    class="action-btn approve-action"
-                    type="button"
-                    data-action="approve"
-                    data-id="${escapeHtml(request.id)}"
-                    title="Approve"
-                >
-                    ✓
-                </button>
-
-                <button
-                    class="action-btn reject-action"
-                    type="button"
-                    data-action="reject"
-                    data-id="${escapeHtml(request.id)}"
-                    title="Reject"
-                >
-                    ✕
-                </button>
-
-            `;
-
-        }
+const actionButtons = `
+    <button
+        class="action-btn view-action"
+        type="button"
+        data-action="view"
+        data-id="${escapeHtml(request.id)}"
+        title="View Request"
+    >
+        👁 View
+    </button>
+`;
 
 
         tr.innerHTML = `
 
-            <td>
+    <!-- USER -->
 
-                <div class="user-name">
-                    ${escapeHtml(
-                        getUserName(request)
-                    )}
-                </div>
+    <td>
 
-                <div class="user-id">
-                    ${escapeHtml(
-                        getEgcUserId(request)
-                    )}
-                </div>
+        <div class="user-name">
+            ${escapeHtml(getUserName(request))}
+        </div>
 
-            </td>
+        <div class="user-id">
+            ${escapeHtml(getEgcUserId(request))}
+        </div>
+
+    </td>
 
 
-            <td>
+    <!-- LPG DETAILS -->
 
-                <div class="agency-name">
-                    ${escapeHtml(
-                        getCompany(request)
-                    )}
-                </div>
+    <td>
 
-                <div class="location-sub">
-                    ${escapeHtml(
-                        request.lpg_type ||
-                        request.cylinder_type ||
-                        "LPG Cylinder"
-                    )}
-                </div>
+        <div class="agency-name">
+            ${escapeHtml(getCompany(request))}
+        </div>
 
-            </td>
+        <div class="location-sub">
+            ${escapeHtml(
+                request.cylinder_type ||
+                request.lpg_type ||
+                "LPG Cylinder"
+            )}
+        </div>
 
+        <div class="location-sub">
+            ${escapeHtml(
+                request.cylinder_weight ||
+                request.weight ||
+                request.cylinder_size
+                    ? (
+                        request.cylinder_weight ||
+                        request.weight ||
+                        request.cylinder_size
+                    ) + " KG"
+                    : "Weight not available"
+            )}
+        </div>
 
-            <td>
-
-                <div class="location-main">
-                    ${escapeHtml(
-                        location.city
-                    )}
-                </div>
-
-                <div class="location-sub">
-                    ${escapeHtml(
-                        location.district
-                    )},
-                    ${escapeHtml(
-                        location.state
-                    )}
-                </div>
-
-            </td>
+    </td>
 
 
-            <td>
+    <!-- LOCATION -->
 
-                <div class="agency-name">
-                    ${escapeHtml(
-                        getAgency(request)
-                    )}
-                </div>
+<td>
 
-            </td>
+    <div class="location-main">
+        ${escapeHtml(
+            location.address ||
+            "—"
+        )}
+    </div>
 
+    <div class="location-sub">
+        ${escapeHtml(
+            location.city ||
+            "—"
+        )}
+    </div>
 
-            <td>
+    <div class="location-sub">
+        ${escapeHtml(
+            [
+                location.district,
+                location.state
+            ].filter(value => value && value !== "—").join(", ")
+        )}
+    </div>
 
-                <div class="request-date">
-                    ${escapeHtml(
-                        formatDate(
-                            request.created_at
-                        )
-                    )}
-                </div>
-
-            </td>
-
-
-            <td>
-
-                <span
-                    class="status ${statusClass(
-                        request.status
-                    )}"
-                >
-                    ${escapeHtml(
-                        statusLabel(
-                            request.status
-                        )
-                    )}
-                </span>
-
-            </td>
+</td>
 
 
-            <td>
+    <!-- AGENCY -->
 
-                <div class="actions">
-                    ${actionButtons}
-                </div>
+<td>
+    <div class="agency-name">
+        ${escapeHtml(getAgency(request))}
+    </div>
 
-            </td>
+    <div class="location-sub">
+        Agency ID: ${escapeHtml(
+            agencyProfileMap.get(String(request.agency_id))?.agency_code || "—"
+        )}
+    </div>
+</td>
 
-        `;
+
+    <!-- REQUEST DATE -->
+
+    <td>
+
+        <div class="request-date">
+            ${escapeHtml(formatDate(request.created_at))}
+        </div>
+
+    </td>
+
+
+    <!-- STATUS -->
+
+    <td>
+
+        <span class="status ${statusClass(request.status)}">
+            ${escapeHtml(statusLabel(request.status))}
+        </span>
+
+    </td>
+
+
+    <!-- ACTION -->
+
+    <td>
+
+        <div class="actions">
+            ${actionButtons}
+        </div>
+
+    </td>
+
+`;
 
 
         requestTableBody.appendChild(
@@ -3347,15 +3521,10 @@ requestTableBody.addEventListener(
         }
 
 
-        if(
-            action === "view"
-        ){
-
-            openDetails(
-                request
-            );
-
-        }
+if (action === "view") {
+    openDetails(request);
+    return;
+}
 
 
         if(
@@ -3384,28 +3553,393 @@ requestTableBody.addEventListener(
     }
 );
 
+/* =====================================================
+   PRIVATE DOCUMENT SIGNED URL
+===================================================== */
 
-/* ================= DETAILS ================= */
+async function getPrivateDocumentUrl(filePath) {
 
-function openDetails(request){
+    if (!filePath) return null;
 
-    selectedRequest =
-    request;
+    try {
+
+        let storagePath = String(filePath).trim();
+
+        // Handle Supabase Storage URLs
+        if (storagePath.includes("/storage/v1/object/")) {
+
+            const marker = "/users-documents/";
+
+            const markerIndex = storagePath.indexOf(marker);
+
+            if (markerIndex === -1) {
+                return null;
+            }
+
+            storagePath = storagePath
+                .substring(markerIndex + marker.length)
+                .split("?")[0];
+
+        }
+
+        // Remove leading slash
+        storagePath = storagePath.replace(/^\/+/, "");
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .storage
+            .from("users-documents")
+            .createSignedUrl(storagePath, 600);
+
+        if (error) {
+
+            console.error(
+                "[EGC Documents] Signed URL error:",
+                error
+            );
+
+            return null;
+
+        }
+
+        return data?.signedUrl || null;
+
+    }
+    catch (error) {
+
+        console.error(
+            "[EGC Documents] Error:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
 
 
-    const location =
-    getLocation(
-        request
+/* =====================================================
+   OPEN DOCUMENT IN LARGE VIEW
+===================================================== */
+
+function openDocumentPreview(url, title) {
+
+    if (!url) return;
+
+    const existing = document.getElementById(
+        "egcDocumentPreview"
     );
 
+    if (existing) {
+        existing.remove();
+    }
 
-    const status =
-    normalizeStatus(
-        request.status
-    );
+    const preview = document.createElement("div");
 
+    preview.id = "egcDocumentPreview";
+
+    preview.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.85);
+        z-index:999999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+    `;
+
+    preview.innerHTML = `
+        <div style="
+            background:white;
+            width:100%;
+            max-width:850px;
+            max-height:90vh;
+            border-radius:16px;
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+        ">
+
+            <div style="
+                padding:15px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                border-bottom:1px solid #eee;
+            ">
+
+                <strong>${escapeHtml(title)}</strong>
+
+                <button
+                    type="button"
+                    id="egcPreviewClose"
+                    style="
+                        border:0;
+                        background:#edf4fa;
+                        padding:10px 15px;
+                        border-radius:8px;
+                        cursor:pointer;
+                    "
+                >
+                    ✕
+                </button>
+
+            </div>
+
+            <div style="
+                padding:15px;
+                overflow:auto;
+                text-align:center;
+            ">
+
+                <img
+                    src="${escapeHtml(url)}"
+                    alt="${escapeHtml(title)}"
+                    style="
+                        max-width:100%;
+                        max-height:70vh;
+                        object-fit:contain;
+                        border-radius:8px;
+                    "
+                >
+
+            </div>
+
+        </div>
+    `;
+
+    document.body.appendChild(preview);
+
+    document.getElementById(
+        "egcPreviewClose"
+    ).addEventListener("click", () => {
+        preview.remove();
+    });
+
+    preview.addEventListener("click", event => {
+
+        if (event.target === preview) {
+            preview.remove();
+        }
+
+    });
+
+}
+
+
+/* =====================================================
+   REQUEST DETAILS
+===================================================== */
+
+async function openDetails(request) {
+
+    selectedRequest = request;
+
+    const profile = profileUserCodeMap.get(
+        String(request.user_id || "")
+    ) || {};
+
+   const status = getOwnerRequestStatus(request);
+
+    const location = getLocation(request);
+
+    const documents = [
+
+        {
+            title: "Profile Photo",
+            path: profile.profile_photo
+        },
+
+        {
+            title: "Gas Passbook",
+            path: profile.gas_passbook_photo
+        },
+
+        {
+            title: "PAN Card",
+            path: profile.pan_photo
+        },
+
+        {
+            title: "Aadhaar Card Front",
+            path: profile.aadhaar_front_photo
+        },
+
+        {
+            title: "Aadhaar Card Back",
+            path: profile.aadhaar_back_photo
+        }
+
+    ];
+
+
+    /* LOAD PRIVATE DOCUMENTS */
 
     detailsBody.innerHTML = `
+        <div style="
+            padding:30px;
+            text-align:center;
+            color:#668099;
+        ">
+            Loading customer details and documents...
+        </div>
+    `;
+
+    detailsModal.classList.add("show");
+
+    document.body.style.overflow = "hidden";
+
+
+    const documentUrls = await Promise.all(
+
+        documents.map(async document => {
+
+            return {
+                ...document,
+                url: await getPrivateDocumentUrl(document.path)
+            };
+
+        })
+
+    );
+
+
+    /* CUSTOMER INFORMATION */
+
+    const customerName =
+        request.full_name ||
+        request.user_name ||
+        request.customer_name ||
+        request.name ||
+        profile.full_name ||
+        "—";
+
+    const mobile =
+        request.mobile ||
+        request.phone ||
+        profile.mobile ||
+        "—";
+
+    const email =
+        request.email ||
+        profile.email ||
+        profile.auth_email ||
+        "—";
+
+    const bookingNumber =
+        request.booking_number ||
+        request.booking_no ||
+        profile.booking_number ||
+        "—";
+
+    const customerAddress =
+        request.address ||
+        request.full_address ||
+        request.area ||
+        profile.address ||
+        "—";
+
+
+    /* LPG INFORMATION */
+
+    const cylinderType =
+        request.cylinder_type ||
+        request.lpg_type ||
+        request.cylinder_category ||
+        "LPG Cylinder";
+
+    const cylinderWeight =
+        request.cylinder_weight ||
+        request.weight ||
+        request.cylinder_weight_kg ||
+        "—";
+
+    const cylinderQuantity =
+        request.quantity ||
+        request.cylinder_quantity ||
+        "1";
+
+
+    /* FINANCE INFORMATION */
+
+    const scheme =
+        request.scheme ||
+        request.scheme_name ||
+        request.finance_scheme ||
+        "—";
+
+    const financeAmount =
+        request.finance_amount ??
+        request.amount ??
+        request.total_amount ??
+        "—";
+
+
+    /* DOCUMENT HTML */
+
+    let documentHTML = "";
+
+    documentUrls.forEach(document => {
+
+        documentHTML += `
+
+            <div class="detail-item">
+
+                <div class="detail-label">
+                    ${escapeHtml(document.title)}
+                </div>
+
+                ${
+                    document.url
+                    ? `
+                        <img
+                            src="${escapeHtml(document.url)}"
+                            alt="${escapeHtml(document.title)}"
+                            loading="lazy"
+                            onclick="openDocumentPreview(
+                                '${escapeHtml(document.url)}',
+                                '${escapeHtml(document.title)}'
+                            )"
+                            style="
+                                width:100%;
+                                max-width:220px;
+                                height:145px;
+                                object-fit:contain;
+                                background:#fff;
+                                border:1px solid #e3ebf2;
+                                border-radius:10px;
+                                padding:5px;
+                                cursor:zoom-in;
+                            "
+                        >
+
+                        <div class="location-sub">
+                            Click to view full document
+                        </div>
+                    `
+                    : `
+                        <div class="detail-value">
+                            Not Uploaded
+                        </div>
+                    `
+                }
+
+            </div>
+
+        `;
+
+    });
+
+
+    /* BUILD DETAILS */
+
+    detailsBody.innerHTML = `
+
+        <!-- REQUEST INFORMATION -->
 
         <section class="detail-section">
 
@@ -3420,79 +3954,52 @@ function openDetails(request){
                         Request Number
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            getRequestNumber(
-                                request
-                            )
-                        )}
+                        ${escapeHtml(getRequestNumber(request))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         EGC User ID
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            getEgcUserId(
-                                request
-                            )
-                        )}
+                        ${escapeHtml(getEgcUserId(request))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Request Date
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            formatDate(
-                                request.created_at
-                            )
-                        )}
+                        ${escapeHtml(formatDate(request.created_at))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Current Status
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            statusLabel(
-                                request.status
-                            )
-                        )}
+                        ${escapeHtml(statusLabel(request.status))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         User ID
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.user_id ||
-                            "—"
-                        )}
+                        ${escapeHtml(request.user_id || "—")}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Request ID
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.id ||
-                            "—"
-                        )}
+                        ${escapeHtml(request.id || "—")}
                     </div>
                 </div>
 
@@ -3500,6 +4007,8 @@ function openDetails(request){
 
         </section>
 
+
+        <!-- CUSTOMER DETAILS -->
 
         <section class="detail-section">
 
@@ -3514,38 +4023,43 @@ function openDetails(request){
                         Full Name
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            getUserName(
-                                request
-                            )
-                        )}
+                        ${escapeHtml(customerName)}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Mobile
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.mobile ||
-                            request.phone ||
-                            "—"
-                        )}
+                        ${escapeHtml(mobile)}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Email
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.email ||
-                            "—"
-                        )}
+                        ${escapeHtml(email)}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Booking Number
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(bookingNumber)}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Address
+                    </div>
+                    <div class="detail-value">
+                        ${escapeHtml(customerAddress)}
                     </div>
                 </div>
 
@@ -3553,6 +4067,8 @@ function openDetails(request){
 
         </section>
 
+
+        <!-- LPG DETAILS -->
 
         <section class="detail-section">
 
@@ -3567,52 +4083,50 @@ function openDetails(request){
                         LPG Company
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            getCompany(
-                                request
-                            )
-                        )}
+                        ${escapeHtml(getCompany(request))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         LPG Agency
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            getAgency(
-                                request
-                            )
-                        )}
+                        ${escapeHtml(getAgency(request))}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Cylinder Quantity
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.quantity ||
-                            request.cylinder_quantity ||
-                            "1"
-                        )}
+                        ${escapeHtml(cylinderQuantity)}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Cylinder Type
                     </div>
                     <div class="detail-value">
+                        ${escapeHtml(cylinderType)}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">
+                        Cylinder Weight
+                    </div>
+                    <div class="detail-value">
                         ${escapeHtml(
-                            request.cylinder_type ||
-                            request.lpg_type ||
-                            "LPG Cylinder"
+                            cylinderWeight === "—"
+                            ? "Not Available"
+                            : cylinderWeight + (
+                                String(cylinderWeight).toLowerCase().includes("kg")
+                                ? ""
+                                : " KG"
+                            )
                         )}
                     </div>
                 </div>
@@ -3621,6 +4135,8 @@ function openDetails(request){
 
         </section>
 
+
+        <!-- ADDRESS -->
 
         <section class="detail-section">
 
@@ -3636,11 +4152,12 @@ function openDetails(request){
                     </div>
                     <div class="detail-value">
                         ${escapeHtml(
-                            location.state
+                            request.state ||
+                            profile.state ||
+                            "—"
                         )}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
@@ -3648,11 +4165,12 @@ function openDetails(request){
                     </div>
                     <div class="detail-value">
                         ${escapeHtml(
-                            location.district
+                            request.district ||
+                            profile.district ||
+                            "—"
                         )}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
@@ -3660,23 +4178,19 @@ function openDetails(request){
                     </div>
                     <div class="detail-value">
                         ${escapeHtml(
-                            location.city
+                            request.city ||
+                            profile.city ||
+                            "—"
                         )}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Address
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.address ||
-                            request.full_address ||
-                            request.area ||
-                            "—"
-                        )}
+                        ${escapeHtml(customerAddress)}
                     </div>
                 </div>
 
@@ -3684,6 +4198,8 @@ function openDetails(request){
 
         </section>
 
+
+        <!-- SCHEME / FINANCE -->
 
         <section class="detail-section">
 
@@ -3698,30 +4214,22 @@ function openDetails(request){
                         Scheme
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.scheme ||
-                            request.scheme_name ||
-                            request.finance_scheme ||
-                            "—"
-                        )}
+                        ${escapeHtml(scheme)}
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
                         Finance Amount
                     </div>
                     <div class="detail-value">
-                        ${escapeHtml(
-                            request.amount ||
-                            request.finance_amount ||
-                            request.total_amount ||
-                            "—"
-                        )}
+                        ${
+                            financeAmount === "—"
+                            ? "—"
+                            : "₹" + escapeHtml(financeAmount)
+                        }
                     </div>
                 </div>
-
 
                 <div class="detail-item">
                     <div class="detail-label">
@@ -3736,6 +4244,8 @@ function openDetails(request){
 
         </section>
 
+
+        <!-- VERIFICATION DOCUMENTS -->
 
         <section class="detail-section">
 
@@ -3758,34 +4268,11 @@ function openDetails(request){
                     </div>
                 </div>
 
+            </div>
 
-                <div class="detail-item">
-                    <div class="detail-label">
-                        Document
-                    </div>
-                    <div class="detail-value">
-                        ${escapeHtml(
-                            request.document_url ||
-                            request.verification_document ||
-                            request.document ||
-                            "Not linked"
-                        )}
-                    </div>
-                </div>
+            <div class="detail-grid" style="margin-top:15px;">
 
-
-                <div class="detail-item">
-                    <div class="detail-label">
-                        Verification Photo
-                    </div>
-                    <div class="detail-value">
-                        ${escapeHtml(
-                            request.verification_photo ||
-                            request.verification_image ||
-                            "Not linked"
-                        )}
-                    </div>
-                </div>
+                ${documentHTML}
 
             </div>
 
@@ -3794,37 +4281,9 @@ function openDetails(request){
     `;
 
 
-    if(
-        status === "pending"
-    ){
-
-        modalApprove.style.display =
-        "block";
-
-        modalReject.style.display =
-        "block";
-
-    }
-    else{
-
-        modalApprove.style.display =
-        "none";
-
-        modalReject.style.display =
-        "none";
-
-    }
-
-
-    detailsModal.classList.add(
-        "show"
-    );
-
-    document.body.style.overflow =
-    "hidden";
+    /* APPROVE / REJECT BUTTONS */
 
 }
-
 
 /* ================= CLOSE DETAILS ================= */
 
@@ -4028,111 +4487,129 @@ confirmOk.addEventListener(
 
 /* ================= UPDATE REQUEST ================= */
 
-async function updateRequestStatus(
-    request,
-    action
-){
+async function updateRequestStatus(request, action) {
 
-    const newStatus =
-    action === "approve"
-    ? "approved"
-    : "rejected";
+    const normalizedAction = String(action || "")
+        .trim()
+        .toLowerCase();
 
+    const isApproved = [
+        "approve",
+        "approved"
+    ].includes(normalizedAction);
 
-    try{
+    const isRejected = [
+        "reject",
+        "rejected"
+    ].includes(normalizedAction);
 
+    if (!isApproved && !isRejected) {
+        alert("Invalid request approval action.");
+        return;
+    }
+
+    try {
+
+        // Get logged-in Owner
         const {
-            error
-        } =
-        await supabaseClient
-        .from("cylinder_requests")
-    .update({
+            data: { user },
+            error: authError
+        } = await supabaseClient.auth.getUser();
 
-    status: newStatus,
-
-    updated_at: new Date().toISOString()
-
-})
-        .eq(
-            "id",
-            request.id
-        );
-
-
-        if(error){
-
-            console.error(
-                "Request update error:",
-                error
-            );
-
-            alert(
-                "Request update failed.\n\n" +
-                error.message
-            );
-
-            return;
-
+        if (authError || !user) {
+            throw new Error("Owner authentication not found.");
         }
 
+        const now = new Date().toISOString();
 
-        confirmModal.classList.remove(
-            "show"
-        );
+        // Update ONLY request approval fields
+        const updateData = isApproved
+            ? {
+                owner_approval: "Approved",
+                user_status: "Payment Required",
+                approved_by: user.id,
+                approved_at: now,
+                owner_rejected_at: null,
+                rejection_reason: null,
+                updated_at: now
+            }
+            : {
+                owner_approval: "Rejected",
+                user_status: "Rejected",
+                owner_rejected_at: now,
+                rejection_reason: "Rejected by Owner",
+                updated_at: now
+            };
 
+        // Save and verify database response
+        const {
+            data: updatedRequest,
+            error
+        } = await supabaseClient
+            .from("cylinder_requests")
+            .update(updateData)
+            .eq("id", request.id)
+            .select("id, owner_approval, user_status, approved_by, approved_at")
+            .single();
 
+        if (error) {
+            throw error;
+        }
+
+        if (!updatedRequest) {
+            throw new Error("Request was not updated in the database.");
+        }
+
+        console.log("EGC REQUEST APPROVAL SAVED:", updatedRequest);
+
+        if (
+            String(updatedRequest.owner_approval).toLowerCase() !==
+            (isApproved ? "approved" : "rejected").toLowerCase()
+        ) {
+            throw new Error("Database approval status verification failed.");
+        }
+
+        // Close confirmation and details
+        confirmModal.classList.remove("show");
         closeDetails();
 
-
+        // Local notification
         addLocalNotification({
+            title: isApproved
+                ? "Request Approved"
+                : "Request Rejected",
 
-            title:
-            action === "approve"
-            ? "Request Approved"
-            : "Request Rejected",
-
-            text:
-            getRequestNumber(
-                request
-            ) +
-            " has been " +
-            (
-                action === "approve"
-                ? "approved."
-                : "rejected."
-            )
-
+            text: getRequestNumber(request) +
+                (isApproved
+                    ? " has been approved."
+                    : " has been rejected.")
         });
 
+        // Database notification
+        await createDatabaseNotification(request, isApproved ? "approve" : "reject");
 
-        await createDatabaseNotification(
-            request,
-            action
-        );
-
-
+        // Reload requests
         await loadRequests();
 
-
         alert(
-            action === "approve"
-            ? "Request approved successfully."
-            : "Request rejected successfully."
+            isApproved
+                ? "Request approved successfully."
+                : "Request rejected successfully."
         );
 
-    }
-    catch(error){
+    } catch (error) {
 
         console.error(
+            "[EGC Owner Approval Error]",
             error
         );
 
         alert(
-            "Something went wrong while updating the request."
+            "Request update failed.\n\n" +
+            error.message
         );
 
     }
-
 }
 
 
@@ -4649,8 +5126,7 @@ resetFilters.addEventListener(
         searchInput.value =
         "";
 
-        statusFilter.value =
-        "all";
+        statusFilter.value = "pending";
 
         companyFilter.value =
         "all";
@@ -4682,45 +5158,6 @@ refreshBtn.addEventListener(
     }
 );
 
-
-/* ================= MODAL BUTTONS ================= */
-
-modalApprove.addEventListener(
-    "click",
-    function(){
-
-        if(
-            selectedRequest
-        ){
-
-            askApproval(
-                selectedRequest,
-                "approve"
-            );
-
-        }
-
-    }
-);
-
-
-modalReject.addEventListener(
-    "click",
-    function(){
-
-        if(
-            selectedRequest
-        ){
-
-            askApproval(
-                selectedRequest,
-                "reject"
-            );
-
-        }
-
-    }
-);
 
 
 /* ================= NOTIFICATIONS ================= */
@@ -4960,6 +5397,46 @@ function requestNotificationPermission(){
 
 }
 
+/* ================= PENDING REQUEST FILTER ================= */
+
+function isOwnerPendingRequest(request) {
+
+    const ownerApproval = String(
+        request.owner_approval || ""
+    ).trim().toLowerCase();
+
+    const userStatus = String(
+        request.user_status || ""
+    ).trim().toLowerCase();
+
+    const requestStatus = normalizeStatus(
+        request.status
+    );
+
+    // Already processed requests should not appear here
+    if (
+        ["approved", "rejected"].includes(ownerApproval) ||
+        ["approved", "rejected", "payment required"].includes(userStatus)
+    ) {
+        return false;
+    }
+
+    // Only pending requests
+    return (
+        ["pending", "submitted", "pending approval"].includes(ownerApproval) ||
+        ["pending", "submitted", "pending approval"].includes(userStatus) ||
+        requestStatus === "pending"
+    );/* ================= PENDING OWNER APPROVAL FILTER ================= */
+
+function isOwnerPendingRequest(request) {
+
+    const ownerApproval = String(
+        request?.owner_approval || ""
+    ).trim().toLowerCase();
+
+    return ownerApproval === "pending";
+}
+}
 
 /* ================= INIT ================= */
 
