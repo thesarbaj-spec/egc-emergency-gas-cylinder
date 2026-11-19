@@ -1774,6 +1774,10 @@ body {
                 <span class="egc-nav-icon">🧾</span> Slips
             </a>
 
+            <a class="egc-nav-btn" href="owner-all-slips.html">
+    <span class="egc-nav-icon">📄</span> All Customer Slips
+</a>
+
         </nav>
     </div>
 
@@ -2041,6 +2045,7 @@ const PAYMENT_TABLE = "payments";
 const REQUEST_TABLE = "cylinder_requests";
 const PROFILE_TABLE = "profiles";
 const PAYMENTS_PER_PAGE = 10;
+const SLIP_TABLE = "request_slips";
 
 /* =========================================================
    STATE
@@ -2201,7 +2206,12 @@ function getUserId(payment) {
 function getRequestId(payment) {
     return getValue(
         payment,
-        ["request_id", "cylinder_request_id", "requestId"],
+        [
+            "request_id",
+            "original_request_id",
+            "cylinder_request_id",
+            "requestId"
+        ],
         ""
     );
 }
@@ -2224,9 +2234,20 @@ function getPaymentId(payment) {
 function getPaymentAmount(payment) {
     return Number(getValue(
         payment,
-        ["amount", "payment_amount", "paid_amount", "total_amount"],
+        ["payment_amount", "amount", "paid_amount"],
         0
     )) || 0;
+}
+
+function getPaymentType(payment) {
+    const type = String(
+        payment?.payment_type || ""
+    ).toLowerCase().trim();
+
+    if (type === "initial_payment") return "Initial Payment";
+    if (type === "repayment") return "Repayment";
+
+    return "Payment";
 }
 
 function getPaymentDate(payment) {
@@ -2504,6 +2525,118 @@ function createScreenshotRow(payment) {
 }
 
 /* =========================================================
+   FINAL PAYMENT & REPAYMENT DETAILS
+========================================================= */
+
+function getRequestFinancialDetails(payment) {
+    const request = payment?.__request || {};
+
+    const cylinderAmount = Number(
+        request.cylinder_amount ?? request.total_amount ?? 0
+    );
+
+    const advanceAmount = Number(
+        request.advance_amount ?? 0
+    );
+
+    const remainingAmount = Number(
+        request.remaining_amount ?? 0
+    );
+
+    const extraCharge = Number(
+        request.charge_amount ?? request.extra_charge ?? 0
+    );
+
+    const totalPayable = Number(
+        request.total_payable ??
+        (remainingAmount + extraCharge)
+    );
+
+    const repaymentStatus = String(
+        request.repayment_status || "pending"
+    ).toLowerCase();
+
+    const paymentType = getPaymentType(payment);
+
+    return {
+        cylinderAmount,
+        advanceAmount,
+        remainingAmount,
+        extraCharge,
+        totalPayable,
+        repaymentStatus,
+        paymentType,
+        deliveryDate: getValue(
+            request,
+            ["delivered_at", "delivery_date"],
+            null
+        ),
+        dueDate: request.repayment_due_date || null,
+        repaymentDays: request.repayment_days ?? "—"
+    };
+}
+
+
+function createRepaymentDetails(payment) {
+    const details = getRequestFinancialDetails(payment);
+
+    return `
+        <div class="egc-repayment-details">
+
+            <h3 style="margin:20px 0 12px;">
+                Cylinder & Repayment Details
+            </h3>
+
+            ${createSlipRow(
+                "Cylinder Amount",
+                formatAmount(details.cylinderAmount)
+            )}
+
+            ${createSlipRow(
+                "Initial Payment",
+                formatAmount(details.advanceAmount)
+            )}
+
+            ${createSlipRow(
+                "Remaining Amount",
+                formatAmount(details.remainingAmount)
+            )}
+
+            ${createSlipRow(
+                "Extra Charge",
+                formatAmount(details.extraCharge)
+            )}
+
+            ${createSlipRow(
+                "Total Payable",
+                formatAmount(details.totalPayable)
+            )}
+
+            ${createSlipRow(
+                "Delivery Date",
+                formatDateTime(details.deliveryDate)
+            )}
+
+            ${createSlipRow(
+                "Repayment Due Date",
+                formatDateTime(details.dueDate)
+            )}
+
+            ${createSlipRow(
+                "Repayment Days",
+                String(details.repaymentDays)
+            )}
+
+            ${createSlipRow(
+                "Repayment Status",
+                details.repaymentStatus.toUpperCase()
+            )}
+
+        </div>
+    `;
+}
+
+/* =========================================================
    PAYMENT STATUS
 ========================================================= */
 
@@ -2631,28 +2764,21 @@ async function checkOwnerSession() {
 async function enrichPayments(payments) {
     if (!Array.isArray(payments) || !payments.length) return [];
 
-    // ----------------------------------
-    // 1. Collect User IDs and Request IDs
-    // ----------------------------------
-
     const userIds = [
-        ...new Set(
-            payments.map(getUserId).filter(Boolean).map(String)
-        )
+        ...new Set(payments.map(getUserId).filter(Boolean).map(String))
     ];
 
     const requestIds = [
-        ...new Set(
-            payments.map(getRequestId).filter(Boolean).map(String)
-        )
+        ...new Set(payments.map(getRequestId).filter(Boolean).map(String))
+    ];
+
+    const paymentIds = [
+        ...new Set(payments.map(payment => payment.id).filter(Boolean).map(String))
     ];
 
     let profiles = [];
     let requests = [];
-
-    // ----------------------------------
-    // 2. Load Customer Profiles
-    // ----------------------------------
+    let slips = [];
 
     if (userIds.length) {
         const { data, error } = await supabaseClient
@@ -2667,10 +2793,6 @@ async function enrichPayments(payments) {
         }
     }
 
-    // ----------------------------------
-    // 3. Load Related Requests
-    // ----------------------------------
-
     if (requestIds.length) {
         const { data, error } = await supabaseClient
             .from(REQUEST_TABLE)
@@ -2684,62 +2806,48 @@ async function enrichPayments(payments) {
         }
     }
 
-    // ----------------------------------
-    // 4. Create Lookup Maps
-    // ----------------------------------
+    // Fetch original database slips
+    if (paymentIds.length) {
+        const { data, error } = await supabaseClient
+            .from(SLIP_TABLE)
+            .select("*")
+            .in("payment_id", paymentIds)
+            .eq("slip_type", "standard");
+
+        if (error) {
+            console.error("Slip lookup failed:", error.message);
+        } else {
+            slips = data || [];
+        }
+    }
 
     const profileMap = new Map(
-        profiles.map(profile => [
-            String(profile.id),
-            profile
-        ])
+        profiles.map(row => [String(row.id), row])
     );
 
     const requestMap = new Map(
-        requests.map(request => [
-            String(request.id),
-            request
-        ])
+        requests.map(row => [String(row.id), row])
     );
 
-    // ----------------------------------
-    // 5. Screenshot Field Detection
-    // ----------------------------------
-
-const screenshotFieldNames = [
-    "screenshot_path",
-    "screenshot_url",
-    "payment_screenshot",
-    "payment_screenshot_url",
-    "screenshot",
-    "proof_url",
-    "proof_image",
-    "receipt_url",
-    "image_url",
-    "payment_proof"
-];
-
-    // ----------------------------------
-    // 6. Enrich Each Payment
-    // ----------------------------------
+    const slipMap = new Map(
+        slips.map(row => [String(row.payment_id), row])
+    );
 
     const enriched = payments.map(payment => {
-
         const request =
             requestMap.get(String(getRequestId(payment))) || null;
 
         const linkedUserId =
             getUserId(payment) ||
-            getValue(
-                request,
-                ["user_id", "customer_id", "profile_id"],
-                ""
-            );
+            request?.user_id ||
+            "";
 
         const profile =
             profileMap.get(String(linkedUserId)) || null;
 
-        // Customer photo
+        const slip =
+            slipMap.get(String(payment.id)) || null;
+
         const profilePhotoPath = getValue(
             request,
             ["profile_photo"],
@@ -2750,43 +2858,26 @@ const screenshotFieldNames = [
             )
         );
 
-        // Screenshot belongs to THIS payment record only
-   const screenshotPath = getPaymentScreenshot(payment);
+        const screenshotPath = getPaymentScreenshot(payment);
 
         return {
             ...payment,
-
             __profile: profile,
             __request: request,
-
+            __slip: slip,
             __profilePhotoPath: profilePhotoPath,
             __profilePhotoUrl: "",
-
             __paymentScreenshotPath: screenshotPath,
             __paymentScreenshotUrl: ""
         };
     });
 
-    // ----------------------------------
-    // 7. Load Profile Photos and Screenshots
-    // ----------------------------------
-
     await Promise.all(
         enriched.map(async payment => {
-
             try {
                 payment.__profilePhotoUrl =
-                    await getProfilePhotoUrl(
-                        payment.__profilePhotoPath
-                    );
-            } catch (error) {
-                console.warn(
-                    "Profile photo loading failed:",
-                    error.message
-                );
-            }
+                    await getProfilePhotoUrl(payment.__profilePhotoPath);
 
-            try {
                 if (payment.__paymentScreenshotPath) {
                     payment.__paymentScreenshotUrl =
                         await getPaymentScreenshotUrl(
@@ -2794,37 +2885,19 @@ const screenshotFieldNames = [
                         );
                 }
             } catch (error) {
-                console.warn(
-                    "Payment screenshot loading failed:",
-                    error.message
-                );
+                console.warn("Payment enrichment error:", error);
             }
         })
     );
 
-    // ----------------------------------
-    // 8. Debug Information
-    // ----------------------------------
-
     console.log(
-        "EGC SLIPS PAYMENT SCREENSHOT STATUS:",
+        "EGC PAYMENT SLIP DATABASE STATUS:",
         enriched.map(payment => ({
             paymentId: payment.id,
             requestId: getRequestId(payment),
-            amount: payment.payment_amount,
-            screenshotPath: payment.__paymentScreenshotPath,
-            screenshotLoaded: Boolean(
-                payment.__paymentScreenshotUrl
-            )
-        }))
-    );
-
-    console.log(
-        "EGC SLIPS PROFILE PHOTO STATUS:",
-        enriched.map(payment => ({
-            customer: getFinalCustomerName(payment),
-            photoPath: payment.__profilePhotoPath,
-            photoLoaded: Boolean(payment.__profilePhotoUrl)
+            slipNumber: payment.__slip?.slip_number || "Slip not generated",
+            verificationCode:
+                payment.__slip?.verification_code || "Not available"
         }))
     );
 
@@ -3345,6 +3418,19 @@ function renderPayments() {
     }).join("");
 }
 
+function getDatabaseSlipNumber(payment) {
+    return payment?.__slip?.slip_number || "Slip not generated";
+}
+
+function getDatabaseVerificationCode(payment) {
+    return payment?.__slip?.verification_code || "Not available";
+}
+
+function getDatabaseSlipDate(payment) {
+    return payment?.__slip?.created_at ||
+        getPaymentDate(payment);
+}
+
 /* =========================================================
    SLIP ROW HELPER
 ========================================================= */
@@ -3480,13 +3566,26 @@ const latestPayment = group.payments[0];
                             ${createSlipRow("Payment Method", getPaymentMethod(payment))}
                             ${createSlipRow("Transaction Reference", getPaymentReference(payment))}
                             ${createScreenshotRow(payment)}
+                            ${createSlipRow("Payment Type", getPaymentType(payment))}
+
+${createSlipRow(
+    "Payment Verification",
+    getValue(payment, ["verification_status"], "—")
+)}
+
+${createSlipRow(
+    "Owner Approval",
+    payment.owner_approved_at ? "Approved" : "Not Approved"
+)}
+
+${createRepaymentDetails(payment)}
                             ${createSlipRow("Payment Date", formatDateTime(getPaymentDate(payment)))}
                             ${createSlipRow("Status", statusLabel(status))}
 
-                            <div class="egc-slip-total">
-                                <span>Payment Amount</span>
-                                <span>${formatAmount(getPaymentAmount(payment))}</span>
-                            </div>
+                          <div class="egc-slip-total">
+    <span>${escapeHtml(getPaymentType(payment))}</span>
+    <span>${formatAmount(getPaymentAmount(payment))}</span>
+</div>
 
                             <button
                                 type="button"
@@ -3582,6 +3681,10 @@ function openPaymentModal(payment) {
                 ${createSlipRow("LPG Company", getValue(request, ["lpg_company", "gas_company", "company"], "—"))}
                 ${createSlipRow("LPG Agency", getValue(request, ["lpg_agency", "gas_agency", "agency_name"], "—"))}
                 ${createSlipRow("Payment Date", formatDateTime(getPaymentDate(payment)))}
+                ${createSlipRow("Slip Number", getDatabaseSlipNumber(payment))}
+${createSlipRow("Verification Code", getDatabaseVerificationCode(payment))}
+${createSlipRow("Slip Date", formatDateTime(getDatabaseSlipDate(payment)))}
+${createSlipRow("Request Number", getValue(request, ["request_number"], requestId))}
 
                 <div class="egc-slip-total">
                     <span>Payment Amount</span>
