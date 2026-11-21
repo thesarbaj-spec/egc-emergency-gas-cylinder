@@ -759,16 +759,16 @@
 
     const ownerStatus = getOwnerPaymentStatus(selectedPayment);
 
-    const agencyStatus = getAgencyStatus(request, slip);
+const agencyStatus = getAgencyStatus(request, slip);
 
-    const deli// Get latest Delivery Status from current cylinder request
+// Get latest Delivery Status from current cylinder request
 const deliveryStatus = (
   request?.delivery_status ||
   slip?.delivery_status ||
   "Pending"
 ).toString().trim();
 
-    const deliveryDate = slipGetDeliveryDate(request, slip);
+const deliveryDate = slipGetDeliveryDate(request, slip);
 
     const requestStatus = slipStatus(
       slipGetRequestStatus(request)
