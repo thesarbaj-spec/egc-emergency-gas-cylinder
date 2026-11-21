@@ -1187,6 +1187,8 @@ textarea:focus{
     cursor:pointer;
 }
 
+
+
 /* =========================================================
    DELETE CONFIRMATION
 ========================================================= */
@@ -1529,6 +1531,59 @@ textarea:focus{
     .confirm-card{
         padding:23px 18px;
     }
+}
+
+/* ================= AGENCY PRICING ================= */
+
+.pricing-btn{
+    background:#e8f1ff;
+    color:#1769c2;
+    border:1px solid #c9defa;
+}
+
+.pricing-existing-card{
+    padding:15px;
+    margin:12px 0;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+}
+
+.pricing-existing-card p{
+    margin:7px 0;
+    font-size:13px;
+    color:#475569;
+}
+
+.pricing-existing-card strong{
+    display:block;
+    margin-bottom:10px;
+    color:#172554;
+}
+
+#pricingAgencyName{
+    margin-top:5px;
+    color:#64748b;
+    font-size:13px;
+}
+
+#existingPricingList{
+    margin-top:15px;
+}
+
+#pricingModal .modal-card{
+    max-height:90vh;
+    overflow-y:auto;
+}
+
+@media(max-width:600px){
+
+    #pricingModal .modal-card{
+        width:95%;
+        max-height:92vh;
+        padding:15px;
+    }
+
 }
 </style>
 </head>
@@ -2812,6 +2867,253 @@ textarea:focus{
 
 </div>
 
+<!-- ================= AGENCY PRICING MODAL ================= -->
+
+<div class="modal" id="pricingModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+
+            <div>
+                <div class="modal-title">
+                    Agency Cylinder Pricing
+                </div>
+
+                <div id="pricingAgencyName"></div>
+            </div>
+
+            <button
+                type="button"
+                class="close-btn"
+                onclick="closePricingModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div id="pricingMessage" class="form-message"></div>
+
+        <form id="pricingForm">
+
+            <input type="hidden" id="pricingId">
+
+            <input type="hidden" id="pricingAgencyId">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <label>Cylinder Type *</label>
+
+                    <select id="pricingCylinderType" required>
+
+                        <option value="">Select Type</option>
+
+                        <option value="Domestic">
+                            Domestic
+                        </option>
+
+                        <option value="Commercial">
+                            Commercial
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Cylinder Weight (KG) *</label>
+
+                    <input
+                        type="number"
+                        id="pricingWeight"
+                        min="0.1"
+                        step="0.1"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Cylinder Price (₹) *</label>
+
+                    <input
+                        type="number"
+                        id="pricingCylinderPrice"
+                        min="0.01"
+                        step="0.01"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Advance Amount (₹) *</label>
+
+                    <input
+                        type="number"
+                        id="pricingAdvance"
+                        min="0"
+                        step="0.01"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Extra Charge 1–10 Days</label>
+
+                    <input
+                        type="number"
+                        id="pricingExtra1"
+                        value="50"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Extra Charge 11–15 Days</label>
+
+                    <input
+                        type="number"
+                        id="pricingExtra2"
+                        value="60"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Extra Charge 16–30 Days</label>
+
+                    <input
+                        type="number"
+                        id="pricingExtra3"
+                        value="80"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Extra Charge 31+ Days</label>
+
+                    <input
+                        type="number"
+                        id="pricingExtra4"
+                        value="100"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Stock Status</label>
+
+                    <select id="pricingStockStatus">
+
+                        <option value="available">
+                            Available
+                        </option>
+
+                        <option value="out_of_stock">
+                            Out of Stock
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>Stock Quantity</label>
+
+                    <input
+                        type="number"
+                        id="pricingStockQuantity"
+                        min="0"
+                        step="1"
+                        placeholder="Enter quantity"
+                    >
+
+                </div>
+
+
+                <div class="form-group full">
+
+                    <div class="status-row">
+
+                        <input
+                            type="checkbox"
+                            id="pricingIsActive"
+                            checked
+                        >
+
+                        <label for="pricingIsActive">
+                            Active Pricing
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="closePricingModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="save-btn"
+                    id="savePricingBtn"
+                >
+                    SAVE PRICING
+                </button>
+
+            </div>
+
+        </form>
+
+
+        <hr>
+
+        <h3>Existing Cylinder Pricing</h3>
+
+        <div id="existingPricingList">
+            Loading pricing...
+        </div>
+
+    </div>
+
+</div>
 
 <!-- =========================================================
      DELETE CONFIRMATION
@@ -2830,13 +3132,13 @@ textarea:focus{
 
 
         <div class="confirm-title">
-            Delete Agency?
+           Deactivate Agency?
         </div>
 
 
         <div class="confirm-text">
-            This agency will be permanently deleted from the system.
-            This action cannot be undone.
+        This agency will be deactivated.
+Its requests, payments, repayments, slips and history will remain محفوظ in the system.
         </div>
 
 
@@ -2856,8 +3158,7 @@ textarea:focus{
                 class="confirm-delete"
                 id="confirmDelete"
             >
-                Delete
-            </button>
+Deactivate            </button>
 
         </div>
 
@@ -3764,6 +4065,13 @@ const filtered =
                 <td>
 
                     <div class="action-group">
+                        <button
+    type="button"
+    class="action-btn pricing-btn"
+    onclick="openAgencyPricing('${agency.id}')"
+>
+    💰 Pricing
+</button>
 
                         <button
                             type="button"
@@ -5567,6 +5875,476 @@ document
     }
 );
 
+/* =====================================================
+   EGC AGENCY PRICING MANAGEMENT
+===================================================== */
+
+const pricingModal =
+    document.getElementById("pricingModal");
+
+const pricingForm =
+    document.getElementById("pricingForm");
+
+const pricingMessage =
+    document.getElementById("pricingMessage");
+
+const existingPricingList =
+    document.getElementById("existingPricingList");
+
+
+let currentPricingAgency = null;
+
+
+/* ================= MESSAGE ================= */
+
+function showPricingMessage(message, type){
+
+    pricingMessage.className =
+        "form-message " + type;
+
+    pricingMessage.textContent =
+        message;
+
+}
+
+
+/* ================= OPEN PRICING ================= */
+
+window.openAgencyPricing = async function(agencyId){
+
+    const agency = agencies.find(
+        item => String(item.id) === String(agencyId)
+    );
+
+    if(!agency){
+
+        alert("Agency not found.");
+
+        return;
+
+    }
+
+    currentPricingAgency = agency;
+
+    document.getElementById(
+        "pricingAgencyId"
+    ).value = agency.id;
+
+    document.getElementById(
+        "pricingAgencyName"
+    ).textContent =
+        agency.agency_name || "LPG Agency";
+
+    resetPricingForm();
+
+    pricingModal.classList.add("show");
+
+    document.body.style.overflow = "hidden";
+
+    await loadAgencyPricing(agency.id);
+
+};
+
+
+/* ================= RESET FORM ================= */
+
+function resetPricingForm(){
+
+    pricingForm.reset();
+
+    document.getElementById("pricingId").value = "";
+
+    document.getElementById("pricingAgencyId").value =
+        currentPricingAgency?.id || "";
+
+    document.getElementById("pricingExtra1").value = 50;
+
+    document.getElementById("pricingExtra2").value = 60;
+
+    document.getElementById("pricingExtra3").value = 80;
+
+    document.getElementById("pricingExtra4").value = 100;
+
+    document.getElementById("pricingStockStatus").value =
+        "available";
+
+    document.getElementById("pricingIsActive").checked =
+        true;
+
+    document.getElementById("savePricingBtn").textContent =
+        "SAVE PRICING";
+
+    pricingMessage.textContent = "";
+
+    pricingMessage.className = "form-message";
+
+}
+
+
+/* ================= CLOSE MODAL ================= */
+
+window.closePricingModal = function(){
+
+    pricingModal.classList.remove("show");
+
+    document.body.style.overflow = "";
+
+    currentPricingAgency = null;
+
+};
+
+
+/* ================= LOAD PRICING ================= */
+
+async function loadAgencyPricing(agencyId){
+
+    existingPricingList.textContent = "Loading pricing...";
+
+    try{
+
+        const { data, error } = await supabaseClient
+
+            .from("agency_pricing")
+
+            .select("*")
+
+            .eq("agency_id", agencyId)
+
+            .order("created_at", { ascending:false });
+
+        if(error) throw error;
+
+        if(!data || data.length === 0){
+
+            existingPricingList.innerHTML =
+                "<p>No pricing added yet.</p>";
+
+            return;
+
+        }
+
+        existingPricingList.innerHTML = data.map(item => `
+
+            <div class="pricing-existing-card">
+
+                <strong>
+                    ${escapeHtml(item.cylinder_type || "Cylinder")}
+                    -
+                    ${escapeHtml(item.cylinder_weight)} KG
+                </strong>
+
+                <p>
+                    Cylinder Price:
+                    ₹${Number(item.cylinder_price).toFixed(2)}
+                </p>
+
+                <p>
+                    Advance:
+                    ₹${Number(item.advance_amount).toFixed(2)}
+                </p>
+
+                <p>
+                    Stock:
+                    ${escapeHtml(item.stock_status)}
+                    |
+                    Quantity:
+                    ${item.stock_quantity ?? "—"}
+                </p>
+
+                <p>
+                    Status:
+                    ${item.is_active ? "Active" : "Inactive"}
+                </p>
+
+                <button
+                    type="button"
+                    class="action-btn edit-btn"
+                    onclick="editAgencyPricing('${item.id}')"
+                >
+                    ✏️ Edit Pricing
+                </button>
+
+            </div>
+
+        `).join("");
+
+    }
+
+    catch(error){
+
+        console.error("Pricing load error:", error);
+
+        existingPricingList.textContent =
+            "Unable to load pricing: " + error.message;
+
+    }
+
+}
+
+
+/* ================= EDIT PRICING ================= */
+
+window.editAgencyPricing = async function(pricingId){
+
+    try{
+
+        const { data, error } = await supabaseClient
+
+            .from("agency_pricing")
+
+            .select("*")
+
+            .eq("id", pricingId)
+
+            .single();
+
+        if(error) throw error;
+
+        resetPricingForm();
+
+        document.getElementById("pricingId").value = data.id;
+
+        document.getElementById("pricingAgencyId").value =
+            data.agency_id;
+
+        document.getElementById("pricingCylinderType").value =
+            data.cylinder_type || "";
+
+        document.getElementById("pricingWeight").value =
+            data.cylinder_weight ?? "";
+
+        document.getElementById("pricingCylinderPrice").value =
+            data.cylinder_price;
+
+        document.getElementById("pricingAdvance").value =
+            data.advance_amount;
+
+        document.getElementById("pricingExtra1").value =
+            data.extra_charge_1_10;
+
+        document.getElementById("pricingExtra2").value =
+            data.extra_charge_11_15;
+
+        document.getElementById("pricingExtra3").value =
+            data.extra_charge_16_30;
+
+        document.getElementById("pricingExtra4").value =
+            data.extra_charge_31_plus;
+
+        document.getElementById("pricingStockStatus").value =
+            data.stock_status;
+
+        document.getElementById("pricingStockQuantity").value =
+            data.stock_quantity ?? "";
+
+        document.getElementById("pricingIsActive").checked =
+            data.is_active;
+
+        document.getElementById("savePricingBtn").textContent =
+            "UPDATE PRICING";
+
+        pricingMessage.textContent = "";
+
+    }
+
+    catch(error){
+
+        alert("Unable to open pricing: " + error.message);
+
+    }
+
+};
+
+
+/* ================= SAVE / UPDATE PRICING ================= */
+
+pricingForm.addEventListener("submit", async function(event){
+
+    event.preventDefault();
+
+    const button =
+        document.getElementById("savePricingBtn");
+
+    button.disabled = true;
+
+    const pricingId =
+        document.getElementById("pricingId").value;
+
+    const agencyId =
+        document.getElementById("pricingAgencyId").value;
+
+    try{
+
+        const session = await getOwnerSession();
+
+        if(!session){
+
+            throw new Error("Owner session not found.");
+
+        }
+
+        const cylinderWeight = Number(
+            document.getElementById("pricingWeight").value
+        );
+
+        const cylinderPrice = Number(
+            document.getElementById("pricingCylinderPrice").value
+        );
+
+        const advanceAmount = Number(
+            document.getElementById("pricingAdvance").value
+        );
+
+        if(
+            !Number.isFinite(cylinderWeight) ||
+            cylinderWeight <= 0 ||
+            !Number.isFinite(cylinderPrice) ||
+            cylinderPrice <= 0 ||
+            !Number.isFinite(advanceAmount) ||
+            advanceAmount < 0
+        ){
+
+            throw new Error("Please enter valid pricing values.");
+
+        }
+
+        const quantityValue =
+            document.getElementById("pricingStockQuantity").value;
+
+        const quantity =
+            quantityValue === "" ? null : Number(quantityValue);
+
+        if(
+            quantity !== null &&
+            (!Number.isInteger(quantity) || quantity < 0)
+        ){
+
+            throw new Error("Please enter a valid stock quantity.");
+
+        }
+
+        const record = {
+
+            agency_id: agencyId,
+
+            cylinder_type:
+                document.getElementById("pricingCylinderType").value,
+
+            cylinder_weight: cylinderWeight,
+
+            cylinder_price: cylinderPrice,
+
+            advance_amount: advanceAmount,
+
+            extra_charge_1_10:
+                Number(document.getElementById("pricingExtra1").value),
+
+            extra_charge_11_15:
+                Number(document.getElementById("pricingExtra2").value),
+
+            extra_charge_16_30:
+                Number(document.getElementById("pricingExtra3").value),
+
+            extra_charge_31_plus:
+                Number(document.getElementById("pricingExtra4").value),
+
+            stock_status:
+                document.getElementById("pricingStockStatus").value,
+
+            stock_quantity: quantity,
+
+            is_active:
+                document.getElementById("pricingIsActive").checked,
+
+            updated_at: new Date().toISOString(),
+
+            updated_by: session.user.id
+
+        };
+
+        let result;
+
+        if(pricingId){
+
+            result = await supabaseClient
+
+                .from("agency_pricing")
+
+                .update(record)
+
+                .eq("id", pricingId)
+
+                .select()
+
+                .single();
+
+        }
+
+        else{
+
+            result = await supabaseClient
+
+                .from("agency_pricing")
+
+                .insert(record)
+
+                .select()
+
+                .single();
+
+        }
+
+        if(result.error){
+
+            if(result.error.code === "23505"){
+
+                throw new Error(
+                    "This Agency already has pricing for this Cylinder Type and Weight."
+                );
+
+            }
+
+            throw result.error;
+
+        }
+
+        showPricingMessage(
+            pricingId
+                ? "Pricing updated successfully."
+                : "Pricing added successfully.",
+            "success"
+        );
+
+        await loadAgencyPricing(agencyId);
+
+        button.textContent = "SAVE PRICING";
+
+        setTimeout(() => {
+
+            resetPricingForm();
+
+        }, 500);
+
+    }
+
+    catch(error){
+
+        console.error("Pricing save error:", error);
+
+        showPricingMessage(
+            error.message || "Unable to save pricing.",
+            "error"
+        );
+
+    }
+
+    finally{
+
+        button.disabled = false;
+
+    }
+
+});
 
 /* ================= DELETE ================= */
 
@@ -5645,27 +6423,20 @@ confirmDelete.addEventListener(
             return;
         }
 
-        const id =
-        agencyToDelete.id;
+        const id = agencyToDelete.id;
 
-        confirmDelete.disabled =
-        true;
-
-        confirmDelete.textContent =
-        "Deleting...";
+        confirmDelete.disabled = true;
+        confirmDelete.textContent = "Deactivating...";
 
         try{
 
-            const {
-                error
-            } =
-            await supabaseClient
-            .from("agencies")
-            .delete()
-            .eq(
-                "id",
-                id
-            );
+            const { error } = await supabaseClient
+                .from("agencies")
+                .update({
+                    is_active: false,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", id);
 
             if(error){
                 throw error;
@@ -5673,32 +6444,31 @@ confirmDelete.addEventListener(
 
             closeConfirmModal();
 
+            confirmDelete.disabled = false;
+            confirmDelete.textContent = "Deactivate";
+
             await loadAgencies();
 
         }
         catch(error){
 
             console.error(
-                "Agency delete error:",
+                "Agency deactivation error:",
                 error
             );
 
             alert(
-                "Unable to delete agency.\n\n" +
+                "Unable to deactivate agency.\n\n" +
                 error.message
             );
 
-            confirmDelete.disabled =
-            false;
-
-            confirmDelete.textContent =
-            "Delete";
+            confirmDelete.disabled = false;
+            confirmDelete.textContent = "Deactivate";
 
         }
 
     }
 );
-
 
 /* ================= LOGOUT ================= */
 
@@ -5829,33 +6599,6 @@ supabaseClient.auth.onAuthStateChange(
     }
 );
 
-
-/* ================= INITIALIZE ================= */
-
-async function initializeAgencyPage() {
-
-    const session = await getOwnerSession();
-
-    if (!session) {
-
-        console.warn(
-            "No authenticated owner session found."
-        );
-
-        return;
-
-    }
-
-    console.log(
-        "Owner session active:",
-        session.user.id
-    );
-
-    await loadAgencies();
-
-    startAgencyRealtime();
-
-}
 
 
 /* ================= PAGE CLEANUP ================= */
@@ -5992,6 +6735,35 @@ function startAgencyRealtime() {
 
 
         /* PAYMENT ACTIVITY */
+
+        /* PRICING ACTIVITY */
+
+channel.on(
+    "postgres_changes",
+    {
+        event: "*",
+        schema: "public",
+        table: "agency_pricing"
+    },
+    payload => {
+
+        console.log(
+            "[EGC Agencies] Pricing activity:",
+            payload.eventType
+        );
+
+        scheduleAgencyRefresh();
+
+        if(currentPricingAgency){
+
+            loadAgencyPricing(
+                currentPricingAgency.id
+            );
+
+        }
+
+    }
+);
 
         channel.on(
             "postgres_changes",
