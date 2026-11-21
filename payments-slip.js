@@ -761,7 +761,12 @@
 
     const agencyStatus = getAgencyStatus(request, slip);
 
-    const deliveryStatus = getDeliveryStatus(request, slip);
+    const deli// Get latest Delivery Status from current cylinder request
+const deliveryStatus = (
+  request?.delivery_status ||
+  slip?.delivery_status ||
+  "Pending"
+).toString().trim();
 
     const deliveryDate = slipGetDeliveryDate(request, slip);
 
@@ -1433,12 +1438,13 @@ th {
       </div>
 
       <div class="status-item">
-        <span class="status-label">Delivery Status</span>
-        <span class="status-value ${
-          deliveryStatus === "Delivered" ? "approved-text" : "pending-text"
-        }">
-          ${slipEscape(deliveryStatus)}
-        </span>
+<span class="status-value ${
+  deliveryStatus.toLowerCase() === "delivered"
+    ? "approved-text"
+    : "pending-text"
+}">
+  ${slipEscape(deliveryStatus)}
+</span>
       </div>
 
       <div class="status-item">
