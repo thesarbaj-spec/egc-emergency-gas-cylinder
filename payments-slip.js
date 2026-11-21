@@ -1438,13 +1438,12 @@ th {
       </div>
 
       <div class="status-item">
-<span class="status-value ${
-  deliveryStatus.toLowerCase() === "delivered"
-    ? "approved-text"
-    : "pending-text"
-}">
-  ${slipEscape(deliveryStatus)}
-</span>
+        <span class="status-label">Delivery Status</span>
+        <span class="status-value ${
+          deliveryStatus === "Delivered" ? "approved-text" : "pending-text"
+        }">
+          ${slipEscape(deliveryStatus)}
+        </span>
       </div>
 
       <div class="status-item">
