@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset MPIN | EGC</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 16px 48px;color:#104b7e;background:radial-gradient(ellipse at 8% 5%,rgba(247,218,225,.72),transparent 34%),radial-gradient(ellipse at 96% 8%,rgba(199,229,255,.78),transparent 38%),linear-gradient(135deg,#f3f6fa,#eaf6fc)}
+.page{width:100%;max-width:544px}.card{background:rgba(255,255,255,.96);border-radius:0 0 28px 28px;padding:30px 35px 34px;box-shadow:0 18px 48px rgba(22,74,112,.12);text-align:center}
+.logo{width:360px;max-width:92%;height:145px;object-fit:contain;margin:0 auto 8px;display:block; margin-bottom:-30px}
+h1{font-size:32px;margin:0 0 8px;color:#064d87;font-weight:800}.subtitle{font-size:16px;color:#7890a7;margin:0 0 30px}
+.form{text-align:left}label{display:block;font-size:14px;font-weight:700;color:#496a86;margin:0 0 10px}
+.input-wrap{position:relative;margin-bottom:22px}input{width:100%;height:56px;border:1px solid #d4e2ee;border-radius:15px;padding:0 54px 0 16px;font-size:20px;letter-spacing:8px;color:#173e60;background:#fbfdff;outline:none}
+input:focus{border-color:#1680ce;box-shadow:0 0 0 3px rgba(22,128,206,.10)}
+.toggle{position:absolute;right:9px;top:8px;width:39px;height:40px;border:0;border-radius:11px;background:#edf7ff;color:#0874bf;font-size:18px;cursor:pointer}
+.primary{width:100%;height:57px;border:0;border-radius:15px;margin-top:6px;color:white;font-size:16px;font-weight:800;cursor:pointer;background:linear-gradient(100deg,#0879c9,#075b9f);box-shadow:0 10px 22px rgba(0,104,180,.18)}
+.primary:disabled{opacity:.65;cursor:not-allowed}.message{display:none;margin:0 0 18px;padding:13px 14px;border-radius:12px;font-size:14px;line-height:1.5}
+.message.error{display:block;background:#fff0f0;border:1px solid #ffd0d0;color:#b42318}.message.success{display:block;background:#eafaf1;border:1px solid #c4efd5;color:#087443}
+.back{display:inline-block;margin-top:25px;color:#0876c4;font-size:14px;font-weight:700;text-decoration:none}.hint{font-size:12px;line-height:1.6;color:#8196a9;margin:18px 0 0}
+.powered{text-align:center;color:#8299ad;font-size:12px;margin-top:18px}
+@media(max-width:520px){body{padding:16px 12px 28px}.card{padding:25px 22px 28px;border-radius:24px}.logo{width:340px;height:130px;max-width:96%;margin-bottom:6px}h1{font-size:27px}.subtitle{font-size:14px;margin-bottom:25px}}
+</style>
+</head>
+<body>
+<main class="page">
+<section class="card">
+<img class="logo" src="assets/EGC%20-%20Emergency%20Gas%20Cylinder%20logo.png" alt="EGC Emergency Gas Cylinder">
+<h1>Reset MPIN</h1>
+<p class="subtitle">Set a new 4-digit MPIN for your EGC account</p>
+<div id="message" class="message" role="alert"></div>
+<form id="resetForm" class="form" autocomplete="off">
+<label for="newMpin">New MPIN</label>
+<div class="input-wrap"><input id="newMpin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" placeholder="Enter 4-digit MPIN" autocomplete="off" required><button class="toggle" type="button" data-target="newMpin" aria-label="Show MPIN">◉</button></div>
+<label for="confirmMpin">Confirm New MPIN</label>
+<div class="input-wrap"><input id="confirmMpin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" placeholder="Confirm 4-digit MPIN" autocomplete="off" required><button class="toggle" type="button" data-target="confirmMpin" aria-label="Show MPIN">◉</button></div>
+<button id="submitBtn" class="primary" type="submit">Update MPIN</button>
+</form>
+<a class="back" href="login.html">← Back to User Login</a>
+<p class="hint">MPIN must contain exactly 4 digits (0–9). Do not share your MPIN with anyone.</p>
+</section>
+<div class="powered">Powered by EGC • Secure Customer Access</div>
+</main>
+<script>
+"use strict";
+
+/* Same EGC Supabase project configuration as the Agency portal.
+   Customer portal auth uses its own storage key to avoid session mixing. */
+const SUPABASE_URL = "https://szefvmvokkhvnzryodqu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S8aSsfmOKN6_7laRfgoMKA_Re2HzRS6";
+
+const messageBox = document.getElementById("message");
+const form = document.getElementById("resetForm");
+const submitBtn = document.getElementById("submitBtn");
+let supabaseClient = null;
+let recoveryReady = false;
+
+function showMessage(text, type) {
+  messageBox.textContent = text;
+  messageBox.className = "message " + type;
+}
+
+function keepFourDigits(input) {
+  input.value = input.value.replace(/\D/g, "").slice(0, 4);
+}
+
+["newMpin", "confirmMpin"].forEach(id => {
+  const input = document.getElementById(id);
+  input.addEventListener("input", () => keepFourDigits(input));
+});
+
+document.querySelectorAll(".toggle").forEach(button => {
+  button.addEventListener("click", () => {
+    const input = document.getElementById(button.dataset.target);
+    input.type = input.type === "password" ? "text" : "password";
+  });
+});
+
+/* This matches the SHA-256 hexadecimal hash format in the supplied
+   user_mpin example. For a 4-digit PIN, SHA-256 alone is not strong
+   protection against offline guessing; a server-side salted KDF is safer. */
+async function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function initializeRecovery() {
+  if (!window.supabase?.createClient) {
+    showMessage("Supabase load nahi hua. Internet check karke page reload karein.", "error");
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: "egc-customer-auth",
+      storage: window.localStorage
+    }
+  });
+
+  const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  const tokenError = params.get("error_description") || params.get("error");
+
+  if (tokenError) {
+    showMessage("Reset link invalid ya expire ho gaya. User Login se naya MPIN reset link mangwayein.", "error");
+    return;
+  }
+
+  if (accessToken && refreshToken) {
+    const { error } = await supabaseClient.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    if (error) {
+      showMessage("Reset link invalid ya expire ho gaya. Naya link mangwayein.", "error");
+      return;
+    }
+    recoveryReady = true;
+    showMessage("Recovery session verify ho gaya. Ab naya 4-digit MPIN set karein.", "success");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (!error && data.session) {
+    recoveryReady = true;
+    showMessage("Recovery session mil gaya. Ab naya 4-digit MPIN set karein.", "success");
+  } else {
+    showMessage("Valid recovery link nahi mila. User Login se naya MPIN reset link mangwayein.", "error");
+  }
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const mpin = document.getElementById("newMpin").value;
+  const confirmMpin = document.getElementById("confirmMpin").value;
+
+  if (!/^[0-9]{4}$/.test(mpin) || !/^[0-9]{4}$/.test(confirmMpin)) {
+    showMessage("MPIN bilkul 4 digits ka hona chahiye. Sirf 0–9 allowed hain.", "error");
+    return;
+  }
+  if (mpin !== confirmMpin) {
+    showMessage("Dono MPIN match nahi kar rahe. Dobara check karein.", "error");
+    return;
+  }
+  if (!supabaseClient || !recoveryReady) {
+    showMessage("Valid recovery session nahi mila. Email se latest reset link open karein.", "error");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Updating MPIN...";
+
+  try {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) throw new Error("Customer session verify nahi ho saka. Naya reset link mangwayein.");
+
+    const mpinHash = await sha256Hex(mpin);
+
+    /* Update the existing user's row only. This preserves customer_id.
+       No plaintext MPIN is stored. */
+    const { data, error } = await supabaseClient
+      .from("user_mpin")
+      .update({
+        mpin_hash: mpinHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", user.id)
+      .select("user_id")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+      throw new Error("Is account ke liye user_mpin record nahi mila. MPIN setup pehle complete karwayein ya administrator se sampark karein.");
+    }
+
+    showMessage("MPIN successfully update ho gaya. User Login par redirect kiya ja raha hai...", "success");
+    form.reset();
+    history.replaceState({}, document.title, location.pathname);
+    setTimeout(() => {
+      window.location.href = "login.html?mpin_reset=success";
+    }, 1800);
+  } catch (error) {
+    console.error("MPIN reset error:", error);
+    showMessage(error.message || "MPIN update nahi ho paya. Dobara try karein.", "error");
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Update MPIN";
+  }
+});
+
+initializeRecovery();
+</script>
+</body>
+</html>
