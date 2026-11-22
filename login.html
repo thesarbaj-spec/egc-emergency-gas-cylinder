@@ -18,6 +18,30 @@
   box-sizing:border-box;
 }
 
+/* EGC Forgot MPIN Loading Spinner */
+
+.egc-loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: egcSpin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes egcSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+button:disabled {
+    pointer-events: none;
+}
+
 html,body{
   width:100%;
   min-height:100%;
@@ -887,50 +911,124 @@ async function loginUser(event) {
 
 
 /* =========================================================
-   FORGOT MPIN
+   FORGOT MPIN - LOADING INDICATOR
 ========================================================= */
 
 async function resetMpin() {
+
   clearMessage();
 
-  const email = document.getElementById("forgotEmail").value.trim().toLowerCase();
+  const emailInput = document.getElementById("forgotEmail");
+
+  const email = emailInput.value.trim().toLowerCase();
+
+  // Find Forgot MPIN button
+  const button = document.querySelector('[onclick*="resetMpin"]');
 
   if (!validEmail(email)) {
-    showMessage("Please enter a valid registered email address.", "error");
+    showMessage(
+      "Please enter a valid registered email address.",
+      "error"
+    );
     return;
   }
 
+  if (!button) {
+    showMessage(
+      "Recovery button nahi mila. Please page refresh karein.",
+      "error"
+    );
+    return;
+  }
+
+  // Prevent multiple clicks
+  if (button.disabled) return;
+
+  // Save original button content
+  const originalHTML = button.innerHTML;
+
+  // Start loading immediately
+  button.disabled = true;
+  button.style.opacity = "0.75";
+  button.style.cursor = "not-allowed";
+
+  button.innerHTML = `
+    <span class="egc-loading-spinner"></span>
+    Sending Email...
+  `;
+
+  showMessage(
+    "Please wait... Your MPIN recovery request is being processed.",
+    "success"
+  );
+
   try {
+
     const response = await fetch(FUNCTION_URL, {
+
       method: "POST",
+
       headers: {
         "Content-Type": "application/json"
       },
+
       body: JSON.stringify({
         action: "forgot_mpin",
         email: email
       })
+
     });
 
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-      throw new Error(data.message || "Could not start MPIN recovery.");
+      throw new Error(
+        data.message || "Could not start MPIN recovery."
+      );
     }
 
-    document.getElementById("forgotEmail").value = "";
+    // Clear email after successful request
+    emailInput.value = "";
 
     showMessage(
-      data.message || "Recovery instructions have been sent to your email.",
+      data.message ||
+      "Recovery instructions have been sent to your email.",
       "success"
     );
 
+    button.innerHTML = `
+      ✓ Request Sent
+    `;
+
+    // Show success briefly, then restore button
+    setTimeout(() => {
+
+      button.innerHTML = originalHTML;
+
+      button.disabled = false;
+      button.style.opacity = "1";
+      button.style.cursor = "pointer";
+
+    }, 2500);
+
   } catch (error) {
+
+    console.error("FORGOT MPIN ERROR:", error);
+
     showMessage(
-      error.message || "Something went wrong. Please try again.",
+      error.message ||
+      "Something went wrong. Please try again.",
       "error"
     );
+
+    button.innerHTML = originalHTML;
+
+    button.disabled = false;
+    button.style.opacity = "1";
+    button.style.cursor = "pointer";
+
   }
+
 }
 
 
