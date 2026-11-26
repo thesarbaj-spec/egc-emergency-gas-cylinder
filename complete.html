@@ -1423,8 +1423,10 @@ let currentUser = null;
 let currentProfile = null;
 let currentRequest = null;
 let currentPayment = null;
+let currentPayments = [];
 
 let paymentData = null;
+let currentSchemeName = "";
 let lpgDetails = null;
 let requestNumber = "";
 
@@ -2063,19 +2065,15 @@ async function displayRequestDetails() {
         )
     );
 
-    const scheme = firstValue(
-        item,
-        [
-            "scheme_name",
-            "scheme",
-            "selected_scheme"
-        ],
-        firstValue(
-            lpgDetails,
-            ["scheme_name", "scheme"],
-            "-"
-        )
-    );
+const scheme =
+    currentSchemeName ||
+    item.scheme_name ||
+    item.selected_scheme ||
+    (typeof item.scheme === "string" ? item.scheme : "") ||
+    (typeof lpgDetails?.scheme_name === "string"
+        ? lpgDetails.scheme_name
+        : "") ||
+    "-";
 
     const agency = await resolveAgencyName(item);
     displayCylinderDetails(item);
@@ -2175,59 +2173,45 @@ async function displayLocalRequest() {
 
 async function loadPayment() {
     currentPayment = null;
+    currentPayments = [];
 
-    if (!currentUser?.id) {
+    if (!currentUser?.id || !currentRequest?.id) {
         displayPaymentData();
         return false;
     }
 
-    if (!currentRequest?.id) {
-        /*
-          Do not associate a payment with a request
-          when the request ID is unknown.
-        */
-
-        displayPaymentData();
-        return false;
-    }
-
-    const result = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("payments")
         .select("*")
         .eq("user_id", currentUser.id)
         .eq("request_id", currentRequest.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("created_at", { ascending: false });
 
-    if (result.error) {
-        console.error(
-            "Payment loading failed:",
-            result.error.message
-        );
+    if (error) {
+        console.error("Payment loading failed:", error);
 
         showMessage(
-            "Payment status database se load nahi ho saka.",
+            "Payment records load nahi ho sake: " + error.message,
             "error"
         );
 
         displayPaymentData();
-
         return false;
     }
 
-    const payments = result.data || [];
+    currentPayments = data || [];
 
-    /*
-      Prefer an approved/verified record if one exists.
-      Otherwise show the latest record for this request.
-    */
+    // Initial payment ko repayment se alag rakho.
+    const initialPayments = currentPayments.filter(payment => {
+        const type = normalizeStatus(payment.payment_type);
 
-    currentPayment =
-        payments.find(item =>
-            isPaymentVerified(getRawPaymentStatus(item))
-        ) ||
-        payments[0] ||
-        null;
+        return !type ||
+            type === "initial" ||
+            type === "initial_payment";
+    });
+
+    // Latest initial payment display ke liye.
+    currentPayment = initialPayments[0] || null;
 
     displayPaymentData();
 
@@ -2261,32 +2245,85 @@ function getCylinderAmount() {
     ) || 0;
 }
 
+function isPaymentVerified(payment) {
+    if (!payment) return false;
+
+    const verification = normalizeStatus(
+        payment.verification_status
+    );
+
+    const paymentStatus = normalizeStatus(
+        payment.payment_status
+    );
+
+    return (
+        [
+            "approved",
+            "verified",
+            "success",
+            "successful",
+            "completed"
+        ].includes(verification) &&
+        [
+            "paid",
+            "approved",
+            "verified",
+            "success",
+            "successful",
+            "completed"
+        ].includes(paymentStatus)
+    );
+}
+
+
+function getVerifiedInitialPayment() {
+    return currentPayments
+        .filter(payment => {
+            const type = normalizeStatus(payment.payment_type);
+
+            const isInitial =
+                !type ||
+                type === "initial" ||
+                type === "initial_payment";
+
+            return isInitial && isPaymentVerified(payment);
+        })
+        .reduce((total, payment) => {
+            return total + Math.max(
+                0,
+                Number(payment.payment_amount || 0)
+            );
+        }, 0);
+}
+
+
+function getSubmittedInitialPayment() {
+    return currentPayments
+        .filter(payment => {
+            const type = normalizeStatus(payment.payment_type);
+
+            return (
+                !type ||
+                type === "initial" ||
+                type === "initial_payment"
+            );
+        })
+        .reduce((total, payment) => {
+            return total + Math.max(
+                0,
+                Number(payment.payment_amount || 0)
+            );
+        }, 0);
+}
+
+
 function getPaidAmount() {
-    /*
-      Only use a verified payment as confirmed paid money.
-      Pending/rejected submissions must not reduce the
-      confirmed remaining amount.
-    */
+    return getVerifiedInitialPayment();
+}
 
-    if (
-        currentPayment &&
-        isPaymentVerified(getRawPaymentStatus(currentPayment))
-    ) {
-        return Number(
-            firstValue(
-                currentPayment,
-                [
-                    "payment_amount",
-                    "amount_paid",
-                    "paid_amount",
-                    "paid_now"
-                ],
-                0
-            )
-        ) || 0;
-    }
 
-    return 0;
+function getSubmittedAmount() {
+    return getSubmittedInitialPayment();
 }
 
 function getSubmittedAmount() {
@@ -2379,17 +2416,8 @@ function getRawPaymentStatus(payment) {
 }
 
 function getPaymentStatus() {
-    /*
-      Database payment record is the source of truth.
-      Local data is only a fallback when no DB payment exists.
-    */
-
     if (currentPayment) {
         return getRawPaymentStatus(currentPayment);
-    }
-
-    if (currentRequest?.payment_status) {
-        return normalizeStatus(currentRequest.payment_status);
     }
 
     return normalizeStatus(
@@ -2451,10 +2479,11 @@ function displayPaymentData() {
     const confirmedPaid = getPaidAmount();
     const submittedAmount = getSubmittedAmount();
 
-    const remaining = Math.max(
-        0,
-        cylinderAmount - confirmedPaid
-    );
+    const databaseRemaining = Number(currentRequest?.remaining_amount);
+
+    const remaining = Number.isFinite(databaseRemaining)
+        ? Math.max(0, databaseRemaining)
+        : Math.max(0, cylinderAmount - confirmedPaid);
 
     const extraCharge = getExtraCharge();
     const method = getPaymentMethod();
@@ -2465,7 +2494,6 @@ function displayPaymentData() {
     setText("initialPayment", moneyText(confirmedPaid));
     setText("remainingAmount", moneyText(remaining));
     setText("extraCharge", moneyText(extraCharge));
-
     setText("paymentMethod", method);
     setText("transactionId", transactionId);
     setText("paidNow", moneyText(submittedAmount));
@@ -2473,7 +2501,6 @@ function displayPaymentData() {
     setText("slipInitialPayment", moneyText(confirmedPaid));
     setText("slipPaymentMethod", method);
     setText("slipTransactionId", transactionId);
-
     setText("slipPaymentState", paymentStatusText(status));
     setText("slipRemainingAmount", moneyText(remaining));
     setText("slipExtraCharge", moneyText(extraCharge));
@@ -2481,24 +2508,43 @@ function displayPaymentData() {
 
     const paymentDate = firstValue(
         currentPayment,
-        [
-            "payment_date",
-            "created_at",
-            "updated_at"
-        ],
-        firstValue(
-            paymentData,
-            ["payment_date", "created_at"],
-            null
-        )
+        ["payment_date", "created_at", "updated_at"],
+        null
     );
 
-    setText(
-        "slipPaymentDate",
-        formatDateTime(paymentDate)
-    );
+    setText("slipPaymentDate", formatDateTime(paymentDate));
 
     updateSlipPaymentStatus();
+    updatePaymentOwnerApproval();
+}
+
+function updatePaymentOwnerApproval() {
+    const payment = currentPayment;
+
+    if (!payment) {
+        setText("slipOwnerApproval", "NOT SUBMITTED");
+        return;
+    }
+
+    const verification = normalizeStatus(payment.verification_status);
+
+    if (isPaymentVerified(payment)) {
+        setText("slipOwnerApproval", "APPROVED");
+        return;
+    }
+
+    if ([
+        "rejected",
+        "declined",
+        "failed",
+        "cancelled",
+        "canceled"
+    ].includes(verification)) {
+        setText("slipOwnerApproval", "REJECTED");
+        return;
+    }
+
+    setText("slipOwnerApproval", "PENDING");
 }
 
 /* =========================================================
@@ -2851,13 +2897,90 @@ function updateStatus() {
         );
     }
 
-    setText(
-        "slipOwnerApproval",
-        readableStatus(ownerApproval)
+ function updatePaymentOwnerApproval() {
+    const payment = currentPayment;
+
+    if (!payment) {
+        setText("slipOwnerApproval", "NOT SUBMITTED");
+        return;
+    }
+
+    const verification = normalizeStatus(
+        payment.verification_status
     );
+
+    if (
+        isPaymentVerified(payment)
+    ) {
+        setText("slipOwnerApproval", "APPROVED");
+        return;
+    }
+
+    if (
+        [
+            "rejected",
+            "declined",
+            "failed",
+            "cancelled",
+            "canceled"
+        ].includes(verification)
+    ) {
+        setText("slipOwnerApproval", "REJECTED");
+        return;
+    }
+
+    setText("slipOwnerApproval", "PENDING");
+}
 
     updateProgress(overall);
     updateSlipPaymentStatus();
+}
+
+async function loadRequestScheme() {
+    if (!currentRequest?.id) {
+        console.warn("Request ID not available for scheme loading.");
+        return;
+    }
+
+    const requestId = currentRequest.id;
+
+    const { data, error } = await supabaseClient
+        .from("request_scheme_snapshots")
+        .select("scheme_name, scheme_snapshot")
+        .eq("request_id", requestId)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Scheme snapshot loading error:", error);
+        throw new Error("Unable to load agency scheme: " + error.message);
+    }
+
+    if (!data) {
+        console.warn("No scheme snapshot found for:", requestId);
+        currentSchemeName = "";
+        setText("schemeName", "-");
+        setText("slipScheme", "-");
+        return;
+    }
+
+    currentSchemeName =
+        data.scheme_name ||
+        data.scheme_snapshot?.scheme_name ||
+        "";
+
+    if (!currentSchemeName) {
+        console.warn("Scheme name missing in snapshot:", data);
+        currentSchemeName = "";
+    }
+
+    setText("schemeName", currentSchemeName || "-");
+    setText("slipScheme", currentSchemeName || "-");
+
+    console.log("EGC Scheme Successfully Loaded:", {
+        requestId,
+        schemeName: currentSchemeName,
+        snapshot: data.scheme_snapshot
+    });
 }
 
 /* =========================================================
@@ -3144,8 +3267,13 @@ async function refreshStatus() {
 
         if (!customerLoaded) return;
 
-        await loadRequest();
-        await loadPayment();
+await loadRequest();
+
+if (currentRequest) {
+    await loadRequestScheme();
+}
+
+await loadPayment();
 
         if (currentRequest) {
             await displayRequestDetails();
@@ -3230,79 +3358,103 @@ document.addEventListener(
 ========================================================= */
 
 async function initializePage() {
-    try {
-        clearMessage();
+try {
+clearMessage();
 
-        setupButtons();
-        loadLocalData();
+    setupButtons();
+    loadLocalData();
 
-        /*
-          Do not generate a fake request number here.
-          A real database request number or saved request
-          reference should be used instead.
-        */
+    /*
+      Do not generate a fake request number here.
+      A real database request number or saved request
+      reference should be used instead.
+    */
 
-        const savedReference = getSavedRequestReference();
+    const savedReference = getSavedRequestReference();
 
-        requestNumber =
-            savedReference.numbers[0] ||
-            "";
+    requestNumber =
+        savedReference.numbers[0] ||
+        "";
 
-        if (requestNumber) {
-            updateRequestNumber(requestNumber);
+    if (requestNumber) {
+        updateRequestNumber(requestNumber);
+    }
+
+    const customerLoaded = await loadCustomer();
+
+    if (!customerLoaded) {
+        showMessage(
+            "Apni request details dekhne ke liye login karein.",
+            "error"
+        );
+        return;
+    }
+
+    // Load actual database request
+    await loadRequest();
+
+    if (currentRequest) {
+
+        // Load Scheme Snapshot before displaying details
+        if (typeof loadRequestScheme === "function") {
+            try {
+                await loadRequestScheme();
+            } catch (schemeError) {
+                console.error(
+                    "Request scheme loading failed:",
+                    schemeError
+                );
+            }
         }
 
-        const customerLoaded = await loadCustomer();
+        // Display request and scheme details
+        await displayRequestDetails();
 
-        if (!customerLoaded) {
-            showMessage(
-                "Apni request details dekhne ke liye login karein.",
-                "error"
-            );
+        updateStatus();
 
-            return;
-        }
-
-        await loadRequest();
+        // Load payment after request details
         await loadPayment();
 
-        if (currentRequest) {
-            await displayRequestDetails();
-            updateStatus();
-        } else {
-            await displayLocalRequest();
+    } else {
 
-            showMessage(
-                "Database mein matching request nahi mili. Local details ko confirmed database status na samjhein.",
-                "error"
-            );
-        }
+        await displayLocalRequest();
 
-        displayCustomer();
-        displayPaymentData();
-
-        saveLocalRequest();
-    } catch (error) {
-        console.error(
-            "Complete page initialization failed:",
-            error
-        );
+        await loadPayment();
 
         showMessage(
-            "Kuch details load nahi ho sakin. Please refresh karein.",
+            "Database mein matching request nahi mili. Local details ko confirmed database status na samjhein.",
             "error"
         );
     }
+
+    displayCustomer();
+    displayPaymentData();
+
+    saveLocalRequest();
+
+} catch (error) {
+    console.error(
+        "Complete page initialization failed:",
+        error
+    );
+
+    showMessage(
+        "Kuch details load nahi ho sakin. Please refresh karein.",
+        "error"
+    );
+}
+
 }
 
 if (document.readyState === "loading") {
-    document.addEventListener(
-        "DOMContentLoaded",
-        initializePage
-    );
+document.addEventListener(
+"DOMContentLoaded",
+initializePage
+);
 } else {
-    initializePage();
+initializePage();
 }
+
 </script>
 
 </body>

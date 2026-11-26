@@ -611,6 +611,60 @@ button{
 }
 
 /* =========================================================
+   APPLICABLE SCHEME
+========================================================= */
+
+.scheme-card{
+    margin-bottom:18px;
+}
+.scheme-highlight{
+    background:linear-gradient(135deg,#f2f9ff,#fff8f2);
+    border:1px solid #dceaf3;
+    border-radius:14px;
+    padding:15px;
+    margin-bottom:14px;
+}
+.scheme-name{
+    color:#075ca5;
+    font-size:16px;
+    font-weight:800;
+}
+.scheme-note{
+    color:#8194a5;
+    font-size:11px;
+    line-height:1.5;
+    margin-top:5px;
+}
+.scheme-slab-list{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:9px;
+}
+.scheme-slab{
+    background:#f7fafc;
+    border:1px solid #e5edf3;
+    border-radius:11px;
+    padding:11px;
+}
+.scheme-slab-label{
+    color:#8295a5;
+    font-size:10px;
+    font-weight:800;
+    margin-bottom:5px;
+}
+.scheme-slab-amount{
+    color:#0871c3;
+    font-size:14px;
+    font-weight:800;
+}
+@media(max-width:760px){
+    .scheme-slab-list{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:420px){
+    .scheme-slab-list{grid-template-columns:1fr;}
+}
+
+/* =========================================================
    APPROVAL
 ========================================================= */
 
@@ -2062,113 +2116,104 @@ function badgeHtml(value) {
 }
 
 /* =====================================================
-EGC EXTRA CHARGE & TOTAL PAYABLE
-Delivery Day = Day 0
+   REQUEST FINANCIAL DISPLAY
+   Financial values come from the database; no client-side
+   slab calculation is performed on this page.
 ===================================================== */
 
 function getRequestDeliveryDays(request) {
-const deliveryStatus = String(
-request?.delivery_status || ""
-).trim().toLowerCase();
-
-if (deliveryStatus !== "delivered") {
-    return null;
-}
-
-const deliveryDateValue =
-    request?.delivery_date ||
-    request?.delivered_at ||
-    null;
-
-if (!deliveryDateValue) {
-    return null;
-}
-
-const deliveryDate = new Date(deliveryDateValue);
-
-if (Number.isNaN(deliveryDate.getTime())) {
-    return null;
-}
-
-const today = new Date();
-
-// Compare calendar dates without time-of-day differences.
-const deliveryDay = Date.UTC(
-    deliveryDate.getFullYear(),
-    deliveryDate.getMonth(),
-    deliveryDate.getDate()
-);
-
-const currentDay = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-);
-
-return Math.max(
-    0,
-    Math.floor((currentDay - deliveryDay) / 86400000)
-);
-
-}
-
-function calculateRequestExtraCharge(request) {
-const days = getRequestDeliveryDays(request);
-
-// Don't invent a charge if delivery date is unavailable.
-if (days === null || days <= 0) {
-    return null;
-}
-
-if (days <= 10) return 50;
-if (days <= 15) return 60;
-if (days <= 30) return 80;
-
-return 100;
-
+    const value = request?.repayment_days;
+    return value === null || value === undefined || value === ""
+        ? null
+        : Math.max(0, Number(value));
 }
 
 function getRequestTotalAmount(request) {
-const amount = Number(
-request?.total_amount ??
-request?.cylinder_amount ??
-request?.amount ??
-890
-);
-
-return Number.isFinite(amount) && amount >= 0
-    ? amount
-    : 890;
-
+    const amount = Number(
+        request?.cylinder_amount ??
+        request?.amount ??
+        request?.pricing?.cylinder_price ??
+        0
+    );
+    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 }
 
 function getRequestExtraCharge(request) {
-const calculatedCharge = calculateRequestExtraCharge(request);
-
-// Use delivery-based charge when delivery date is available.
-if (calculatedCharge !== null) {
-    return calculatedCharge;
-}
-
-// Preserve the existing saved charge if the delivery date
-// is missing or the cylinder has not been marked delivered.
-const savedCharge = Number(
-    request?.extra_charge ??
-    request?.charge_amount ??
-    0
-);
-
-return Number.isFinite(savedCharge) && savedCharge >= 0
-    ? savedCharge
-    : 0;
-
+    const amount = Number(
+        request?.extra_charge ??
+        request?.charge_amount ??
+        0
+    );
+    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 }
 
 function getRequestTotalPayable(request) {
-return (
-getRequestTotalAmount(request) +
-getRequestExtraCharge(request)
-);
+    const savedTotal = Number(
+        request?.total_payable ??
+        request?.total_amount
+    );
+    return Number.isFinite(savedTotal) && savedTotal >= 0
+        ? savedTotal
+        : getRequestTotalAmount(request) + getRequestExtraCharge(request);
+}
+
+function getRequestRemainingAmount(request) {
+    const remaining = Number(request?.remaining_amount);
+    return Number.isFinite(remaining) && remaining >= 0 ? remaining : 0;
+}
+
+function getSchemeSlabs(request) {
+    const snapshot = request?.schemeSnapshot;
+    const source = snapshot?.scheme_snapshot || {};
+    const slabs = Array.isArray(source)
+        ? source
+        : (source.slabs || source.extra_charge_slabs || source.charge_slabs || []);
+
+    if (Array.isArray(slabs) && slabs.length) {
+        return slabs.map(slab => ({
+            label: slab.label ||
+                (slab.min_days === 0 && Number(slab.max_days) === 0
+                    ? "Delivery Day"
+                    : `${slab.min_days ?? 0}–${slab.max_days ?? "Above"} Days`),
+            amount: slab.extra_charge ?? slab.charge ?? slab.amount ?? 0
+        }));
+    }
+
+    // Legacy pricing columns are displayed as saved, not recalculated.
+    const pricing = request?.pricing || {};
+    const legacy = [
+        { label: "Days 1–10", amount: pricing.extra_charge_1_10 },
+        { label: "Days 11–15", amount: pricing.extra_charge_11_15 },
+        { label: "Days 16–30", amount: pricing.extra_charge_16_30 },
+        { label: "Day 31+", amount: pricing.extra_charge_31_plus }
+    ].filter(item => item.amount !== null && item.amount !== undefined);
+
+    return legacy;
+}
+
+function getSchemeName(request) {
+    if (request?.schemeSnapshot) {
+        return request.schemeSnapshot.scheme_name ||
+            request.schemeSnapshot.scheme_snapshot?.scheme_name ||
+            "Saved Request Scheme";
+    }
+    return request?.pricing
+        ? "Legacy Agency Pricing"
+        : "No Scheme Snapshot";
+}
+
+function renderSchemeSlabs(request) {
+    const slabs = getSchemeSlabs(request);
+    if (!slabs.length) {
+        return `<div class="detail full"><div class="detail-label">Charge Slabs</div><div class="detail-value">No saved slab details available for this request.</div></div>`;
+    }
+
+    return slabs.map(slab => `
+        <div class="scheme-slab">
+            <div class="scheme-slab-label">${escapeHtml(slab.label)}</div>
+            <div class="scheme-slab-amount">${formatMoney(slab.amount)}</div>
+        </div>
+    `).join("");
 }
 
 /* =====================================================
@@ -2331,8 +2376,49 @@ async function attachRelatedData() {
         }
     }
 
+    let schemeSnapshot = null;
+    let pricing = null;
+
+    // Each request must display the immutable scheme captured when it was created.
+    try {
+        const { data, error } = await supabaseClient
+            .from("request_scheme_snapshots")
+            .select("*")
+            .eq("request_id", currentRequest.id)
+            .maybeSingle();
+
+        if (error) {
+            console.warn("Request scheme snapshot loading error:", error.message);
+        } else if (data) {
+            schemeSnapshot = data;
+        }
+    } catch (error) {
+        console.warn("Request scheme snapshot loading error:", error);
+    }
+
+    // Legacy requests without a snapshot retain their saved agency pricing.
+    if (!schemeSnapshot && currentRequest.pricing_id) {
+        try {
+            const { data, error } = await supabaseClient
+                .from("agency_pricing")
+                .select("*")
+                .eq("id", currentRequest.pricing_id)
+                .maybeSingle();
+
+            if (error) {
+                console.warn("Legacy agency pricing loading error:", error.message);
+            } else if (data) {
+                pricing = data;
+            }
+        } catch (error) {
+            console.warn("Legacy agency pricing loading error:", error);
+        }
+    }
+
     currentRequest.profile = profile;
     currentRequest.agency = agency;
+    currentRequest.schemeSnapshot = schemeSnapshot;
+    currentRequest.pricing = pricing;
 }
 
 function getUserName() {
@@ -2780,46 +2866,68 @@ function renderDetails() {
             </div>
         </section>
 
-        <section class="grid">
-            <div class="card">
-                <div class="card-header">
-                   <div class="card-body"> <div class="detail-grid"> <div class="detail"> <div class="detail-label">Cylinder Amount</div> <div class="detail-value money"> ${formatMoney(getRequestTotalAmount(request))} </div> </div>
-
-    <div class="detail">
-        <div class="detail-label">Extra Charge</div>
-        <div class="detail-value money">
-            ${formatMoney(getRequestExtraCharge(request))}
-        </div>
-    </div>
-
-    <div class="detail">
-        <div class="detail-label">Total Payable</div>
-        <div class="detail-value money">
-            ${formatMoney(getRequestTotalPayable(request))}
-        </div>
-    </div>
-
-    <div class="detail">
-        <div class="detail-label">Payment Status</div>
-        <div class="detail-value">
-            ${badgeHtml(request.payment_status)}
-        </div>
-    </div>
-
-    <div class="detail">
-        <div class="detail-label">Initial Payment</div>
-        <div class="detail-value money">
-            ${formatMoney(
-                request.initial_payment ??
-                request.advance_amount ??
-                200
-            )}
-        </div>
-    </div>
-</div>
-
-</div>
+        <section class="card scheme-card">
+            <div class="card-header">
+                <div class="card-title">Applicable Scheme & Charges</div>
+                <div class="card-subtitle">Scheme saved for this request and database-calculated financial details</div>
             </div>
+            <div class="card-body">
+                <div class="scheme-highlight">
+                    <div class="scheme-name">${escapeHtml(getSchemeName(request))}</div>
+                    <div class="scheme-note">${
+                        request.schemeSnapshot
+                            ? "This is the immutable scheme snapshot assigned when this request was created. Later Agency scheme changes do not alter this request."
+                            : "No request scheme snapshot was found. This request is shown using its available legacy pricing data; no new scheme has been assumed."
+                    }</div>
+                </div>
+
+                <div class="scheme-slab-list">
+                    ${renderSchemeSlabs(request)}
+                </div>
+
+                <div style="height:14px;"></div>
+                <div class="detail-grid">
+                    <div class="detail">
+                        <div class="detail-label">Cylinder Amount</div>
+                        <div class="detail-value money">${formatMoney(getRequestTotalAmount(request))}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Advance Amount</div>
+                        <div class="detail-value money">${formatMoney(request.advance_amount ?? request.initial_payment ?? request.pricing?.advance_amount ?? 0)}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Delivery Date</div>
+                        <div class="detail-value">${escapeHtml(formatDate(request.delivery_date || request.delivered_at))}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Days Since Delivery</div>
+                        <div class="detail-value">${getRequestDeliveryDays(request) === null ? "Not delivered / Not available" : escapeHtml(getRequestDeliveryDays(request)) + " Days"}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Applied Extra Charge</div>
+                        <div class="detail-value money">${formatMoney(getRequestExtraCharge(request))}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Total Payable</div>
+                        <div class="detail-value money">${formatMoney(getRequestTotalPayable(request))}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Paid Amount</div>
+                        <div class="detail-value money">${formatMoney(request.total_paid ?? request.paid_amount ?? 0)}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Remaining Amount</div>
+                        <div class="detail-value money">${formatMoney(getRequestRemainingAmount(request))}</div>
+                    </div>
+                    <div class="detail">
+                        <div class="detail-label">Payment Status</div>
+                        <div class="detail-value">${badgeHtml(request.payment_status)}</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid">
 
             <div class="card">
                 <div class="card-header">

@@ -758,81 +758,26 @@
                 </p>
             </div>
 
-            <div class="scheme-list">
-                <div class="scheme-row">
-    <div class="scheme-left">
-        <div class="scheme-days">Delivery Day</div>
-        <div class="scheme-description">
-            If the remaining payment is fully cleared on the cylinder delivery day.
+           <div id="activeSchemeName"
+     style="font-size:14px;font-weight:700;color:#07549a;margin-bottom:12px;">
+    Loading Agency Scheme...
+</div>
+
+<div class="scheme-list" id="schemeList">
+    <div class="scheme-row">
+        <div class="scheme-left">
+            <div class="scheme-days">Loading...</div>
+            <div class="scheme-description">Loading agency repayment rules...</div>
+        </div>
+        <div class="scheme-charge">
+            <span class="charge-label">Extra Charge</span>
+            <span class="charge-value">...</span>
         </div>
     </div>
-    <div class="scheme-charge">
-        <span class="charge-label">Extra Charge</span>
-        <span class="charge-value">₹20</span>
-    </div>
 </div>
-                <div class="scheme-row">
-                    <div class="scheme-left">
-                        <div class="scheme-days">1–10 Days</div>
-                        <div class="scheme-description">
-                            If the remaining payment is cleared within 1 to 10 days.
-                        </div>
-                    </div>
-                    <div class="scheme-charge">
-                        <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹50</span>
-                    </div>
-                </div>
-
-                <div class="scheme-row">
-                    <div class="scheme-left">
-                        <div class="scheme-days">11–15 Days</div>
-                        <div class="scheme-description">
-                            If the remaining payment is cleared within 11 to 15 days.
-                        </div>
-                    </div>
-                    <div class="scheme-charge">
-                        <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹60</span>
-                    </div>
-                </div>
-
-                <div class="scheme-row">
-                    <div class="scheme-left">
-                        <div class="scheme-days">16–30 Days</div>
-                        <div class="scheme-description">
-                            If the remaining payment is cleared within 16 to 30 days.
-                        </div>
-                    </div>
-                    <div class="scheme-charge">
-                        <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹80</span>
-                    </div>
-                </div>
-
-                <div class="scheme-row">
-                    <div class="scheme-left">
-                        <div class="scheme-days">31 Days or More</div>
-                        <div class="scheme-description">
-                            After 31 days, the applicable extra charge is ₹100.
-                        </div>
-                    </div>
-                    <div class="scheme-charge">
-                        <span class="charge-label">Extra Charge</span>
-                        <span class="charge-value">₹100</span>
-                    </div>
-                </div>
-            </div>
-
-          <div class="fixed-rule">
+          <div class="fixed-rule" id="fixedRule">
     <strong>Important:</strong>
-    A fixed extra charge of ₹20 applies when the remaining payment
-    is fully cleared on the cylinder delivery day.
-    For payments cleared after the delivery day, the applicable
-    charge will be ₹50 (1–10 days), ₹60 (11–15 days),
-    ₹80 (16–30 days), or ₹100 (31 days or more).
-    The applicable charge will be calculated according to the
-    actual date on which the remaining payment is completely cleared.
+    Agency repayment charges are loading...
 </div>
 
             <div class="rule-box">
@@ -844,27 +789,43 @@
                 </div>
             </div>
 
-            <div class="agreement-box">
-                <label class="agreement-row" for="agreeCheck">
-                    <input type="checkbox" id="agreeCheck">
+<div class="agreement-box">
+    <label class="agreement-row" for="agreeCheck">
 
-                    <span class="agreement-text">
-    I have read and understood the repayment rules.
-    I agree to pay
-    <strong id="agreementFirstPayment">Loading...</strong>
-    as the first payment and understand that the remaining
-    <strong id="agreementRemainingAmount">Loading...</strong>
-    will have the applicable fixed extra charge according to
-    the date of full payment.
+        <input type="checkbox" id="agreeCheck">
 
-    A ₹20 extra charge applies if the remaining payment is
-    fully cleared on the cylinder delivery day.
+        <span class="agreement-text">
+            I have read and understood the repayment rules.
 
-    I also understand that another cylinder cannot be issued
-    until the previous payment is completely cleared.
-</span>
-                </label>
-            </div>
+            I agree to pay
+            <strong id="agreementFirstPayment">Loading...</strong>
+            as the first payment.
+
+            The remaining balance of
+            <strong id="agreementRemainingAmount">Loading...</strong>
+            will have an applicable extra charge according to the
+            repayment period and the active Agency Scheme.
+
+            <br><br>
+
+            <strong>Applicable Extra Charges:</strong>
+
+            <span id="agreementChargeRules">
+                Loading Agency Scheme...
+            </span>
+
+            <br><br>
+
+            I understand that the applicable charge will be calculated
+            according to the actual date on which the remaining payment
+            is completely cleared.
+
+            I also understand that another cylinder cannot be issued
+            until the previous payment is completely cleared.
+        </span>
+
+    </label>
+</div>
 
             <div id="message" class="message" role="status" aria-live="polite"></div>
 
@@ -1711,6 +1672,313 @@ return data;
 
 }
 
+// ==========================================
+// AGENCY-WISE EXTRA CHARGE SCHEME
+// Reads the active scheme assigned to the
+// exact selected cylinder pricing.
+// ==========================================
+
+let currentExtraChargeScheme = null;
+
+function formatRupees(amount) {
+    return "₹" + Number(amount).toLocaleString("en-IN");
+}
+
+function getSlabLabel(slab) {
+    const min = Number(slab.min_days);
+    const max = slab.max_days === null
+        ? null
+        : Number(slab.max_days);
+
+    if (min === 0 && max === 0) {
+        return "Delivery Day";
+    }
+
+    if (max === null) {
+        return min + " Days or More";
+    }
+
+    return min + "–" + max + " Days";
+}
+
+function getSlabDescription(slab) {
+    const min = Number(slab.min_days);
+    const max = slab.max_days === null
+        ? null
+        : Number(slab.max_days);
+
+    if (min === 0 && max === 0) {
+        return "If the remaining payment is fully cleared on the cylinder delivery day.";
+    }
+
+    if (max === null) {
+        return "If the remaining payment is fully cleared after " +
+            (min - 1) + " days.";
+    }
+
+    return "If the remaining payment is fully cleared within " +
+        min + " to " + max + " days.";
+}
+
+function renderAgencyExtraChargeScheme(scheme, slabs) {
+    const schemeNameElement = $("activeSchemeName");
+    const schemeList = $("schemeList");
+    const fixedRule = $("fixedRule");
+
+    if (!schemeList || !fixedRule) return;
+
+    if (!slabs || !slabs.length) {
+        throw new Error("No repayment slabs found in the selected agency scheme.");
+    }
+
+    if (schemeNameElement) {
+        schemeNameElement.textContent =
+            "Active Agency Scheme: " + scheme.scheme_name;
+    }
+
+    schemeList.innerHTML = "";
+
+    slabs.forEach(slab => {
+        const row = document.createElement("div");
+        row.className = "scheme-row";
+
+        const left = document.createElement("div");
+        left.className = "scheme-left";
+
+        const days = document.createElement("div");
+        days.className = "scheme-days";
+        days.textContent = getSlabLabel(slab);
+
+        const description = document.createElement("div");
+        description.className = "scheme-description";
+        description.textContent = getSlabDescription(slab);
+
+        left.appendChild(days);
+        left.appendChild(description);
+
+        const chargeBox = document.createElement("div");
+        chargeBox.className = "scheme-charge";
+
+        const chargeLabel = document.createElement("span");
+        chargeLabel.className = "charge-label";
+        chargeLabel.textContent = "Extra Charge";
+
+        const chargeValue = document.createElement("span");
+        chargeValue.className = "charge-value";
+        chargeValue.textContent = formatRupees(slab.extra_charge);
+
+        chargeBox.appendChild(chargeLabel);
+        chargeBox.appendChild(chargeValue);
+
+        row.appendChild(left);
+        row.appendChild(chargeBox);
+
+        schemeList.appendChild(row);
+    });
+
+    const deliveryDaySlab = slabs.find(s =>
+        Number(s.min_days) === 0 &&
+        Number(s.max_days) === 0
+    );
+
+    const otherSlabs = slabs.filter(s =>
+        !(Number(s.min_days) === 0 && Number(s.max_days) === 0)
+    );
+
+    const ruleParts = otherSlabs.map(slab => {
+        return formatRupees(slab.extra_charge) +
+            " (" + getSlabLabel(slab) + ")";
+    });
+
+    let importantText = "";
+
+    if (deliveryDaySlab) {
+        importantText +=
+            "A charge of " +
+            formatRupees(deliveryDaySlab.extra_charge) +
+            " applies when the remaining payment is fully cleared on the cylinder delivery day. ";
+    }
+
+    if (ruleParts.length) {
+        importantText +=
+            "For payments cleared after the delivery day, the applicable charges are " +
+            ruleParts.join(", ") + ". ";
+    }
+
+    importantText +=
+        "The applicable charge will be calculated according to the actual date on which the remaining payment is completely cleared.";
+
+    fixedRule.innerHTML = "";
+
+    const strong = document.createElement("strong");
+    strong.textContent = "Important: ";
+
+    fixedRule.appendChild(strong);
+    
+    fixedRule.appendChild(document.createTextNode(importantText));
+    // Update Agreement section with the same Agency Scheme slabs
+updateAgreementChargeRules(slabs);
+    
+}
+
+function updateAgreementChargeRules(slabs) {
+
+    const agreementRules = $("agreementChargeRules");
+
+    if (!agreementRules) return;
+
+    if (!slabs || !slabs.length) {
+        agreementRules.textContent =
+            "Repayment charges are currently unavailable.";
+        return;
+    }
+
+    const sortedSlabs = [...slabs].sort(
+        (a, b) => Number(a.min_days) - Number(b.min_days)
+    );
+
+    agreementRules.innerHTML = "";
+
+    sortedSlabs.forEach((slab, index) => {
+
+        const min = Number(slab.min_days);
+
+        const max = slab.max_days === null
+            ? null
+            : Number(slab.max_days);
+
+        let period;
+
+        if (min === 0 && max === 0) {
+            period = "Delivery Day";
+        } else if (max === null) {
+            period = min + " Days or More";
+        } else {
+            period = min + "–" + max + " Days";
+        }
+
+        const line = document.createElement("div");
+
+        line.style.marginTop = "6px";
+
+        const strong = document.createElement("strong");
+
+        strong.textContent =
+            period + ": " + formatRupees(slab.extra_charge);
+
+        line.appendChild(strong);
+
+        agreementRules.appendChild(line);
+    });
+}
+
+// Load the active scheme assigned to the selected cylinder.
+
+async function loadAgencyExtraChargeScheme(pricingId) {
+    if (!pricingId) {
+        throw new Error("Cylinder Pricing ID is missing.");
+    }
+
+    // 1. Find the active scheme assignment for this pricing.
+
+    const { data: assignment, error: assignmentError } =
+        await supabaseClient
+            .from("agency_pricing_scheme_assignments")
+            .select("scheme_id")
+            .eq("pricing_id", pricingId)
+            .eq("is_active", true)
+            .maybeSingle();
+
+    if (assignmentError) {
+        console.error("Scheme assignment error:", assignmentError);
+        throw new Error(
+            "Unable to load Agency Scheme: " + assignmentError.message
+        );
+    }
+
+    if (!assignment || !assignment.scheme_id) {
+        throw new Error(
+            "No active extra charge scheme assigned to this cylinder."
+        );
+    }
+
+    // 2. Verify that the assigned scheme is active.
+
+    const { data: scheme, error: schemeError } =
+        await supabaseClient
+            .from("extra_charge_schemes")
+            .select("id, scheme_name, is_active")
+            .eq("id", assignment.scheme_id)
+            .eq("is_active", true)
+            .maybeSingle();
+
+    if (schemeError) {
+        console.error("Scheme details error:", schemeError);
+        throw new Error(
+            "Unable to load Scheme Details: " + schemeError.message
+        );
+    }
+
+    if (!scheme) {
+        throw new Error("The assigned Agency Scheme is inactive or unavailable.");
+    }
+
+    // 3. Fetch the exact slabs belonging to this scheme.
+
+    const { data: slabs, error: slabsError } =
+        await supabaseClient
+            .from("extra_charge_slabs")
+            .select("min_days, max_days, extra_charge")
+            .eq("scheme_id", scheme.id)
+            .order("min_days", { ascending: true });
+
+    if (slabsError) {
+        console.error("Scheme slabs error:", slabsError);
+        throw new Error(
+            "Unable to load repayment slabs: " + slabsError.message
+        );
+    }
+
+    if (!slabs || !slabs.length) {
+        throw new Error("No repayment slabs configured for this Agency Scheme.");
+    }
+
+    const validSlabs = slabs.map(slab => ({
+        min_days: Number(slab.min_days),
+        max_days: slab.max_days === null
+            ? null
+            : Number(slab.max_days),
+        extra_charge: Number(slab.extra_charge)
+    }));
+
+    if (validSlabs.some(slab =>
+        !Number.isInteger(slab.min_days) ||
+        slab.min_days < 0 ||
+        (slab.max_days !== null &&
+            (!Number.isInteger(slab.max_days) ||
+             slab.max_days < slab.min_days)) ||
+        !Number.isFinite(slab.extra_charge) ||
+        slab.extra_charge < 0
+    )) {
+        throw new Error("The Agency Scheme contains invalid repayment slabs.");
+    }
+
+    currentExtraChargeScheme = {
+        scheme_id: scheme.id,
+        scheme_name: scheme.scheme_name,
+        slabs: validSlabs
+    };
+
+    renderAgencyExtraChargeScheme(scheme, validSlabs);
+
+    console.log(
+        "EGC Agency Extra Charge Scheme Loaded:",
+        currentExtraChargeScheme
+    );
+
+    return currentExtraChargeScheme;
+}
+
     async function getVerifiedAgency(lpgDetails) {
         const detectedAgency = getSelectedAgency(lpgDetails);
 
@@ -2248,12 +2516,15 @@ try {
         );
     }
 
-    const pricing = await getAgencyPricing(
-        agency.id,
-        pricingId
-    );
+const pricing = await getAgencyPricing(
+    agency.id,
+    pricingId
+);
 
-    updateAmountDisplays(pricing);
+// Load the exact Agency Scheme assigned to this cylinder.
+await loadAgencyExtraChargeScheme(pricingId);
+
+updateAmountDisplays(pricing);
 
     console.log(
         "EGC selected cylinder pricing loaded:",
@@ -2280,15 +2551,6 @@ try {
 }
 
 initializeAgencyPricing();
-
-    // Load rules for consistency checks; the Scheme page does not charge
-    // users any repayment fee during initial request submission.
-    loadPaymentChargeRules().catch(error => {
-        console.warn("Payment charge rule loading failed:", error);
-    });
-
-    // Keep helper referenced for browser debugging without changing UI.
-    window.egcGetExtraChargeForDays = getExtraChargeForDays;
 
     // ==========================================
     // SUBMIT BUTTON

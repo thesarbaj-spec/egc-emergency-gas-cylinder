@@ -532,35 +532,44 @@ function isApprovedPayment(payment) {
   const verification = getVerificationStatus(payment);
   const status = getPaymentStatus(payment);
 
+  const rejected = [
+    "rejected",
+    "reject",
+    "failed",
+    "declined",
+    "cancelled",
+    "canceled"
+  ];
+
+  if (
+    rejected.includes(verification) ||
+    rejected.includes(status)
+  ) {
+    return false;
+  }
+
   const approvedVerification = [
     "approved",
-    "verified"
+    "verified",
+    "success",
+    "successful",
+    "completed"
   ];
 
   const approvedPaymentStatus = [
     "paid",
     "approved",
     "verified",
-    "completed",
     "success",
-    "successful"
+    "successful",
+    "completed"
   ];
 
-  if (
-    ["rejected", "failed", "declined", "cancelled", "canceled"]
-      .includes(verification) ||
-    ["rejected", "failed", "declined", "cancelled", "canceled"]
-      .includes(status)
-  ) {
-    return false;
-  }
-
-  /*
-   * Count a payment only when there is evidence of approval.
-   * A payment_status of "pending" must not count as paid.
-   */
-  return approvedVerification.includes(verification) ||
-    approvedPaymentStatus.includes(status);
+  // दोनों स्थितियों में approval जरूरी है।
+  return (
+    approvedVerification.includes(verification) &&
+    approvedPaymentStatus.includes(status)
+  );
 }
 
 function isWaitingForVerification(payment) {
@@ -987,34 +996,36 @@ function calculatePendingDays() {
   );
 }
 
-function calculateExtraCharge(days) {
-const currentDays = Math.max(0, Number(days) || 0);
+let databaseExtraCharge = 0;
 
-// Delivery day charge
-if (currentDays === 0) return 20;
+async function loadDatabaseExtraCharge(days) {
+  if (!currentRequest?.id) {
+    throw new Error("Request ID is missing.");
+  }
 
-// Use the pricing snapshot saved with this request
-const charge1To10 = Number(
-currentRequest?.pricing_extra_charge_1_10 ?? 50
-);
+  const { data, error } = await supabaseClient.rpc(
+    "egc_get_request_extra_charge",
+    {
+      p_request_id: currentRequest.id,
+      p_days: Math.max(0, Number(days) || 0)
+    }
+  );
 
-const charge11To15 = Number(
-currentRequest?.pricing_extra_charge_11_15 ?? 60
-);
+  if (error) {
+    console.error("Extra charge calculation error:", error);
+    throw new Error(
+      "Unable to calculate the applicable Extra Charge. Please try again."
+    );
+  }
 
-const charge16To30 = Number(
-currentRequest?.pricing_extra_charge_16_30 ?? 80
-);
+  const charge = Number(data);
 
-const charge31Plus = Number(
-currentRequest?.pricing_extra_charge_31_plus ?? 100
-);
+  if (!Number.isFinite(charge) || charge < 0) {
+    throw new Error("Invalid Extra Charge returned by database.");
+  }
 
-if (currentDays <= 10) return charge1To10;
-if (currentDays <= 15) return charge11To15;
-if (currentDays <= 30) return charge16To30;
-
-return charge31Plus;
+  databaseExtraCharge = charge;
+  return charge;
 }
 
 function getRequestAmount() {
@@ -1029,48 +1040,64 @@ function getRequestAmount() {
   );
 }
 
-function calculatePayable() {
-const paid = calculatePaidAmount();
-const requestAmount = getRequestAmount();
+async function calculatePayable() {
+  const paid = calculatePaidAmount();
+  const requestAmount = getRequestAmount();
 
-pendingDays = calculatePendingDays();
+  pendingDays = calculatePendingDays();
 
-if (paymentType === "initial") {
-extraCharge = 0;
-payableAmount = hasApprovedInitialPayment()
-? 0
-: INITIAL_PAYMENT_AMOUNT;
+  // Initial Payment
+  if (paymentType === "initial") {
+    extraCharge = 0;
 
-renderAmount();
-return;
+    payableAmount = hasApprovedInitialPayment()
+      ? 0
+      : INITIAL_PAYMENT_AMOUNT;
 
-}
+    renderAmount();
+    return;
+  }
 
-const deliveryDate = getDeliveryDate();
+  // Repayment is available only after delivery
+  const deliveryDate = getDeliveryDate();
 
-if (!deliveryDate) {
-extraCharge = 0;
-payableAmount = 0;
-renderAmount();
-return;
-}
+  if (!deliveryDate) {
+    extraCharge = 0;
+    payableAmount = 0;
 
-// Cylinder balance after approved payments
-const baseRemaining = Math.max(0, requestAmount - paid);
+    renderAmount();
+    return;
+  }
 
-// Apply extra charge only while cylinder balance remains
-extraCharge = baseRemaining > 0
-? calculateExtraCharge(pendingDays)
-: 0;
+  // Extra Charge already calculated by EGC database
+  extraCharge = Math.max(
+    0,
+    Number(currentRequest.extra_charge || 0)
+  );
 
-// Extra charge is already included in the total amount.
-// Subtract approved payments only once.
-payableAmount = Math.max(
-0,
-baseRemaining + extraCharge
-);
+  // Database remaining_amount includes Extra Charge
+  const databaseRemaining = Number(
+    currentRequest.remaining_amount
+  );
 
-renderAmount();
+  if (!Number.isFinite(databaseRemaining)) {
+    throw new Error(
+      "Unable to read the current remaining amount from database."
+    );
+  }
+
+  payableAmount = Math.max(0, databaseRemaining);
+
+  renderAmount();
+
+  console.log("EGC Repayment Calculation:", {
+    requestAmount,
+    approvedPaid: paid,
+    pendingDays,
+    extraCharge,
+    databaseRemaining,
+    payableAmount
+  });
 }
 
 /* REQUEST DISPLAY */
@@ -1116,11 +1143,11 @@ const baseRemaining = Math.max(
 requestAmount - paidAmount
 );
 
-const charge = isRepayment && deliveryDate && baseRemaining > 0
-? calculateExtraCharge(pendingDays)
-: 0;
+const charge = isRepayment && deliveryDate
+  ? Number(extraCharge || 0)
+  : 0;
 
-const totalPayable = baseRemaining + charge;
+const totalPayable = payableAmount;
 
 $("requestAmount").textContent =
 "₹" + formatMoney(requestAmount);
@@ -1525,9 +1552,12 @@ $("paymentScreenshot").addEventListener("change", function() {
       "Please select a JPG, PNG, or WEBP screenshot."
     );
 
+    
+
     return;
   }
 
+  
   const reader = new FileReader();
 
   reader.onload = event => {
@@ -1654,7 +1684,6 @@ async function submitPayment(event) {
     showError(
       "Payment request information is missing. Return to Payments and open the correct request."
     );
-
     return;
   }
 
@@ -1667,20 +1696,29 @@ async function submitPayment(event) {
   let paymentSaved = false;
 
   try {
-    /*
-     * Refresh the payment records before validating.
-     */
+    // 1. Refresh payment history
     await loadAllPayments();
 
+    // 2. Fetch the latest request and financial values from Supabase
+    const { data: freshRequest, error: requestError } =
+      await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("id", currentRequest.id)
+        .eq("user_id", currentUser.id)
+        .single();
+
+    if (requestError) throw requestError;
+
+    if (!freshRequest) {
+      throw new Error("Request information could not be refreshed.");
+    }
+
+    currentRequest = freshRequest;
+
+    // 3. Determine payment type using refreshed data
     paymentType = determinePaymentType();
 
-    const requestAmount = getRequestAmount();
-    const approvedPaid = calculatePaidAmount();
-
-    /*
-     * An approved initial payment is not the same as a fully
-     * settled request. It only settles the initial payment.
-     */
     if (
       paymentType === "initial" &&
       hasApprovedInitialPayment()
@@ -1691,14 +1729,18 @@ async function submitPayment(event) {
 
       if (paymentType === "initial") {
         throw new Error(
-          "The initial payment is already approved. You can continue when the remaining payment or repayment option is available."
+          "The initial payment is already approved. Repayment will be available after cylinder delivery."
         );
       }
     }
 
-    calculatePayable();
+    // 4. Calculate payable amount
+    await calculatePayable();
 
-    if (requestAmount <= 0) {
+    const requestAmount = getRequestAmount();
+
+    if (!Number.isFinite(Number(requestAmount)) ||
+        Number(requestAmount) <= 0) {
       throw new Error(
         "The request amount is missing or invalid. Please contact EGC Owner."
       );
@@ -1710,16 +1752,16 @@ async function submitPayment(event) {
       );
     }
 
-    if (paymentType === "repayment" && !getDeliveryDate()) {
+    if (
+      paymentType === "repayment" &&
+      !getDeliveryDate()
+    ) {
       throw new Error(
         "Repayment can start after the cylinder delivery date is recorded."
       );
     }
 
-    /*
-     * Do not block because an older payment is approved.
-     * Block only while a payment of this type is awaiting review.
-     */
+    // 5. Block only payments awaiting Owner verification
     const blockingPayment = findBlockingPayment(paymentType);
 
     if (blockingPayment) {
@@ -1731,20 +1773,10 @@ async function submitPayment(event) {
       );
     }
 
-    /*
-     * A request is complete only when the approved total reaches
-     * the request amount. An approved initial payment alone does
-     * not complete the request.
-     */
-    if (paymentType === "repayment" && payableAmount <= 0) {
-throw new Error(
-"All request payments have been approved. No further payment is due."
-);
-}
-
+    // 6. Check outstanding amount
     if (payableAmount <= 0) {
       throw new Error(
-        "There is no payable amount for this request."
+        "All request payments have been approved. No further payment is due."
       );
     }
 
@@ -1784,6 +1816,7 @@ throw new Error(
       );
     }
 
+    // 7. Initial payment validation
     if (
       paymentType === "initial" &&
       Math.abs(amount - INITIAL_PAYMENT_AMOUNT) > 0.01
@@ -1799,7 +1832,7 @@ throw new Error(
 
     if (!transactionId) {
       throw new Error(
-        "Please enter the transaction ID / UTR."
+        "Please enter the payment transaction ID / UTR."
       );
     }
 
@@ -1815,13 +1848,37 @@ throw new Error(
       );
     }
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(screenshot.type)) {
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(
+        screenshot.type
+      )
+    ) {
       throw new Error(
         "Please select a JPG, PNG, or WEBP screenshot."
       );
     }
 
+    // 8. Upload payment screenshot
     button.textContent = "UPLOADING SCREENSHOT...";
+
+    // DUPLICATE TRANSACTION ID CHECK
+
+const { data: duplicatePayments, error: duplicateError } =
+  await supabaseClient
+    .from("payments")
+    .select("id")
+    .eq("transaction_id", transactionId)
+    .limit(1);
+
+if (duplicateError) {
+  throw duplicateError;
+}
+
+if (duplicatePayments?.length) {
+  throw new Error(
+    "This Transaction ID has already been submitted. Please check your payment history."
+  );
+}
 
     const screenshotUrl = await uploadScreenshot(screenshot);
 
@@ -1831,36 +1888,36 @@ throw new Error(
       );
     }
 
+    // 9. Prepare payment record
     button.textContent = "SAVING PAYMENT...";
 
-console.log("paymentType value:", paymentType);
+    const normalizedPaymentType =
+      ["initial", "initial_payment"].includes(
+        String(paymentType || "").toLowerCase()
+      )
+        ? "initial_payment"
+        : "repayment";
 
-const paymentData = {
-user_id: currentUser.id,
-request_id: currentRequest.id,
+    const paymentData = {
+      user_id: currentUser.id,
+      request_id: currentRequest.id,
+      payment_type: normalizedPaymentType,
+      payment_amount: Number(amount.toFixed(2)),
+      payment_status: "pending",
+      verification_status: "waiting_for_verification",
+      payment_date: new Date().toISOString(),
+      payment_reference: screenshotUrl,
+      notes: buildPaymentNotes(
+        selectedPaymentAmountType,
+        amount
+      ),
+      payment_method: method,
+      transaction_id: transactionId
+    };
 
-payment_type:
-["initial", "initial_payment"].includes(
-String(paymentType || "").toLowerCase()
-)
-? "initial_payment"
-: "repayment",
+    console.log("EGC Payment Data:", paymentData);
 
-payment_amount: Number(amount.toFixed(2)),
-payment_status: "pending",
-verification_status: "waiting_for_verification",
-payment_date: new Date().toISOString(),
-payment_reference: screenshotUrl,
-notes: buildPaymentNotes(
-selectedPaymentAmountType,
-amount
-),
-payment_method: method,
-transaction_id: transactionId
-};
-
-console.log("Payment data:", paymentData);
-
+    // 10. Save payment in Supabase
     const { data, error } = await supabaseClient
       .from("payments")
       .insert(paymentData)
@@ -1872,6 +1929,7 @@ console.log("Payment data:", paymentData);
     paymentSaved = true;
     currentPayment = data;
 
+    // 11. Refresh payment history
     try {
       await loadAllPayments();
     } catch (refreshError) {
@@ -1883,6 +1941,7 @@ console.log("Payment data:", paymentData);
 
     renderExistingPayment();
 
+    // 12. Notify
     await notifyOwnerAndAgency(currentPayment);
 
     showSuccess(
@@ -1900,6 +1959,7 @@ console.log("Payment data:", paymentData);
       "Payment submitted. Waiting for Owner verification."
     );
 
+    // 13. Redirect to Payments history
     setTimeout(() => {
       window.location.href = PAYMENT_HISTORY_URL;
     }, 2200);
@@ -1917,6 +1977,7 @@ console.log("Payment data:", paymentData);
       button.disabled = false;
       button.textContent = "SUBMIT PAYMENT";
     }
+
   } finally {
     submittingPayment = false;
   }
@@ -2208,7 +2269,7 @@ paymentType = determinePaymentType();
 
 currentPayment = findLatestPaymentForType(paymentType);
 
-calculatePayable();
+await calculatePayable();
 renderRequest();
 renderExistingPayment();
 

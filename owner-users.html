@@ -2417,7 +2417,7 @@ tr.user-row:hover td{
 
                         <th>User ID</th>
                         <th>Customer</th>
-                        <th>Phone</th>
+                        <th>Phone/Email</th>
                         <th>Role</th>
                         <th>Status</th>
                         <th>Joined</th>
@@ -3877,30 +3877,44 @@ async function loadUsers() {
 
 /* SEARCH */
 function applySearch() {
-    const query = String(searchInput?.value || "").trim().toLowerCase();
+    const query = String(searchInput?.value || "")
+        .trim()
+        .toLowerCase();
 
     filteredUsers = !query
         ? [...allUsers]
         : allUsers.filter(user => {
+
             const searchableText = [
                 getUserId(user),
                 getUserName(user),
                 getUserPhone(user),
                 getUserRole(user),
                 getUserStatus(user),
+
                 user.email,
+                user.email_address,
+                user.auth_email,
+                user.user_email,
+                user.emailAddress,
+
                 user.mobile,
-                user.phone
-            ].map(value => String(value ?? "").toLowerCase()).join(" ");
+                user.phone,
+                user.phone_number
+            ]
+            .map(value => String(value ?? "").toLowerCase())
+            .join(" ");
 
             return searchableText.includes(query);
         });
 
     currentPage = 1;
+
     renderUsers();
     updateCounters();
 }
 
+/* RENDER CUSTOMER TABLE */
 /* RENDER CUSTOMER TABLE */
 function renderUsers() {
     if (!userTableBody) return;
@@ -3933,30 +3947,107 @@ function renderUsers() {
 
         const status = getUserStatus(user);
         const statusLower = status.toLowerCase();
+
         const statusClass =
             ["inactive", "blocked", "disabled"].includes(statusLower)
                 ? "inactive"
                 : "active";
 
+        // Customer email
+        const email =
+            user.email ||
+            user.email_address ||
+            user.auth_email ||
+            user.user_email ||
+            user.emailAddress ||
+            "—";
+
+        const phone = getUserPhone(user);
+
         tr.innerHTML = `
-            <td><span class="user-id">${escapeHtml(getUserId(user))}</span></td>
-            <td><div class="user-name">${escapeHtml(getUserName(user))}</div></td>
-            <td><div class="user-phone">${escapeHtml(getUserPhone(user))}</div></td>
-            <td><span class="role-badge role-customer">CUSTOMER</span></td>
-            <td><span class="user-status ${statusClass}">● ${escapeHtml(status)}</span></td>
-            <td><div class="date-text">${escapeHtml(formatDate(getUserDate(user)))}</div></td>
+            <td>
+                <span class="user-id">
+                    ${escapeHtml(getUserId(user))}
+                </span>
+            </td>
+
+            <td>
+                <div class="user-name">
+                    ${escapeHtml(getUserName(user))}
+                </div>
+            </td>
+
+            <td>
+                <div style="
+                    display:flex;
+                    flex-direction:column;
+                    gap:4px;
+                    min-width:150px;
+                ">
+                    <div class="user-phone" style="
+                        font-size:12px;
+                        font-weight:800;
+                        color:#29465f;
+                    ">
+                    ${escapeHtml(phone)}
+                    </div>
+
+                    <div style="
+                        font-size:10px;
+                        font-weight:600;
+                        color:#8495a5;
+                        overflow-wrap:anywhere;
+                    ">
+                         ${escapeHtml(email)}
+                    </div>
+                </div>
+            </td>
+
+            <td>
+                <span class="role-badge role-customer">
+                    CUSTOMER
+                </span>
+            </td>
+
+            <td>
+                <span class="user-status ${statusClass}">
+                    ● ${escapeHtml(status)}
+                </span>
+            </td>
+
+            <td>
+                <div class="date-text">
+                    ${escapeHtml(formatDate(getUserDate(user)))}
+                </div>
+            </td>
+
             <td>
                 <div class="user-action-buttons">
-                    <button type="button" class="view-user-btn egc-action-btn egc-view-btn" title="View Customer">
-                        <span>👁️</span><span>View</span>
+
+                    <button type="button"
+                        class="view-user-btn egc-action-btn egc-view-btn"
+                        title="View Customer">
+                        <span>👁️</span>
+                        <span>View</span>
                     </button>
-                    <button type="button" class="edit-user-btn egc-action-btn egc-edit-btn" title="Edit Customer">
-                        <span>✏️</span><span>Edit</span>
+
+                    <button type="button"
+                        class="edit-user-btn egc-action-btn egc-edit-btn"
+                        title="Edit Customer">
+                        <span>✏️</span>
+                        <span>Edit</span>
                     </button>
-                    <button type="button" class="delete-user-btn egc-action-btn egc-delete-btn" title="Delete Customer">
-                        <span>🗑️</span><span>Delete</span>
+
+                    <button type="button"
+                        class="delete-user-btn egc-action-btn egc-delete-btn"
+                        title="Delete Customer">
+                        <span>🗑️</span>
+                        <span>Delete</span>
                     </button>
-                </div>`;
+
+                </div>
+            </td>
+        `;
 
         tr.querySelector(".view-user-btn")
             .addEventListener("click", () => openUserDetails(user));
@@ -3971,6 +4062,18 @@ function renderUsers() {
     });
 
     renderPagination();
+}
+/* SEARCH INPUT EVENT */
+const customerSearchBox = document.getElementById("searchInput");
+
+if (customerSearchBox) {
+    customerSearchBox.addEventListener("input", function () {
+        applySearch();
+    });
+
+    customerSearchBox.addEventListener("search", function () {
+        applySearch();
+    });
 }
 
 /* ACTION BUTTON / EDIT / CAMERA CSS */

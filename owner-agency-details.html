@@ -1736,6 +1736,24 @@ tbody tr:hover{
 
     </section>
 
+    <!-- AGENCY ASSIGNED PRICING & EXTRA CHARGE SCHEME -->
+    <section class="card" style="margin-bottom:21px;">
+        <div class="card-header"><h3>Agency Pricing & Assigned Scheme</h3><span>Owner-assigned active pricing</span></div>
+        <div class="card-body">
+            <div class="details-grid">
+                <div class="detail-item"><label>Cylinder Price</label><strong id="agencyCylinderPrice">—</strong></div>
+                <div class="detail-item"><label>Advance Amount</label><strong id="agencyAdvanceAmount">—</strong></div>
+                <div class="detail-item"><label>Cylinder Type</label><strong id="agencyCylinderType">—</strong></div>
+                <div class="detail-item"><label>Cylinder Weight</label><strong id="agencyCylinderWeight">—</strong></div>
+                <div class="detail-item"><label>Stock Status</label><strong id="agencyStockStatus">—</strong></div>
+                <div class="detail-item"><label>Stock Quantity</label><strong id="agencyStockQuantity">—</strong></div>
+                <div class="detail-item"><label>Assigned Extra Charge Scheme</label><strong id="agencySchemeName">—</strong></div>
+                <div class="detail-item"><label>Scheme Status</label><strong id="agencySchemeStatus">—</strong></div>
+            </div>
+            <p id="agencySchemeSlabs" style="margin-top:14px;color:#7890a3;font-size:12px;line-height:1.7;">Loading assigned scheme slabs…</p>
+        </div>
+    </section>
+
     <!-- REQUEST STATUS + ACTIVITY -->
     <section class="content-grid">
 
@@ -1910,6 +1928,7 @@ const supabase = window.supabase.createClient(
 
 let agencyRequests = [];
 let currentAgency = null;
+let currentAgencyPricing = null;
 let toastTimer = null;
 
 /* =========================================================
@@ -2086,6 +2105,7 @@ async function loadAgency(){
 
     renderAgency(currentAgency);
 
+    await loadAgencyPricing(currentAgency);
     await loadAgencyRequests(currentAgency);
     await loadAgencyNotifications();
 }
@@ -2189,6 +2209,46 @@ function renderAgency(a){
     $("contactMobile").textContent = mobile;
     $("contactEmail").textContent = email;
     $("contactAddress").textContent = address;
+}
+
+/* =========================================================
+   LOAD AGENCY PRICING + ASSIGNED SCHEME
+========================================================= */
+async function loadAgencyPricing(agency){
+    const agencyId = agency.agency_id || agency.id;
+    const set = (id,value) => { const el=$(id); if(el) el.textContent = value ?? "—"; };
+    ["agencyCylinderPrice","agencyAdvanceAmount","agencyCylinderType","agencyCylinderWeight","agencyStockStatus","agencyStockQuantity","agencySchemeName","agencySchemeStatus"].forEach(id=>set(id,"—"));
+    set("agencySchemeSlabs","No active pricing/scheme loaded.");
+    try{
+        const {data: pricingRows,error: pricingError} = await supabase
+            .from("agency_pricing").select("*").eq("agency_id",agencyId).eq("is_active",true)
+            .order("updated_at",{ascending:false}).limit(1);
+        if(pricingError) throw pricingError;
+        const pricing = pricingRows?.[0];
+        if(!pricing){ set("agencySchemeSlabs","No active Agency Pricing record is assigned to this agency."); return; }
+        currentAgencyPricing = pricing;
+        set("agencyCylinderPrice",formatMoney(pricing.cylinder_price));
+        set("agencyAdvanceAmount",formatMoney(pricing.advance_amount));
+        set("agencyCylinderType",pricing.cylinder_type || "—");
+        set("agencyCylinderWeight",pricing.cylinder_weight ? `${pricing.cylinder_weight} kg` : "—");
+        set("agencyStockStatus",pricing.stock_status || "—");
+        set("agencyStockQuantity",pricing.stock_quantity ?? "—");
+        const {data: assignments,error: assignmentError} = await supabase
+            .from("agency_pricing_scheme_assignments").select("scheme_id,assigned_at,is_active")
+            .eq("pricing_id",pricing.id).eq("is_active",true).order("assigned_at",{ascending:false}).limit(1);
+        if(assignmentError) throw assignmentError;
+        const assignment=assignments?.[0];
+        if(!assignment){ set("agencySchemeSlabs","No active Extra Charge Scheme is assigned to this pricing record."); return; }
+        const {data: scheme,error: schemeError}=await supabase.from("extra_charge_schemes").select("id,scheme_name,is_active,description").eq("id",assignment.scheme_id).maybeSingle();
+        if(schemeError) throw schemeError;
+        if(!scheme){ set("agencySchemeSlabs","Assigned scheme record was not found."); return; }
+        set("agencySchemeName",scheme.scheme_name || "Unnamed Scheme");
+        set("agencySchemeStatus",scheme.is_active ? "Active" : "Inactive");
+        const {data: slabs,error: slabError}=await supabase.from("extra_charge_slabs").select("min_days,max_days,extra_charge").eq("scheme_id",scheme.id).order("min_days",{ascending:true});
+        if(slabError) throw slabError;
+        const slabText=(slabs||[]).map(s=>`${s.min_days}–${s.max_days===null?"+":s.max_days} days: ${formatMoney(s.extra_charge)}`).join(" · ");
+        set("agencySchemeSlabs",(scheme.description ? scheme.description+" — " : "")+(slabText || "No slabs configured."));
+    }catch(error){ console.error("Agency pricing/scheme load error:",error); set("agencySchemeSlabs","Pricing or scheme could not be loaded: "+(error.message||"Unknown error")); }
 }
 
 /* =========================================================

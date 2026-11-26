@@ -188,6 +188,10 @@ tbody tr:last-child td{border-bottom:0}
  .flow-circle{width:30px;height:30px;font-size:12px}
  .flow-item:not(:last-child):after{top:15px}
  .charge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .charge-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .charge-rule{padding:11px;min-height:60px;overflow-wrap:anywhere}
+ .charge-rule span{font-size:11px}
+ .charge-rule strong{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
  .delivery-details{grid-template-columns:1fr}
  .modal{padding:20px}
  .toast{left:12px;right:12px;bottom:15px;min-width:0}
@@ -203,6 +207,7 @@ tbody tr:last-child td{border-bottom:0}
 }
 
 .charge-rule {
+    min-width: 0;
     background: #f7faff;
     border: 1px solid #e2eaf4;
     border-radius: 12px;
@@ -365,40 +370,19 @@ tbody tr:last-child td{border-bottom:0}
     </div>
    </div>
   <div class="charge-rules-grid">
-
-    <div class="charge-rule">
-        <span>Delivery Day (Day 0)</span>
-        <strong>₹0</strong>
-    </div>
-
-    <div class="charge-rule">
-        <span>Days 1–10</span>
-        <strong>₹50</strong>
-    </div>
-
-    <div class="charge-rule">
-        <span>Days 11–15</span>
-        <strong>₹60</strong>
-    </div>
-
-    <div class="charge-rule">
-        <span>Days 16–30</span>
-        <strong>₹80</strong>
-    </div>
-
-    <div class="charge-rule">
-        <span>Day 31 Onwards</span>
-        <strong>₹100 Maximum</strong>
-    </div>
-
+     <div class="charge-rule"><span>Delivery Date</span><strong title="Saved in cylinder_requests.delivery_date">Saved in Request</strong></div>
+     <div class="charge-rule"><span>Delivery Date Itself</span><strong>Day 0</strong></div>
+     <div class="charge-rule"><span>Next Calendar Date</span><strong>Day 1</strong></div>
+     <div class="charge-rule"><span>Day Count</span><strong>Calendar days from Delivery Date</strong></div>
+     <div class="charge-rule"><span>Extra Charge</span><strong>Request's saved Scheme</strong></div>
 </div>
 
 <p class="charge-note">
-    If the full outstanding amount is paid on the delivery day,
-    no extra charge applies. If any amount remains unpaid,
-    the applicable slab starts from the following day.
-    Maximum extra charge is ₹100.
-    Final charges are calculated and verified by the EGC backend.
+    Delivery Date is saved to the request's delivery_date field.
+    Day 0 is the delivery date itself; counting starts at Day 1 on the next
+    calendar date. Extra Charge is displayed from the backend's saved
+    financial fields and is not recalculated or estimated in this page.
+    Each request keeps its own applicable Scheme snapshot.
 </p>
    </div>
   </div>
@@ -621,23 +605,14 @@ function calculateDays(value) {
 
   const [year, month, day] = normalized.split("-").map(Number);
   const deliveryDay = Date.UTC(year, month - 1, day);
+
+  // Count calendar dates in the user's local timezone.
   const today = new Date();
   const todayDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
 
-  return Math.max(0, Math.floor((todayDay - deliveryDay) / 86400000));
-}
-
-function calculateExtraCharge(days) {
-
-    if (days === null || days <= 0) return 0;
-
-    if (days <= 10) return 50;
-
-    if (days <= 15) return 60;
-
-    if (days <= 30) return 80;
-
-    return 100;
+  // Delivery date itself is Day 0; the next date is Day 1.
+  const difference = Math.floor((todayDay - deliveryDay) / 86400000);
+  return difference < 0 ? null : difference;
 }
 
 function money(value) {
@@ -771,8 +746,8 @@ function normalizeDelivery(row, profile = null) {
         agencyStatus: normalizeStatus(row.agency_status, "waiting"),
         deliveryStatus: normalizeStatus(row.delivery_status, "pending"),
 
-        deliveryDate: row.delivered_at || "",
-        extraCharge: Number(row.extra_charge || 0),
+        deliveryDate: row.delivery_date || row.delivered_at || "",
+        extraCharge: row.extra_charge ?? row.charge_amount ?? null,
         deliveryNote: getField(row, ["agency_note"], "")
     };
 }
@@ -1022,53 +997,55 @@ function getCustomerInitial(name) {
 }
 
 async function getCustomerPhotoUrl(paths) {
-
     const candidates = Array.isArray(paths) ? paths : [paths];
 
     for (const path of candidates) {
-
         if (!path) continue;
+        const originalPath = String(path).trim();
+        if (!originalPath) continue;
 
-        const photoPath = String(path).trim();
+        // A full public/signed URL should be used directly.
+        if (/^https?:\/\//i.test(originalPath)) return originalPath;
 
-        if (!photoPath) continue;
-
-        if (/^https?:\/\//i.test(photoPath)) {
-            return photoPath;
+        if (profilePhotoCache.has(originalPath)) {
+            const cached = profilePhotoCache.get(originalPath);
+            if (cached) return cached;
+            continue;
         }
 
-        if (profilePhotoCache.has(photoPath)) {
-            return profilePhotoCache.get(photoPath);
-        }
-
-        let storagePath = photoPath;
-
+        let storagePath = originalPath.replace(/^\/+/, "");
         if (storagePath.startsWith(PROFILE_BUCKET + "/")) {
-            storagePath = storagePath.substring(
-                PROFILE_BUCKET.length + 1
-            );
+            storagePath = storagePath.substring(PROFILE_BUCKET.length + 1);
+        }
+
+        // Older EGC profile records can contain profile-<timestamp>.jpg,
+        // while the actual uploaded object is stored as profile.jpg.
+        if (/\/profile-\d+\.jpg$/i.test(storagePath)) {
+            storagePath = storagePath.replace(/\/profile-\d+\.jpg$/i, "/profile.jpg");
         }
 
         try {
-
             const { data, error } = await supabaseClient.storage
                 .from(PROFILE_BUCKET)
                 .createSignedUrl(storagePath, 3600);
 
             if (error) {
-                console.warn("Photo path unavailable:", storagePath);
+                profilePhotoCache.set(originalPath, "");
+                console.warn("EGC profile photo signing failed:", {
+                    bucket: PROFILE_BUCKET,
+                    path: storagePath,
+                    message: error.message,
+                    statusCode: error.statusCode
+                });
                 continue;
             }
 
             const imageUrl = data?.signedUrl || "";
-
-            if (imageUrl) {
-                profilePhotoCache.set(photoPath, imageUrl);
-                return imageUrl;
-            }
-
+            profilePhotoCache.set(originalPath, imageUrl);
+            if (imageUrl) return imageUrl;
         } catch (error) {
-            console.warn("Photo loading error:", error.message);
+            profilePhotoCache.set(originalPath, "");
+            console.warn("EGC profile photo loading error:", error?.message || error);
         }
     }
 
@@ -1103,66 +1080,19 @@ function renderAvatar(item) {
     return avatar.outerHTML;
 }
 /* TABLE */
-function moneyNumber(value) {
-
-    const number = Number(value);
-
-    return (
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        !Number.isFinite(number)
-    ) ? 0 : number;
-}
-
-
-function getChargeForDisplay(item, days) {
-
-    // Database charge is authoritative.
-    // charge_amount is the current operational charge field.
-
+function getChargeForDisplay(item) {
+    // Backend/database values only; never estimate an extra-charge slab here.
     const storedCharge = item.raw?.charge_amount;
-
-    if (
-        storedCharge !== null &&
-        storedCharge !== undefined &&
-        storedCharge !== ""
-    ) {
-        return moneyNumber(storedCharge);
-    }
-
     const storedExtraCharge = item.raw?.extra_charge;
 
-    if (
-        storedExtraCharge !== null &&
-        storedExtraCharge !== undefined &&
-        storedExtraCharge !== ""
-    ) {
-        return moneyNumber(storedExtraCharge);
-    }
+    const value = storedCharge !== null && storedCharge !== undefined && storedCharge !== ""
+        ? storedCharge
+        : storedExtraCharge;
 
-    if (
-        item.deliveryStatus !== "delivered" ||
-        days === null
-    ) {
-        return 0;
-    }
+    if (value === null || value === undefined || value === "") return null;
 
-    // Display-only estimate. Never use this to collect payment.
-    return calculateExtraCharge(days);
-}
-
-function moneyNumber(value) {
-
-    const number = Number(value);
-
-    return (
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        !Number.isFinite(number)
-    ) ? 0 : number;
-
+    const amount = Number(value);
+    return Number.isFinite(amount) && amount >= 0 ? amount : null;
 }
 
 function renderDeliveries() {
@@ -1182,7 +1112,7 @@ function renderDeliveries() {
       ? calculateDays(item.deliveryDate)
       : null;
 
-    const charge = getChargeForDisplay(item, days);
+    const charge = getChargeForDisplay(item);
 
     return `
       <tr>
@@ -1207,7 +1137,7 @@ function renderDeliveries() {
         <td>${statusBadge(item.deliveryStatus)}</td>
         <td>${item.deliveryDate ? escapeHtml(formatDate(item.deliveryDate)) : "—"}</td>
         <td>${days !== null ? `${days} day${days === 1 ? "" : "s"}` : "—"}</td>
-        <td><strong style="color:#0871c3">${money(charge)}</strong></td>
+        <td><strong style="color:#0871c3">${charge !== null ? money(charge) : "—"}</strong></td>
         <td><button class="action-btn" type="button" data-delivery-id="${escapeHtml(item.id)}">Update</button></td>
       </tr>`;
   }).join("");
@@ -1322,6 +1252,9 @@ async function saveDeliveryUpdate() {
     const updateData = {
       agency_status: agencyStatus,
       delivery_status: deliveryStatus,
+      // Canonical DATE column used by backend financial recalculation.
+      delivery_date: deliveryStatus === "delivered" ? deliveryDate : null,
+      // Keep legacy timestamp for existing integrations.
       delivered_at: deliveredAt,
       agency_note: deliveryNote || null,
       agency_updated_at: new Date().toISOString(),

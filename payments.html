@@ -150,6 +150,32 @@ input,select{max-width:100%}
 .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .payment-details,.current-grid,.delivery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* FIX: Delivery & Extra Charge box full content visible */
+
+.main > section.box:has(#extraChargeSlabs) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+}
+
+.main > section.box:has(#extraChargeSlabs) .payment-breakdown {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+#extraChargeSlabs {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+#extraChargeSlabs > * {
+    max-height: none !important;
+}
 @media(max-width:800px){
 .sidebar{display:none}
 .main{margin-left:0;width:100%;padding:20px 15px 90px}
@@ -190,6 +216,7 @@ input,select{max-width:100%}
 .payment-breakdown{padding:12px}
 .payment-breakdown-row{font-size:11px}
 }
+
 /* =========================================
    PAYMENT HISTORY — FIXED HEIGHT + SCROLL
 ========================================= */
@@ -243,6 +270,7 @@ input,select{max-width:100%}
         min-height: 500px;
         max-height: 500px;
     }
+    
 }
 </style>
 </head>
@@ -381,47 +409,25 @@ input,select{max-width:100%}
 
     </div>
 
-    <!-- EXTRA CHARGE SLABS -->
-    <div class="payment-breakdown" style="margin-top:18px;">
+    <!-- OWNER CONTROLLED EXTRA CHARGE SLABS -->
+<div class="payment-breakdown" style="margin-top:18px;">
 
-      <div class="payment-breakdown-title">
-        Extra Charge Slab Information
-      </div>
+  <div class="payment-breakdown-title">
+    Extra Charge Slab Information
+  </div>
 
-      <div class="payment-breakdown-row">
-        <span>Delivery Day</span>
-        <span>₹20</span>
-      </div>
-
-      <div class="payment-breakdown-row">
-        <span>Day 1 – Day 10</span>
-        <span>₹50</span>
-      </div>
-
-      <div class="payment-breakdown-row">
-        <span>Day 11 – Day 15</span>
-        <span>₹60</span>
-      </div>
-
-      <div class="payment-breakdown-row">
-        <span>Day 16 – Day 30</span>
-        <span>₹80</span>
-      </div>
-
-      <div class="payment-breakdown-row total">
-        <span>Day 31 Onwards</span>
-        <span>₹100 Maximum</span>
-      </div>
-
-      <div class="payment-choice-note">
-        Extra charge delivery date ke basis par applicable slab ke according calculate hota hai.
-        Final payable amount database calculation ke according hoga.
-      </div>
-
+  <div id="extraChargeSlabs">
+    <div class="payment-choice-note">
+      Loading Owner-approved Extra Charge Scheme...
     </div>
+  </div>
 
-  </section>
+  <div class="payment-choice-note">
+    Extra Charge Scheme selected by the Owner for this Agency and Request.
+    Final payable amount is calculated by the database.
+  </div>
 
+</div>
   <!-- PAYMENT OVERVIEW -->
   <section class="box">
 
@@ -569,7 +575,7 @@ input,select{max-width:100%}
         </div>
 
         <div class="payment-breakdown-row">
-          <span>Remaining Balance</span>
+          <span>Remaining Cylinder Balance</span>
           <span id="payRemainingBalance">₹0.00</span>
         </div>
 
@@ -719,11 +725,12 @@ input,select{max-width:100%}
         existing repayment rules ke according.
       </p>
 
-      <p>
-        <strong>5. Extra Charge:</strong>
-        Delivery day ₹20, days 1–10 ₹50, days 11–15 ₹60,
-        days 16–30 ₹80 aur day 31 onwards ₹100 maximum.
-      </p>
+     <p>
+  <strong>5. Extra Charge:</strong>
+  <span id="paymentInfoExtraCharge">
+    Loading Owner-approved Extra Charge Scheme...
+  </span>
+</p>
 
       <p>
         <strong>6. Final Clearance:</strong>
@@ -838,6 +845,10 @@ let currentRequests = [];
 let currentPayments = [];
 let currentSlips = [];
 let currentNotifications = [];
+let realtimeChannel = null;
+let pageBusy = false;
+let toastTimer = null;
+const INITIAL_PAYMENT_AMOUNT = 200;
 
 // ======================================
 // EGC PAYMENT DATA BRIDGE
@@ -860,35 +871,6 @@ currentSlips: {
 }
 
 });
-
-/* ==========================================
-   SHARE DATA WITH payments-slip.js
-========================================== */
-
-Object.defineProperties(window, {
-  currentRequests: {
-    configurable: true,
-    get: () => currentRequests
-  },
-
-  currentPayments: {
-    configurable: true,
-    get: () => currentPayments
-  },
-
-  currentSlips: {
-    configurable: true,
-    get: () => currentSlips
-  }
-});
-
-let realtimeChannel = null;
-let toastTimer = null;
-let pageBusy = false;
-let initialized = false;
-
-const INITIAL_PAYMENT_AMOUNT = 200;
-const DEFAULT_CYLINDER_AMOUNT = 980;
 
 /* =========================================================
    BASIC HELPERS
@@ -1373,7 +1355,7 @@ function getRequestTotal(request) {
         "amount",
         "total_amount"
       ],
-      DEFAULT_CYLINDER_AMOUNT
+      980
     )
   );
 }
@@ -1641,40 +1623,36 @@ function calculateDaysSinceDelivery(deliveryDate) {
  * Frontend display calculation only.
  * Final payable amount must be validated by Supabase.
  */
-function calculateExtraCharge(days) {
-if (
-days === null ||
-days === undefined ||
-!Number.isFinite(Number(days)) ||
-Number(days) < 0
-) {
-return 0;
-}
+function calculateExtraCharge(days, scheme) {
 
-const deliveryDays = Math.floor(Number(days));
+    if (
+        days === null ||
+        days === undefined ||
+        !Number.isFinite(Number(days)) ||
+        Number(days) < 0 ||
+        !scheme ||
+        !Array.isArray(scheme.slabs)
+    ) {
+        return 0;
+    }
 
-// Delivery Day = ₹20
-if (deliveryDays === 0) {
-return 20;
-}
+    const deliveryDays = Math.floor(Number(days));
 
-// Days 1–10 = ₹50
-if (deliveryDays <= 10) {
-return 50;
-}
+    const slab = scheme.slabs.find(item => {
 
-// Days 11–15 = ₹60
-if (deliveryDays <= 15) {
-return 60;
-}
+        const min = Number(item.min_days);
 
-// Days 16–30 = ₹80
-if (deliveryDays <= 30) {
-return 80;
-}
+        const max = item.max_days == null
+            ? null
+            : Number(item.max_days);
 
-// Day 31 onward = ₹100 maximum
-return 100;
+        return deliveryDays >= min &&
+            (max === null || deliveryDays <= max);
+    });
+
+    return slab
+        ? Number(slab.extra_charge || 0)
+        : 0;
 }
 
 function calculateRemainingDaysToNextSlab(days) {
@@ -1752,72 +1730,68 @@ function calculateRemainingDaysToNextSlab(days) {
    EGC REPAYMENT BREAKDOWN
 ========================================================= */
 function calculateRequestPayment(request) {
+    const total = getRequestTotal(request);
 
-  const total = getRequestTotal(request);
-
-  const payments = getRequestPayments(request.id);
-
-  // केवल successful और Owner-approved payments
-  // ही Paid Amount में शामिल होंगे।
-  const paid = payments
-    .filter(paymentIsSuccessful)
-    .reduce(
-      (sum, payment) => sum + getPaymentAmount(payment),
-      0
+    const requestPayments = (currentPayments || []).filter(
+        payment => String(payment.request_id) === String(request.id)
     );
 
-  const initialPayment = getInitialPayment(request.id);
+    const approvedPayments = requestPayments.filter(payment =>
+        paymentIsSuccessful(payment)
+    );
 
-  const initialPaid =
-    initialPayment && paymentIsSuccessful(initialPayment)
-      ? getPaymentAmount(initialPayment)
-      : 0;
+    const paid = approvedPayments.reduce(
+        (sum, payment) => sum + Number(payment.payment_amount || 0),
+        0
+    );
 
-  const deliveryDate = getDeliveryDate(request);
+    const initialPaid = approvedPayments
+        .filter(payment => {
+    const type = String(payment.payment_type || "").toLowerCase();
+    return !["repayment", "repay"].includes(type);
+})
+        .reduce(
+            (sum, payment) => sum + Number(payment.payment_amount || 0),
+            0
+        );
 
-  const days = deliveryDate
-    ? calculateDaysSinceDelivery(deliveryDate)
-    : null;
+    // Database values are authoritative.
+    // Never calculate agency charges using frontend slabs.
+    const databaseExtraCharge = Number(request.extra_charge || 0);
 
-  // Cylinder का वास्तविक बाकी पैसा
-  const baseRemaining = Math.max(
-    0,
-    total - paid
-  );
+    const totalPayable = Number(
+        request.total_payable ?? (total + databaseExtraCharge)
+    );
 
-  // Delivery date के अनुसार Extra Charge
-  const applicableExtraCharge = deliveryDate
-    ? calculateExtraCharge(days)
-    : 0;
+    const remaining = Math.max(
+        0,
+        Number(
+            request.remaining_amount ??
+            (totalPayable - paid)
+        )
+    );
 
-  // पूरा भुगतान हो जाने पर Extra Charge नहीं लगेगा।
-  const extraCharge = baseRemaining > 0
-    ? applicableExtraCharge
-    : 0;
+    return {
+        total,
+        paid,
+        initialPaid,
+        deliveryDate: getDeliveryDate(request),
 
-  // Principal + Extra Charge
-  const remaining = Math.max(
-    0,
-    baseRemaining + extraCharge
-  );
+        days: request.repayment_days !== null &&
+              request.repayment_days !== undefined
+            ? Number(request.repayment_days)
+            : null,
 
-  return {
-    total,
-    paid,
-    initialPaid,
-    initialPayment,
-    deliveryDate,
-    days,
-    applicableExtraCharge,
-    extraCharge,
-    baseRemaining,
-    remaining
-  };
+        extraCharge: remaining > 0 ? databaseExtraCharge : 0,
+        databaseExtraCharge,
+        totalPayable,
+        remaining,
+        baseRemaining: Math.max(0, total - paid)
+    };
 }
 
 function calculateSummary() {
 
-  // केवल वर्तमान Running Cylinder Request
   const request = getLatestActiveRequest();
 
   let totalAmount = 0;
@@ -1829,18 +1803,15 @@ function calculateSummary() {
 
     const calculation = calculateRequestPayment(request);
 
-    totalAmount = calculation.total;
-
-remainingAmount = calculation.remaining;
+    totalAmount = calculation.totalPayable;
+    remainingAmount = calculation.remaining;
     paidAmount = calculation.paid;
 
-    // केवल इसी Running Request के successful payments
     const requestPayments = getRequestPayments(request.id);
 
     successfulCount = requestPayments.filter(
       paymentIsSuccessful
     ).length;
-
   }
 
   const percentage = totalAmount > 0
@@ -1851,17 +1822,12 @@ remainingAmount = calculation.remaining;
     : 0;
 
   setText("totalAmount", money(totalAmount));
-
   setText("paidAmount", money(paidAmount));
-
   setText("remainingAmount", money(remainingAmount));
-
   setText("successfulPayments", String(successfulCount));
 
   setText("overviewTotal", money(totalAmount));
-
   setText("overviewPaid", money(paidAmount));
-
   setText("overviewRemaining", money(remainingAmount));
 
   setText("paymentPercentage", percentage + "%");
@@ -1873,16 +1839,214 @@ remainingAmount = calculation.remaining;
   }
 }
 
+// ==========================================
+// OWNER CONTROLLED EXTRA CHARGE SCHEME
+// ==========================================
+
+const egcSchemeCache = new Map();
+
+async function loadRequestExtraChargeScheme(requestId) {
+
+    const infoElement = $("paymentInfoExtraCharge");
+
+    if (!requestId) {
+        if (infoElement) {
+            infoElement.textContent = "No request selected.";
+        }
+        return null;
+    }
+
+    const cacheKey = String(requestId);
+
+    if (egcSchemeCache.has(cacheKey)) {
+        const cached = egcSchemeCache.get(cacheKey);
+
+        renderOwnerExtraChargeSlabs(cached);
+        renderPaymentInfoExtraCharge(cached);
+
+        return cached;
+    }
+
+    try {
+
+        const { data, error } = await supabaseClient
+            .from("request_scheme_snapshots")
+            .select("request_id, scheme_name, scheme_snapshot")
+            .eq("request_id", requestId)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data || !data.scheme_snapshot) {
+
+            if (infoElement) {
+                infoElement.textContent =
+                    "No saved Extra Charge Scheme is available for this request.";
+            }
+
+            renderOwnerExtraChargeSlabs(null);
+
+            return null;
+        }
+
+        const snapshot = data.scheme_snapshot;
+
+        const result = {
+            schemeName:
+                data.scheme_name ||
+                snapshot.scheme_name ||
+                "EGC Scheme",
+
+            slabs: Array.isArray(snapshot.slabs)
+                ? snapshot.slabs
+                : []
+        };
+
+        if (!result.slabs.length) {
+            throw new Error("Scheme slabs are empty.");
+        }
+
+        egcSchemeCache.set(cacheKey, result);
+
+        // Update both locations from the same saved snapshot.
+        renderOwnerExtraChargeSlabs(result);
+        renderPaymentInfoExtraCharge(result);
+
+        console.log("EGC Owner Scheme Loaded:", {
+            requestId,
+            schemeName: result.schemeName,
+            slabs: result.slabs
+        });
+
+        return result;
+
+    } catch (error) {
+
+        console.error("Extra Charge Scheme Load Error:", error);
+
+        if (infoElement) {
+            infoElement.textContent =
+                "Unable to load Owner-approved Extra Charge Scheme.";
+        }
+
+        renderOwnerExtraChargeSlabs(null);
+
+        return null;
+    }
+}
+// ==========================================
+// RENDER OWNER SET SLABS
+// ==========================================
+
+function renderOwnerExtraChargeSlabs(scheme) {
+
+  const container = document.getElementById("extraChargeSlabs");
+
+  if (!container) return;
+
+  if (!scheme || !scheme.slabs || !scheme.slabs.length) {
+
+    container.innerHTML = `
+      <div class="payment-choice-note">
+        No saved Extra Charge Scheme is available for this request.
+        Please contact EGC Owner.
+      </div>
+    `;
+
+    return;
+  }
+
+  const slabs = [...scheme.slabs].sort(
+    (a, b) => Number(a.min_days) - Number(b.min_days)
+  );
+
+  let html = `
+    <div style="font-weight:700;color:#0754a9;margin-bottom:12px;">
+      ${escapeHtml(scheme.schemeName)}
+    </div>
+  `;
+
+  slabs.forEach((slab) => {
+
+    const minDays = Number(slab.min_days);
+    const maxDays = slab.max_days === null
+      ? null
+      : Number(slab.max_days);
+
+    let label;
+
+    if (minDays === 0 && maxDays === 0) {
+      label = "Delivery Day";
+    } else if (maxDays === null) {
+      label = `Day ${minDays} Onwards`;
+    } else {
+      label = `Day ${minDays} – Day ${maxDays}`;
+    }
+
+    html += `
+      <div class="payment-breakdown-row">
+        <span>${label}</span>
+        <span>${money(Number(slab.extra_charge || 0))}</span>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+
+// ==========================================
+// NEXT CHARGE SLAB FROM OWNER SCHEME
+// ==========================================
+
+function getNextOwnerChargeSlab(days, scheme) {
+
+  if (
+    days === null ||
+    days === undefined ||
+    !scheme ||
+    !Array.isArray(scheme.slabs)
+  ) {
+    return {
+      value: "—",
+      help: "Saved Owner Scheme information is unavailable."
+    };
+  }
+
+  const slabs = [...scheme.slabs].sort(
+    (a, b) => Number(a.min_days) - Number(b.min_days)
+  );
+
+  const nextSlab = slabs.find(
+    slab => Number(slab.min_days) > Number(days)
+  );
+
+  if (!nextSlab) {
+    return {
+      value: "—",
+      help: "No further Extra Charge slab is configured."
+    };
+  }
+
+  const remaining = Number(nextSlab.min_days) - Number(days);
+
+  return {
+    value: String(remaining),
+    help: `Next Owner-set Extra Charge slab starts on Day ${nextSlab.min_days}.`
+  };
+}
+
 function renderDeliverySummary(request, calculation) {
+
   const deliveryDate =
     calculation?.deliveryDate || getDeliveryDate(request);
 
-  // Delivery date से दिन गिनना जारी रहेगा।
-  const days = deliveryDate
-    ? calculateDaysSinceDelivery(deliveryDate)
-    : null;
+  const days =
+    calculation?.days !== null &&
+    calculation?.days !== undefined
+      ? Number(calculation.days)
+      : null;
 
-  // वर्तमान request का payment calculation।
   const currentCalculation = request
     ? calculateRequestPayment(request)
     : null;
@@ -1891,20 +2055,11 @@ function renderDeliverySummary(request, calculation) {
     !!currentCalculation &&
     currentCalculation.remaining <= 0;
 
-  // Payment पूरी होने पर कोई extra charge नहीं दिखेगा।
   const extra = paymentComplete
     ? 0
     : currentCalculation
       ? currentCalculation.extraCharge
       : 0;
-
-  // Payment पूरी होने पर अगला charge slab बंद रहेगा।
-  const next = paymentComplete
-    ? {
-        value: "—",
-        help: "Payment पूरी हो गई है। अभी कोई Extra Charge बकाया नहीं है।"
-      }
-    : calculateRemainingDaysToNextSlab(days);
 
   setText(
     "deliveryDate",
@@ -1913,7 +2068,6 @@ function renderDeliverySummary(request, calculation) {
       : "Delivery pending"
   );
 
-  // Payment पूरी होने पर भी delivery के दिन बढ़ते रहेंगे।
   setText(
     "daysSinceDelivery",
     days === null
@@ -1921,11 +2075,66 @@ function renderDeliverySummary(request, calculation) {
       : days + (days === 1 ? " Day" : " Days")
   );
 
-  setText("remainingDays", next.value);
-  setText("remainingDaysHelp", next.help);
   setText("extraCharge", money(extra));
-}
 
+  const remainingElement = document.getElementById("remainingDays");
+  const helpElement = document.getElementById("remainingDaysHelp");
+
+  if (paymentComplete) {
+
+    if (remainingElement) remainingElement.textContent = "—";
+
+    if (helpElement) {
+      helpElement.textContent =
+        "Payment पूरी हो गई है। अभी कोई Extra Charge बकाया नहीं है।";
+    }
+
+  } else {
+
+    if (remainingElement) remainingElement.textContent = "—";
+
+    if (helpElement) {
+      helpElement.textContent =
+        "Owner की निर्धारित Extra Charge Scheme लोड हो रही है...";
+    }
+  }
+
+  // Load the saved scheme for this exact request.
+  if (!request || !request.id) {
+    renderOwnerExtraChargeSlabs(null);
+    return;
+  }
+
+  loadRequestExtraChargeScheme(request.id)
+    .then(scheme => {
+
+        if (!scheme) {
+            setText("remainingDays", "—");
+            setText(
+                "remainingDaysHelp",
+                "Owner-approved Extra Charge Scheme is unavailable."
+            );
+            return;
+        }
+
+        // Ensure both sections show the same request snapshot.
+        renderOwnerExtraChargeSlabs(scheme);
+        renderPaymentInfoExtraCharge(scheme);
+
+        if (!paymentComplete) {
+
+            const next = getNextOwnerChargeSlab(days, scheme);
+
+            setText("remainingDays", next.value);
+            setText("remainingDaysHelp", next.help);
+        }
+
+    })
+        .catch(error => {
+      console.error("Scheme Rendering Error:", error);
+      renderOwnerExtraChargeSlabs(null);
+    });
+}
 /* =========================================================
    REQUEST SELECTOR
 ========================================================= */
@@ -2122,26 +2331,12 @@ inputAmount > 0 &&
 inputAmount <= eligibility.maximum;
 
 // Original cylinder balance only (extra charge excluded)
-let remainingBalance = c.baseRemaining;
-
-// Partial repayment preview
-if (
-  eligibility.allowed &&
-  eligibility.type === "repayment" &&
-  isOtherAmount &&
-  validOtherAmount
-) {
-  remainingBalance = Math.max(
-    0,
-    c.baseRemaining - inputAmount
-  );
-}
-
-setText("payRemainingBalance", money(remainingBalance));
+// Remaining cylinder amount excludes the extra charge.
+const remainingCylinderBalance = c.baseRemaining;
 
 setText(
-"payRemainingBalance",
-money(remainingBalance)
+  "payRemainingBalance",
+  money(remainingCylinderBalance)
 );
 
 let payableNow = 0;
@@ -2199,7 +2394,7 @@ function renderCurrentPayment() {
   }
 
   const c = calculateRequestPayment(request);
-  const initial = c.initialPayment;
+ const initial = getInitialPayment(request.id);
 
   const initialPaid =
     !!initial && paymentIsSuccessful(initial);
@@ -2313,7 +2508,7 @@ function renderCurrentPayment() {
 
         <div class="current-item">
           <div class="current-label">Remaining Balance</div>
-          <div class="current-value remaining">${money(c.baseRemaining)}</div>
+          <div class="current-value remaining">${money(c.remaining)}</div>
         </div>
 
         <div class="current-item">
@@ -2882,18 +3077,28 @@ function renderPaymentHistory() {
 
     const status = getPaymentDisplayStatus(payment);
 
-    let actions = `
-      <button class="history-pay-btn"
-        data-action="view-slip"
-        data-payment-id="${escapeHtml(payment.id)}">
-        View Slip
-      </button>
+const standardSlip = isInitialType(payment)
+  ? getRequestSlip(payment.request_id)
+  : null;
 
-      <button class="history-pay-btn light"
-        data-action="download-slip"
-        data-payment-id="${escapeHtml(payment.id)}">
-        Download Slip
-      </button>`;
+let actions = "";
+
+if (standardSlip) {
+
+  actions = `
+    <button class="history-pay-btn"
+      data-action="view-slip"
+      data-payment-id="${escapeHtml(payment.id)}">
+      View Slip
+    </button>
+
+    <button class="history-pay-btn light"
+      data-action="download-slip"
+      data-payment-id="${escapeHtml(payment.id)}">
+      Download Slip
+    </button>
+  `;
+}
 
     if (canRetryPayment(payment, request)) {
       actions += `
@@ -2981,22 +3186,36 @@ function setupHistoryActions() {
 }
 
 function setupCurrentPaymentActions() {
-  const area = $("currentPaymentArea");
-  if (!area) return;
-
-  if (area.dataset.actionsBound === "true") return;
-  area.dataset.actionsBound = "true";
-
-  area.addEventListener("click", event => {
-    const button = event.target.closest("[data-action]");
-    if (!button) return;
-
-    if (button.dataset.action === "initial") {
-      startInitialPayment(button.dataset.requestId);
-    } else if (button.dataset.action === "repayment") {
-      startRepayment(button.dataset.requestId);
+    const area = $("currentPaymentArea");
+    if (!area) {
+        console.error("currentPaymentArea HTML element not found.");
+        return;
     }
-  });
+
+    if (area.dataset.actionsBound === "true") return;
+    area.dataset.actionsBound = "true";
+
+    area.addEventListener("click", function(event) {
+        const button = event.target.closest("button[data-action]");
+        if (!button || !area.contains(button)) return;
+
+        const action = button.dataset.action;
+        const requestId = button.dataset.requestId;
+
+        if (!requestId) {
+            console.error("Pay button: Request ID missing.");
+            toast("Request ID not found. Please refresh the page.");
+            return;
+        }
+
+        if (pageBusy) return;
+
+        if (action === "initial") {
+            startInitialPayment(requestId);
+        } else if (action === "repayment") {
+            startRepayment(requestId);
+        }
+    });
 }
 
 /* =========================================================
@@ -3461,14 +3680,64 @@ supabaseClient.auth.onAuthStateChange(event => {
   }
 });
 
+function renderPaymentInfoExtraCharge(scheme) {
+
+    const element = $("paymentInfoExtraCharge");
+
+    if (!element) {
+        console.warn("paymentInfoExtraCharge HTML element not found.");
+        return;
+    }
+
+    if (!scheme || !Array.isArray(scheme.slabs) || !scheme.slabs.length) {
+
+        element.textContent =
+            "Saved Extra Charge Scheme is not available for this request.";
+
+        return;
+    }
+
+    const slabs = [...scheme.slabs].sort(
+        (a, b) => Number(a.min_days) - Number(b.min_days)
+    );
+
+    const descriptions = slabs.map(slab => {
+
+        const min = Number(slab.min_days);
+
+        const max = slab.max_days == null
+            ? null
+            : Number(slab.max_days);
+
+        const amount = money(Number(slab.extra_charge || 0));
+
+        let period;
+
+        if (min === 0 && max === 0) {
+            period = "Delivery Day";
+        } else if (max === null) {
+            period = `Day ${min} onwards`;
+        } else {
+            period = `Day ${min}–${max}`;
+        }
+
+        return `${period}: ${amount}`;
+    });
+
+    element.textContent =
+        descriptions.join(", ") +
+        ". Final charge is calculated by the database.";
+}
+
 /* =========================================================
    INITIALIZE
 ========================================================= */
 
 async function initializePage() {
-  if (initialized) return;
 
-  initialized = true;
+    if (window.__egcPaymentsInitialized) return;
+
+    window.__egcPaymentsInitialized = true;
 
   try {
     clearError();

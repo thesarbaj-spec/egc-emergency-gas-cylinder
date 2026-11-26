@@ -143,7 +143,7 @@ height:43px;border:0;border-radius:10px;background:#eef4f8;
 color:#527087;font-size:12px;font-weight:800
 }
 .table-wrap{width:100%;overflow-x:auto}
-table{width:100%;min-width:1450px;border-collapse:collapse}
+table{width:100%;min-width:1600px;border-collapse:collapse}
 thead{background:#f7fafc}
 th{
 padding:13px 14px;text-align:left;color:#668197;font-size:10px;
@@ -361,7 +361,7 @@ z-index:200;transition:left .25s ease;overflow-y:auto
     <main class="main">
         <div class="welcome">
             <h1>Repayments</h1>
-            <p>Repayment History, total deposited amount and remaining balance for customer cylinder requests.</p>
+            <p>Delivery-date-based repayment days, saved extra charges, deposited amount and remaining balance for each cylinder request.</p>
         </div>
 
         <div class="stats-grid">
@@ -422,7 +422,7 @@ z-index:200;transition:left .25s ease;overflow-y:auto
             <div class="panel-header">
                 <div>
                     <div class="panel-title">Repayment History</div>
-                    <div class="panel-subtitle">Every cylinder request with its deposited amount, balance, charges and payment history.</div>
+                    <div class="panel-subtitle">Delivery Date, calendar days, database-saved Extra Charge, Remaining Balance and verified payment history for each request.</div>
                 </div>
                 <button class="export-btn" id="exportBtn" type="button">⇩ Export CSV</button>
             </div>
@@ -445,6 +445,8 @@ z-index:200;transition:left .25s ease;overflow-y:auto
                             <th>Customer</th>
                             <th>EGC User ID</th>
                             <th>Request Number</th>
+                            <th>Delivery Date</th>
+                            <th>Days</th>
                             <th>Cylinder Amount</th>
                             <th>Total Deposited</th>
                             <th>Remaining Balance</th>
@@ -456,7 +458,7 @@ z-index:200;transition:left .25s ease;overflow-y:auto
                         </tr>
                     </thead>
                     <tbody id="repaymentTableBody">
-                        <tr><td colspan="11" class="loading-row">Loading repayment history...</td></tr>
+                        <tr><td colspan="13" class="loading-row">Loading repayment history...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -484,6 +486,8 @@ z-index:200;transition:left .25s ease;overflow-y:auto
                 <div class="detail-item"><div class="detail-label">Mobile</div><div class="detail-value" id="dMobile">—</div></div>
                 <div class="detail-item"><div class="detail-label">EGC User ID</div><div class="detail-value" id="dUserCode">—</div></div>
                 <div class="detail-item"><div class="detail-label">Request Number</div><div class="detail-value" id="dRequest">—</div></div>
+                <div class="detail-item"><div class="detail-label">Delivery Date</div><div class="detail-value" id="dDeliveryDate">—</div></div>
+                <div class="detail-item"><div class="detail-label">Days Since Delivery</div><div class="detail-value" id="dDeliveryDays">—</div></div>
                 <div class="detail-item"><div class="detail-label">Cylinder Amount</div><div class="detail-value" id="dCylinder">₹0</div></div>
                 <div class="detail-item"><div class="detail-label">Total Deposited</div><div class="detail-value" id="dPaid">₹0</div></div>
                 <div class="detail-item"><div class="detail-label">Remaining Balance</div><div class="detail-value" id="dRemaining">₹0</div></div>
@@ -750,7 +754,7 @@ const verification = normalizeStatus(payment.verification_status);
 
 return (
     ["paid", "completed", "success", "successful"].includes(paymentStatus) &&
-    ["approved", "verified", "completed"].includes(verification)
+    ["approved", "verified", "success", "successful", "completed"].includes(verification)
 );
 
 }
@@ -809,114 +813,62 @@ function getLatestActivityTimestamp(request, payments = []) {
 }
 
 function sortRepaymentsByLatestActivity(records) {
-    return [...records].sort((a, b) => {
-        return (b.latestActivity || 0) - (a.latestActivity || 0);
-        const cylinderAmount = num(firstValue(request, [
-    "cylinder_amount",
-    "total_amount",
-    "amount"
-], 0));
-
-const savedExtraCharge = firstValue(request, [
-"extra_charge",
-"charge_amount"
-], null);
-
-const calculatedExtraCharge =
-calculateExtraChargeFromDelivery(request);
-
-const extraCharge = calculatedExtraCharge !== null
-? calculatedExtraCharge
-: num(savedExtraCharge);
-
-const totalPayable = cylinderAmount + extraCharge;
-
-const verifiedPayments = requestPayments.filter(isVerifiedPayment);
-
-const deposited = verifiedPayments.reduce(
-(sum, payment) => sum + num(payment.payment_amount),
-0
-);
-
-const remaining = Math.max(totalPayable - deposited, 0);
-
-let status;
-
-if (remaining <= 0 && totalPayable > 0) {
-status = "completed";
-} else if (deposited > 0) {
-status = "partial";
-} else {
-status = "pending";
-}
-    });
+    return [...records].sort((a, b) =>
+        (b.latestActivity || 0) - (a.latestActivity || 0)
+    );
 }
 
 
 /* =========================================================
-EGC REPAYMENT EXTRA CHARGE
-Delivery day = Day 0
+   DELIVERY DATE + DAY COUNT
+   Extra Charge and Remaining Amount are read from saved DB
+   financial fields. No frontend slab calculation is used.
 ========================================================= */
 
 function getDeliveryDate(request) {
-return firstValue(request, [
-"delivery_date",
-"delivered_at"
-]);
+    return firstValue(request, ["delivery_date", "delivered_at"], null);
 }
 
 function getDateOnly(value) {
-if (!value) return null;
-
-const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
-
-return match ? match[1] : null;
-
+    if (!value) return null;
+    const match = String(value).match(/^(\\d{4}-\\d{2}-\\d{2})/);
+    return match ? match[1] : null;
 }
 
-function getDaysBetweenDates(startDate, endDate) {
-const start = getDateOnly(startDate);
-const end = getDateOnly(endDate);
+function getCalendarDayCount(deliveryDate, endDate = new Date()) {
+    const start = getDateOnly(deliveryDate);
+    const localEndDate = endDate instanceof Date
+        ? `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`
+        : endDate;
+    const end = getDateOnly(localEndDate);
+    if (!start || !end) return null;
 
-if (!start || !end) return null;
-
-const [sy, sm, sd] = start.split("-").map(Number);
-const [ey, em, ed] = end.split("-").map(Number);
-
-const startUTC = Date.UTC(sy, sm - 1, sd);
-const endUTC = Date.UTC(ey, em - 1, ed);
-
-return Math.max(0, Math.floor((endUTC - startUTC) / 86400000));
-
+    const [sy, sm, sd] = start.split("-").map(Number);
+    const [ey, em, ed] = end.split("-").map(Number);
+    const difference = Math.floor(
+        (Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86400000
+    );
+    return difference < 0 ? null : difference;
 }
 
-function calculateExtraChargeFromDelivery(request) {
-const deliveryDate = request.delivered_at || request.delivery_date;
+function getRepaymentDayCount(request) {
+    const savedDays = firstValue(request, ["repayment_days"], null);
+    if (savedDays !== null && Number.isFinite(Number(savedDays))) {
+        return Math.max(0, Number(savedDays));
+    }
 
-if (!deliveryDate) return null;
+    const deliveryDate = getDeliveryDate(request);
+    if (!deliveryDate) return null;
 
-const repaymentStatus = normalizeStatus(request.repayment_status);
+    const status = normalizeStatus(request.repayment_status);
+    const cleared = ["clear", "cleared", "completed", "paid"].includes(status);
+    const endDate = cleared
+        ? firstValue(request, ["repayment_cleared_at", "updated_at"], new Date())
+        : new Date();
 
-// If repayment is cleared, freeze the charge
-// at the actual repayment-cleared date.
-const isCleared = ["clear", "cleared", "completed", "paid"]
-    .includes(repaymentStatus);
-
-const endDate = isCleared
-    ? (request.repayment_cleared_at || request.updated_at)
-    : new Date().toISOString();
-
-const days = getDaysBetweenDates(deliveryDate, endDate);
-
-if (days === null || days <= 0) return 0;
-
-if (days <= 10) return 50;
-if (days <= 15) return 60;
-if (days <= 30) return 80;
-
-return 100;
-
+    return getCalendarDayCount(deliveryDate, endDate);
 }
+
 
 /* =========================================================
    MOBILE MENU + NOTIFICATIONS
@@ -1030,7 +982,7 @@ async function loadRepayments() {
     $("refreshBtn").textContent = "↻ Loading...";
 
     $("repaymentTableBody").innerHTML =
-        '<tr><td colspan="11" class="loading-row">Loading repayment history...</td></tr>';
+        '<tr><td colspan="13" class="loading-row">Loading repayment history...</td></tr>';
 
     try {
         const [requestsResult, paymentsResult, profilesResult, agenciesResult] =
@@ -1083,7 +1035,6 @@ async function loadRepayments() {
 
             const cylinderAmount = num(firstValue(request, [
                 "cylinder_amount",
-                "total_amount",
                 "amount"
             ], 0));
 
@@ -1091,44 +1042,44 @@ async function loadRepayments() {
                 "advance_amount"
             ], 0));
 
+            // Only approved/verified payments count as deposited.
             const verifiedPayments = requestPayments.filter(isVerifiedPayment);
+            const depositedFromPayments = verifiedPayments.reduce(
+                (sum, payment) => sum + num(payment.payment_amount),
+                0
+            );
+            const deposited = num(firstValue(request, [
+                "total_paid"
+            ], depositedFromPayments));
 
-const deposited = verifiedPayments.reduce(
-(sum, payment) => sum + num(payment.payment_amount),
-0
-);
+            // Database financial fields are authoritative. Never estimate
+            // extra-charge slabs in the browser.
+            const extraCharge = num(firstValue(request, [
+                "charge_amount",
+                "extra_charge"
+            ], 0));
 
-const repaymentStatus = normalizeStatus(request.repayment_status);
+            const totalPayable = num(firstValue(request, [
+                "total_payable",
+                "total_amount"
+            ], cylinderAmount + extraCharge));
 
-const isCleared = ["clear", "cleared", "completed", "paid"]
-.includes(repaymentStatus);
+            const remaining = Math.max(0, num(firstValue(request, [
+                "remaining_amount"
+            ], totalPayable - deposited)));
 
-const calculatedExtraCharge =
-calculateExtraChargeFromDelivery(request);
+            let status;
+            if (remaining <= 0 && totalPayable > 0) {
+                status = "completed";
+            } else if (deposited > 0) {
+                status = "partial";
+            } else {
+                status = "pending";
+            }
 
-const savedExtraCharge = num(firstValue(request, [
-"extra_charge",
-"charge_amount"
-], 0));
+            const deliveryDate = getDeliveryDate(request);
+            const repaymentDays = getRepaymentDayCount(request);
 
-// Use the frozen database charge for cleared repayments.
-const extraCharge = isCleared
-? savedExtraCharge
-: (calculatedExtraCharge ?? savedExtraCharge);
-
-const totalPayable = cylinderAmount + extraCharge;
-
-const remaining = Math.max(totalPayable - deposited, 0);
-
-let status;
-
-if (remaining <= 0 && totalPayable > 0) {
-status = "completed";
-} else if (deposited > 0) {
-status = "partial";
-} else {
-status = "pending";
-}
             const lastPayment = verifiedPayments.reduce((latest, payment) => {
                 const date = payment.payment_date || payment.created_at;
                 if (!date) return latest;
@@ -1175,6 +1126,8 @@ firstValue(request, [
                 requestNumber: firstValue(request, ["request_number"], request.id || "—"),
                 cylinderAmount,
                 advanceAmount,
+                deliveryDate,
+                repaymentDays,
                 deposited,
                 remaining,
                 extraCharge,
@@ -1227,7 +1180,7 @@ console.log(
 
         $("repaymentTableBody").innerHTML = `
             <tr>
-                <td colspan="11" class="empty-row">
+                <td colspan="13" class="empty-row">
                     Could not load repayment data.<br>
                     ${escapeHtml(error.message || "Check the Supabase tables and RLS policies.")}
                 </td>
@@ -1362,7 +1315,7 @@ function renderTable() {
     if (!rows.length) {
         body.innerHTML = `
             <tr>
-                <td colspan="11" class="empty-row">
+                <td colspan="13" class="empty-row">
                     No repayment records found for the selected filters.
                 </td>
             </tr>
@@ -1394,6 +1347,8 @@ function renderTable() {
                 </td>
                 <td>${escapeHtml(record.userCode)}</td>
                 <td>${escapeHtml(record.requestNumber)}</td>
+                <td>${formatDate(record.deliveryDate)}</td>
+                <td>${record.repaymentDays === null ? "—" : `${record.repaymentDays} day(s)`}</td>
                 <td class="amount">${money(record.cylinderAmount)}</td>
                 <td class="paid">${money(record.deposited)}</td>
                 <td class="remaining">${money(record.remaining)}</td>
@@ -1482,6 +1437,8 @@ function openRepaymentDetails(requestId) {
     setText("dMobile", record.mobile);
     setText("dUserCode", record.userCode);
     setText("dRequest", record.requestNumber);
+    setText("dDeliveryDate", formatDate(record.deliveryDate));
+    setText("dDeliveryDays", record.repaymentDays === null ? "—" : `${record.repaymentDays} day(s)`);
     setText("dCylinder", money(record.cylinderAmount));
     setText("dPaid", money(record.deposited));
     setText("dRemaining", money(record.remaining));
@@ -1577,6 +1534,8 @@ $("exportBtn").addEventListener("click", () => {
         "Email",
         "EGC User ID",
         "Request Number",
+        "Delivery Date",
+        "Days Since Delivery",
         "Cylinder Amount",
         "Total Deposited",
         "Remaining Balance",
@@ -1596,6 +1555,8 @@ $("exportBtn").addEventListener("click", () => {
         record.email,
         record.userCode,
         record.requestNumber,
+        formatDate(record.deliveryDate),
+        record.repaymentDays ?? "",
         record.cylinderAmount,
         record.deposited,
         record.remaining,

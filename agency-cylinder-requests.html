@@ -539,8 +539,14 @@ function paymentsFor(req) {
 function paymentApproved(payment) {
   if (!payment) return false;
   const status = normal(payment.payment_status);
-  const approval = normal(firstValue(payment.verification_status, payment.owner_approval, payment.approval_status, ""));
-  return ["paid", "completed"].includes(status) && ["approved", "verified"].includes(approval);
+  const approval = normal(firstValue(
+    payment.verification_status,
+    payment.owner_approval,
+    payment.approval_status,
+    ""
+  ));
+  return ["paid", "approved", "verified", "success", "successful", "completed"].includes(status) &&
+    ["approved", "verified", "success", "successful", "completed"].includes(approval);
 }
 
 function paymentFor(req) {
@@ -979,7 +985,9 @@ function agencyStatus(req) {
 }
 
 function requestStatus(req) {
-  return firstValue(req?.user_status, req?.status, req?.request_status, "pending");
+  // Match the Owner Requests page: prefer the main request workflow status.
+  // user_status is only a fallback because it can be an older customer-facing value.
+  return firstValue(req?.status, req?.request_status, req?.user_status, "pending");
 }
 
 function deliveryStatus(req) {
@@ -1203,8 +1211,12 @@ async function saveDelivery(event) {
       delivery_note: $("deliveryNote").value.trim() || null
     };
 
-    if (selected === "delivered" && !req.delivered_at) {
-      changes.delivered_at = new Date().toISOString();
+    if (selected === "delivered") {
+      const deliveredAt = req.delivered_at || req.delivery_date || new Date().toISOString();
+      // delivery_date is the canonical date used by EGC financial calculations.
+      // Keep delivered_at populated as a legacy/display fallback.
+      if (!req.delivery_date) changes.delivery_date = deliveredAt;
+      if (!req.delivered_at) changes.delivered_at = deliveredAt;
     }
 
     const { data, error } = await supabaseClient

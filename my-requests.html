@@ -769,28 +769,17 @@ function getRequestAmount(item) {
 }
 
 function getTotalPayable(item) {
-  if (!item) return 0;
+    if (!item) return 0;
 
-  if (isRepaymentCleared(item)) {
-    return 0;
-  }
+    if (!isApproved(getOwnerApproval(item))) {
+        return 0;
+    }
 
-  const cylinderAmount = getRequestAmount(item);
-  const verifiedPaid = getVerifiedPaidTotal(item);
+    const total = Number(item.total_payable);
 
-  // Cylinder का केवल बाकी पैसा
-  const baseRemaining = Math.max(
-    0,
-    cylinderAmount - verifiedPaid
-  );
-
-  // Extra charge तभी लगेगा जब cylinder का पैसा बाकी हो
-  const extraCharge = baseRemaining > 0
-    ? getCalculatedExtraCharge(item)
-    : 0;
-
-  // Remaining cylinder amount + extra charge
-  return baseRemaining + extraCharge;
+    return Number.isFinite(total)
+        ? Math.max(0, total)
+        : 0;
 }
 
 
@@ -917,78 +906,62 @@ Math.floor((today - deliveryDay) / 86400000)
 }
 
 function getRepaymentDays(item) {
-  if (!item) return 0;
+    if (!item) return null;
 
-  // Database में saved repayment days को प्राथमिकता दें।
-  const savedDays = Number(item.repayment_days);
+    const value = item.repayment_days;
 
-  if (
-    item.repayment_days !== null &&
-    item.repayment_days !== undefined &&
-    item.repayment_days !== "" &&
-    Number.isFinite(savedDays) &&
-    savedDays >= 0
-  ) {
-    return savedDays;
-  }
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return null;
+    }
 
-  // पुराने records के लिए fallback.
-  if (isRepaymentCleared(item)) {
-    return 0;
-  }
+    const days = Number(value);
 
-  if (getDeliveryStatus(item) !== "delivered") {
-    return 0;
-  }
-
-  return getDaysSinceDelivery(item);
+    return Number.isFinite(days) && days >= 0
+        ? days
+        : null;
 }
 
 function getCalculatedExtraCharge(item) {
-  if (!item) return 0;
+    if (!item) return 0;
 
-  // Database द्वारा cleared repayment का saved charge ही दिखाएँ
-  if (isRepaymentCleared(item)) {
-    return Math.max(0, Number(item.extra_charge) || 0);
-  }
+    // Supabase database is the only source of truth.
+    const charge = Number(item.extra_charge);
 
-  // अन्यथा delivery date के अनुसार वर्तमान slab
-  return getCurrentExtraChargeByDays(item);
+    return Number.isFinite(charge)
+        ? Math.max(0, Math.min(100, charge))
+        : 0;
 }
 
 function getRemainingAmount(item) {
-  if (!item) return 0;
+    if (!item) return 0;
 
-  if (!isApproved(getOwnerApproval(item))) {
-    return 0;
-  }
+    if (!isApproved(getOwnerApproval(item))) {
+        return 0;
+    }
 
-  if (isRepaymentCleared(item)) {
-    return 0;
-  }
+    const remaining = Number(item.remaining_amount);
 
-  const cylinderAmount = getRequestAmount(item);
-  const verifiedPaid = getVerifiedPaidTotal(item);
-
-  // केवल Cylinder का remaining balance
-  return Math.max(
-    0,
-    cylinderAmount - verifiedPaid
-  );
+    return Number.isFinite(remaining)
+        ? Math.max(0, remaining)
+        : 0;
 }
 
 function getExtraChargeDue(item) {
-  if (!item || isRepaymentCleared(item)) {
-    return 0;
-  }
+    if (!item || isRepaymentCleared(item)) {
+        return 0;
+    }
 
-  const remaining = getRemainingAmount(item);
+    const remaining = getRemainingAmount(item);
 
-  if (remaining <= 0) {
-    return 0;
-  }
+    if (remaining <= 0) {
+        return 0;
+    }
 
-  return getCalculatedExtraCharge(item);
+    return getCalculatedExtraCharge(item);
 }
 
 function isFullyCompleted(item) {
@@ -1030,7 +1003,7 @@ function getOverallState(item) {
   const payment = getPaymentData(item);
   const deliveryStatus = getDeliveryStatus(item);
   const agencyStatus = getAgencyStatus(item);
-  const remaining = getTotalPayable(item);
+const remaining = getRemainingAmount(item);
 
   if (
     isRejectedValue(requestStatus) ||
@@ -1105,7 +1078,7 @@ const remainingAmount = getRemainingAmount(item);
 const extraCharge = getExtraChargeDue(item);
 const totalPayable = getTotalPayable(item);
 
-if (totalPayable > 0) {
+if (remainingAmount > 0) {
 return {
 key: "repayment_due",
 label: "Repayment Due",
@@ -1949,18 +1922,7 @@ const isDelivered = getDeliveryStatus(item) === "delivered";
             </div>
           </div>
 
-          ${
-            extraCharge > 0
-              ? `
-                <div class="detail">
-                  <div class="detail-label">Extra Charge</div>
-                  <div class="detail-value">
-                    ₹${formatMoney(extraCharge)}
-                  </div>
-                </div>
-              `
-              : ""
-          }
+
 
           <div class="detail">
             <div class="detail-label">Total Payable</div>

@@ -308,17 +308,20 @@ select:disabled{background:#f5f8fa;color:#91a2ae;cursor:not-allowed}
 
         </div>
 
-        <div style="margin-top:14px;border-top:1px solid #dce8f3;padding-top:12px;">
+<div style="margin-top:14px;border-top:1px solid #dce8f3;padding-top:12px;">
 
-            <strong style="color:#06477f;">Extra Charges</strong>
+    <strong style="color:#06477f;">Extra Charges</strong>
 
-            <div style="font-size:12px;line-height:1.9;margin-top:6px;">
-                Delivery Day: ₹20<br>
-                1–10 Days: ₹50<br>
-                11–15 Days: ₹60<br>
-                16–30 Days: ₹80<br>
-                31+ Days: ₹100
-            </div>
+    <div id="extraChargeSchemeName"
+         style="font-size:12px;color:#64748b;margin-top:5px;">
+        Loading agency scheme...
+    </div>
+
+    <div id="extraChargeSlabs"
+         style="font-size:12px;line-height:1.9;margin-top:6px;">
+        Select a cylinder to view applicable charges.
+    </div>
+
 
         </div>
 
@@ -436,6 +439,9 @@ const selectedStockQuantity = document.getElementById("selectedStockQuantity");
 
 let agencyPricingList = [];
 let selectedPricing = null;
+let selectedExtraChargeScheme = null;
+let schemeLoadToken = 0;
+resetExtraChargeScheme();
 /* =========================================================
    HELPERS
 ========================================================= */
@@ -1121,10 +1127,212 @@ async function loadAgencyPricing() {
 }
 
 /* =========================================================
+   LOAD AGENCY ASSIGNED EXTRA CHARGE SCHEME
+========================================================= */
+
+function resetExtraChargeScheme(messageText = "Select a cylinder to view charges.") {
+
+    selectedExtraChargeScheme = null;
+
+    const nameElement = document.getElementById("extraChargeSchemeName");
+    const slabsElement = document.getElementById("extraChargeSlabs");
+
+    nameElement.textContent = "";
+    slabsElement.textContent = messageText;
+}
+
+
+function renderExtraChargeScheme(schemeName, slabs) {
+
+    const nameElement = document.getElementById("extraChargeSchemeName");
+    const slabsElement = document.getElementById("extraChargeSlabs");
+
+    if (!Array.isArray(slabs) || slabs.length === 0) {
+        resetExtraChargeScheme("No extra charge slabs configured.");
+        return;
+    }
+
+    const sortedSlabs = [...slabs].sort(
+        (a, b) => Number(a.min_days) - Number(b.min_days)
+    );
+
+    nameElement.textContent = schemeName || "Agency Pricing Scheme";
+
+    slabsElement.replaceChildren();
+
+    sortedSlabs.forEach(slab => {
+
+        const minDays = Number(slab.min_days);
+        const maxDays = slab.max_days === null
+            ? null
+            : Number(slab.max_days);
+
+        const charge = Number(slab.extra_charge);
+
+        let label;
+
+        if (minDays === 0 && maxDays === 0) {
+            label = "Delivery Day";
+        } else if (maxDays === null) {
+            label = `${minDays}+ Days`;
+        } else {
+            label = `${minDays}–${maxDays} Days`;
+        }
+
+        const row = document.createElement("div");
+
+        row.textContent = `${label}: ₹${charge.toFixed(2)}`;
+
+        slabsElement.appendChild(row);
+
+    });
+
+}
+
+
+async function loadPricingExtraChargeScheme(pricingId) {
+
+    const token = ++schemeLoadToken;
+
+    resetExtraChargeScheme("Loading agency pricing scheme...");
+
+    selectedExtraChargeScheme = null;
+
+    if (!pricingId || !supabaseClient) {
+        resetExtraChargeScheme("Unable to load agency scheme.");
+        return;
+    }
+
+    try {
+
+        /*
+          Find scheme assigned to the selected Agency Pricing.
+          Historical inactive assignments are ignored.
+        */
+
+const { data: assignments, error: assignmentError } =
+    await supabaseClient
+        .from("agency_pricing_scheme_assignments")
+        .select("id,pricing_id,scheme_id,is_active,assigned_at")
+        .eq("pricing_id", pricingId)
+        .eq("is_active", true)
+        .order("assigned_at", { ascending: false });
+
+        if (assignmentError) throw assignmentError;
+
+        if (token !== schemeLoadToken) return;
+
+        const activeAssignments = (assignments || [])
+            .filter(item => item.is_active !== false)
+            .sort((a, b) => {
+
+                const dateA = new Date(
+                    a.assigned_at || a.created_at || 0
+                ).getTime();
+
+                const dateB = new Date(
+                    b.assigned_at || b.created_at || 0
+                ).getTime();
+
+                return dateB - dateA;
+
+            });
+
+        if (!activeAssignments.length) {
+
+            resetExtraChargeScheme(
+                "No active extra charge scheme assigned to this cylinder."
+            );
+
+            return;
+        }
+
+        const assignment = activeAssignments[0];
+
+        if (!assignment.scheme_id) {
+            throw new Error("Scheme ID missing in agency assignment.");
+        }
+
+        // Load assigned scheme
+
+        const { data: scheme, error: schemeError } =
+            await supabaseClient
+                .from("extra_charge_schemes")
+                .select("id,scheme_name,is_active")
+                .eq("id", assignment.scheme_id)
+                .maybeSingle();
+
+        if (schemeError) throw schemeError;
+
+        if (!scheme || scheme.is_active === false) {
+
+            resetExtraChargeScheme(
+                "The assigned extra charge scheme is inactive."
+            );
+
+            return;
+        }
+
+        if (token !== schemeLoadToken) return;
+
+        // Load scheme slabs
+
+        const { data: slabs, error: slabsError } =
+            await supabaseClient
+                .from("extra_charge_slabs")
+                .select("min_days,max_days,extra_charge")
+                .eq("scheme_id", scheme.id)
+                .order("min_days", { ascending: true });
+
+        if (slabsError) throw slabsError;
+
+        if (token !== schemeLoadToken) return;
+
+        if (!slabs || slabs.length === 0) {
+
+            resetExtraChargeScheme(
+                "No charge slabs configured in this scheme."
+            );
+
+            return;
+        }
+
+        selectedExtraChargeScheme = {
+            scheme_id: scheme.id,
+            scheme_name: scheme.scheme_name,
+            slabs: slabs
+        };
+
+        renderExtraChargeScheme(
+            scheme.scheme_name,
+            slabs
+        );
+
+    } catch (error) {
+
+        console.error("Extra charge scheme error:", error);
+
+        if (token !== schemeLoadToken) return;
+
+        resetExtraChargeScheme(
+            "Unable to load agency extra charges. Please try again."
+        );
+
+        showMessage(
+            "Agency extra charge scheme load nahi ho paayi.\n\n" +
+            (error.message || "Supabase error"),
+            "error"
+        );
+
+    }
+
+}
+
+/* =========================================================
    DISPLAY SELECTED CYLINDER
 ========================================================= */
 
-function showSelectedCylinder() {
+async function showSelectedCylinder() {
 
     const pricingId = cylinderPricingSelect.value;
 
@@ -1135,6 +1343,8 @@ function showSelectedCylinder() {
     if (!selectedPricing) {
 
         cylinderDetails.style.display = "none";
+
+        resetExtraChargeScheme();
 
         return;
     }
@@ -1150,10 +1360,10 @@ function showSelectedCylinder() {
             : "—";
 
     selectedCylinderPrice.textContent =
-        "₹" + Number(pricing.cylinder_price).toFixed(2);
+        "₹" + Number(pricing.cylinder_price || 0).toFixed(2);
 
     selectedAdvanceAmount.textContent =
-        "₹" + Number(pricing.advance_amount).toFixed(2);
+        "₹" + Number(pricing.advance_amount || 0).toFixed(2);
 
     selectedStockStatus.textContent =
         pricing.stock_status === "available"
@@ -1167,6 +1377,10 @@ function showSelectedCylinder() {
             : pricing.stock_quantity;
 
     cylinderDetails.style.display = "block";
+
+    // Load only the scheme assigned to this selected pricing
+    await loadPricingExtraChargeScheme(pricing.id);
+
 }
 
 /* =========================================================

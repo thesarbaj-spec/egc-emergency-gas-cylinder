@@ -164,6 +164,9 @@ button{-webkit-tap-highlight-color:transparent}
         </p>
 
         <div class="photo-main">
+            <div class="document-title">
+    Profile Photo <span style="color:#dc2626;font-size:12px;">* Required</span>
+</div>
             <div class="photo-preview">
                 <div class="photo-placeholder" id="photoPlaceholder">👤</div>
                 <img id="profilePhoto" alt="Profile Photo">
@@ -198,13 +201,18 @@ button{-webkit-tap-highlight-color:transparent}
 
         <div class="document-upload-heading">
             <h3>Document Upload</h3>
-            <p>Upload clear photos of the required documents. PAN Card is optional.</p>
+           <p>Upload clear photos of all required documents. All documents are mandatory.</p>
         </div>
 
         <div class="details-grid">
             <div class="document-card">
-                <div class="document-title">Gas Passbook</div>
-                <div class="document-subtitle">Upload a clear photo of your LPG passbook.</div>
+           <div class="document-title">
+    Gas Passbook <span style="color:#dc2626;font-size:12px;">* Required</span>
+</div>
+
+<div class="document-subtitle">
+    Upload a clear photo of your LPG passbook. This document is mandatory.
+</div>
                 <div class="document-preview">
                     <div class="document-empty" id="passbookEmpty">📖<br>No photo selected</div>
                     <img id="passbookPhoto" alt="Gas Passbook">
@@ -216,23 +224,52 @@ button{-webkit-tap-highlight-color:transparent}
                 <button type="button" class="remove-photo-btn" id="passbookRemoveBtn">Remove Photo</button>
             </div>
 
-            <div class="document-card">
-                <div class="document-title">PAN Card <span style="color:#888;font-size:11px">(Optional)</span></div>
-                <div class="document-subtitle">PAN card photo is optional.</div>
-                <div class="document-preview">
-                    <div class="document-empty" id="panEmpty">🪪<br>No photo selected</div>
-                    <img id="panPhoto" alt="PAN Card">
-                </div>
-                <div class="document-buttons">
-                    <button type="button" class="photo-btn" id="panCameraBtn">Camera</button>
-                    <button type="button" class="photo-btn" id="panUploadBtn">Upload</button>
-                </div>
-                <button type="button" class="remove-photo-btn" id="panRemoveBtn">Remove Photo</button>
-            </div>
+      <div class="document-card">
+
+    <div class="document-title">
+        PAN Card <span style="color:#dc2626;font-size:12px;">* Required</span>
+    </div>
+
+    <div class="document-subtitle">
+        Upload a clear photo of your PAN Card. This document is mandatory.
+    </div>
+
+    <div class="document-preview">
+
+        <div class="document-empty" id="panEmpty">
+            🪪<br>No photo selected
+        </div>
+
+        <img id="panPhoto" alt="PAN Card">
+
+    </div>
+
+    <div class="document-buttons">
+
+        <button type="button" class="photo-btn" id="panCameraBtn">
+            Camera
+        </button>
+
+        <button type="button" class="photo-btn" id="panUploadBtn">
+            Upload
+        </button>
+
+    </div>
+
+    <button type="button" class="remove-photo-btn" id="panRemoveBtn">
+        Remove Photo
+    </button>
+
+</div>
 
             <div class="document-card">
-                <div class="document-title">Aadhaar Front</div>
-                <div class="document-subtitle">Front side of Aadhaar card.</div>
+                <div class="document-title">
+    Aadhaar Front <span style="color:#dc2626;font-size:12px;">* Required</span>
+</div>
+
+<div class="document-subtitle">
+    Upload a clear photo of the front side of your Aadhaar card. This document is mandatory.
+</div>
                 <div class="document-preview">
                     <div class="document-empty" id="aadhaarFrontEmpty">🪪<br>No photo selected</div>
                     <img id="aadhaarFrontPhoto" alt="Aadhaar Front">
@@ -245,8 +282,13 @@ button{-webkit-tap-highlight-color:transparent}
             </div>
 
             <div class="document-card">
-                <div class="document-title">Aadhaar Back</div>
-                <div class="document-subtitle">Back side of Aadhaar card.</div>
+<div class="document-title">
+    Aadhaar Back <span style="color:#dc2626;font-size:12px;">* Required</span>
+</div>
+
+<div class="document-subtitle">
+    Upload a clear photo of the back side of your Aadhaar card. This document is mandatory.
+</div>
                 <div class="document-preview">
                     <div class="document-empty" id="aadhaarBackEmpty">🪪<br>No photo selected</div>
                     <img id="aadhaarBackPhoto" alt="Aadhaar Back">
@@ -1238,13 +1280,47 @@ if (!bookingNumber) {
         return false;
     }
 
-    // Required Documents
-    const requiredDocuments = [
-        ["profile", "Profile Photo"],
-        ["passbook", "Gas Passbook photo"],
-        ["aadhaarFront", "Aadhaar Front photo"],
-        ["aadhaarBack", "Aadhaar Back photo"]
-    ];
+// REQUIRED DOCUMENTS
+
+const requiredDocuments = [
+
+    ["profile", "Profile Photo"],
+
+    ["passbook", "Gas Passbook photo"],
+
+    ["pan", "PAN Card photo"],
+
+    ["aadhaarFront", "Aadhaar Front photo"],
+
+    ["aadhaarBack", "Aadhaar Back photo"]
+
+];
+
+for (const [target, label] of requiredDocuments) {
+
+    if (!safeLocalGet(imageKeys[target])) {
+
+        showMessage(
+            "कृपया " + label + " upload या capture करें।",
+            "error"
+        );
+
+        const config = previewConfig[target];
+
+        const preview = document.getElementById(config.imageId);
+
+        if (preview) {
+            preview.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+
+        return false;
+
+    }
+
+}
 
     for (const [target, label] of requiredDocuments) {
 
@@ -1320,24 +1396,36 @@ async function uploadDocument(target, userId) {
 }
 
 async function uploadAllDocuments(userId) {
+
     const result = {};
 
-    for (const target of [
+    const requiredTargets = [
         "profile",
         "passbook",
         "pan",
         "aadhaarFront",
         "aadhaarBack"
-    ]) {
-        if (target === "pan" && !safeLocalGet(imageKeys.pan)) {
-            result[target] = null;
-            continue;
+    ];
+
+    for (const target of requiredTargets) {
+
+        if (!safeLocalGet(imageKeys[target])) {
+
+            throw new Error(
+                "Required document missing: " + target
+            );
+
         }
 
-        result[target] = await uploadDocument(target, userId);
+        result[target] = await uploadDocument(
+            target,
+            userId
+        );
+
     }
 
     return result;
+
 }
 
 /* Save profile with upsert.

@@ -618,120 +618,29 @@ EGC REPAYMENT CALCULATION
 Delivery Day = Day 0
 ========================================================= */
 
-function getDeliveryDays(requestRow) {
-if (
-String(requestRow?.delivery_status || "")
-.trim()
-.toLowerCase() !== "delivered"
-) {
-return null;
-}
-
-const deliveryValue =
-    requestRow?.delivery_date ||
-    requestRow?.delivered_at ||
-    null;
-
-if (!deliveryValue) {
-    return null;
-}
-
-const deliveryDate = new Date(deliveryValue);
-
-if (Number.isNaN(deliveryDate.getTime())) {
-    return null;
-}
-
-const today = new Date();
-
-const deliveryDay = Date.UTC(
-    deliveryDate.getFullYear(),
-    deliveryDate.getMonth(),
-    deliveryDate.getDate()
-);
-
-const currentDay = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-);
-
-return Math.max(
-    0,
-    Math.floor((currentDay - deliveryDay) / 86400000)
-);
-
-}
-
-function calculateDeliveryExtraCharge(requestRow) {
-const days = getDeliveryDays(requestRow);
-
-if (days === null || days <= 0) {
-    return null;
-}
-
-if (days <= 10) return 50;
-if (days <= 15) return 60;
-if (days <= 30) return 80;
-
-return 100;
-
-}
-
-function getRecordedExtraCharge(rows = []) {
-let extra = 0;
-
-for (const row of rows) {
-    const notes = parsePaymentNotes(row);
-
-    extra = Math.max(
-        extra,
-        moneyNumber(
-            notes.extra_charge ??
-            notes.extraCharge ??
-            notes.charge_amount
-        )
+function getSavedRequestExtraCharge(requestRow = request) {
+    return moneyNumber(
+        requestRow?.charge_amount ??
+        requestRow?.extra_charge ??
+        requestRow?.extra_charge_amount ?? 0
     );
 }
 
-return extra;
-
+function getSavedRequestTotal(requestRow = request) {
+    return moneyNumber(
+        requestRow?.total_payable ??
+        requestRow?.total_amount ??
+        requestRow?.cylinder_amount ??
+        requestRow?.base_amount ??
+        requestRow?.amount ?? 0
+    );
 }
 
-function getCalculatedRequestTotal(requestRow, paymentRows = []) {
-const cylinderAmount = moneyNumber(
-requestRow?.cylinder_amount ??
-requestRow?.base_amount ??
-requestRow?.amount ??
-requestRow?.total_amount
-);
-
-const calculatedCharge =
-    calculateDeliveryExtraCharge(requestRow);
-
-const savedRequestCharge = moneyNumber(
-    requestRow?.extra_charge ??
-    requestRow?.extra_charge_amount ??
-    requestRow?.charge_amount
-);
-
-const recordedPaymentCharge =
-    getRecordedExtraCharge(paymentRows);
-
-const extraCharge = calculatedCharge !== null
-    ? calculatedCharge
-    : Math.max(savedRequestCharge, recordedPaymentCharge);
-
-if (cylinderAmount > 0) {
-    return cylinderAmount + extraCharge;
-}
-
-return moneyNumber(
-    requestRow?.total_amount ??
-    requestRow?.request_total ??
-    requestRow?.total
-) + extraCharge;
-
+function getSavedRemainingAmount(requestRow = request) {
+    if (requestRow?.remaining_amount !== null && requestRow?.remaining_amount !== undefined) {
+        return Math.max(0, moneyNumber(requestRow.remaining_amount));
+    }
+    return Math.max(0, getSavedRequestTotal(requestRow) - getVerifiedPaidAmount());
 }
 
 function showToast(title,message) {
@@ -810,31 +719,11 @@ function getCylinderAmount() {
 }
 
 function getExtraCharge() {
-const calculatedCharge =
-calculateDeliveryExtraCharge(request);
-
-if (calculatedCharge !== null) {
-    return calculatedCharge;
-}
-
-const requestExtra = moneyNumber(
-    request?.extra_charge ??
-    request?.extra_charge_amount ??
-    request?.charge_amount
-);
-
-const recordedExtra =
-    getRecordedExtraCharge(verifiedRequestPayments);
-
-return Math.max(requestExtra, recordedExtra);
-
+ return getSavedRequestExtraCharge(request);
 }
 
 function getRequestTotal() {
-return getCalculatedRequestTotal(
-request,
-verifiedRequestPayments
-);
+ return getSavedRequestTotal(request);
 }
 
 function getAdvanceAmount() {
@@ -848,10 +737,10 @@ function getVerificationStatus(row = payment) {
 }
 
 function isApprovedPayment(row) {
- const verification = getVerificationStatus(row);
- const status = String(row?.payment_status || "").toLowerCase();
- return verification === "approved" &&
-  ["paid","approved","verified","completed"].includes(status);
+ const verification = String(row?.verification_status || "").trim().toLowerCase();
+ const status = String(row?.payment_status || "").trim().toLowerCase();
+ return ["approved","verified","success","successful","completed"].includes(verification) &&
+  ["paid","approved","verified","success","successful","completed"].includes(status);
 }
 
 function isFinalVerification() {
@@ -1131,6 +1020,7 @@ row.payment_amount ?? row.amount
 }
 
 function getRemainingAmount() {
+    if (request?.remaining_amount !== null && request?.remaining_amount !== undefined) return Math.max(0, moneyNumber(request.remaining_amount));
 return Math.max(
 0,
 getRequestTotal() - getVerifiedPaidAmount()
@@ -1844,239 +1734,300 @@ function buildUpdatedNotes(oldNotes,ownerNote,decision) {
 }
 
 async function syncRequestBalance(decision) {
-if (!request?.id) {
-return {
-ok: false,
-message: "Linked cylinder request nahi mili."
-};
-}
-
-try {
-    const { data: rows, error: rowsError } = await supabaseClient
-        .from("payments")
-        .select("*")
-        .eq("request_id", request.id);
-
-    if (rowsError) throw rowsError;
-
-    const allRows = (rows || []).map(row =>
-        row.id === payment?.id ? payment : row
-    );
-
-    const approvedRows = allRows.filter(isApprovedPayment);
-
-const initialPaid = approvedRows
-    .filter(row => normalisePaymentType(row) === "initial")
-    .reduce(
-        (sum, row) =>
-            sum + moneyNumber(
-                row.payment_amount ?? row.amount
-            ),
-        0
-    );
-
-const repaymentPaid = approvedRows
-    .filter(row => normalisePaymentType(row) === "repayment")
-    .reduce(
-        (sum, row) =>
-            sum + moneyNumber(
-                row.payment_amount ?? row.amount
-            ),
-        0
-    );
-
-const verifiedTotal = initialPaid + repaymentPaid;
-
-const total = getCalculatedRequestTotal(
-    request,
-    allRows
-);
-
-const remaining = Math.max(
-    0,
-    total - verifiedTotal
-);
-
-const isClear = total > 0 && remaining <= 0;
-
-    const update = {
-        remaining_amount: remaining,
-        payment_status: isClear
-            ? "paid"
-            : verifiedTotal > 0
-                ? "partial"
-                : "pending",
-        payment_pending_clear: isClear ? "clear" : "pending",
-        repayment_status: isClear ? "clear" : "pending",
-        cylinder_hold_eligible: isClear ? "eligible" : "hold"
-    };
-
-    if (decision === "approved") {
-        update.payment_verification_status = "approved";
+    if (!request?.id) {
+        return { ok: false, message: "Linked cylinder request nahi mili." };
     }
 
-    const { data: savedRows, error: updateError } =
-        await supabaseClient
+    try {
+        // owner_approve_payment() and the database financial triggers are
+        // authoritative. This page only reloads their saved result; it must
+        // never overwrite request workflow or financial fields from the browser.
+        const { data: latestRequest, error } = await supabaseClient
             .from("cylinder_requests")
-            .update(update)
+            .select("*")
             .eq("id", request.id)
-            .select("*");
-
-    if (updateError) throw updateError;
-
-    if (!savedRows?.length) {
-        throw new Error(
-            "Request update nahi hui. Owner permissions aur RLS policy check karein."
-        );
+            .maybeSingle();
+        if (error) throw error;
+        if (!latestRequest) throw new Error("Linked request could not be reloaded.");
+        request = latestRequest;
+        await loadRelatedData();
+        return { ok: true, total: getRequestTotal(), remaining: getSavedRemainingAmount(), message: "Database financial values reloaded." };
+    } catch (error) {
+        console.error("Request balance reload failed:", error);
+        return { ok: false, message: error.message || "Request financial values could not be reloaded." };
     }
-
-    request = savedRows[0];
-
-    await loadRelatedData();
-
-    return {
-        ok: true,
-        total,
-        verifiedTotal,
-        remaining,
-        message: "Request payment balance update ho gaya."
-    };
-
-} catch (error) {
-    console.error("Request balance sync failed:", error);
-
-    return {
-        ok: false,
-        message: error.message ||
-            "Request payment status update nahi ho saka."
-    };
-}
-
 }
 
 async function saveVerification(decision) {
- if (busy || !payment?.id) return;
 
- if (isFinalVerification()) {
-  showToast("Already Reviewed","This payment already has a final verification status.");
-  return;
- }
+if (busy || !payment?.id) return;
 
- const note = $("reviewNote").value.trim();
- const transactionId = String(payment?.transaction_id || "").trim();
-
- if (decision === "rejected" && !note) {
-  showToast("Reason Required","Please enter a reason before rejecting this payment.");
-  $("reviewNote").focus();
-  return;
- }
-
- if (decision === "approved" && !transactionId) {
-  showToast("Transaction ID Missing","Do not approve until the transaction has been independently verified.");
-  return;
- }
-
- const confirmed = decision === "approved"
-  ? confirm("Have you independently confirmed receipt of this transaction in the EGC receiving account?")
-  : confirm("Are you sure you want to reject this payment?");
-
- if (!confirmed) return;
-
- busy = true;
- updateReviewUI();
-
- try {
-  const {data:latest,error:readError} = await supabaseClient.from("payments")
-   .select("*").eq("id",payment.id).maybeSingle();
-
-  if (readError) throw readError;
-  if (!latest) throw new Error("Payment record is no longer accessible.");
-
-  const latestVerification = getVerificationStatus(latest);
-  if (["approved","rejected"].includes(latestVerification)) {
-   payment = latest;
-   await loadRelatedData();
-   await renderPage();
-   showToast("Already Reviewed","The latest payment record has been loaded.");
-   return;
-  }
-
-  const newStatus =
-    decision === "approved" ? "paid" : "failed";
-
-const updateData = {
-    payment_status: newStatus,
-    verification_status: decision
-};
-
-// Preserve the existing payment type.
-// Do not convert a repayment into an initial payment.
-if (latest.payment_type) {
-    updateData.payment_type = latest.payment_type;
+if (isFinalVerification()) {
+    showToast(
+        "Already Reviewed",
+        "This payment already has a final verification status."
+    );
+    return;
 }
 
-  const newNotes = buildUpdatedNotes(latest.notes,note,decision);
-  if (newNotes !== (String(latest.notes || "").trim() || null)) updateData.notes = newNotes;
+const note = $("reviewNote").value.trim();
+const transactionId = String(payment?.transaction_id || "").trim();
 
-  if (decision === "approved") {
-   updateData.verified_at = new Date().toISOString();
-   if (currentSession?.user?.id) updateData.verified_by = currentSession.user.id;
-   updateData.owner_approved_at = new Date().toISOString();
-   if (currentSession?.user?.id) updateData.owner_approved_by = currentSession.user.id;
-   updateData.owner_rejection_reason = null;
-  } else {
-   updateData.owner_rejection_reason = note;
-  }
-
-  const {data:updated,error:updateError} = await supabaseClient.from("payments")
-   .update(updateData)
-   .eq("id",payment.id)
-   .eq("verification_status","pending")
-   .select("*")
-   .maybeSingle();
-
-  if (updateError) throw updateError;
-
-  if (!updated) {
-   throw new Error("No payment was updated. It may have been reviewed already, or the Owner RLS policy may not allow this update.");
-  }
-
-  payment = updated;
-
-  const syncResult = await syncRequestBalance(decision);
-
-  await loadRelatedData();
-  await renderPage();
-
-  if (syncResult.ok) {
-   showToast(decision === "approved" ? "Payment Approved" : "Payment Rejected",
-    decision === "approved"
-     ? "Verification saved and linked request balance recalculated."
-     : "Rejection saved. The linked request balance was recalculated from approved payments.");
-  } else {
-   showToast("Payment Decision Saved",syncResult.message);
-  }
- } catch (error) {
-  console.error("Payment verification error:",error);
-  showToast("Verification Failed",error.message || "Could not update payment.");
- } finally {
-  busy = false;
-  updateReviewUI();
- }
+if (decision === "rejected" && !note) {
+    showToast(
+        "Reason Required",
+        "Please enter a reason before rejecting this payment."
+    );
+    $("reviewNote").focus();
+    return;
 }
 
-$("approvePaymentBtn").addEventListener("click",()=>saveVerification("approved"));
-$("rejectPaymentBtn").addEventListener("click",()=>saveVerification("rejected"));
-
-$("refreshBtn").addEventListener("click",async()=>{
- if (busy) return;
- await loadPayment();
-
-if (payment?.id) {
-    startPaymentRealtime();
+if (decision === "approved" && !transactionId) {
+    showToast(
+        "Transaction ID Missing",
+        "Do not approve until the transaction has been independently verified."
+    );
+    return;
 }
- showToast("Refreshed","Payment details have been reloaded.");
-});
+
+const confirmed = decision === "approved"
+    ? confirm("Have you independently confirmed receipt of this transaction in the EGC receiving account?")
+    : confirm("Are you sure you want to reject this payment?");
+
+if (!confirmed) return;
+
+busy = true;
+updateReviewUI();
+
+try {
+
+    // 1. Fetch latest payment record
+
+    const {
+        data: latest,
+        error: readError
+    } = await supabaseClient
+        .from("payments")
+        .select("*")
+        .eq("id", payment.id)
+        .maybeSingle();
+
+    if (readError) throw readError;
+
+    if (!latest) {
+        throw new Error("Payment record is no longer accessible.");
+    }
+
+    const latestVerification = getVerificationStatus(latest);
+
+    if (["approved", "rejected"].includes(latestVerification)) {
+
+        payment = latest;
+
+        await loadRelatedData();
+        await renderPage();
+
+        showToast(
+            "Already Reviewed",
+            "The latest payment record has been loaded."
+        );
+
+        return;
+    }
+
+
+    // 2. Preserve existing payment type
+
+    const paymentType = normalisePaymentType(latest);
+
+
+    // ==================================================
+    // 3. APPROVAL - BACKEND RPC
+    // ==================================================
+
+    if (decision === "approved") {
+
+        const {
+            data: rpcResult,
+            error: rpcError
+        } = await supabaseClient.rpc(
+            "owner_approve_payment",
+            {
+                p_payment_id: latest.id
+            }
+        );
+
+        if (rpcError) throw rpcError;
+
+        if (!rpcResult || rpcResult.success !== true) {
+            throw new Error(
+                rpcResult?.message ||
+                "Backend payment approval failed."
+            );
+        }
+
+        // Initial payment must return its generated slip.
+
+        if (
+            paymentType === "initial" &&
+            !rpcResult.slip_id
+        ) {
+            throw new Error(
+                "Payment approval response did not contain an E-Slip ID. Please verify the request_slips table."
+            );
+        }
+
+        console.log(
+            "EGC Backend Approval Result:",
+            rpcResult
+        );
+
+        // Fetch updated payment after backend approval.
+
+        const {
+            data: approvedPayment,
+            error: approvedReadError
+        } = await supabaseClient
+            .from("payments")
+            .select("*")
+            .eq("id", latest.id)
+            .maybeSingle();
+
+        if (approvedReadError) throw approvedReadError;
+
+        if (!approvedPayment) {
+            throw new Error(
+                "Payment was approved, but updated payment record could not be loaded."
+            );
+        }
+
+        payment = approvedPayment;
+
+        // Recalculate linked request balance.
+
+        const syncResult = await syncRequestBalance("approved");
+
+        await loadRelatedData();
+        await renderPage();
+
+        if (paymentType === "initial") {
+
+            showToast(
+                "Payment Approved",
+                "Initial payment approved. E-Slip " +
+                rpcResult.slip_number +
+                " generated successfully. " +
+                (syncResult.ok
+                    ? "Request balance updated."
+                    : syncResult.message)
+            );
+
+        } else {
+
+            showToast(
+                "Repayment Approved",
+                "Repayment approved successfully. Existing cylinder slip remains unchanged. " +
+                (syncResult.ok
+                    ? "Request balance updated."
+                    : syncResult.message)
+            );
+
+        }
+
+        console.log(
+            "EGC Payment Approval Completed:",
+            rpcResult
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // 4. REJECTION - EXISTING DIRECT UPDATE
+    // ==================================================
+
+    const updateData = {
+        payment_status: "failed",
+        verification_status: "rejected",
+        owner_rejection_reason: note
+    };
+
+    const newNotes = buildUpdatedNotes(
+        latest.notes,
+        note,
+        decision
+    );
+
+    if (
+        newNotes !==
+        (String(latest.notes || "").trim() || null)
+    ) {
+        updateData.notes = newNotes;
+    }
+
+    const {
+        data: rejectedPayment,
+        error: updateError
+    } = await supabaseClient
+        .from("payments")
+        .update(updateData)
+        .eq("id", latest.id)
+        .eq("verification_status", "pending")
+        .select("*")
+        .maybeSingle();
+
+    if (updateError) throw updateError;
+
+    if (!rejectedPayment) {
+        throw new Error(
+            "Payment was not rejected. It may have already been reviewed, or the Owner permission does not allow this update."
+        );
+    }
+
+    payment = rejectedPayment;
+
+    const syncResult = await syncRequestBalance("rejected");
+
+    await loadRelatedData();
+    await renderPage();
+
+    if (syncResult.ok) {
+
+        showToast(
+            "Payment Rejected",
+            "Payment rejection saved. Request balance recalculated."
+        );
+
+    } else {
+
+        showToast(
+            "Payment Rejected",
+            syncResult.message
+        );
+
+    }
+
+} catch (error) {
+
+    console.error(
+        "EGC Payment Verification Error:",
+        error
+    );
+
+    showToast(
+        "Verification Failed",
+        error.message || "Could not update payment."
+    );
+
+} finally {
+
+    busy = false;
+    updateReviewUI();
+
+}
+
+}
 
 function getRequestId() {
  return payment?.request_id || request?.id || "";

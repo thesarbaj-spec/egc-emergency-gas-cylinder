@@ -2784,9 +2784,9 @@ td{
             🗑️
         </div>
 
-        <div class="delete-title">
-            Delete Company?
-        </div>
+      <div class="delete-title">
+    Deactivate Company?
+</div>
 
         <div class="delete-text">
 
@@ -2795,8 +2795,7 @@ td{
             <strong id="deleteCompanyName">
                 this company
             </strong>?
-
-            This action cannot be undone.
+This company will be deactivated. Its existing records and documents will remain محفوظ and available for historical reference.
 
         </div>
 
@@ -2815,7 +2814,7 @@ td{
                 class="delete-confirm"
                 id="deleteConfirm"
             >
-                Delete
+                Deactivate
             </button>
 
         </div>
@@ -3705,14 +3704,14 @@ sortedCompanies.filter(
                         </button>
 
                         <button
-                            type="button"
-                            class="action-btn delete-btn"
-                            title="Delete"
-                            data-action="delete"
-                            data-id="${company.id}"
-                        >
-                            🗑️
-                        </button>
+    type="button"
+    class="action-btn delete-btn"
+    title="Deactivate Company"
+    data-action="delete"
+    data-id="${company.id}"
+>
+    ⛔
+</button>
 
                     </div>
 
@@ -5124,13 +5123,15 @@ companyForm.addEventListener(
             }
 
 
-            closeCompanyModal();
+           const wasEditing = Boolean(editingCompanyId);
 
-            showToast(
-                editingCompanyId
-                ? "Company updated successfully."
-                : "Company added successfully."
-            );
+closeCompanyModal();
+
+showToast(
+    wasEditing
+    ? "Company updated successfully."
+    : "Company added successfully."
+);
 
             await loadCompanies();
 
@@ -5822,7 +5823,7 @@ deleteModal.addEventListener(
 
 
 /* =====================================================
-   CONFIRM DELETE
+   CONFIRM COMPANY DEACTIVATION
 ===================================================== */
 
 deleteConfirm.addEventListener(
@@ -5833,24 +5834,18 @@ deleteConfirm.addEventListener(
             return;
         }
 
-        deleteConfirm.disabled =
-        true;
-
-        deleteConfirm.textContent =
-        "Deleting...";
+        deleteConfirm.disabled = true;
+        deleteConfirm.textContent = "Deactivating...";
 
         try{
 
-            const {
-                error
-            } =
-            await supabaseClient
-            .from("lpg_companies")
-            .delete()
-            .eq(
-                "id",
-                deletingCompanyId
-            );
+            const { error } = await supabaseClient
+                .from("lpg_companies")
+                .update({
+                    status: "Inactive",
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", deletingCompanyId);
 
             if(error){
                 throw error;
@@ -5859,7 +5854,7 @@ deleteConfirm.addEventListener(
             closeDeleteModal();
 
             showToast(
-                "Company deleted successfully."
+                "Company deactivated successfully."
             );
 
             await loadCompanies();
@@ -5868,30 +5863,26 @@ deleteConfirm.addEventListener(
         catch(error){
 
             console.error(
-                "Delete error:",
+                "Company deactivation error:",
                 error
             );
 
             showToast(
                 error.message ||
-                "Unable to delete company.",
+                "Unable to deactivate company.",
                 true
             );
 
         }
         finally{
 
-            deleteConfirm.disabled =
-            false;
-
-            deleteConfirm.textContent =
-            "Delete";
+            deleteConfirm.disabled = false;
+            deleteConfirm.textContent = "Deactivate";
 
         }
 
     }
 );
-
 
 /* =====================================================
    LOGOUT

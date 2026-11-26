@@ -1585,6 +1585,61 @@ textarea:focus{
     }
 
 }
+
+/* ================= EXTRA CHARGE SCHEME MANAGER ================= */
+.scheme-manager-card{
+    max-width:760px;
+    max-height:92vh;
+    overflow-y:auto;
+}
+.scheme-manager-subtitle{
+    margin-top:5px;
+    color:#8295a5;
+    font-size:12px;
+}
+.scheme-slabs-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin:18px 0 10px;
+    color:#164f78;
+}
+.scheme-slab-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr auto;
+    gap:9px;
+    align-items:end;
+    padding:12px;
+    margin-bottom:9px;
+    border:1px solid #dce7ef;
+    border-radius:12px;
+    background:#f8fbfe;
+}
+.scheme-slab-row label{font-size:10px;margin-bottom:5px;}
+.scheme-slab-row input{height:40px;}
+.scheme-remove-slab{
+    height:40px;width:40px;border:0;border-radius:9px;
+    background:#fff0f0;color:#c72e2e;font-size:17px;cursor:pointer;
+}
+.managed-scheme-card{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:13px;margin-top:10px;border:1px solid #e0e8ef;
+    border-radius:12px;background:#f9fcff;
+}
+.managed-scheme-info{min-width:0;}
+.managed-scheme-info strong{display:block;color:#164f78;font-size:13px;margin-bottom:4px;}
+.managed-scheme-info span{font-size:11px;color:#8394a3;}
+.managed-scheme-actions{display:flex;gap:7px;flex-shrink:0;}
+.scheme-active-badge{color:#16833a;font-weight:800;}
+.scheme-inactive-badge{color:#bd2828;font-weight:800;}
+@media(max-width:600px){
+    .scheme-manager-card{width:96%;padding:15px;}
+    .scheme-slab-row{grid-template-columns:1fr 1fr;}
+    .scheme-remove-slab{width:100%;}
+    .managed-scheme-card{align-items:flex-start;flex-direction:column;}
+}
+
 </style>
 </head>
 
@@ -2871,248 +2926,298 @@ textarea:focus{
 
 <div class="modal" id="pricingModal">
 
-    <div class="modal-card">
+<div class="modal-card">
 
-        <div class="modal-header">
+    <div class="modal-header">
 
-            <div>
-                <div class="modal-title">
-                    Agency Cylinder Pricing
-                </div>
-
-                <div id="pricingAgencyName"></div>
+        <div>
+            <div class="modal-title">
+                Agency Cylinder Pricing
             </div>
 
-            <button
-                type="button"
-                class="close-btn"
-                onclick="closePricingModal()"
-            >
-                ×
-            </button>
-
+            <div id="pricingAgencyName"></div>
         </div>
 
-        <div id="pricingMessage" class="form-message"></div>
+        <button
+            type="button"
+            class="close-btn"
+            onclick="closePricingModal()"
+        >
+            ×
+        </button>
 
-        <form id="pricingForm">
+    </div>
 
-            <input type="hidden" id="pricingId">
+    <div id="pricingMessage" class="form-message"></div>
 
-            <input type="hidden" id="pricingAgencyId">
+    <form id="pricingForm">
 
-            <div class="form-grid">
+        <input type="hidden" id="pricingId">
+        <input type="hidden" id="pricingAgencyId">
 
-                <div class="form-group">
+        <!-- OLD LEGACY FIELDS: KEEP FOR EXISTING JAVASCRIPT -->
 
-                    <label>Cylinder Type *</label>
+        <input type="hidden" id="pricingExtra1" value="50">
+        <input type="hidden" id="pricingExtra2" value="60">
+        <input type="hidden" id="pricingExtra3" value="80">
+        <input type="hidden" id="pricingExtra4" value="100">
 
-                    <select id="pricingCylinderType" required>
+        <div class="form-grid">
 
-                        <option value="">Select Type</option>
+            <div class="form-group">
 
-                        <option value="Domestic">
-                            Domestic
-                        </option>
+                <label for="pricingCylinderType">
+                    Cylinder Type *
+                </label>
 
-                        <option value="Commercial">
-                            Commercial
-                        </option>
+                <select id="pricingCylinderType" required>
+                    <option value="">Select Type</option>
+                    <option value="Domestic">Domestic</option>
+                    <option value="Commercial">Commercial</option>
+                </select>
 
-                    </select>
+            </div>
 
-                </div>
+            <div class="form-group">
 
+                <label for="pricingWeight">
+                    Cylinder Weight (KG) *
+                </label>
 
-                <div class="form-group">
+                <input
+                    type="number"
+                    id="pricingWeight"
+                    min="0.1"
+                    step="0.1"
+                    required
+                >
 
-                    <label>Cylinder Weight (KG) *</label>
+            </div>
 
-                    <input
-                        type="number"
-                        id="pricingWeight"
-                        min="0.1"
-                        step="0.1"
-                        required
+            <div class="form-group">
+
+                <label for="pricingCylinderPrice">
+                    Cylinder Price (₹) *
+                </label>
+
+                <input
+                    type="number"
+                    id="pricingCylinderPrice"
+                    min="0.01"
+                    step="0.01"
+                    required
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="pricingAdvance">
+                    Advance Amount (₹) *
+                </label>
+
+                <input
+                    type="number"
+                    id="pricingAdvance"
+                    min="0"
+                    step="0.01"
+                    required
+                >
+
+            </div>
+
+            <!-- AGENCY-SPECIFIC EXTRA CHARGE SCHEME -->
+
+            <div class="form-group full">
+
+                <label for="pricingSchemeId">
+                    Extra Charge Scheme *
+                </label>
+
+                <select id="pricingSchemeId" required>
+
+                    <option value="">
+                        Loading available schemes...
+                    </option>
+
+                </select>
+
+                <small>
+                    Select the extra charge scheme applicable to this cylinder pricing.
+                </small>
+
+                <button
+                    type="button"
+                    class="action-btn edit-btn"
+                    id="managePricingSchemesBtn"
+                    style="margin-top:10px;padding:9px 13px;"
+                >
+                    ⚙️ Manage Extra Charge Schemes
+                </button>
+
+            </div>
+
+            <!-- SELECTED SCHEME SLABS PREVIEW -->
+
+            <div class="form-group full">
+
+                <div class="panel" style="padding:15px;">
+
+                    <div style="font-weight:700;margin-bottom:10px;">
+                        Selected Scheme Slabs
+                    </div>
+
+                    <div
+                        id="pricingSchemePreview"
+                        style="font-size:14px;line-height:1.8;"
                     >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Cylinder Price (₹) *</label>
-
-                    <input
-                        type="number"
-                        id="pricingCylinderPrice"
-                        min="0.01"
-                        step="0.01"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Advance Amount (₹) *</label>
-
-                    <input
-                        type="number"
-                        id="pricingAdvance"
-                        min="0"
-                        step="0.01"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Extra Charge 1–10 Days</label>
-
-                    <input
-                        type="number"
-                        id="pricingExtra1"
-                        value="50"
-                        min="0"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Extra Charge 11–15 Days</label>
-
-                    <input
-                        type="number"
-                        id="pricingExtra2"
-                        value="60"
-                        min="0"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Extra Charge 16–30 Days</label>
-
-                    <input
-                        type="number"
-                        id="pricingExtra3"
-                        value="80"
-                        min="0"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Extra Charge 31+ Days</label>
-
-                    <input
-                        type="number"
-                        id="pricingExtra4"
-                        value="100"
-                        min="0"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Stock Status</label>
-
-                    <select id="pricingStockStatus">
-
-                        <option value="available">
-                            Available
-                        </option>
-
-                        <option value="out_of_stock">
-                            Out of Stock
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Stock Quantity</label>
-
-                    <input
-                        type="number"
-                        id="pricingStockQuantity"
-                        min="0"
-                        step="1"
-                        placeholder="Enter quantity"
-                    >
-
-                </div>
-
-
-                <div class="form-group full">
-
-                    <div class="status-row">
-
-                        <input
-                            type="checkbox"
-                            id="pricingIsActive"
-                            checked
-                        >
-
-                        <label for="pricingIsActive">
-                            Active Pricing
-                        </label>
-
+                        Select a scheme to view its extra charges.
                     </div>
 
                 </div>
 
             </div>
 
+            <!-- STOCK -->
 
-            <div class="modal-actions">
+            <div class="form-group">
 
-                <button
-                    type="button"
-                    class="cancel-btn"
-                    onclick="closePricingModal()"
-                >
-                    Cancel
-                </button>
+                <label for="pricingStockStatus">
+                    Stock Status
+                </label>
 
-                <button
-                    type="submit"
-                    class="save-btn"
-                    id="savePricingBtn"
-                >
-                    SAVE PRICING
-                </button>
+                <select id="pricingStockStatus">
+
+                    <option value="available">
+                        Available
+                    </option>
+
+                    <option value="out_of_stock">
+                        Out of Stock
+                    </option>
+
+                </select>
 
             </div>
 
-        </form>
+            <div class="form-group">
 
+                <label for="pricingStockQuantity">
+                    Stock Quantity
+                </label>
 
-        <hr>
+                <input
+                    type="number"
+                    id="pricingStockQuantity"
+                    min="0"
+                    step="1"
+                    placeholder="Enter quantity"
+                >
 
-        <h3>Existing Cylinder Pricing</h3>
+            </div>
 
-        <div id="existingPricingList">
-            Loading pricing...
+            <div class="form-group full">
+
+                <div class="status-row">
+
+                    <input
+                        type="checkbox"
+                        id="pricingIsActive"
+                        checked
+                    >
+
+                    <label for="pricingIsActive">
+                        Active Pricing
+                    </label>
+
+                </div>
+
+            </div>
+
         </div>
 
+        <div class="modal-actions">
+
+            <button
+                type="button"
+                class="cancel-btn"
+                onclick="closePricingModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="submit"
+                class="save-btn"
+                id="savePricingBtn"
+            >
+                SAVE PRICING
+            </button>
+
+        </div>
+
+    </form>
+
+    <hr>
+
+    <h3>Existing Cylinder Pricing</h3>
+
+    <div id="existingPricingList">
+        Loading pricing...
     </div>
 
+</div>
+
+</div>
+
+<!-- ================= EXTRA CHARGE SCHEME MANAGER ================= -->
+<div class="modal" id="schemeManagerModal" style="z-index:12000;">
+    <div class="modal-card scheme-manager-card">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title">Manage Extra Charge Schemes</div>
+                <div class="scheme-manager-subtitle">Create, edit and activate agency pricing schemes.</div>
+            </div>
+            <button type="button" class="close-btn" id="closeSchemeManagerBtn">×</button>
+        </div>
+
+        <div id="schemeManagerMessage" class="form-message"></div>
+
+        <form id="schemeManagerForm">
+            <input type="hidden" id="managedSchemeId">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label for="managedSchemeName">Scheme Name *</label>
+                    <input type="text" id="managedSchemeName" maxlength="120" required placeholder="e.g. EGC Standard Scheme 2026">
+                </div>
+                <div class="form-group full">
+                    <label for="managedSchemeDescription">Description</label>
+                    <textarea id="managedSchemeDescription" placeholder="Optional scheme details"></textarea>
+                </div>
+                <div class="form-group full">
+                    <div class="status-row">
+                        <input type="checkbox" id="managedSchemeActive" checked>
+                        <label for="managedSchemeActive">Active Scheme (available in Agency Pricing)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scheme-slabs-heading">
+                <strong>Extra Charge Slabs</strong>
+                <button type="button" class="action-btn edit-btn" id="addSchemeSlabBtn">＋ Add Slab</button>
+            </div>
+            <div id="managedSchemeSlabs"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="cancel-btn" id="resetSchemeFormBtn">Clear Form</button>
+                <button type="submit" class="save-btn" id="saveManagedSchemeBtn">SAVE SCHEME</button>
+            </div>
+        </form>
+
+        <hr style="margin:22px 0;border:0;border-top:1px solid #e7edf2;">
+        <h3 style="color:#06477f;font-size:16px;">Existing Schemes</h3>
+        <div id="managedSchemesList" class="managed-schemes-list">Loading schemes...</div>
+    </div>
 </div>
 
 <!-- =========================================================
@@ -5877,6 +5982,7 @@ document
 
 /* =====================================================
    EGC AGENCY PRICING MANAGEMENT
+   AGENCY-SPECIFIC EXTRA CHARGE SCHEMES
 ===================================================== */
 
 const pricingModal =
@@ -5891,13 +5997,19 @@ const pricingMessage =
 const existingPricingList =
     document.getElementById("existingPricingList");
 
+const pricingSchemeId =
+    document.getElementById("pricingSchemeId");
+
+const pricingSchemePreview =
+    document.getElementById("pricingSchemePreview");
 
 let currentPricingAgency = null;
+let availablePricingSchemes = [];
 
 
 /* ================= MESSAGE ================= */
 
-function showPricingMessage(message, type){
+function showPricingMessage(message, type) {
 
     pricingMessage.className =
         "form-message " + type;
@@ -5908,15 +6020,411 @@ function showPricingMessage(message, type){
 }
 
 
+/* ================= LOAD ACTIVE SCHEMES ================= */
+
+async function loadAvailablePricingSchemes() {
+
+    console.log("[EGC Pricing] Loading schemes started");
+
+    if (!pricingSchemeId) {
+        console.error("[EGC Pricing] pricingSchemeId element not found");
+        return;
+    }
+
+    pricingSchemeId.innerHTML =
+        '<option value="">Loading schemes...</option>';
+
+    pricingSchemePreview.textContent =
+        "Select a scheme to view its extra charges.";
+
+    try {
+
+        const { data, error } = await supabaseClient
+            .from("extra_charge_schemes")
+            .select("id, scheme_name, description")
+            .eq("is_active", true);
+
+        console.log("[EGC Pricing] Query completed");
+        console.log("[EGC Pricing] Data:", data);
+        console.log("[EGC Pricing] Error:", error);
+
+        if (error) throw error;
+
+        availablePricingSchemes =
+            Array.isArray(data) ? data : [];
+
+        if (availablePricingSchemes.length === 0) {
+
+            pricingSchemeId.innerHTML =
+                '<option value="">No active schemes available</option>';
+
+            pricingSchemePreview.textContent =
+                "No active Extra Charge Scheme found.";
+
+            return;
+        }
+
+        pricingSchemeId.innerHTML = "";
+
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select Extra Charge Scheme";
+
+        pricingSchemeId.appendChild(defaultOption);
+
+        availablePricingSchemes.forEach(scheme => {
+
+            const option = document.createElement("option");
+
+            option.value = scheme.id;
+            option.textContent = scheme.scheme_name;
+
+            pricingSchemeId.appendChild(option);
+
+        });
+
+        console.log(
+            "[EGC Pricing] Dropdown populated:",
+            pricingSchemeId.options.length
+        );
+
+    } catch (error) {
+
+        console.error("[EGC Pricing] Scheme loading failed:", error);
+
+        pricingSchemeId.innerHTML =
+            '<option value="">Unable to load schemes</option>';
+
+        pricingSchemePreview.textContent =
+            error.message || "Unable to load Extra Charge Schemes.";
+
+    }
+
+}
+
+
+/* ================= SHOW SCHEME SLABS ================= */
+
+async function showPricingSchemeSlabs(schemeId) {
+
+    if (!schemeId) {
+
+        pricingSchemePreview.textContent =
+            "Select a scheme to view its extra charges.";
+
+        return;
+
+    }
+
+    pricingSchemePreview.textContent =
+        "Loading scheme slabs...";
+
+    try {
+
+        const { data, error } = await supabaseClient
+            .from("extra_charge_slabs")
+            .select("min_days, max_days, extra_charge")
+            .eq("scheme_id", schemeId)
+            .order("min_days", { ascending: true });
+
+        if (error) throw error;
+
+        if (!data || !data.length) {
+
+            pricingSchemePreview.textContent =
+                "No slabs configured for this scheme.";
+
+            return;
+
+        }
+
+        pricingSchemePreview.innerHTML = data.map(slab => {
+
+            const minDays = Number(slab.min_days);
+
+            const maxDays = slab.max_days === null
+                ? null
+                : Number(slab.max_days);
+
+            let label;
+
+            if (maxDays === null) {
+
+                label = `${minDays}+ Days`;
+
+            }
+
+            else if (minDays === maxDays) {
+
+                label = `Day ${minDays}`;
+
+            }
+
+            else {
+
+                label = `Day ${minDays}–${maxDays}`;
+
+            }
+
+            return `
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    gap:12px;
+                    padding:7px 0;
+                    border-bottom:1px solid #eee;
+                ">
+                    <span>${escapeHtml(label)}</span>
+
+                    <strong>
+                        ₹${Number(slab.extra_charge).toFixed(2)}
+                    </strong>
+                </div>
+            `;
+
+        }).join("");
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "[EGC Pricing] Slab loading error:",
+            error
+        );
+
+        pricingSchemePreview.textContent =
+            "Unable to load slabs: " + error.message;
+
+    }
+
+}
+
+
+/* ================= EXTRA CHARGE SCHEME MANAGER ================= */
+
+const schemeManagerModal = document.getElementById("schemeManagerModal");
+const schemeManagerForm = document.getElementById("schemeManagerForm");
+const managedSchemesList = document.getElementById("managedSchemesList");
+const managedSchemeSlabs = document.getElementById("managedSchemeSlabs");
+const schemeManagerMessage = document.getElementById("schemeManagerMessage");
+
+function showSchemeManagerMessage(message, type) {
+    schemeManagerMessage.className = "form-message " + type;
+    schemeManagerMessage.textContent = message;
+}
+
+function addManagedSchemeSlab(slab = {}) {
+    const row = document.createElement("div");
+    row.className = "scheme-slab-row";
+    row.innerHTML = `
+        <div><label>From Day *</label><input class="scheme-min-day" type="number" min="0" step="1" required value="${slab.min_days ?? 0}"></div>
+        <div><label>To Day (blank = unlimited)</label><input class="scheme-max-day" type="number" min="0" step="1" value="${slab.max_days ?? ""}" placeholder="Unlimited"></div>
+        <div><label>Extra Charge (₹) *</label><input class="scheme-extra-charge" type="number" min="0" step="0.01" required value="${slab.extra_charge ?? ""}"></div>
+        <button type="button" class="scheme-remove-slab" title="Remove slab">×</button>
+    `;
+    row.querySelector(".scheme-remove-slab").addEventListener("click", () => row.remove());
+    managedSchemeSlabs.appendChild(row);
+}
+
+function resetManagedSchemeForm() {
+    schemeManagerForm.reset();
+    document.getElementById("managedSchemeId").value = "";
+    document.getElementById("managedSchemeActive").checked = true;
+    document.getElementById("saveManagedSchemeBtn").textContent = "SAVE SCHEME";
+    managedSchemeSlabs.innerHTML = "";
+    addManagedSchemeSlab({min_days:0, max_days:0, extra_charge:20});
+    addManagedSchemeSlab({min_days:1, max_days:10, extra_charge:50});
+    addManagedSchemeSlab({min_days:11, max_days:20, extra_charge:80});
+    addManagedSchemeSlab({min_days:21, max_days:null, extra_charge:100});
+    schemeManagerMessage.textContent = "";
+    schemeManagerMessage.className = "form-message";
+}
+
+async function loadManagedSchemes() {
+    managedSchemesList.textContent = "Loading schemes...";
+    const {data, error} = await supabaseClient
+        .from("extra_charge_schemes")
+        .select("id, scheme_name, description, is_active")
+        .order("scheme_name", {ascending:true});
+    if (error) throw error;
+    if (!data || !data.length) {
+        managedSchemesList.textContent = "No schemes created yet.";
+        return;
+    }
+    managedSchemesList.innerHTML = data.map(scheme => `
+        <div class="managed-scheme-card">
+            <div class="managed-scheme-info">
+                <strong>${escapeHtml(scheme.scheme_name || "Unnamed Scheme")}</strong>
+                <span>${escapeHtml(scheme.description || "No description")}</span><br>
+                <span class="${scheme.is_active ? "scheme-active-badge" : "scheme-inactive-badge"}">${scheme.is_active ? "ACTIVE" : "INACTIVE"}</span>
+            </div>
+            <div class="managed-scheme-actions">
+                <button type="button" class="action-btn edit-btn" data-edit-scheme="${scheme.id}">✏️ Edit</button>
+                <button type="button" class="action-btn ${scheme.is_active ? "delete-btn" : "edit-btn"}" data-toggle-scheme="${scheme.id}" data-active="${scheme.is_active ? "true" : "false"}">${scheme.is_active ? "Deactivate" : "Activate"}</button>
+            </div>
+        </div>
+    `).join("");
+
+    managedSchemesList.querySelectorAll("[data-edit-scheme]").forEach(button => {
+        button.addEventListener("click", () => editManagedScheme(button.dataset.editScheme));
+    });
+    managedSchemesList.querySelectorAll("[data-toggle-scheme]").forEach(button => {
+        button.addEventListener("click", () => toggleManagedScheme(button.dataset.toggleScheme, button.dataset.active === "true"));
+    });
+}
+
+async function editManagedScheme(schemeId) {
+    try {
+        const [{data:scheme, error:schemeError}, {data:slabs, error:slabError}] = await Promise.all([
+            supabaseClient.from("extra_charge_schemes").select("id, scheme_name, description, is_active").eq("id", schemeId).single(),
+            supabaseClient.from("extra_charge_slabs").select("min_days, max_days, extra_charge").eq("scheme_id", schemeId).order("min_days", {ascending:true})
+        ]);
+        if (schemeError) throw schemeError;
+        if (slabError) throw slabError;
+        resetManagedSchemeForm();
+        document.getElementById("managedSchemeId").value = scheme.id;
+        document.getElementById("managedSchemeName").value = scheme.scheme_name || "";
+        document.getElementById("managedSchemeDescription").value = scheme.description || "";
+        document.getElementById("managedSchemeActive").checked = scheme.is_active !== false;
+        managedSchemeSlabs.innerHTML = "";
+        (slabs || []).forEach(addManagedSchemeSlab);
+        if (!slabs || !slabs.length) addManagedSchemeSlab({min_days:0, max_days:null, extra_charge:0});
+        document.getElementById("saveManagedSchemeBtn").textContent = "UPDATE SCHEME";
+        schemeManagerForm.scrollIntoView({behavior:"smooth", block:"start"});
+    } catch (error) {
+        showSchemeManagerMessage("Unable to open scheme: " + error.message, "error");
+    }
+}
+
+async function toggleManagedScheme(schemeId, currentlyActive) {
+    try {
+        const {error} = await supabaseClient.from("extra_charge_schemes")
+            .update({is_active:!currentlyActive}).eq("id", schemeId);
+        if (error) throw error;
+        await loadManagedSchemes();
+        await loadAvailablePricingSchemes();
+        showSchemeManagerMessage(currentlyActive ? "Scheme deactivated." : "Scheme activated.", "success");
+    } catch (error) {
+        showSchemeManagerMessage("Unable to change scheme status: " + error.message, "error");
+    }
+}
+
+async function openSchemeManager() {
+    schemeManagerModal.classList.add("show");
+    resetManagedSchemeForm();
+    try { await loadManagedSchemes(); }
+    catch (error) {
+        managedSchemesList.textContent = "Unable to load schemes: " + error.message;
+        showSchemeManagerMessage(error.message, "error");
+    }
+}
+
+document.getElementById("managePricingSchemesBtn").addEventListener("click", openSchemeManager);
+document.getElementById("closeSchemeManagerBtn").addEventListener("click", () => schemeManagerModal.classList.remove("show"));
+document.getElementById("addSchemeSlabBtn").addEventListener("click", () => addManagedSchemeSlab({min_days:0, max_days:null, extra_charge:0}));
+document.getElementById("resetSchemeFormBtn").addEventListener("click", resetManagedSchemeForm);
+schemeManagerModal.addEventListener("click", event => {
+    if (event.target === schemeManagerModal) schemeManagerModal.classList.remove("show");
+});
+
+schemeManagerForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const saveButton = document.getElementById("saveManagedSchemeBtn");
+    saveButton.disabled = true;
+    saveButton.textContent = "SAVING...";
+    let createdSchemeId = null;
+    try {
+        const session = await getOwnerSession();
+        if (!session) throw new Error("Owner session not found.");
+        const schemeId = document.getElementById("managedSchemeId").value;
+        const schemeName = document.getElementById("managedSchemeName").value.trim();
+        const description = document.getElementById("managedSchemeDescription").value.trim() || null;
+        const isActive = document.getElementById("managedSchemeActive").checked;
+        if (!schemeName) throw new Error("Please enter a scheme name.");
+
+        const slabRows = [...managedSchemeSlabs.querySelectorAll(".scheme-slab-row")];
+        if (!slabRows.length) throw new Error("Add at least one extra charge slab.");
+        const slabs = slabRows.map(row => {
+            const min = Number(row.querySelector(".scheme-min-day").value);
+            const maxText = row.querySelector(".scheme-max-day").value.trim();
+            const max = maxText === "" ? null : Number(maxText);
+            const charge = Number(row.querySelector(".scheme-extra-charge").value);
+            if (!Number.isInteger(min) || min < 0 || (max !== null && (!Number.isInteger(max) || max < min)) || !Number.isFinite(charge) || charge < 0) {
+                throw new Error("Check slab days and extra charge values.");
+            }
+            return {min_days:min, max_days:max, extra_charge:charge};
+        }).sort((a,b) => a.min_days - b.min_days);
+        for (let i=1; i<slabs.length; i++) {
+            const previous = slabs[i-1];
+            if (previous.max_days === null || slabs[i].min_days <= previous.max_days) {
+                throw new Error("Slab ranges overlap. Please correct the day ranges.");
+            }
+        }
+        if (slabs.filter(s => s.max_days === null).length > 1 || (slabs.some(s => s.max_days === null) && slabs[slabs.length-1].max_days !== null)) {
+            throw new Error("Only the final slab can have an unlimited end day.");
+        }
+
+        let savedId = schemeId;
+        const schemeRecord = {scheme_name:schemeName, description, is_active:isActive};
+        if (schemeId) {
+            const {error} = await supabaseClient.from("extra_charge_schemes").update(schemeRecord).eq("id", schemeId);
+            if (error) throw error;
+        } else {
+            const {data, error} = await supabaseClient.from("extra_charge_schemes").insert(schemeRecord).select("id").single();
+            if (error) throw error;
+            savedId = data.id;
+            createdSchemeId = savedId;
+        }
+
+        // Replace only this scheme's slab rows. Existing request snapshots remain unchanged.
+        if (schemeId) {
+            const {error:deleteError} = await supabaseClient.from("extra_charge_slabs").delete().eq("scheme_id", savedId);
+            if (deleteError) throw deleteError;
+        }
+        const slabRecords = slabs.map(slab => ({scheme_id:savedId, ...slab}));
+        const {error:insertSlabsError} = await supabaseClient.from("extra_charge_slabs").insert(slabRecords);
+        if (insertSlabsError) throw insertSlabsError;
+
+        showSchemeManagerMessage(schemeId ? "Scheme updated successfully." : "Scheme created successfully.", "success");
+        resetManagedSchemeForm();
+        await loadManagedSchemes();
+        await loadAvailablePricingSchemes();
+    } catch (error) {
+        console.error("[EGC Scheme Manager] Save error:", error);
+        showSchemeManagerMessage(error.message || "Unable to save scheme.", "error");
+        // Remove an empty newly-created scheme if its slab insertion failed.
+        if (createdSchemeId) {
+            await supabaseClient.from("extra_charge_schemes").delete().eq("id", createdSchemeId);
+        }
+    } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = document.getElementById("managedSchemeId").value ? "UPDATE SCHEME" : "SAVE SCHEME";
+    }
+});
+
+
+/* ================= SCHEME CHANGE ================= */
+
+pricingSchemeId.addEventListener(
+    "change",
+    function () {
+
+        showPricingSchemeSlabs(this.value);
+
+    }
+);
+
+
 /* ================= OPEN PRICING ================= */
 
-window.openAgencyPricing = async function(agencyId){
+window.openAgencyPricing = async function(agencyId) {
 
     const agency = agencies.find(
         item => String(item.id) === String(agencyId)
     );
 
-    if(!agency){
+    if (!agency) {
 
         alert("Agency not found.");
 
@@ -5926,13 +6434,10 @@ window.openAgencyPricing = async function(agencyId){
 
     currentPricingAgency = agency;
 
-    document.getElementById(
-        "pricingAgencyId"
-    ).value = agency.id;
+    document.getElementById("pricingAgencyId").value =
+        agency.id;
 
-    document.getElementById(
-        "pricingAgencyName"
-    ).textContent =
+    document.getElementById("pricingAgencyName").textContent =
         agency.agency_name || "LPG Agency";
 
     resetPricingForm();
@@ -5941,14 +6446,32 @@ window.openAgencyPricing = async function(agencyId){
 
     document.body.style.overflow = "hidden";
 
-    await loadAgencyPricing(agency.id);
+    existingPricingList.textContent =
+        "Loading pricing...";
+
+    try {
+
+        await loadAvailablePricingSchemes();
+
+        await loadAgencyPricing(agency.id);
+
+    }
+
+    catch (error) {
+
+        showPricingMessage(
+            error.message,
+            "error"
+        );
+
+    }
 
 };
 
 
 /* ================= RESET FORM ================= */
 
-function resetPricingForm(){
+function resetPricingForm() {
 
     pricingForm.reset();
 
@@ -5956,6 +6479,8 @@ function resetPricingForm(){
 
     document.getElementById("pricingAgencyId").value =
         currentPricingAgency?.id || "";
+
+    // Legacy fields retained for old request compatibility.
 
     document.getElementById("pricingExtra1").value = 50;
 
@@ -5974,16 +6499,20 @@ function resetPricingForm(){
     document.getElementById("savePricingBtn").textContent =
         "SAVE PRICING";
 
+    pricingSchemePreview.textContent =
+        "Select a scheme to view its extra charges.";
+
     pricingMessage.textContent = "";
 
-    pricingMessage.className = "form-message";
+    pricingMessage.className =
+        "form-message";
 
 }
 
 
-/* ================= CLOSE MODAL ================= */
+/* ================= CLOSE PRICING ================= */
 
-window.closePricingModal = function(){
+window.closePricingModal = function() {
 
     pricingModal.classList.remove("show");
 
@@ -5994,27 +6523,45 @@ window.closePricingModal = function(){
 };
 
 
+/* ================= GET ASSIGNED SCHEME ================= */
+
+async function getAssignedPricingScheme(pricingId) {
+
+    const { data, error } = await supabaseClient
+        .from("agency_pricing_scheme_assignments")
+        .select("id, scheme_id, assigned_at")
+        .eq("pricing_id", pricingId)
+        .eq("is_active", true)
+        .order("assigned_at", { ascending: false })
+        .limit(1);
+
+    if (error) throw error;
+
+    return data && data.length
+        ? data[0]
+        : null;
+
+}
+
+
 /* ================= LOAD PRICING ================= */
 
-async function loadAgencyPricing(agencyId){
+async function loadAgencyPricing(agencyId) {
 
-    existingPricingList.textContent = "Loading pricing...";
+    existingPricingList.textContent =
+        "Loading pricing...";
 
-    try{
+    try {
 
         const { data, error } = await supabaseClient
-
             .from("agency_pricing")
-
             .select("*")
-
             .eq("agency_id", agencyId)
+            .order("created_at", { ascending: false });
 
-            .order("created_at", { ascending:false });
+        if (error) throw error;
 
-        if(error) throw error;
-
-        if(!data || data.length === 0){
+        if (!data || !data.length) {
 
             existingPricingList.innerHTML =
                 "<p>No pricing added yet.</p>";
@@ -6023,56 +6570,126 @@ async function loadAgencyPricing(agencyId){
 
         }
 
-        existingPricingList.innerHTML = data.map(item => `
+        const pricingCards = await Promise.all(
 
-            <div class="pricing-existing-card">
+            data.map(async item => {
 
-                <strong>
-                    ${escapeHtml(item.cylinder_type || "Cylinder")}
-                    -
-                    ${escapeHtml(item.cylinder_weight)} KG
-                </strong>
+                let schemeName = "Not Assigned";
 
-                <p>
-                    Cylinder Price:
-                    ₹${Number(item.cylinder_price).toFixed(2)}
-                </p>
+                try {
 
-                <p>
-                    Advance:
-                    ₹${Number(item.advance_amount).toFixed(2)}
-                </p>
+                    const assignment =
+                        await getAssignedPricingScheme(item.id);
 
-                <p>
-                    Stock:
-                    ${escapeHtml(item.stock_status)}
-                    |
-                    Quantity:
-                    ${item.stock_quantity ?? "—"}
-                </p>
+                    if (assignment) {
 
-                <p>
-                    Status:
-                    ${item.is_active ? "Active" : "Inactive"}
-                </p>
+                        const scheme =
+                            availablePricingSchemes.find(
+                                s => String(s.id) ===
+                                     String(assignment.scheme_id)
+                            );
 
-                <button
-                    type="button"
-                    class="action-btn edit-btn"
-                    onclick="editAgencyPricing('${item.id}')"
-                >
-                    ✏️ Edit Pricing
-                </button>
+                        if (scheme) {
 
-            </div>
+                            schemeName = scheme.scheme_name;
 
-        `).join("");
+                        }
+
+                        else {
+
+                            const { data: schemeData } =
+                                await supabaseClient
+                                    .from("extra_charge_schemes")
+                                    .select("scheme_name")
+                                    .eq("id", assignment.scheme_id)
+                                    .maybeSingle();
+
+                            schemeName =
+                                schemeData?.scheme_name ||
+                                "Assigned Scheme";
+
+                        }
+
+                    }
+
+                }
+
+                catch (schemeError) {
+
+                    console.warn(
+                        "Pricing scheme lookup error:",
+                        schemeError
+                    );
+
+                }
+
+                return `
+
+                    <div class="pricing-existing-card">
+
+                        <strong>
+                            ${escapeHtml(item.cylinder_type || "Cylinder")}
+                            -
+                            ${escapeHtml(item.cylinder_weight)} KG
+                        </strong>
+
+                        <p>
+                            Cylinder Price:
+                            ₹${Number(item.cylinder_price).toFixed(2)}
+                        </p>
+
+                        <p>
+                            Advance:
+                            ₹${Number(item.advance_amount).toFixed(2)}
+                        </p>
+
+                        <p>
+                            Extra Charge Scheme:
+                            <strong>
+                                ${escapeHtml(schemeName)}
+                            </strong>
+                        </p>
+
+                        <p>
+                            Stock:
+                            ${escapeHtml(item.stock_status || "—")}
+                            |
+                            Quantity:
+                            ${item.stock_quantity ?? "—"}
+                        </p>
+
+                        <p>
+                            Status:
+                            ${item.is_active ? "Active" : "Inactive"}
+                        </p>
+
+                        <button
+                            type="button"
+                            class="action-btn edit-btn"
+                            onclick="editAgencyPricing('${item.id}')"
+                        >
+                            ✏️ Edit Pricing
+                        </button>
+
+                    </div>
+
+                `;
+
+            })
+
+        );
+
+        existingPricingList.innerHTML =
+            pricingCards.join("");
 
     }
 
-    catch(error){
+    catch (error) {
 
-        console.error("Pricing load error:", error);
+        console.error(
+            "[EGC Pricing] Load error:",
+            error
+        );
 
         existingPricingList.textContent =
             "Unable to load pricing: " + error.message;
@@ -6084,25 +6701,22 @@ async function loadAgencyPricing(agencyId){
 
 /* ================= EDIT PRICING ================= */
 
-window.editAgencyPricing = async function(pricingId){
+window.editAgencyPricing = async function(pricingId) {
 
-    try{
+    try {
 
         const { data, error } = await supabaseClient
-
             .from("agency_pricing")
-
             .select("*")
-
             .eq("id", pricingId)
-
             .single();
 
-        if(error) throw error;
+        if (error) throw error;
 
         resetPricingForm();
 
-        document.getElementById("pricingId").value = data.id;
+        document.getElementById("pricingId").value =
+            data.id;
 
         document.getElementById("pricingAgencyId").value =
             data.agency_id;
@@ -6119,233 +6733,457 @@ window.editAgencyPricing = async function(pricingId){
         document.getElementById("pricingAdvance").value =
             data.advance_amount;
 
+        // Preserve old legacy values.
+
         document.getElementById("pricingExtra1").value =
-            data.extra_charge_1_10;
+            data.extra_charge_1_10 ?? 50;
 
         document.getElementById("pricingExtra2").value =
-            data.extra_charge_11_15;
+            data.extra_charge_11_15 ?? 60;
 
         document.getElementById("pricingExtra3").value =
-            data.extra_charge_16_30;
+            data.extra_charge_16_30 ?? 80;
 
         document.getElementById("pricingExtra4").value =
-            data.extra_charge_31_plus;
+            data.extra_charge_31_plus ?? 100;
 
         document.getElementById("pricingStockStatus").value =
-            data.stock_status;
+            data.stock_status || "available";
 
         document.getElementById("pricingStockQuantity").value =
             data.stock_quantity ?? "";
 
         document.getElementById("pricingIsActive").checked =
-            data.is_active;
+            data.is_active !== false;
+
+        // Load existing assignment.
+
+        const assignment =
+            await getAssignedPricingScheme(data.id);
+
+        if (assignment) {
+
+            pricingSchemeId.value =
+                assignment.scheme_id;
+
+            await showPricingSchemeSlabs(
+                assignment.scheme_id
+            );
+
+        }
+
+        else {
+
+            pricingSchemeId.value = "";
+
+            pricingSchemePreview.textContent =
+                "No scheme assigned. Please select a scheme.";
+
+        }
 
         document.getElementById("savePricingBtn").textContent =
             "UPDATE PRICING";
 
         pricingMessage.textContent = "";
 
+        document.getElementById("pricingForm").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
     }
 
-    catch(error){
+    catch (error) {
 
-        alert("Unable to open pricing: " + error.message);
+        console.error(
+            "[EGC Pricing] Edit error:",
+            error
+        );
+
+        showPricingMessage(
+            "Unable to open pricing: " + error.message,
+            "error"
+        );
 
     }
 
 };
 
 
+/* ================= SAVE SCHEME ASSIGNMENT ================= */
+
+async function savePricingSchemeAssignment(
+    pricingId,
+    schemeId,
+    ownerId
+) {
+
+    // Read current active assignments.
+
+    const { data: oldAssignments, error: readError } =
+        await supabaseClient
+            .from("agency_pricing_scheme_assignments")
+            .select("id, scheme_id")
+            .eq("pricing_id", pricingId)
+            .eq("is_active", true);
+
+    if (readError) throw readError;
+
+    const oldIds = (oldAssignments || []).map(
+        item => item.id
+    );
+
+    // If same scheme is already assigned, do not create duplicates.
+
+    const sameAssignment = (oldAssignments || []).find(
+        item => String(item.scheme_id) === String(schemeId)
+    );
+
+    if (
+        sameAssignment &&
+        oldAssignments.length === 1
+    ) {
+
+        return;
+
+    }
+
+    // Stage the new assignment as inactive first.
+
+    const { data: newAssignment, error: insertError } =
+        await supabaseClient
+            .from("agency_pricing_scheme_assignments")
+            .insert({
+
+                pricing_id: pricingId,
+
+                scheme_id: schemeId,
+
+                is_active: false,
+
+                assigned_at: new Date().toISOString(),
+
+                assigned_by: ownerId
+
+            })
+            .select()
+            .single();
+
+    if (insertError) throw insertError;
+
+    try {
+
+        // Deactivate previous active assignments.
+
+        if (oldIds.length) {
+
+            const { error: deactivateError } =
+                await supabaseClient
+                    .from("agency_pricing_scheme_assignments")
+                    .update({
+                        is_active: false
+                    })
+                    .in("id", oldIds);
+
+            if (deactivateError) throw deactivateError;
+
+        }
+
+        // Activate the new assignment.
+
+        const { error: activateError } =
+            await supabaseClient
+                .from("agency_pricing_scheme_assignments")
+                .update({
+                    is_active: true
+                })
+                .eq("id", newAssignment.id);
+
+        if (activateError) throw activateError;
+
+    }
+
+    catch (error) {
+
+        // Attempt to restore previous active assignments.
+
+        if (oldIds.length) {
+
+            await supabaseClient
+                .from("agency_pricing_scheme_assignments")
+                .update({
+                    is_active: true
+                })
+                .in("id", oldIds);
+
+        }
+
+        throw error;
+
+    }
+
+}
+
+
 /* ================= SAVE / UPDATE PRICING ================= */
 
-pricingForm.addEventListener("submit", async function(event){
+pricingForm.addEventListener(
+    "submit",
+    async function(event) {
 
-    event.preventDefault();
+        event.preventDefault();
 
-    const button =
-        document.getElementById("savePricingBtn");
+        const button =
+            document.getElementById("savePricingBtn");
 
-    button.disabled = true;
+        button.disabled = true;
 
-    const pricingId =
-        document.getElementById("pricingId").value;
+        button.textContent = "SAVING...";
 
-    const agencyId =
-        document.getElementById("pricingAgencyId").value;
+        const pricingId =
+            document.getElementById("pricingId").value;
 
-    try{
+        const agencyId =
+            document.getElementById("pricingAgencyId").value;
 
-        const session = await getOwnerSession();
+        try {
 
-        if(!session){
+            const session = await getOwnerSession();
 
-            throw new Error("Owner session not found.");
-
-        }
-
-        const cylinderWeight = Number(
-            document.getElementById("pricingWeight").value
-        );
-
-        const cylinderPrice = Number(
-            document.getElementById("pricingCylinderPrice").value
-        );
-
-        const advanceAmount = Number(
-            document.getElementById("pricingAdvance").value
-        );
-
-        if(
-            !Number.isFinite(cylinderWeight) ||
-            cylinderWeight <= 0 ||
-            !Number.isFinite(cylinderPrice) ||
-            cylinderPrice <= 0 ||
-            !Number.isFinite(advanceAmount) ||
-            advanceAmount < 0
-        ){
-
-            throw new Error("Please enter valid pricing values.");
-
-        }
-
-        const quantityValue =
-            document.getElementById("pricingStockQuantity").value;
-
-        const quantity =
-            quantityValue === "" ? null : Number(quantityValue);
-
-        if(
-            quantity !== null &&
-            (!Number.isInteger(quantity) || quantity < 0)
-        ){
-
-            throw new Error("Please enter a valid stock quantity.");
-
-        }
-
-        const record = {
-
-            agency_id: agencyId,
-
-            cylinder_type:
-                document.getElementById("pricingCylinderType").value,
-
-            cylinder_weight: cylinderWeight,
-
-            cylinder_price: cylinderPrice,
-
-            advance_amount: advanceAmount,
-
-            extra_charge_1_10:
-                Number(document.getElementById("pricingExtra1").value),
-
-            extra_charge_11_15:
-                Number(document.getElementById("pricingExtra2").value),
-
-            extra_charge_16_30:
-                Number(document.getElementById("pricingExtra3").value),
-
-            extra_charge_31_plus:
-                Number(document.getElementById("pricingExtra4").value),
-
-            stock_status:
-                document.getElementById("pricingStockStatus").value,
-
-            stock_quantity: quantity,
-
-            is_active:
-                document.getElementById("pricingIsActive").checked,
-
-            updated_at: new Date().toISOString(),
-
-            updated_by: session.user.id
-
-        };
-
-        let result;
-
-        if(pricingId){
-
-            result = await supabaseClient
-
-                .from("agency_pricing")
-
-                .update(record)
-
-                .eq("id", pricingId)
-
-                .select()
-
-                .single();
-
-        }
-
-        else{
-
-            result = await supabaseClient
-
-                .from("agency_pricing")
-
-                .insert(record)
-
-                .select()
-
-                .single();
-
-        }
-
-        if(result.error){
-
-            if(result.error.code === "23505"){
+            if (!session) {
 
                 throw new Error(
-                    "This Agency already has pricing for this Cylinder Type and Weight."
+                    "Owner session not found."
                 );
 
             }
 
-            throw result.error;
+            const schemeId =
+                pricingSchemeId.value;
+
+            if (!schemeId) {
+
+                throw new Error(
+                    "Please select an Extra Charge Scheme."
+                );
+
+            }
+
+            const selectedScheme =
+                availablePricingSchemes.find(
+                    item => String(item.id) === String(schemeId)
+                );
+
+            if (!selectedScheme) {
+
+                throw new Error(
+                    "Selected scheme is not available or active."
+                );
+
+            }
+
+            const cylinderType =
+                document.getElementById("pricingCylinderType").value;
+
+            const cylinderWeight = Number(
+                document.getElementById("pricingWeight").value
+            );
+
+            const cylinderPrice = Number(
+                document.getElementById("pricingCylinderPrice").value
+            );
+
+            const advanceAmount = Number(
+                document.getElementById("pricingAdvance").value
+            );
+
+            if (!cylinderType) {
+
+                throw new Error(
+                    "Please select Cylinder Type."
+                );
+
+            }
+
+            if (
+                !Number.isFinite(cylinderWeight) ||
+                cylinderWeight <= 0 ||
+                !Number.isFinite(cylinderPrice) ||
+                cylinderPrice <= 0 ||
+                !Number.isFinite(advanceAmount) ||
+                advanceAmount < 0
+            ) {
+
+                throw new Error(
+                    "Please enter valid pricing values."
+                );
+
+            }
+
+            const quantityValue =
+                document.getElementById("pricingStockQuantity").value;
+
+            const quantity =
+                quantityValue === ""
+                    ? null
+                    : Number(quantityValue);
+
+            if (
+                quantity !== null &&
+                (!Number.isInteger(quantity) || quantity < 0)
+            ) {
+
+                throw new Error(
+                    "Please enter a valid stock quantity."
+                );
+
+            }
+
+            // Keep legacy fields intact for older requests.
+
+            const record = {
+
+                agency_id: agencyId,
+
+                cylinder_type: cylinderType,
+
+                cylinder_weight: cylinderWeight,
+
+                cylinder_price: cylinderPrice,
+
+                advance_amount: advanceAmount,
+
+                extra_charge_1_10:
+                    Number(document.getElementById("pricingExtra1").value),
+
+                extra_charge_11_15:
+                    Number(document.getElementById("pricingExtra2").value),
+
+                extra_charge_16_30:
+                    Number(document.getElementById("pricingExtra3").value),
+
+                extra_charge_31_plus:
+                    Number(document.getElementById("pricingExtra4").value),
+
+                stock_status:
+                    document.getElementById("pricingStockStatus").value,
+
+                stock_quantity: quantity,
+
+                is_active:
+                    document.getElementById("pricingIsActive").checked,
+
+                updated_at: new Date().toISOString(),
+
+                updated_by: session.user.id
+
+            };
+
+            let result;
+
+            if (pricingId) {
+
+                result = await supabaseClient
+                    .from("agency_pricing")
+                    .update(record)
+                    .eq("id", pricingId)
+                    .select()
+                    .single();
+
+            }
+
+            else {
+
+                result = await supabaseClient
+                    .from("agency_pricing")
+                    .insert(record)
+                    .select()
+                    .single();
+
+            }
+
+            if (result.error) {
+
+                if (result.error.code === "23505") {
+
+                    throw new Error(
+                        "This Agency already has pricing for this Cylinder Type and Weight."
+                    );
+
+                }
+
+                throw result.error;
+
+            }
+
+            const savedPricingId =
+                result.data.id;
+
+            // Assign selected scheme to this exact pricing ID.
+
+            await savePricingSchemeAssignment(
+                savedPricingId,
+                schemeId,
+                session.user.id
+            );
+
+            showPricingMessage(
+                pricingId
+                    ? "Pricing and Extra Charge Scheme updated successfully."
+                    : "Pricing and Extra Charge Scheme saved successfully.",
+                "success"
+            );
+
+            await loadAgencyPricing(agencyId);
+
+            button.textContent = "SAVED";
+
+            setTimeout(() => {
+
+                if (pricingModal.classList.contains("show")) {
+
+                    resetPricingForm();
+
+                }
+
+            }, 700);
 
         }
 
-        showPricingMessage(
-            pricingId
-                ? "Pricing updated successfully."
-                : "Pricing added successfully.",
-            "success"
-        );
+        catch (error) {
 
-        await loadAgencyPricing(agencyId);
+            console.error(
+                "[EGC Pricing] Save error:",
+                error
+            );
 
-        button.textContent = "SAVE PRICING";
+            showPricingMessage(
+                error.message || "Unable to save pricing.",
+                "error"
+            );
 
-        setTimeout(() => {
+        }
 
-            resetPricingForm();
+        finally {
 
-        }, 500);
+            button.disabled = false;
 
-    }
+            if (pricingModal.classList.contains("show")) {
 
-    catch(error){
+                button.textContent =
+                    document.getElementById("pricingId").value
+                        ? "UPDATE PRICING"
+                        : "SAVE PRICING";
 
-        console.error("Pricing save error:", error);
+            }
 
-        showPricingMessage(
-            error.message || "Unable to save pricing.",
-            "error"
-        );
-
-    }
-
-    finally{
-
-        button.disabled = false;
+        }
 
     }
+);
 
-});
 
+/* ================= END AGENCY PRICING MANAGEMENT ================= */
 /* ================= DELETE ================= */
 
 window.deleteAgency =
@@ -6528,6 +7366,10 @@ document.addEventListener(
             event.key ===
             "Escape"
         ){
+
+            if (schemeManagerModal && schemeManagerModal.classList.contains("show")) {
+                schemeManagerModal.classList.remove("show");
+            }
 
             if(
                 agencyModal.classList.contains(
