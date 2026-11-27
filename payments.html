@@ -1183,21 +1183,45 @@ async function loadProfile() {
 ========================================================= */
 
 async function loadRequests() {
-  const { data, error } = await supabaseClient
-    .from("cylinder_requests")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
+  const loadCustomerRequests = async () => {
+    const { data, error } = await supabaseClient
+      .from("cylinder_requests")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Request load error:", error);
+    if (error) throw error;
+    return data || [];
+  };
 
-    throw new Error(
-      "Cylinder requests could not be loaded. Check RLS policies."
+  let requests = await loadCustomerRequests();
+
+  // Daily slab changes must be recalculated by Supabase, not by the browser.
+  // Re-run the existing secure database function for delivered requests,
+  // then reload the saved financial fields used by this page.
+  const deliveredRequests = requests.filter(request =>
+    normalizeStatus(request.delivery_status) === "delivered" &&
+    request.delivery_date
+  );
+
+  for (const request of deliveredRequests) {
+    const { error: recalcError } = await supabaseClient.rpc(
+      "egc_recalculate_request_financials",
+      { p_request_id: request.id }
     );
+
+    if (recalcError) {
+      console.warn(
+        "EGC financial refresh was not permitted for request:",
+        request.id,
+        recalcError.message
+      );
+    }
   }
 
-  currentRequests = data || [];
+  // Read back the database-calculated extra_charge, total_payable and remaining_amount.
+  requests = await loadCustomerRequests();
+  currentRequests = requests;
 }
 
 async function loadPayments() {

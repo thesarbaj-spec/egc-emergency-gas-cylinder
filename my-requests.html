@@ -1289,7 +1289,42 @@ async function loadRequests() {
 
     if (requestError) throw requestError;
 
-    const newRequests = requests || [];
+    let newRequests = requests || [];
+
+    // Refresh delivery-day slab charges through the existing secure Supabase
+    // financial function. The browser never writes or calculates final charges.
+    const deliveredRequests = newRequests.filter(request =>
+      normalizeStatus(request.delivery_status) === "delivered" &&
+      request.delivery_date
+    );
+
+    for (const request of deliveredRequests) {
+      const { error: recalcError } = await supabaseClient.rpc(
+        "egc_recalculate_request_financials",
+        { p_request_id: request.id }
+      );
+
+      if (recalcError) {
+        console.warn(
+          "EGC financial refresh was not permitted for request:",
+          request.id,
+          recalcError.message
+        );
+      }
+    }
+
+    // Reload the authoritative values after the database recalculation.
+    if (deliveredRequests.length) {
+      const { data: refreshedRequests, error: refreshError } = await supabaseClient
+        .from("cylinder_requests")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false });
+
+      if (refreshError) throw refreshError;
+      newRequests = refreshedRequests || [];
+    }
+
     let newPayments = [];
 
     if (newRequests.length) {
