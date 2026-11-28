@@ -173,61 +173,20 @@ button:disabled{cursor:not-allowed;opacity:.65}
 .detail-value{font-size:12px}
 }
 
-/* =========================================
-   ALL CYLINDER REQUESTS — FIXED HEIGHT
-   INTERNAL SCROLL
-========================================= */
-
-/* Main Requests Box */
+/* Requests remain part of the normal page flow.
+   Avoid a second nested scrollbar that clips request cards on desktop/mobile. */
 .main > section.box {
-    height: 600px;
-    min-height: 600px;
-    max-height: 600px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  display: block;
+  overflow: visible;
 }
-
-/* Box Heading Fixed */
-.main > section.box > .box-title-row {
-    flex: 0 0 auto;
-}
-
-/* Requests List Scroll */
 #requestsArea {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 6px;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+  overflow: visible;
+  min-height: 0;
+  padding-right: 0;
 }
-
-/* Scrollbar */
-#requestsArea::-webkit-scrollbar {
-    width: 5px;
-}
-
-#requestsArea::-webkit-scrollbar-thumb {
-    background: #c5d9e8;
-    border-radius: 10px;
-}
-
-#requestsArea::-webkit-scrollbar-track {
-    background: #f1f6fa;
-    border-radius: 10px;
-}
-
-/* Mobile */
-@media (max-width: 800px) {
-    .main > section.box {
-        height: 550px;
-        min-height: 550px;
-        max-height: 550px;
-    }
-}
-
 </style>
 </head>
 <body>
@@ -783,56 +742,6 @@ function getTotalPayable(item) {
 }
 
 
-function getCurrentExtraChargeByDays(item) {
-  if (!item || getDeliveryStatus(item) !== "delivered") {
-    return 0;
-  }
-
-  const days = getDaysSinceDelivery(item);
-
-  // Delivery Day = ₹20
-  if (days === 0) return 20;
-
-  // Request creation के समय saved pricing snapshots
-  function getSnapshotCharge(field, fallback) {
-    const value = Number(item[field]);
-
-    if (
-      item[field] === null ||
-      item[field] === undefined ||
-      item[field] === "" ||
-      !Number.isFinite(value) ||
-      value < 0
-    ) {
-      return fallback;
-    }
-
-    return value;
-  }
-
-  const charge1To10 = getSnapshotCharge(
-    "pricing_extra_charge_1_10", 50
-  );
-
-  const charge11To15 = getSnapshotCharge(
-    "pricing_extra_charge_11_15", 60
-  );
-
-  const charge16To30 = getSnapshotCharge(
-    "pricing_extra_charge_16_30", 80
-  );
-
-  const charge31Plus = getSnapshotCharge(
-    "pricing_extra_charge_31_plus", 100
-  );
-
-  if (days <= 10) return charge1To10;
-  if (days <= 15) return charge11To15;
-  if (days <= 30) return charge16To30;
-
-  return charge31Plus;
-}
-
 function getVerifiedInitialPaymentTotal(item) {
   if (!item?.id) return 0;
 
@@ -857,14 +766,9 @@ function getApprovedRepaymentTotal(item) {
 }
 
 /*
-Extra Charge:
-Days 1–10 = ₹50
-Days 11–15 = ₹60
-Days 16–30 = ₹80
-Days 31+ = ₹100 maximum
-
-Once repayment_cleared_at is saved by the database,
-the charge is locked permanently for this request.
+Extra Charge is read from the request's saved database financial fields.
+This page does not calculate or overwrite scheme charges.
+The database financial function remains authoritative.
 */
 
 function isRepaymentCleared(item) {
@@ -1434,7 +1338,9 @@ function updateRequestButton() {
       sidebarButton.textContent = "⏳ Request in Progress";
     }
 
-    showInfo(getOverallState(active).message);
+    const activeState = getOverallState(active);
+    // Keep the status banner visible at the top, including delivered and repayment states.
+    showInfo(activeState.message);
 
   } else {
     if (button) {
@@ -1726,7 +1632,7 @@ return `
   </div>
 
   <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;">
-    <span>Remaining Amount</span>
+    <span>Outstanding Balance (including extra charge)</span>
     <strong>₹${formatMoney(remaining)}</strong>
   </div>
 
@@ -1797,9 +1703,7 @@ function renderRequests() {
 });
 
 const firstPaymentApproved =
-  !!initialPayment &&
-  normalizeStatus(initialPayment.payment_status) === "paid" &&
-  normalizeStatus(initialPayment.verification_status) === "approved";
+  !!initialPayment && isVerifiedPaymentRecord(initialPayment);
 
 const firstPaymentText = firstPaymentApproved
   ? "Paid"
@@ -1878,7 +1782,9 @@ const isDelivered = getDeliveryStatus(item) === "delivered";
 
     const remainingLabel = !isApproved(getOwnerApproval(item))
       ? "Amount Awaiting Owner Approval"
-      : "Remaining Amount";
+      : (isDelivered
+          ? "Outstanding Balance (incl. extra charge)"
+          : "Remaining Amount");
 
     return `
       <div class="request-card ${cardClass}">
@@ -1928,7 +1834,7 @@ const isDelivered = getDeliveryStatus(item) === "delivered";
   </div>
 
   <div class="detail">
-    <div class="detail-label">Extra Charge</div>
+    <div class="detail-label">Extra Charge (included above)</div>
     <div class="detail-value">
       ₹${formatMoney(getCalculatedExtraCharge(item))}
     </div>
