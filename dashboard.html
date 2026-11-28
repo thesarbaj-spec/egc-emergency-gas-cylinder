@@ -2596,13 +2596,10 @@ function calculateTierExtraCharge(days) {
     // Days 1–10 = ₹50
     if (deliveryDays <= 10) return 50;
 
-    // Days 11–15 = ₹60
-    if (deliveryDays <= 15) return 60;
+    // Days 11–20 = ₹80
+    if (deliveryDays <= 20) return 80;
 
-    // Days 16–30 = ₹80
-    if (deliveryDays <= 30) return 80;
-
-    // Day 31 onward = ₹100 maximum
+    // Day 21 onward = ₹100 maximum
     return 100;
 }
 
@@ -2652,20 +2649,17 @@ function getRequestFinancials(request) {
         ? getDeliveryDayCount(request)
         : null;
 
-    // Remaining Cylinder Amount
-    const baseRemaining = Math.max(
-        0,
-        baseAmount - paidAmount
-    );
-
-    // Calculate Extra Charge using delivery date
+    // Extra Charge is based on elapsed calendar days from delivery.
+    // Do not suppress it merely because verified payments already cover
+    // the cylinder's base amount; the charge is part of the total payable.
+    // Delivery Day = Day 0, then Day 1–10, Day 11–20, Day 21+.
     let extraCharge = 0;
 
-    if (deliveryDate && baseRemaining > 0) {
+    if (deliveryDate) {
         extraCharge = calculateTierExtraCharge(days);
     }
 
-    // Total Payable
+    // Total Payable includes the applicable delivery-based extra charge.
     const totalPayable = baseAmount + extraCharge;
 
     // Final Remaining Amount
@@ -3303,7 +3297,7 @@ const financials = getRequestFinancials(currentRequest);
 
 baseTotal = Number(financials.baseAmount) || 0;
 extraTotal = Number(financials.extraCharge) || 0;
-payableTotal = baseTotal + extraTotal;
+payableTotal = Number(financials.totalPayable) || (baseTotal + extraTotal);
 paidTotal = Number(financials.paidAmount) || 0;
 
 remainingTotal = Math.max(
