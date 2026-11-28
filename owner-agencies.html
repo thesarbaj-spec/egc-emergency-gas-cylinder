@@ -1574,6 +1574,15 @@ textarea:focus{
 #pricingModal .modal-card{
     max-height:90vh;
     overflow-y:auto;
+    overscroll-behavior:contain;
+    margin:auto;
+}
+#pricingModal{
+    align-items:flex-start;
+    overflow-y:auto;
+}
+#pricingModal .modal-card{
+    margin:20px auto;
 }
 
 @media(max-width:600px){
@@ -1630,7 +1639,7 @@ textarea:focus{
 .managed-scheme-info{min-width:0;}
 .managed-scheme-info strong{display:block;color:#164f78;font-size:13px;margin-bottom:4px;}
 .managed-scheme-info span{font-size:11px;color:#8394a3;}
-.managed-scheme-actions{display:flex;gap:7px;flex-shrink:0;}
+.managed-scheme-actions{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
 .scheme-active-badge{color:#16833a;font-weight:800;}
 .scheme-inactive-badge{color:#bd2828;font-weight:800;}
 @media(max-width:600px){
@@ -6252,25 +6261,41 @@ async function loadManagedSchemes() {
         managedSchemesList.textContent = "No schemes created yet.";
         return;
     }
-    managedSchemesList.innerHTML = data.map(scheme => `
-        <div class="managed-scheme-card">
+    // Same-name schemes can be separate database records. Show their IDs so
+    // the Owner can identify and remove the exact duplicate record safely.
+    const nameCounts = data.reduce((map, scheme) => {
+        const key = String(scheme.scheme_name || "").trim().toLocaleLowerCase();
+        map[key] = (map[key] || 0) + 1;
+        return map;
+    }, {});
+
+    managedSchemesList.innerHTML = data.map(scheme => {
+        const key = String(scheme.scheme_name || "").trim().toLocaleLowerCase();
+        const isDuplicateName = nameCounts[key] > 1;
+        return `
+        <div class="managed-scheme-card" data-scheme-record="${escapeHtml(scheme.id)}">
             <div class="managed-scheme-info">
                 <strong>${escapeHtml(scheme.scheme_name || "Unnamed Scheme")}</strong>
                 <span>${escapeHtml(scheme.description || "No description")}</span><br>
                 <span class="${scheme.is_active ? "scheme-active-badge" : "scheme-inactive-badge"}">${scheme.is_active ? "ACTIVE" : "INACTIVE"}</span>
+                ${isDuplicateName ? `<br><span style="color:#b45309;font-weight:700">Duplicate name · Record ID: ${escapeHtml(String(scheme.id).slice(0,8))}</span>` : ""}
             </div>
             <div class="managed-scheme-actions">
                 <button type="button" class="action-btn edit-btn" data-edit-scheme="${scheme.id}">✏️ Edit</button>
                 <button type="button" class="action-btn ${scheme.is_active ? "delete-btn" : "edit-btn"}" data-toggle-scheme="${scheme.id}" data-active="${scheme.is_active ? "true" : "false"}">${scheme.is_active ? "Deactivate" : "Activate"}</button>
+                <button type="button" class="action-btn delete-btn" data-delete-scheme="${scheme.id}">🗑 Delete</button>
             </div>
-        </div>
-    `).join("");
+        </div>`;
+    }).join("");
 
     managedSchemesList.querySelectorAll("[data-edit-scheme]").forEach(button => {
         button.addEventListener("click", () => editManagedScheme(button.dataset.editScheme));
     });
     managedSchemesList.querySelectorAll("[data-toggle-scheme]").forEach(button => {
         button.addEventListener("click", () => toggleManagedScheme(button.dataset.toggleScheme, button.dataset.active === "true"));
+    });
+    managedSchemesList.querySelectorAll("[data-delete-scheme]").forEach(button => {
+        button.addEventListener("click", () => deleteManagedScheme(button.dataset.deleteScheme));
     });
 }
 
@@ -6307,6 +6332,79 @@ async function toggleManagedScheme(schemeId, currentlyActive) {
         showSchemeManagerMessage(currentlyActive ? "Scheme deactivated." : "Scheme activated.", "success");
     } catch (error) {
         showSchemeManagerMessage("Unable to change scheme status: " + error.message, "error");
+    }
+}
+
+async function deleteManagedScheme(schemeId) {
+    const scheme = (await supabaseClient
+        .from("extra_charge_schemes")
+        .select("scheme_name")
+        .eq("id", schemeId)
+        .maybeSingle());
+
+    if (scheme.error) {
+        showSchemeManagerMessage("Unable to check scheme: " + scheme.error.message, "error");
+        return;
+    }
+
+    const schemeName = scheme.data?.scheme_name || "this scheme";
+    if (!confirm(`Delete "${schemeName}" permanently? Existing request snapshots will remain unchanged. This scheme cannot be deleted while it is assigned to any agency pricing.`)) return;
+
+    try {
+        // Only an ACTIVE pricing assignment should prevent deletion.
+        // Old inactive assignment rows are stale references and can be cleared.
+        const { data: activeAssignments, error: usageError } = await supabaseClient
+            .from("agency_pricing_scheme_assignments")
+            .select("id, pricing_id")
+            .eq("scheme_id", schemeId)
+            .eq("is_active", true);
+
+        if (usageError) throw usageError;
+        if (activeAssignments && activeAssignments.length) {
+            const pricingIds = [...new Set(activeAssignments.map(row => row.pricing_id).filter(Boolean))];
+            throw new Error(`This scheme is actively assigned to ${pricingIds.length} agency pricing record(s). Open each Agency Pricing, assign another scheme, save it, then delete this scheme.`);
+        }
+
+        // Remove only inactive assignment references for this scheme.
+        const { error: assignmentCleanupError } = await supabaseClient
+            .from("agency_pricing_scheme_assignments")
+            .delete()
+            .eq("scheme_id", schemeId)
+            .eq("is_active", false);
+        if (assignmentCleanupError) throw assignmentCleanupError;
+
+        const { error: slabError } = await supabaseClient
+            .from("extra_charge_slabs")
+            .delete()
+            .eq("scheme_id", schemeId);
+        if (slabError) throw slabError;
+
+        const { data: deletedRows, error } = await supabaseClient
+            .from("extra_charge_schemes")
+            .delete()
+            .eq("id", schemeId)
+            .select("id");
+        if (error) throw error;
+        if (!deletedRows || deletedRows.length === 0) {
+            throw new Error("Database did not delete this scheme. Check DELETE permission/RLS policy for extra_charge_schemes.");
+        }
+
+        // Refresh from Supabase and verify that this exact record is gone.
+        await loadManagedSchemes();
+        await loadAvailablePricingSchemes();
+        const { data: stillExists, error: verifyError } = await supabaseClient
+            .from("extra_charge_schemes")
+            .select("id")
+            .eq("id", schemeId)
+            .maybeSingle();
+        if (verifyError) throw verifyError;
+        if (stillExists) throw new Error("Scheme still exists in database after delete. Check its RLS/foreign-key rules.");
+
+        if (document.getElementById("managedSchemeId").value === schemeId) resetManagedSchemeForm();
+        showSchemeManagerMessage("Scheme record deleted successfully. If another card has the same name, it is a separate duplicate record and can be deleted individually. Existing request snapshots were not changed.", "success");
+    } catch (error) {
+        console.error("[EGC Scheme Manager] Delete error:", error);
+        showSchemeManagerMessage("Unable to delete scheme: " + error.message, "error");
     }
 }
 
@@ -6812,118 +6910,69 @@ window.editAgencyPricing = async function(pricingId) {
 
 /* ================= SAVE SCHEME ASSIGNMENT ================= */
 
-async function savePricingSchemeAssignment(
-    pricingId,
-    schemeId,
-    ownerId
-) {
-
-    // Read current active assignments.
-
-    const { data: oldAssignments, error: readError } =
-        await supabaseClient
-            .from("agency_pricing_scheme_assignments")
-            .select("id, scheme_id")
-            .eq("pricing_id", pricingId)
-            .eq("is_active", true);
+async function savePricingSchemeAssignment(pricingId, schemeId, ownerId) {
+    // Reuse an existing assignment row where possible. This avoids duplicate
+    // active rows and the unique_active_pricing_scheme constraint.
+    const { data: assignments, error: readError } = await supabaseClient
+        .from("agency_pricing_scheme_assignments")
+        .select("id, scheme_id, is_active")
+        .eq("pricing_id", pricingId);
 
     if (readError) throw readError;
 
-    const oldIds = (oldAssignments || []).map(
-        item => item.id
-    );
+    const rows = assignments || [];
+    const matching = rows.find(row => String(row.scheme_id) === String(schemeId));
+    const activeRows = rows.filter(row => row.is_active === true);
 
-    // If same scheme is already assigned, do not create duplicates.
-
-    const sameAssignment = (oldAssignments || []).find(
-        item => String(item.scheme_id) === String(schemeId)
-    );
-
-    if (
-        sameAssignment &&
-        oldAssignments.length === 1
-    ) {
-
+    if (matching && matching.is_active === true && activeRows.length === 1) {
         return;
-
     }
 
-    // Stage the new assignment as inactive first.
+    const activeIds = activeRows.map(row => row.id);
 
-    const { data: newAssignment, error: insertError } =
-        await supabaseClient
+    // First deactivate current active row(s), then activate/reuse the target.
+    if (activeIds.length) {
+        const { error } = await supabaseClient
             .from("agency_pricing_scheme_assignments")
-            .insert({
-
-                pricing_id: pricingId,
-
-                scheme_id: schemeId,
-
-                is_active: false,
-
-                assigned_at: new Date().toISOString(),
-
-                assigned_by: ownerId
-
-            })
-            .select()
-            .single();
-
-    if (insertError) throw insertError;
+            .update({ is_active: false })
+            .in("id", activeIds);
+        if (error) throw error;
+    }
 
     try {
-
-        // Deactivate previous active assignments.
-
-        if (oldIds.length) {
-
-            const { error: deactivateError } =
-                await supabaseClient
-                    .from("agency_pricing_scheme_assignments")
-                    .update({
-                        is_active: false
-                    })
-                    .in("id", oldIds);
-
-            if (deactivateError) throw deactivateError;
-
-        }
-
-        // Activate the new assignment.
-
-        const { error: activateError } =
-            await supabaseClient
+        if (matching) {
+            const { error } = await supabaseClient
                 .from("agency_pricing_scheme_assignments")
                 .update({
-                    is_active: true
+                    is_active: true,
+                    assigned_at: new Date().toISOString(),
+                    assigned_by: ownerId
                 })
-                .eq("id", newAssignment.id);
-
-        if (activateError) throw activateError;
-
-    }
-
-    catch (error) {
-
-        // Attempt to restore previous active assignments.
-
-        if (oldIds.length) {
-
+                .eq("id", matching.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabaseClient
+                .from("agency_pricing_scheme_assignments")
+                .insert({
+                    pricing_id: pricingId,
+                    scheme_id: schemeId,
+                    is_active: true,
+                    assigned_at: new Date().toISOString(),
+                    assigned_by: ownerId
+                });
+            if (error) throw error;
+        }
+    } catch (error) {
+        // Restore previous active assignment(s) if the new assignment fails.
+        if (activeIds.length) {
             await supabaseClient
                 .from("agency_pricing_scheme_assignments")
-                .update({
-                    is_active: true
-                })
-                .in("id", oldIds);
-
+                .update({ is_active: true })
+                .in("id", activeIds);
         }
-
         throw error;
-
     }
-
 }
-
 
 /* ================= SAVE / UPDATE PRICING ================= */
 
