@@ -80,7 +80,12 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .search-input{flex:1;min-width:0}
 .status-filter{min-width:190px}
 .search-input:focus,.status-filter:focus{border-color:#8fc3ea;box-shadow:0 0 0 3px rgba(65,150,215,.08)}
+/* Main requests table: fixed-height viewport with internal scrolling */
 .table-wrap{width:100%;overflow-x:auto}
+.panel > .table-wrap{height:390px;min-height:390px;max-height:390px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.panel > .table-wrap thead th{position:sticky;top:0;z-index:5;background:#f7fafc}
+.panel > .table-wrap table{margin:0}
+@media(max-width:768px){.panel > .table-wrap{height:360px;min-height:360px;max-height:360px}}
 table{width:100%;border-collapse:collapse;min-width:2050px}
 th{background:#f7fafc;color:#71889a;font-size:10px;text-transform:uppercase;padding:13px 12px;text-align:left;white-space:nowrap}
 td{padding:12px;border-top:1px solid #edf2f6;color:#35566f;font-size:12px;vertical-align:middle;white-space:nowrap}
@@ -126,7 +131,13 @@ tbody tr:hover{background:#fbfdff}
 .history-section-head h3{font-size:14px;color:#06477f}
 .history-section-head p{font-size:11px;color:#8799a9;margin-top:4px}
 .history-count{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 9px;border-radius:10px;background:#eaf4ff;color:#0871c3;font-weight:800;font-size:12px}
-.history-table-wrap{overflow-x:auto;width:100%}
+/* Fixed-height payment and repayment history boxes: scroll inside each box */
+.history-section{height:390px;min-height:390px;max-height:390px;display:flex;flex-direction:column;overflow:hidden}
+.history-table-wrap{overflow:auto;width:100%;height:100%;min-height:0;max-height:none;flex:1 1 auto;overscroll-behavior:contain;scrollbar-width:thin}
+.history-table thead th{position:sticky;top:0;z-index:2;background:#f9fbfd}
+.history-table tbody tr:last-child td{border-bottom:0}
+.history-section-head{flex:0 0 auto}
+
 .history-table{width:100%;min-width:1120px;border-collapse:collapse}
 .history-table th{background:#f9fbfd;padding:12px;font-size:10px}
 .history-table td{padding:12px;border-top:1px solid #edf2f6;font-size:12px;white-space:normal;vertical-align:top}
@@ -277,6 +288,10 @@ background: #d9efff;
 .history-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .queue-intro{padding:13px}
 }
+@media(max-width:760px){
+.history-section{height:350px;min-height:350px;max-height:350px}
+.history-table{min-width:1050px}
+}
 @media(max-width:520px){
 .main{padding-left:10px;padding-right:10px}
 .stat-card{padding:12px}
@@ -293,6 +308,32 @@ background: #d9efff;
 .nav-btn{padding-top:9px;padding-bottom:9px;margin-bottom:2px}
 .sidebar-title{padding-bottom:7px}
 }
+
+/* EGC request category board: fixed-height independent scroll areas */
+.request-board{margin:16px 0 20px}
+.request-board-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.request-board-card{background:#fff;border:1px solid #dce8f3;border-radius:15px;padding:14px;min-width:0;min-height:0;height:245px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 5px 18px rgba(15,55,90,.05)}
+.request-board-card.recent{grid-column:1/-1;height:215px}
+.request-board-card h3{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;color:#06477f;font-size:15px}
+.request-board-card h3 span{background:#eaf4fc;border-radius:20px;padding:3px 10px;font-size:12px}
+.request-board-scroll{height:auto;max-height:none;min-height:0;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding-right:5px}
+.request-board-card.recent .request-board-scroll{height:auto;max-height:none;min-height:0;flex:1 1 auto}
+.request-board-item{padding:10px 11px;border:1px solid #e5edf5;border-radius:10px;margin-bottom:8px;background:#f9fcff;font-size:12px;color:#31516c;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+.request-board-item:hover,.request-board-item:focus{border-color:#0871c3;background:#f0f8ff;box-shadow:0 3px 12px rgba(8,113,195,.12);outline:none}
+.request-board-item.is-repayment-pending{border:1px solid #e7a000;border-left:5px solid #e7a000;background:#fffaf0}
+.request-board-item.is-repayment-pending .request-board-alert{background:#fff0c2;color:#925000}
+.request-board-item.is-repayment-approved{border:1px solid #16a36a;border-left:5px solid #16a36a;background:#f0fff7}
+.request-board-item.is-repayment-approved .request-board-alert{background:#d9f8e7;color:#087344}
+.request-board-item.is-repayment-rejected{border:1px solid #dc4b4b;border-left:5px solid #dc4b4b;background:#fff5f5}
+.request-board-item.is-repayment-rejected .request-board-alert{background:#ffe1e1;color:#a51f1f}
+.request-board-item:last-child{margin-bottom:0}
+.request-board-item strong{display:block;color:#07599e;font-size:13px;margin-bottom:4px}
+.request-board-meta{display:flex;flex-wrap:wrap;gap:5px 12px;line-height:1.5}
+.request-board-alert{margin-top:6px;padding:6px 8px;border-radius:7px;background:#fff4d6;color:#9a5700;font-weight:700}
+.request-board-empty{padding:18px 8px;text-align:center;color:#8799aa;font-size:12px}
+.request-row-highlight{outline:3px solid #f2b400!important;background:#fff9df!important;transition:background .2s}
+@media(max-width:850px){.request-board-grid{grid-template-columns:1fr}.request-board-card.recent{grid-column:auto}}
+
 </style>
 </head>
 
@@ -398,6 +439,16 @@ background: #d9efff;
                 <option value="cancelled">Cancelled</option>
             </select>
         </div>
+
+        <section class="request-board" id="requestBoard">
+            <div class="request-board-grid">
+                <article class="request-board-card recent"><h3>🕒 Recent Activity <span id="recentActivityCount">0</span></h3><div class="request-board-scroll" id="recentActivityList"></div></article>
+                <article class="request-board-card"><h3>⏳ Pending Requests <span id="pendingBoxCount">0</span></h3><div class="request-board-scroll" id="pendingRequestList"></div></article>
+                <article class="request-board-card"><h3>✅ Completed Requests <span id="completedBoxCount">0</span></h3><div class="request-board-scroll" id="completedRequestList"></div></article>
+                <article class="request-board-card"><h3>🏠 Domestic Cylinders <span id="domesticBoxCount">0</span></h3><div class="request-board-scroll" id="domesticRequestList"></div></article>
+                <article class="request-board-card"><h3>🏭 Commercial Cylinders <span id="commercialBoxCount">0</span></h3><div class="request-board-scroll" id="commercialRequestList"></div></article>
+            </div>
+        </section>
 
         <div class="table-wrap">
             <table>
@@ -1770,8 +1821,81 @@ function formatPaymentDateTime(value) {
    REQUEST TABLE
    ========================================================= */
 
+function renderRequestBoard() {
+    const sorted = sortRequestsByLatestActivity(requests);
+    const isCompleted = r => {
+        const status = String(r.status || '').toLowerCase();
+        const repayment = String(r.repayment_status || '').toLowerCase();
+        return ['completed','fully_paid','fully paid','paid','cleared'].includes(status) ||
+               ['completed','fully_paid','fully paid','cleared'].includes(repayment) ||
+               Number(r.remaining_amount) === 0 && Number(r.total_payable || r.total_amount || 0) > 0;
+    };
+    const isPending = r => !isCompleted(r) &&
+        (normalizeApproval(r.owner_approval) === 'pending' ||
+         String(r.status || '').toLowerCase() === 'pending');
+    const isCommercial = r => `${r.cylinder_type || ''} ${r.lpg_type || ''} ${r.cylinder_category || ''}`.toLowerCase().includes('commercial');
+    const isDomestic = r => !isCommercial(r);
+    const getRepaymentPayment = r => (r.payment_history || []).filter(p => {
+        const t = `${p.payment_type || ''} ${p.payment_for || ''} ${p.type || ''} ${p.description || ''}`.toLowerCase();
+        return t.includes('repayment') || t.includes('remaining');
+    }).sort((a,b) => new Date(b.created_at || b.submitted_at || b.updated_at || 0) - new Date(a.created_at || a.submitted_at || a.updated_at || 0))[0] || null;
+    const card = r => {
+        const repaymentPayment = getRepaymentPayment(r);
+        const stamp = getRequestLatestActivity(r);
+        const when = stamp ? formatDateTime(new Date(stamp).toISOString()) : formatDateTime(r.created_at);
+        const repayment = !!repaymentPayment;
+        const approvalRaw = String(repaymentPayment?.verification_status || repaymentPayment?.payment_status || 'pending').toLowerCase();
+        const repaymentState = ['approved','verified','success','successful','completed','paid'].includes(approvalRaw) ? 'approved' : ['rejected','declined','failed'].includes(approvalRaw) ? 'rejected' : 'pending';
+        const repaymentClass = repayment ? `is-repayment-${repaymentState}` : '';
+        const repaymentLabel = repaymentState === 'approved' ? 'Repayment APPROVED' : repaymentState === 'rejected' ? 'Repayment REJECTED' : 'NEW REPAYMENT · PENDING APPROVAL';
+        const cylinderType = r.cylinder_type || r.lpg_type || r.cylinder_category || (isCommercial(r) ? "Commercial" : "Domestic");
+        const cylinderWeightRaw = r.cylinder_weight || r.cylinder_weight_kg || r.weight || r.cylinder_size || "Weight not recorded";
+        const cylinderWeight = cylinderWeightRaw === "Weight not recorded" || String(cylinderWeightRaw).toLowerCase().includes("kg") ? cylinderWeightRaw : `${cylinderWeightRaw} KG`;
+        return `<div class="request-board-item ${repaymentClass}" role="button" tabindex="0" data-request-id="${escapeHtml(r.id)}" aria-label="Open request ${escapeHtml(r.request_number || r.id)}"><strong>${escapeHtml(r.request_number || r.id)} — ${escapeHtml(getUserName(r))}</strong><div class="request-board-meta"><span>📱 ${escapeHtml(getUserMobile(r))}</span><span>🏪 ${escapeHtml(getAgencyName(r))}</span><span>📍 ${escapeHtml(getCity(r))}</span><span>🕒 ${escapeHtml(when)}</span><span>🛢️ ${escapeHtml(cylinderType)}</span><span>⚖️ ${escapeHtml(cylinderWeight)}</span></div>${repayment?`<div class="request-board-alert">💰 ${repaymentLabel} — ${escapeHtml(formatMoney(repaymentPayment.payment_amount || repaymentPayment.amount || 0))}</div>`:''}<div style="margin-top:5px;color:#0871c3;font-weight:700">Click to view request details →</div></div>`;
+    };
+    const fill = (id, countId, rows) => {
+        const el = $(id); const count = $(countId);
+        if (count) count.textContent = rows.length;
+        if (el) el.innerHTML = rows.length ? rows.map(card).join('') : '<div class="request-board-empty">No records found</div>';
+    };
+    fill('recentActivityList','recentActivityCount',sorted.slice(0,12));
+    fill('pendingRequestList','pendingBoxCount',sorted.filter(isPending));
+    fill('completedRequestList','completedBoxCount',sorted.filter(isCompleted));
+    fill('domesticRequestList','domesticBoxCount',sorted.filter(isDomestic));
+    fill('commercialRequestList','commercialBoxCount',sorted.filter(isCommercial));
+}
+
+// Clicking any board card opens its matching row in the full request table.
+function openRequestFromBoard(requestId) {
+    const searchInput = $("searchInput");
+    const statusFilter = $("statusFilter");
+    if (searchInput) searchInput.value = "";
+    if (statusFilter) statusFilter.value = "";
+    renderRequests();
+    requestAnimationFrame(() => {
+        const row = document.getElementById(`request-row-${CSS.escape(String(requestId))}`);
+        if (!row) return;
+        row.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        row.classList.add("request-row-highlight");
+        setTimeout(() => row.classList.remove("request-row-highlight"), 2600);
+    });
+}
+
+document.addEventListener("click", event => {
+    const card = event.target.closest(".request-board-item[data-request-id]");
+    if (card) openRequestFromBoard(card.dataset.requestId);
+});
+document.addEventListener("keydown", event => {
+    const card = event.target.closest(".request-board-item[data-request-id]");
+    if (card && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        openRequestFromBoard(card.dataset.requestId);
+    }
+});
+
 function renderRequests() {
 
+    renderRequestBoard();
     if (!requestTableBody) return;
 
     const search = ($("searchInput")?.value || "")
@@ -1896,7 +2020,7 @@ function renderRequests() {
             requestDate && !Number.isNaN(requestDate.getTime());
 
         return `
-            <tr>
+            <tr id="request-row-${id}" data-request-row-id="${id}">
 
                 <td>
                     <div class="request-number">
